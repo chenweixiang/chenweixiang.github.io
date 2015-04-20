@@ -7,10 +7,18 @@ baseurl: "" # the subpath of your site, e.g. /blog/
 url: "http://chenweixiang.github.io" # the base hostname & protocol for your site
 twitter_username: Weixiang_Chen
 github_username: chenweixiang
-post_author: Chen Weixiang
 
 # Build settings
 markdown: kramdown
 
 # Highlight by Pygments
-highlighter: true
+highlighter: pygments
+
+# Default settings
+defaults:
+  -
+    scope:
+      path: "" # an empty string here means all files in the project
+      type: "posts"
+    values:
+      author: "Chen Weixiang"

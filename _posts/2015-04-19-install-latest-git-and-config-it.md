@@ -4,13 +4,13 @@ title:  "Git: Install latest version and configure it"
 date:   2015-04-19 23:05:00
 ---
 
-Git is used more and more popular in big company projects, and it also used in personal projects. It becomes more and more important in software developer's life. In this article, I'll give a short description of installing latest version of Git, and then the configure Git I used in work and personal projects will be posted.
+Git is used more and more popular in projects. It becomes more important in software developer's life. In this article, I'll give a short description of installing latest version of Git, and then configure Git to improve work efficiency.
 
 # Install latest version of Git
 
-If you have Git installed in system but not the latest version, you properly want to install latest version of Git to experience the latest feature of it. Here is it.
+If you have Git installed in system but not the latest version, you properly want to install latest version of Git to experience the new features of it.
 
-## Install needed library
+## Install needed packages
 
 	$ sudo apt-get update
 	$ sudo apt-get install libcurl4-openssl-dev
@@ -20,43 +20,46 @@ If you have Git installed in system but not the latest version, you properly wan
 	$ sudo apt-get install xmlto
 	$ sudo apt-get install docbook2x
 
-## Download git source code
+## Download Git source code
 
-By following command, you can download git source code from git official website:
+By following command, you can download Git source code to directory **~/git** from its official website:
 
-	$ git clone git://git.kernel.org/pub/scm/git/git.git
+	~ $ git clone git://git.kernel.org/pub/scm/git/git.git
 
-or, from github repository
+or, from github repository:
 
-	$ git clone http://github.com/git/git
+	~ $ git clone https://github.com/git/git.git
 
-to directory ~/git
+## Build and install Git
 
-## Build and install git
+First, check version of installed Git by command:
 
-First, check old installed version by command:
+	~/git $ git --version
 
-	$ git --version
+Then, check out specific tag of Git source code:
 
-Then, check out specific tag of git source code:
-	$ git checkout master
-	$ git pull
-	$ git tag -l | tail
-	$ git checkout <latest-tag>
+	~/git $ git checkout master
+	~/git $ git pull
+	~/git $ git tag -l | tail
+	  v2.3.3
+	  v2.3.4
+	  v2.3.5
+	  v2.4.0-rc0
+	~/git $ git checkout v2.3.5
 
-It's time to build and install git (including doc, html, info):
+Now, it's time to build and install Git (including doc, html and info):
 
-	$ make prefix=/usr all doc info
-	$ sudo make prefix=/usr install install-doc install-html install-info
+	~/git $ make prefix=/usr all doc info
+	~/git $ sudo make prefix=/usr install install-doc install-html install-info
 
-The latest version of Git will be installed:
+The latest version of Git is installed:
 
-	$ git --version
+	~/git $ git --version
 
 Remember to clean-up the Git source directory:
 
-	$ make distclean
-	$ git checkout master
+	~/git $ make distclean
+	~/git $ git checkout master
 
 # Git Configure
 

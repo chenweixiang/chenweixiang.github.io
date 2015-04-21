@@ -113,6 +113,9 @@ The following Git configuration used in my work and personal projects improves w
 	
 	# List Tag. => Usage: git lt <commmit-id>
 	git config --global alias.lt 'tag --points-at'
+
+	# List Branch which contains specific Tag or commit. => Usage: git lbt <tag-or-commit-id>
+	git config --global alias.lbt 'branch -a --contain'
 	
 	#git config --global alias.stash-unapply '!git stash show -p | git apply -R'
 

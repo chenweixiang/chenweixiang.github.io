@@ -99,6 +99,12 @@ The following Git configuration used in my work and personal projects improves w
 	# Log commit History with Graphical. => Usage: git lhg
 	git config --global alias.lhg "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --graph --topo-order --decorate"
 	
+	# List commit History of First Parent. => Usage: git lhfp
+	git config --global alias.lhfp "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --first-parent"
+	
+	# Log commit History of First Parent with Graphical. => Usage: git lhgfp
+	git config --global alias.lhgfp "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --graph --topo-order --decorate --first-parent"	
+	
 	# List Commit. => Usage: git lc <commmit-id>
 	git config --global alias.lc "log --stat -1 -c --decorate --pretty=fuller"
 	
@@ -117,6 +123,9 @@ The following Git configuration used in my work and personal projects improves w
 	# List Branch which contains specific Tag or commit. => Usage: git lbt <tag-or-commit-id>
 	git config --global alias.lbt 'branch -a --contain'
 	
+	# List Merge Bases for the specified commits, tags, or branches. => Usage: git lmb {<branch-1> | <tag-1> | <commit-1>} {<branch-2> | <tag-2> | <commit-2>}
+	git config --global alias.lmb 'show-branch --merge-base'
+		
 	#git config --global alias.stash-unapply '!git stash show -p | git apply -R'
 
 	# set difftool / mergetool to Beyond Compare 3

@@ -125,8 +125,11 @@ The following Git configuration used in my work and personal projects improves w
 	
 	# List Merge Bases for the specified commits, tags, or branches. => Usage: git lmb {<branch-1> | <tag-1> | <commit-1>} {<branch-2> | <tag-2> | <commit-2>}
 	git config --global alias.lmb 'show-branch --merge-base'
-		
-	#git config --global alias.stash-unapply '!git stash show -p | git apply -R'
+	
+	#git config --global alias.unstash '!git stash show -p | git apply -R'
+	
+	# Clear all modifications in working directory (BE CAREFULL). => usage: git unstage
+	git config --global alias.unstage 'reset HEAD --'
 
 	# set difftool / mergetool to Beyond Compare 3
 	git config --global diff.tool bc3

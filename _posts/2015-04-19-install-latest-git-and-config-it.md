@@ -117,20 +117,32 @@ The following Git configuration used in my work and personal projects improves w
 	# Diff Two Commits. => Usage: git dtc <commmit-id1> <commmit-id2>
 	git config --global alias.dtc "diff --no-prefix"
 	
+	# Diff Two Commits with Statistics. => Usage: git dtcs <commmit-id1> <commmit-id2>
+	git config --global alias.dtcs "diff --no-prefix --shortstat"
+	
 	# List Tag. => Usage: git lt <commmit-id>
 	git config --global alias.lt 'tag --points-at'
-
+	
 	# List Branch which contains specific Tag or commit. => Usage: git lbt <tag-or-commit-id>
 	git config --global alias.lbt 'branch -a --contain'
 	
 	# List Merge Bases for the specified commits, tags, or branches. => Usage: git lmb {<branch-1> | <tag-1> | <commit-1>} {<branch-2> | <tag-2> | <commit-2>}
 	git config --global alias.lmb 'show-branch --merge-base'
 	
+	# Grep commit Log. => Usage: git gl <keyword> [-- <files>]
+	git config --global alias.gl "log --all --stat --grep"
+	
+	# Print Lines matching a pattern. => Usage: git pl <keyword> [-- <files>]
+	git config --global alias.pl "grep --full-name -n --heading --break -p"
+	
+	# Print Lines matching a pattern (Ignore case). => Usage: git pl <keyword> [-- <files>]
+	git config --global alias.pli "grep --full-name -n --heading --break -p -i"
+	
 	#git config --global alias.unstash '!git stash show -p | git apply -R'
 	
 	# Clear all modifications in working directory (BE CAREFULL). => usage: git unstage
 	git config --global alias.unstage 'reset HEAD --'
-
+	
 	# set difftool / mergetool to Beyond Compare 3
 	git config --global diff.tool bc3
 	git config --global difftool.bc3.trustexitcode true

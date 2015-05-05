@@ -123,6 +123,8 @@ The following Git configuration used in my work and personal projects improves w
 	# List Tag. => Usage: git lt <commmit-id>
 	git config --global alias.lt 'tag --points-at'
 	
+	# List closest Tagname on first parent. => Usage: git llt
+	git config --global alias.llt 'describ --abbrev=0 --tags --first-parent HEAD'
 	# List Branch which contains specific Tag or commit. => Usage: git lbt <tag-or-commit-id>
 	git config --global alias.lbt 'branch -a --contain'
 	
@@ -138,6 +140,12 @@ The following Git configuration used in my work and personal projects improves w
 	# Print Lines matching a pattern (Ignore case). => Usage: git pl <keyword> [-- <files>]
 	git config --global alias.pli "grep --full-name -n --heading --break -p -i"
 	
+	# List Untracked ALL directories and files from working tree. => Usage: git luall
+	git config --global alias.luall "clean -d -n"
+	
+	# Remove ALL untracked directories and files from working tree. => Usage: git rmall
+	git config --global alias.rmall "clean -d -f -X"
+	
 	#git config --global alias.unstash '!git stash show -p | git apply -R'
 	
 	# Clear all modifications in working directory (BE CAREFULL). => usage: git unstage
@@ -151,4 +159,16 @@ The following Git configuration used in my work and personal projects improves w
 	git config --global mergetool.prompt false
 	git config --global mergetool.keepbackup false
 	git config --global mergetool.bc3.trustexitcode true
+
+The following command shows the remotes:
+
+	$ git remote -v
+
+Then, use the following command to show detail information of specific remote:
+
+	$ git remote show <remote>
+
+And, the following command shows summarize of 'git log' output:
+
+	$ git shortlog
 

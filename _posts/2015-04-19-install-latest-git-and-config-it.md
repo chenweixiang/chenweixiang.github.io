@@ -146,6 +146,9 @@ The following Git configuration used in my work and personal projects improves w
 	# Remove ALL untracked directories and files from working tree. => Usage: git rmall
 	git config --global alias.rmall "clean -d -f -X"
 	
+	# List References in a local repository. => Usage: git lf
+	git config --global alias.lr "show-ref --head --heads --tags -d"
+	
 	#git config --global alias.unstash '!git stash show -p | git apply -R'
 	
 	# Clear all modifications in working directory (BE CAREFULL). => usage: git unstage

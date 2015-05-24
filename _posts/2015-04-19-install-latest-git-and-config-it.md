@@ -124,7 +124,7 @@ The following Git configuration used in my work and personal projects improves w
 	git config --global alias.lt 'tag --points-at'
 	
 	# List closest Tagname on first parent. => Usage: git llt
-	git config --global alias.llt 'describ --abbrev=0 --tags --first-parent HEAD'
+	git config --global alias.llt 'describe --abbrev=0 --tags --first-parent HEAD'
 	# List Branch which contains specific Tag or commit. => Usage: git lbt <tag-or-commit-id>
 	git config --global alias.lbt 'branch -a --contain'
 	

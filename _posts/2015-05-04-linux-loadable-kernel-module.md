@@ -1,8 +1,12 @@
 ---
 layout: post
-title:  "Linux Loadable Kernel Module (LKM)"
-date:   2015-05-03 15:28:00
+title: "Linux Loadable Kernel Module (LKM)"
+tags: Linux kernel
 ---
+
+This article introduces the Linux Loadable Kernel Module (LKM).
+
+<!--more-->
 
 # Brief Introduction to LKM
 
@@ -16,11 +20,11 @@ Here is source code of helloworld.c:
 
 	#include <linux/module.h>
 	#include <linux/init.h>
-	
-	MODULE_LICENSE("GPL"); 
+
+	MODULE_LICENSE("GPL");
 	MODULE_AUTHOR("Chen Weixiang");
 	MODULE_DESCRIPTION("A Hello Module");
-	
+
 	int isSayHello = 0;
 	static int sayHello()
 	{
@@ -37,12 +41,12 @@ Here is source code of helloworld.c:
 		sayHello();
 		return 0;
 	}
-	
+
 	static void __exit hello_exit(void)
 	{
 	    printk("Hello module exit\n");
 	}
-	
+
 	module_init(hello_init);
 	module_exit(hello_exit);
 
@@ -56,7 +60,7 @@ Here is the corresponding makefile for building helloworld.c on kernels > 2.4:
 	#   make o="<multiple source file names with or without extension>"
 	#
 	objects := $(addsuffix .o,$(basename $(strip $(o))))
-	
+
 	ifneq ($(filter-out clean, $(MAKECMDGOALS)),)
 	  ifeq ($(objects),)
 	    $(error No object to be compiled)
@@ -64,20 +68,20 @@ Here is the corresponding makefile for building helloworld.c on kernels > 2.4:
 	    $(warning Compiling $(objects))
 	  endif
 	endif
-	
+
 	obj-m := $(objects)
-	
+
 	# 'uname -r' print kernel release
 	KDIR := /lib/modules/$(shell uname -r)/build
 	PWD := $(shell pwd)
-	
+
 	# enable macor DEBUG in order to use pr_debug()
 	ccflags-y += -DDEBUG
-	
+
 	# targets
 	all:
 		make -C $(KDIR) M=$(PWD) modules
-	
+
 	clean:
 		make -C $(KDIR) M=$(PWD) clean
 
@@ -105,7 +109,7 @@ to build helloworld. In the following list, **helloworld.ko** is the built exter
 
 ## How to insert / remove module
 
-If you want to 
+If you want to
 
 # Macros used in LKM
 

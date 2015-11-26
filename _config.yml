@@ -1,5 +1,5 @@
 # Site settings
-title: Alex's Blog
+title: ALEX's BLOG
 email: weixiang.chen@outlook.com
 description: > # this means to ignore newlines until "baseurl:"
   Record my learning process!
@@ -8,11 +8,20 @@ url: "http://chenweixiang.github.io" # the base hostname & protocol for your sit
 twitter_username: Weixiang_Chen
 github_username: chenweixiang
 
+# Include Gems
+gems: [jekyll-paginate]
+
 # Build settings
 markdown: kramdown
 
 # Highlight by Pygments
-highlighter: pygments
+highlighter: rough # pygments
+
+# Post excerpts
+excerpt_separator: <!--more-->
+
+# Enable Pagination: Items should be displayed per page
+paginate: 25
 
 # Default settings
 defaults:
@@ -22,3 +31,27 @@ defaults:
       type: "posts"
     values:
       author: "Chen Weixiang"
+
+# Markdown Processors
+rdiscount:
+  extensions: []
+
+redcarpet:
+  extensions: []
+
+kramdown:
+  input: GFM
+  auto_ids:       true
+  footnote_nr:    1
+  entity_output:  as_char
+  toc_levels:     1..6
+  smart_quotes:   lsquo,rsquo,ldquo,rdquo
+  enable_coderay: false
+
+  coderay:
+    coderay_wrap:              div
+    coderay_line_numbers:      inline
+    coderay_line_number_start: 1
+    coderay_tab_width:         4
+    coderay_bold_every:        10
+    coderay_css:               style

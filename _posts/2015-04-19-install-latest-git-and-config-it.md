@@ -1,10 +1,12 @@
 ---
 layout: post
 title:  "Git: Install latest version and configure it"
-date:   2015-04-19 23:05:00
+tags: Git, SVN, Linux
 ---
 
 Git is used more and more popular in projects. It becomes more important in software developer's life. In this article, I'll give a short description of installing latest version of Git, and then configure Git to improve work efficiency.
+
+<!--more-->
 
 # Install latest version of Git
 

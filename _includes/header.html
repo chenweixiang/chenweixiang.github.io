@@ -14,9 +14,17 @@
       </a>
 
       <div class="trigger">
+        <!-- Headers except ABOUT -->
         {% for page in site.pages %}
-          {% if page.title %}
-          <a class="page-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
+          {% if page.title != "ABOUT" %}
+            <a class="page-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
+          {% endif %}
+        {% endfor %}
+
+        <!-- Put ABOUT to the righest one -->
+        {% for page in site.pages %}
+          {% if page.title == "ABOUT" %}
+            <a class="page-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
           {% endif %}
         {% endfor %}
       </div>

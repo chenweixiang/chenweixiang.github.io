@@ -21,7 +21,8 @@ highlighter: rough # pygments
 excerpt_separator: <!--more-->
 
 # Enable Pagination: Items should be displayed per page
-paginate: 25
+paginate: 20
+paginate_path: "page:num"
 
 # Default settings
 defaults:

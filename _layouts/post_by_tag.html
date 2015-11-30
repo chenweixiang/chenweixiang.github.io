@@ -1,0 +1,18 @@
+---
+layout: default
+---
+
+<div>
+    {% for tag in site.tags %}
+        <h1>{{ tag[0] }}</h1>
+        {% assign onetag = tag[0] %}
+        {% if site.tags[onetag] %}
+            {% for post in site.tags[onetag] %}
+                <!-- <p><a href="{{ post.url }}/">{{ post.title }}</a></p> -->
+                {% include post_list_item.html %}
+            {% endfor %}
+        {% else %}
+            <p>There are no posts for this tag.</p>
+        {% endif %}
+    {% endfor %}
+</div>

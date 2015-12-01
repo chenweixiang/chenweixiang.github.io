@@ -2,6 +2,7 @@
 layout: post
 title: "Linux Loadable Kernel Module (LKM)"
 tag: Linux kernel
+toc: true
 ---
 
 This article introduces the Linux Loadable Kernel Module (LKM).

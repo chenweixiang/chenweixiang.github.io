@@ -12,7 +12,7 @@ github_username: chenweixiang
 gems: [jekyll-paginate]
 
 # Build settings
-markdown: kramdown
+markdown: redcarpet
 
 # Highlight by Pygments
 highlighter: rough # pygments
@@ -38,7 +38,7 @@ rdiscount:
   extensions: []
 
 redcarpet:
-  extensions: []
+  extensions: [with_toc_data]
 
 kramdown:
   input: GFM

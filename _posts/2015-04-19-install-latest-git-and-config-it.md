@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Git: Install latest version and configure it"
-tags: [Git, SVN, Linux]
+tags: [Git, Linux]
 toc: true
 ---
 
@@ -71,13 +71,13 @@ The following Git configuration used in my work and personal projects improves w
 	# set user name and email address
 	git config --global user.name "Chen Weixiang"
 	git config --global user.email "weixiangx.chen@outlook.com"
-	
+
 	# enable auto-correct function for mistype commands
 	#git config --global help.autocorrect 1
 
 	# abbreviate commit hashes to 12 characters
 	git config --global core.abbrev 12
-	
+
 	# set highlight for terminal
 	git config --global color.ui true
 	git config --global color.status auto
@@ -86,7 +86,7 @@ The following Git configuration used in my work and personal projects improves w
 	git config --global color.diff auto
 	git config --global color.grep auto
 	git config --global color.interactive auto
-	
+
 	# abbreviation
 	git config --global alias.br branch
 	git config --global alias.co checkout
@@ -95,72 +95,72 @@ The following Git configuration used in my work and personal projects improves w
 	git config --global alias.dt difftool
 	git config --global alias.mt mergetool
 	git config --global alias.desc 'describe'
-	
+
 	# List commit History. => Usage: git lh
 	git config --global alias.lh "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s'"
-	
+
 	# Log commit History with Graphical. => Usage: git lhg
 	git config --global alias.lhg "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --graph --topo-order --decorate"
-	
+
 	# List commit History of First Parent. => Usage: git lhfp
 	git config --global alias.lhfp "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --first-parent"
-	
+
 	# Log commit History of First Parent with Graphical. => Usage: git lhgfp
-	git config --global alias.lhgfp "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --graph --topo-order --decorate --first-parent"	
-	
+	git config --global alias.lhgfp "log --date=short --pretty=format:'%Cgreen%h %Cred%ad %Cblue%cn %Cred%d %Creset%s' --graph --topo-order --decorate --first-parent"
+
 	# List Commit. => Usage: git lc <commmit-id>
 	git config --global alias.lc "log --stat -1 -c --decorate --pretty=fuller"
-	
+
 	# List Commit with Patch format. => Usage: git lcp <commmit-id>
 	git config --global alias.lcp "log --no-prefix -1 -p --decorate --pretty=fuller"
-	
+
 	# List Commit with Detail information. => Usage: git lcd <commmit-id>
 	git config --global alias.lcd "cat-file -p"
-	
+
 	# Diff Two Commits. => Usage: git dtc <commmit-id1> <commmit-id2>
 	git config --global alias.dtc "diff --no-prefix"
-	
+
 	# Diff Two Commits with Statistics. => Usage: git dtcs <commmit-id1> <commmit-id2>
 	git config --global alias.dtcs "diff --no-prefix --shortstat"
-	
+
 	# List Tag. => Usage: git lt <commmit-id>
 	git config --global alias.lt 'tag --points-at'
-	
+
 	# List closest Tagname on first parent. => Usage: git llt
 	git config --global alias.llt 'describe --abbrev=0 --tags --first-parent HEAD'
 	# List Branch which contains specific Tag or commit. => Usage: git lbt <tag-or-commit-id>
 	git config --global alias.lbt 'branch -a --contain'
-	
+
 	# List Merge Bases for the specified commits, tags, or branches. => Usage: git lmb {<branch-1> | <tag-1> | <commit-1>} {<branch-2> | <tag-2> | <commit-2>}
 	git config --global alias.lmb 'show-branch --merge-base'
-	
+
 	# Grep commit Log. => Usage: git gl <keyword> [-- <files>]
 	git config --global alias.gl "log --all --stat --grep"
-	
+
 	# Print Lines matching a pattern. => Usage: git pl <keyword> [-- <files>]
 	git config --global alias.pl "grep --full-name -n --heading --break -p"
-	
+
 	# Print Lines matching a pattern (Ignore case). => Usage: git pl <keyword> [-- <files>]
 	git config --global alias.pli "grep --full-name -n --heading --break -p -i"
-	
+
 	# List Untracked ALL directories and files from working tree. => Usage: git luall
 	git config --global alias.luall "clean -d -n"
-	
+
 	# Remove ALL untracked directories and files from working tree. => Usage: git rmall
 	git config --global alias.rmall "clean -d -f -X"
-	
+
 	# List References in a local repository. => Usage: git lf
 	git config --global alias.lr "show-ref --head --heads --tags -d"
-	
+
 	#git config --global alias.unstash '!git stash show -p | git apply -R'
-	
+
 	# Clear all modifications in working directory (BE CAREFULL). => usage: git unstage
 	git config --global alias.unstage 'reset HEAD --'
-	
+
 	# set difftool / mergetool to Beyond Compare 3
 	git config --global diff.tool bc3
 	git config --global difftool.bc3.trustexitcode true
-	
+
 	git config --global merge.tool bc3
 	git config --global mergetool.prompt false
 	git config --global mergetool.keepbackup false
@@ -177,4 +177,3 @@ Then, use the following command to show detail information of specific remote:
 And, the following command shows summarize of 'git log' output:
 
 	$ git shortlog
-

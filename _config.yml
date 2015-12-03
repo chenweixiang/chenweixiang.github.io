@@ -15,7 +15,7 @@ gems: [jekyll-paginate]
 markdown: redcarpet
 
 # Highlight by Pygments
-highlighter: rough # pygments
+highlighter: pygments
 
 # Post excerpts
 excerpt_separator: <!--more-->

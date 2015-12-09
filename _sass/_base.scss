@@ -17,7 +17,7 @@ body {
     font-family: $base-font-family;
     font-size: $base-font-size;
     line-height: $base-line-height;
-    font-weight: 300;
+    font-weight: normal;
     color: $text-color;
     background-color: $background-color;
     -webkit-text-size-adjust: 100%;
@@ -81,7 +81,7 @@ li {
  */
 h1, h2, h3, h4, h5, h6 {
     font-family: $head-font-family;
-    font-weight: 300;
+    font-weight: 15px;
 }
 
 

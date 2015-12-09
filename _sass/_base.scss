@@ -82,6 +82,8 @@ li {
 h1, h2, h3, h4, h5, h6 {
     font-family: $head-font-family;
     font-weight: 15px;
+    margin-top: $spacing-unit;
+    margin-bottom: $spacing-unit / 2;
 }
 
 

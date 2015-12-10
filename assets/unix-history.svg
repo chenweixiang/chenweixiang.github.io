@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  version="1.0" width="1031.9805" height="1706.7371" id="svg1923">
+  <defs id="defs1926">
+    <linearGradient id="linearGradient6707">
+      <stop style="stop-color: rgb(224, 248, 250); stop-opacity: 1;" offset="0" id="stop7666"/>
+      <stop style="stop-color: white; stop-opacity: 1;" offset="0.5" id="stop7672"/>
+      <stop style="stop-color: white; stop-opacity: 1;" offset="0.5" id="stop7670"/>
+      <stop style="stop-color: rgb(224, 248, 250); stop-opacity: 1;" offset="1" id="stop7662"/>
+    </linearGradient>
+    <marker id="Arrow2Lend" refX="0" refY="0" orient="auto" style="overflow:visible"><path d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.97309,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z" transform="matrix(-1.1,0,0,-1.1,-1.1,0)" id="path3564" style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"/></marker>
+    <marker id="Arrow2Mend" refX="0" refY="0" orient="auto" style="overflow:visible"><path d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.97309,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z" transform="scale(-0.6,-0.6)"             id="path3227" style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round" /></marker>
+    <marker id="Arrow2Send" refX="0" refY="0" orient="auto" style="overflow:visible"><path d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.97309,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z" transform="matrix(-0.3,0,0,-0.3,0.69,0)" id="path3233" style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round" /></marker>
+    <marker id="DotL" refX="0" refY="0" orient="auto" style="overflow:visible"><path d="M -2.50000,-1 C -2.50000,1.76 -4.74,4 -7.50000,4 C -10.26,4 -12.50000,1.76 -12.50000,-1 C -12.50000,-3.76 -10.26,-6 -7.50000,-6 C -4.74,-6 -2.50000,-3.76 -2.50000,-1 z" transform="matrix(0.8,0,0,0.8,5.92,0.8)" id="path3262" style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;marker-start:none;marker-end:none" /></marker>
+    <marker id="DotM" refX="0" refY="0" orient="auto" style="overflow:visible"><path d="M -2.50000,-1 C -2.50000,1.76 -4.74,4 -7.50000,4 C -10.26,4 -12.50000,1.76 -12.50000,-1 C -12.50000,-3.76 -10.26,-6 -7.50000,-6 C -4.74,-6 -2.50000,-3.76 -2.50000,-1 z" transform="matrix(0.4,0,0,0.4,2.96,0.4)" id="path3265" style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;marker-start:none;marker-end:none" /></marker>
+    <marker id="DotS" refX="0" refY="0" orient="auto" style="overflow:visible"><path d="M -2.50000,-1 C -2.50000,1.76 -4.74,4 -7.50000,4 C -10.26,4 -12.50000,1.76 -12.50000,-1 C -12.50000,-3.76 -10.26,-6 -7.50000,-6 C -4.74,-6 -2.50000,-3.76 -2.50000,-1 z" transform="matrix(0.2,0,0,0.2,1.48,0.2)" id="path3268" style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;marker-start:none;marker-end:none" /></marker>
+    <linearGradient x1="14.645733" y1="5382.3389" x2="6444.1221" y2="5382.3389" id="linearGradient7648" xlink:href="#linearGradient6707" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.158766, 0, 0, 0.158766, -4.57189e-07, -0.000135441)" spreadMethod="reflect"/>
+  </defs>
+  <g transform="translate(0, 0.000160217)" style="display: inline;" id="layer6">
+    <rect width="1031.9805" height="1706.7369" x="-2.220446e-016" y="-0.00016021729" style="opacity: 1; fill: url(#linearGradient7648) rgb(0, 0, 0); fill-opacity: 1; stroke: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 1;" id="rect7640"/>
+  </g>
+  <g transform="translate(0, 0.000160217)" style="display: inline;" id="layer5">
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="87.782394" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3735"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="0.3175527" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3782"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="175.24709" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3784"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="262.71191" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3786"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="350.17670" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3788"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="437.64145" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3790"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="525.10632" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3792"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="612.57104" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3794"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="700.03577" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3796"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="787.50055" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3798"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="874.96527" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3800"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="962.43005" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3802"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1049.8948" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3804"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1137.3596" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3806"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1224.8245" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3808"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1312.2893" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3810"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1574.6835" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3812"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1487.2190" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3814"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1399.7542" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3816"/>
+    <rect width="1031.3455" height="44.271049" x="0.31753251" y="1662.1483" style="opacity: 0.97; fill: white; fill-opacity: 1; stroke: black; stroke-width: 0.635065; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 0.196078; display: inline;" id="rect3820"/>
+  </g>
+  <g transform="translate(0, 0.000160217)" style="opacity: 1; fill: rgb(117, 117, 117); fill-opacity: 1; display: inline;" id="layer4">
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="102.45550" y="10.072021" id="rect3822"/>
+    <rect width="48.284492" height="21.479645" rx="6.1544218" ry="5.6035156" x="596.34680" y="403.40628" id="rect3824"/>
+    <rect width="65.751175" height="21.479645" rx="6.1544218" ry="5.6035156" x="450.43176" y="447.19684" id="rect3826"/>
+    <rect width="65.751160" height="21.479645" rx="6.1544218" ry="5.6035156" x="742.78796" y="491.71570" id="rect3828"/>
+    <rect width="57.397537" height="21.479645" rx="6.1544218" ry="5.6035156" x="591.79028" y="535.05762" id="rect3830"/>
+    <rect width="100.68448" height="21.479645" rx="6.1544218" ry="5.6035156" x="84.930962" y="578.77264" id="rect3832"/>
+    <rect width="60.435219" height="21.479645" rx="6.1544218" ry="5.6035156" x="590.27142" y="578.77264" id="rect3834"/>
+    <rect width="99.165634" height="21.479645" rx="6.1544218" ry="5.6035156" x="85.690369" y="623.70612" id="rect3836"/>
+    <rect width="46.006237" height="21.479645" rx="6.1544218" ry="5.6035156" x="936.10559" y="623.70612" id="rect3838"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="98.220810" y="229.48647" id="rect3840"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="52.765728" y="99.035217" id="rect3842"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="52.765728" y="144.08148" id="rect3844"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="52.765728" y="186.76985" id="rect3846"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="244.96275" y="186.76985" id="rect3848"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="244.96275" y="229.48647" id="rect3850"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="244.96275" y="274.83640" id="rect3852"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="244.96275" y="447.19684" id="rect3854"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="398.57028" y="712.03162" id="rect3856"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="398.57028" y="757.09857" id="rect3858"/>
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="397.93524" y="887.40820" id="rect3860"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="678.80896" y="578.77264" id="rect3862"/>
+    <rect width="56.638119" height="21.479645" rx="6.1544218" ry="5.6035156" x="592.16998" y="757.09857" id="rect3864"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="678.80896" y="798.10950" id="rect3866"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="812.72388" y="798.10950" id="rect3868"/>
+    <rect width="147.76852" height="21.479645" rx="6.1544218" ry="5.6035156" x="61.388935" y="840.35358" id="rect3870"/>
+    <rect width="86.255478" height="21.479645" rx="6.1544218" ry="5.6035156" x="576.72626" y="843.21136" id="rect3872"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="582.80157" y="931.07751" id="rect3874"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="133.28459" y="973.69604" id="rect3876"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="264.75543" y="973.69604" id="rect3878"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="864.34174" y="973.06097" id="rect3880"/>
+    <rect width="83.977242" height="21.479645" rx="6.1544218" ry="5.6035156" x="60.981621" y="1016.8172" id="rect3882"/>
+    <rect width="88.533752" height="21.479645" rx="6.1544218" ry="5.6035156" x="206.36029" y="1016.8172" id="rect3884"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="305.08490" y="1016.8172" id="rect3886"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="396.97473" y="1016.8172" id="rect3888"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="922.05634" y="1021.5801" id="rect3890"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="461.25009" y="1061.7666" id="rect3892"/>
+    <rect width="79.420715" height="21.479645" rx="6.1544218" ry="5.6035156" x="210.68193" y="1061.7666" id="rect3894"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="461.25009" y="1105.5636" id="rect3896"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="329.34030" y="1105.5636" id="rect3898"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="582.80157" y="1105.5636" id="rect3900"/>
+    <rect width="84.736649" height="21.479645" rx="6.1544218" ry="5.6035156" x="673.49304" y="1105.5636" id="rect3902"/>
+    <rect width="134.85837" height="21.479645" rx="6.1544218" ry="5.6035156" x="552.42480" y="1150.1139" id="rect3904"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="213.33990" y="1150.1139" id="rect3906"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="461.25009" y="1150.1139" id="rect3908"/>
+    <rect width="82.458397" height="21.479645" rx="6.1544218" ry="5.6035156" x="329.48602" y="1192.7913" id="rect3910"/>
+    <rect width="116.63229" height="21.479645" rx="6.1544218" ry="5.6035156" x="717.34735" y="1192.7913" id="rect3912"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="461.25009" y="1279.4670" id="rect3914"/>
+    <rect width="81.698975" height="21.479645" rx="6.1544218" ry="5.6035156" x="329.86572" y="1279.4670" id="rect3916"/>
+    <rect width="78.661301" height="21.479645" rx="6.1544218" ry="5.6035156" x="211.06165" y="1279.4670" id="rect3918"/>
+    <rect width="118.15115" height="21.479645" rx="6.1544218" ry="5.6035156" x="716.58795" y="1367.9313" id="rect3920"/>
+    <rect width="94.609131" height="21.479645" rx="6.1544218" ry="5.6035156" x="57.201042" y="1543.2561" id="rect3922"/>
+    <rect width="130.30183" height="21.479645" rx="6.1544218" ry="5.6035156" x="615.38000" y="1543.2561" id="rect3924"/>
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="132.77054" y="1587.5289" id="rect3926"/>
+    <rect width="77.142456" height="21.479645" rx="6.1544218" ry="5.6035156" x="462.90659" y="1587.5289" id="rect3928"/>
+    <rect width="84.736649" height="21.479645" rx="6.1544218" ry="5.6035156" x="328.34686" y="1630.0654" id="rect3930"/>
+    <rect width="80.939552" height="21.479645" rx="6.1544218" ry="5.6035156" x="209.92252" y="1630.0654" id="rect3932"/>
+    <rect width="77.901878" height="21.479645" rx="6.1544218" ry="5.6035156" x="810.82532" y="1630.0654" id="rect3934"/>
+    <rect width="112.07579" height="21.479645" rx="6.1544218" ry="5.6035156" x="903.07086" y="1630.0654" id="rect3936"/>
+    <rect width="48.284492" height="21.479645" rx="6.1544218" ry="5.6035156" x="596.34680" y="447.19684" id="rect3938"/>
+    <rect width="48.284492" height="21.479645" rx="6.1544218" ry="5.6035156" x="596.34680" y="491.71570" id="rect3940"/>
+  </g>
+  <g transform="translate(0, 0.000160217)" style="opacity: 1; stroke: black; stroke-width: 0.635064;stroke-linejoin: miter; stroke-miterlimit: 4; stroke-dasharray: none; stroke-opacity: 1; display: inline; marker-start: url(#DotL); marker-end: url(#Arrow2Lend);" id="layer2">
+    <path d="M 137.59375,029.96875 L 137.59375,097.43750" id="path3410"/>
+    <path d="M 137.59375,118.93750 L 137.59375,142.50000" id="path3599"/>
+    <path d="M 137.59375,163.96875 L 137.59375,185.18750" id="path3601"/>
+    <path d="M 224.65625,196.25000 L 243.37500,196.25000" id="path3603"/>
+    <path d="M 280.65625,206.34375 L 170.65625,230.28125" id="path3605"/>
+    <path d="M 329.81250,206.65625 L 329.81250,227.90625" id="path3607"/>
+    <path d="M 329.81250,249.37500 L 329.81250,273.25000" id="path3609"/>
+    <path d="M 354.12500,295.03125 L 594.93750,402.12500" id="path3611"/>
+    <path d="M 329.81250,294.71875 L 329.81250,445.59375" id="path3613"/>
+    <path d="M 618.90625,423.31250 L 618.90625,445.59375" id="path3615"/>
+    <path d="M 618.90625,467.09375 L 618.90625,490.12500" id="path3617"/>
+    <path d="M 133.37500,249.37500 L 133.37500,577.18750" id="path3621"/>
+    <path d="M 482.12500,467.09375 L 482.12500,710.43750" id="path3623"/>
+    <path d="M 514.50000,466.68750 L 595.18750,492.75000" id="path3627"/>
+    <path d="M 618.90625,511.59375 L 618.90625,533.46875" id="path3629"/>
+    <path d="M 618.90625,554.93750 L 618.90625,577.18750" id="path3631"/>
+    <path d="M 134.00000,598.65625 L 134.00000,622.12500" id="path3633"/><!-- System III -> System IV -->
+    <path d="M 134.00000,643.59375 L 134.00000,838.78125" id="path3635"/><!-- SVR1 -> SRV4 -->
+    <path d="M 484.03125,731.93750 L 484.03125,755.50000" id="path3637"/><!-- v8 -> v9 -->
+    <path d="M 176.31250,643.28125 L 441.25000,710.75000" id="path3639"/>
+    <path d="M 608.06250,598.43750 L 494.87500,710.65625" id="path3641"/>
+    <path d="M 618.90625,598.65625 L 618.90625,755.50000" id="path3643"/>
+    <path d="M 590.90625,766.56250 L 572.81250,766.56250" id="path3645"/><!-- 4.3BSD -> v9 -->
+    <path d="M 618.90625,777.00000 L 618.90625,841.62500" id="path3647"/><!-- 4.3BSD -> 4.3BSD-Tahoe -->
+    <path d="M 483.75000,777.00000 L 483.75000,885.81250" id="path3649"/>
+    <path d="M 642.53125,555.25000 L 691.03125,577.46875" id="path3651"/>
+    <path d="M 714.28125,598.65625 L 714.28125,796.53125" id="path3653"/>
+    <path d="M 957.21875,643.59375 L 957.21875,1020.0000" id="path3655"/>
+    <path d="M 912.37500,993.18750 L 944.53125,1020.2500" id="path3657"/>
+    <path d="M 848.50000,818.00000 L 848.50000,1628.4688" id="path3659"/><!-- MINIX 1.1 -> MINIX 3.1.2 -->
+    <path d="M 136.18750,860.31250 L 165.62500,972.18750" id="path3661"/>
+    <path d="M 582.12500,945.50000 L 337.21875,977.59375" id="path3663"/>
+    <path d="M 287.68750,993.37500 L 262.00000,1015.0000" id="path3665"/><!-- BSD Net/2 -> BSD/386 0.3.1 -->
+    <path d="M 310.50000,993.37500 L 330.75000,1015.0000" id="path3667"/><!-- BSD Net/2 -> 386BSD 0.0 -->
+    <path d="M 377.59375,1025.6563 L 395.37500,1026.2813" id="path3669"/>
+    <path d="M 395.31250,1034.7188 L 288.43750,1061.5000" id="path3671"/>
+    <path d="M 447.62500,1036.4375 L 481.18750,1060.4375" id="path3673"/>
+    <path d="M 424.00000,1036.5313 L 372.75000,1103.7813" id="path3675"/>
+    <path d="M 496.40625,1081.6563 L 496.40625,1103.9688" id="path3677"/>
+    <path d="M 496.40625,1125.4688 L 496.40625,1148.5313" id="path3679"/><!-- NetBSD 1.0 -> NetBSD 1.1 -->
+    <path d="M 496.40625,1170.0000 L 496.40625,1277.8750" id="path3681"/>
+    <path d="M 464.50000,1170.3125 L 401.12500,1191.5000" id="path3683"/>
+    <path d="M 368.81250,1212.6875 L 368.81250,1277.8750" id="path3685"/>
+    <path d="M 248.50000,1081.6563 L 248.50000,1148.5313" id="path3689"/>
+    <path d="M 248.50000,1170.0000 L 248.50000,1277.8750" id="path3691"/>
+    <path d="M 618.90625,863.09375 L 618.90625,929.50000" id="path3693"/>
+    <path d="M 618.90625,950.96875 L 618.90625,1103.9688" id="path3695"/><!-- 4.3BSD-Reno -> 4.4BSD-Lite -->
+    <path d="M 618.90625,1125.4688 L 618.90625,1148.5313" id="path3697"/>
+    <path d="M 608.81250,1169.7813 L 507.12500,1278.0938" id="path3699"/>
+    <path d="M 598.31250,1169.7188 L 389.75000,1277.5938" id="path3701"/>
+    <path d="M 714.59375,818.00000 L 714.59375,1103.9688" id="path3703"/><!-- SunOS 3.2 -> SunOS 4.1.4 -->
+    <path d="M 658.28125,1170.3125 L 735.03125,1191.5000" id="path3709"/>
+    <path d="M 773.75000,1212.6875 L 773.75000,1366.3438" id="path3711"/>
+    <path d="M 619.81250,863.12500 L 677.71875,1541.6875" id="path3721"/>
+    <path d="M 957.21875,1041.4688 L 957.21875,1628.4688" id="path3723"/>
+    <path d="M 101.09375,1036.7188 L 102.56250,1541.6563" id="path3713"/>
+    <path d="M 168.56250,992.93750 L 168.56250,1585.9375" id="path3715"/><!-- Solaris 2 -> Solaris 10 -->
+    <path d="M 248.50000,1299.3438 L 248.50000,1628.4688" id="path3719"/>
+    <path d="M 496.50000,1299.3750 L 500.09375,1585.9375" id="path3717"/>
+    <path d="M 416.87500,456.03125 L 448.84375,456.03125" id="path4030"/>
+    <path d="M 643.43750,462.96875 L 741.12500,491.12500" id="path4922"/>
+    <path d="M 131.40625,860.18750 L 103.03125,1015.1875" id="path4928"/>
+    <path d="M 368.81250,1299.3438 L 368.81250,1628.4688" id="path5815"/>
+    <path d="M 773.75000,511.59375 L 773.75000,1191.2188" id="path5817"/>
+    <path d="M 453.18750,467.37500 L 161.96875,576.87500" id="path7676"/>
+  </g>
+  <g transform="translate(0, 0.000160217)" style="opacity: 1; fill: rgb(219, 219, 219); fill-opacity: 1; display: inline;" id="layer1">
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="100.86784" y="8.4843588" id="rect2Unics" /><!--Unics-->
+    <rect width="48.284492" height="21.479645" rx="6.1544218" ry="5.6035156" x="595.07666" y="401.81863" id="rect21BSD" /><!--1BSD-->
+    <rect width="65.751175" height="21.479645" rx="6.1544218" ry="5.6035156" x="448.84412" y="445.60919" id="rect232v" /><!--32v-->
+    <rect width="065.75116" height="21.479645" rx="6.1544218" ry="5.6035156" x="741.20032" y="490.12805" id="rect2279BSD" /><!--2.79BSD-->
+    <rect width="57.397537" height="21.479645" rx="6.1544218" ry="5.6035156" x="590.52014" y="533.46997" id="rect242BSD" /><!--4.1BSD-->
+    <rect width="100.68448" height="21.479645" rx="6.1544218" ry="5.6035156" x="083.34330" y="577.18500" id="rect2sysIII" /><!--sysIII-->
+    <rect width="60.435219" height="21.479645" rx="6.1544218" ry="5.6035156" x="589.00128" y="577.18500" id="rect241cBSD" /><!--4.1cBSD-->
+    <rect width="99.165634" height="21.479645" rx="6.1544218" ry="5.6035156" x="84.102707" y="622.11841" id="rect2SVR1" /><!--SVR1-->
+    <rect width="46.006237" height="21.479645" rx="6.1544218" ry="5.6035156" x="934.51794" y="622.11841" id="rect2GNU" /><!--GNU-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="96.633148" y="227.89880" id="rect2PWB" /><!--PWB/UNIX-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="51.178066" y="097.44756" id="rect2v1"  /><!--v1-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="51.178066" y="142.49382" id="rect2v2"  /><!--v2-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="51.178066" y="185.18219" id="rect2v3"  /><!--v3-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="243.37508" y="185.18219" id="rect2v4"  /><!--v4-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="243.37508" y="227.89880" id="rect2v5"  /><!--v5-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="243.37508" y="273.24872" id="rect2v6"  /><!--v6-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="243.37508" y="445.60919" id="rect2v7"  /><!--v7-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="396.98264" y="710.44391" id="rect2v8"  /><!--v8-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="396.98264" y="755.51093" id="rect2v9"  /><!--v9-->
+    <rect width="173.48431" height="21.479652" rx="6.3625803" ry="5.6035156" x="396.98264" y="885.82056" id="rect2v10" /><!--v10-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="677.53882" y="577.18500" id="rect2SUN1" /><!--SunOS 1.0-->
+    <rect width="56.638119" height="21.479645" rx="6.1544218" ry="5.6035156" x="590.89984" y="755.51093" id="rect243BSD" /><!--4.3BSD-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="677.53882" y="796.52185" id="rect2SUN32" /><!--SunOS 3.2-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="811.13623" y="796.52185" id="rect2MINIX11" /><!--MINIX 1.1-->
+    <rect width="147.76852" height="21.479645" rx="6.1544218" ry="5.6035156" x="59.801273" y="838.76587" id="rect2SVR4" /><!--SVR4-->
+    <rect width="86.255478" height="21.479645" rx="6.1544218" ry="5.6035156" x="576.09119" y="841.62366" id="rect243BSDTahoe" /><!--4.3BSD Tahoe-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="582.16656" y="929.48987" id="rect243BSDReno" /><!--4.3BSD Reno-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="131.69693" y="972.10834" id="rect2Solaris2" /><!--Solaris 2-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="263.16779" y="972.10834" id="rect2BSDNET2" /><!--BSD NET/2-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="862.75409" y="971.47327" id="rect2Linux001" /><!--Linux 0.0.1-->
+    <rect width="83.977242" height="21.479645" rx="6.1544218" ry="5.6035156" x="59.393959" y="1015.2295" id="rect2UnixWare1" /><!--UnixWare1-->
+    <rect width="88.533752" height="21.479645" rx="6.1544218" ry="5.6035156" x="204.77263" y="1015.2295" id="rect2BSD386031" /><!--BSD/386 0.3.1-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="303.49722" y="1015.2295" id="rect2386BSD00" /><!--386BSD 0.0-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="395.38705" y="1015.2295" id="rect2386BSD01" /><!--386BSD 0.1-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="920.46869" y="1019.9925" id="rect2GNULinux" /><!--GNU/Linux-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="459.66241" y="1060.1790" id="rect2NetBSD08" /><!--NetBSD 0.8-->
+    <rect width="79.420715" height="21.479645" rx="6.1544218" ry="5.6035156" x="209.09427" y="1060.1790" id="rect2FreeBSD1" /><!--FreeBSD 1-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="459.66241" y="1103.9760" id="rect2NetBSD10" /><!--NetBSD 1.0-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="327.75266" y="1103.9760" id="rect2386BSD10" /><!--386BSD 1.0-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="582.16656" y="1103.9760" id="rect244BSDLite" /><!--4.4BSD-Lite-->
+    <rect width="84.736649" height="21.479645" rx="6.1544218" ry="5.6035156" x="672.22290" y="1103.9760" id="rect2481" /><!--SunOS 4.1.4-->
+    <rect width="134.85837" height="21.479645" rx="6.1544218" ry="5.6035156" x="551.78973" y="1148.5262" id="rect244BSDLiteR2" /><!--4.4BSD-Lite R2-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="211.75224" y="1148.5262" id="rect2FreeBSD2" /><!--FreeBSD 2-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="459.66241" y="1148.5262" id="rect2NetBSD11" /><!--NetBSD 1.1-->
+    <rect width="82.458397" height="21.479645" rx="6.1544218" ry="5.6035156" x="327.89835" y="1191.2036" id="rect2OpenBSD20" /><!--OpenBSD 2.0-->
+    <rect width="116.63229" height="21.479645" rx="6.1544218" ry="5.6035156" x="715.75970" y="1191.2036" id="rect2211BSD335" /><!--2.11BSD p335-->
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="459.66241" y="1277.8793" id="rect2NetBSD13" /><!--NetBSD 1.3-->
+    <rect width="81.698975" height="21.479645" rx="6.1544218" ry="5.6035156" x="328.27805" y="1277.8793" id="rect2OpenBSD23" /><!--OpenBSD 2.3-->
+    <rect width="78.661301" height="21.479645" rx="6.1544218" ry="5.6035156" x="209.47398" y="1277.8793" id="rect2FreeBSD3" /><!--FreeBSD 3-->
+    <rect width="118.15115" height="21.479645" rx="6.1544218" ry="5.6035156" x="715.00031" y="1366.3436" id="rect2211BSD431" /><!--2.11BSD p431-->
+    <rect width="94.609131" height="21.479645" rx="6.1544218" ry="5.6035156" x="055.61338" y="1541.6685" id="rect2503" /><!--UnixWare 7.1.4-->
+    <rect width="130.30183" height="21.479645" rx="6.1544218" ry="5.6035156" x="613.79236" y="1541.6685" id="rect2505" />
+    <rect width="74.104774" height="21.479652" rx="6.1544218" ry="5.6035156" x="131.18288" y="1585.9413" id="rect2507" />
+    <rect width="77.142456" height="21.479645" rx="6.1544218" ry="5.6035156" x="461.31894" y="1585.9413" id="rect2509" />
+    <rect width="84.736649" height="21.479645" rx="6.1544218" ry="5.6035156" x="326.75919" y="1628.4778" id="rect2511" />
+    <rect width="80.939552" height="21.479645" rx="6.1544218" ry="5.6035156" x="208.33485" y="1628.4778" id="rect2513" />
+    <rect width="77.901878" height="21.479645" rx="6.1544218" ry="5.6035156" x="809.23767" y="1628.4778" id="rect2515" />
+    <rect width="112.07579" height="21.479645" rx="6.1544218" ry="5.6035156" x="901.48315" y="1628.4778" id="rect2517" />
+    <rect width="48.284492" height="21.479645" rx="6.1544218" ry="5.6035156" x="595.07666" y="445.60919" id="rect2519" />
+    <rect width="48.284492" height="21.479645" rx="6.1544218" ry="5.6035156" x="595.07666" y="490.12805" id="rect2521" />
+  </g>
+  <g transform="translate(0, 0.000160217)" style="font-size: 11.4312px; font-style: normal; font-weight: normal; opacity: 1; text-align: start; text-anchor: start; fill: black; fill-opacity: 1; stroke: none; stroke-width: 1px; stroke-linecap: butt; stroke-linejoin: miter; stroke-opacity: 1; display: inline; font-family: Bitstream Vera Sans;" id="layer3">
+    <text x="137.920" y="023.310" style="text-align: center; text-anchor: middle;" id="text6963"  xml:space="preserve"><tspan x="137.920" y="023.310" id="tspan6965" >Unics (PDP7)</tspan></text>
+    <text x="137.920" y="111.341" style="text-align: center; text-anchor: middle;" id="text6971"  xml:space="preserve"><tspan x="137.920" y="111.341" id="tspan12672">Version 1 Unix</tspan></text>
+    <text x="137.920" y="156.387" style="text-align: center; text-anchor: middle;" id="text12732" xml:space="preserve"><tspan x="137.920" y="156.387" id="tspan12734">Version 2 Unix</tspan></text>
+    <text x="137.920" y="199.076" style="text-align: center; text-anchor: middle;" id="text12738" xml:space="preserve"><tspan x="137.920" y="199.076" id="tspan12740">Version 3 Unix</tspan></text>
+    <text x="330.117" y="199.076" style="text-align: center; text-anchor: middle;" id="text12744" xml:space="preserve"><tspan x="330.117" y="199.076" id="tspan12746">Version 4 Unix</tspan></text>
+    <text x="330.117" y="241.792" style="text-align: center; text-anchor: middle;" id="text12750" xml:space="preserve"><tspan x="330.117" y="241.792" id="tspan12752">Version 5 Unix</tspan></text>
+    <text x="330.117" y="287.142" style="text-align: center; text-anchor: middle;" id="text12756" xml:space="preserve"><tspan x="330.117" y="287.142" id="tspan12758">Version 6 Unix</tspan></text>
+    <text x="330.117" y="459.503" style="text-align: center; text-anchor: middle;" id="text12762" xml:space="preserve"><tspan x="330.117" y="459.503" id="tspan12764">Version 7 Unix</tspan></text>
+    <text x="483.725" y="724.337" style="text-align: center; text-anchor: middle;" id="text12768" xml:space="preserve"><tspan x="483.725" y="724.337" id="tspan12770">Version 8 Unix</tspan></text>
+    <text x="483.725" y="769.404" style="text-align: center; text-anchor: middle;" id="text12774" xml:space="preserve"><tspan x="483.725" y="769.404" id="tspan12776">Version 9 Unix</tspan></text>
+    <text x="483.725" y="899.714" style="text-align: center; text-anchor: middle;" id="text12780" xml:space="preserve"><tspan x="483.725" y="899.714" id="tspan12782">Version 10 Unix</tspan></text>
+    <text x="598.344" y="770.412" id="text2187"  xml:space="preserve"><tspan x="598.344" y="770.412" id="tspan2189" >4.3BSD</tspan></text>
+    <text x="681.824" y="811.423" id="text2191"  xml:space="preserve"><tspan x="681.824" y="811.423" id="tspan2193" >SunOS 3.2</tspan></text>
+    <text x="820.763" y="811.428" id="text2195"  xml:space="preserve"><tspan x="820.763" y="811.428" id="tspan2197" >MINIX 1.1</tspan></text>
+    <text x="062.291" y="852.659" id="text2199"  xml:space="preserve"><tspan x="062.291" y="852.659" id="tspan2201" >UNIX System V.3</tspan></text>
+    <text x="579.793" y="856.625" id="text2203"  xml:space="preserve"><tspan x="579.793" y="856.625" id="tspan2205" >4.3BSD Tahoe</tspan></text>
+    <text x="603.442" y="416.720" id="text2143"  xml:space="preserve"><tspan x="603.442" y="416.720" id="tspan2145" >1BSD</tspan></text>
+    <text x="603.652" y="460.510" id="text2147"  xml:space="preserve"><tspan x="603.652" y="460.510" id="tspan2149" >2BSD</tspan></text>
+    <text x="603.635" y="505.029" id="text2151"  xml:space="preserve"><tspan x="603.635" y="505.029" id="tspan2153" >3BSD</tspan></text>
+    <text x="456.039" y="460.510" id="text2155"  xml:space="preserve"><tspan x="456.039" y="460.510" id="tspan2157" >UNIX/32V</tspan></text>
+    <text x="749.422" y="505.029" id="text2159"  xml:space="preserve"><tspan x="749.422" y="505.029" id="tspan2161" >2.79BSD</tspan></text>
+    <text x="598.344" y="548.371" id="text2163"  xml:space="preserve"><tspan x="598.344" y="548.371" id="tspan2165" >4.1BSD</tspan></text>
+    <text x="089.677" y="590.978" id="text2167"  xml:space="preserve"><tspan x="089.677" y="590.978" id="tspan2169" >UNIX System III</tspan></text>
+    <text x="595.196" y="592.086" id="text2171"  xml:space="preserve"><tspan x="595.196" y="592.086" id="tspan2173" >4.1cBSD</tspan></text>
+    <text x="90.3107" y="635.911" id="text2179"  xml:space="preserve"><tspan x="90.3107" y="635.911" id="tspan2181" >UNIX System V.0</tspan></text>
+    <text x="944.806" y="637.019" id="text2183"  xml:space="preserve"><tspan x="944.806" y="637.019" id="tspan2185" >GNU</tspan></text>
+    <text x="104.304" y="242.275" id="text2139"  xml:space="preserve"><tspan x="104.304" y="242.275" id="tspan2141" >PWB/UNIX</tspan></text>
+    <text x="681.632" y="592.086" id="text2175"  xml:space="preserve"><tspan x="681.632" y="592.086" id="tspan2177" >SunOS 1.0</tspan></text>
+    <text x="582.154" y="944.391" id="text2301"  xml:space="preserve"><tspan x="582.154" y="944.391" id="tspan2303" >4.3BSD Reno</tspan></text>
+    <text x="144.355" y="987.110" id="text2305"  xml:space="preserve"><tspan x="144.355" y="987.110" id="tspan2307" >Solaris 2</tspan></text>
+    <text x="270.975" y="986.560" id="text2309"  xml:space="preserve"><tspan x="270.975" y="986.560" id="tspan2311" >BSD Net/2</tspan></text>
+    <text x="867.983" y="986.475" id="text2313"  xml:space="preserve"><tspan x="867.983" y="986.475" id="tspan2315" >Linux 0.0.1</tspan></text>
+    <text x="63.0563" y="1030.23" id="text2317"  xml:space="preserve"><tspan x="63.0563" y="1030.23" id="tspan2319" >UnixWare 1.0</tspan></text>
+    <text x="207.962" y="1029.68" id="text2321"  xml:space="preserve"><tspan x="207.962" y="1029.68" id="tspan2323" >BSD/386 0.3.1</tspan></text>
+    <text x="306.817" y="1030.13" id="text2325"  xml:space="preserve"><tspan x="306.817" y="1030.13" id="tspan2327" >386BSD 0.0</tspan></text>
+    <text x="398.855" y="1030.13" id="text2329"  xml:space="preserve"><tspan x="398.855" y="1030.13" id="tspan2331" >386BSD 0.1</tspan></text>
+    <text x="927.157" y="1034.54" id="text2333"  xml:space="preserve"><tspan x="927.157" y="1034.54" id="tspan2335" >GNU/Linux</tspan></text>
+    <text x="463.750" y="1075.08" id="text2337"  xml:space="preserve"><tspan x="463.750" y="1075.08" id="tspan2339" >NetBSD 0.8</tspan></text>
+    <text x="211.932" y="1075.08" id="text2341"  xml:space="preserve"><tspan x="211.932" y="1075.08" id="tspan2343" >Free BSD 1.0</tspan></text>
+    <text x="463.750" y="1118.88" id="text2345"  xml:space="preserve"><tspan x="463.750" y="1118.88" id="tspan2347" >NetBSD 1.0</tspan></text>
+    <text x="331.084" y="1118.88" id="text2349"  xml:space="preserve"><tspan x="331.084" y="1118.88" id="tspan2351" >386BSD 1.0</tspan></text>
+    <text x="585.710" y="1118.98" id="text2353"  xml:space="preserve"><tspan x="585.710" y="1118.98" id="tspan2355" >4.4BSD-Lite</tspan></text>
+    <text x="676.125" y="1118.88" id="text2357"  xml:space="preserve"><tspan x="676.125" y="1118.88" id="tspan2359" >SunOS 4.1.4</tspan></text>
+    <text x="463.898" y="1163.43" id="text2369"  xml:space="preserve"><tspan x="463.898" y="1163.43" id="tspan2371" >NetBSD 1.1</tspan></text>
+    <text x="213.752" y="1163.43" id="text2373"  xml:space="preserve"><tspan x="213.752" y="1163.43" id="tspan2375" >FreeBSD 2.0</tspan></text>
+    <text x="556.409" y="1163.53" id="text2377"  xml:space="preserve"><tspan x="556.409" y="1163.53" id="tspan2379" >4.4BSD-Lite Release 2</tspan></text>
+    <text x="331.167" y="1205.00" id="text2381"  xml:space="preserve"><tspan x="331.167" y="1205.00" id="tspan2383" >OpenBSD 2.0</tspan></text>
+    <text x="719.337" y="1206.20" id="text2385"  xml:space="preserve"><tspan x="719.337" y="1206.20" id="tspan2387" >2.11BSD Patch 335</tspan></text>
+    <text x="465.167" y="1292.88" id="text2389"  xml:space="preserve"><tspan x="465.167" y="1292.88" id="tspan2391" >NetBSD 1.3</tspan></text>
+    <text x="331.245" y="1291.67" id="text2393"  xml:space="preserve"><tspan x="331.245" y="1291.67" id="tspan2395" >OpenBSD 2.3</tspan></text>
+    <text x="213.752" y="1292.78" id="text2397"  xml:space="preserve"><tspan x="213.752" y="1292.78" id="tspan2399" >FreeBSD 3.0</tspan></text>
+    <text x="719.365" y="1381.34" id="text2401"  xml:space="preserve"><tspan x="719.365" y="1381.34" id="tspan2403" >2.11BSD Patch 431</tspan></text>
+    <text x="59.0743" y="1556.67" id="text2405"  xml:space="preserve"><tspan x="59.0743" y="1556.67" id="tspan2407" >UnixWare 7.1.4</tspan></text>
+    <text x="140.020" y="1600.94" id="text2409"  xml:space="preserve"><tspan x="140.020" y="1600.94" id="tspan2411" >Solaris 10</tspan></text>
+    <text x="466.925" y="1600.84" id="text2413"  xml:space="preserve"><tspan x="466.925" y="1600.84" id="tspan2415" >NetBSD 3.0</tspan></text>
+    <text x="331.189" y="1642.27" id="text2417"  xml:space="preserve"><tspan x="331.189" y="1642.27" id="tspan2419" >OpenBSD 3.9</tspan></text>
+    <text x="213.889" y="1643.38" id="text2421"  xml:space="preserve"><tspan x="213.889" y="1643.38" id="tspan2423" >FreeBSD 6.1</tspan></text>
+    <text x="616.968" y="1555.56" id="text2425"  xml:space="preserve"><tspan x="616.968" y="1555.56" id="tspan2427" >4.3BSD-Quasijarus 0c</tspan></text>
+    <text x="815.360" y="1643.38" id="text2429"  xml:space="preserve"><tspan x="815.360" y="1643.38" id="tspan2431" >MINIX 3.1.2</tspan></text>
+    <text x="907.339" y="1643.03" id="text2433"  xml:space="preserve"><tspan x="907.339" y="1643.03" id="tspan2435" >GNU/Linux 2.6.16</tspan></text>
+    
+    <text x="3.22195" y="12.8876" style="font-size: 11.4312px; font-style: normal; font-variant: normal; font-weight: 300; font-stretch: normal; text-align: start; line-height: 382%; text-anchor: start; fill: black; fill-opacity: 1; stroke: none; stroke-width: 1px; stroke-linecap: butt; stroke-linejoin: miter; stroke-opacity: 1; font-family: Bank Gothic;" id="text1940" xml:space="preserve">
+      <tspan x="3.22195" y="12.8876" id="tspan1942">1969</tspan>
+      <tspan x="3.22195" y="56.5547" id="tspan1944">1970</tspan>
+      <tspan x="3.22195" y="100.222" id="tspan1946">1971</tspan>
+      <tspan x="3.22195" y="143.889" id="tspan1948">1972</tspan>
+      <tspan x="3.22195" y="187.556" id="tspan1950">1973</tspan>
+      <tspan x="3.22195" y="231.223" id="tspan1952">1974</tspan>
+      <tspan x="3.22195" y="274.890" id="tspan1954">1975</tspan>
+      <tspan x="3.22195" y="318.557" id="tspan1956">1976</tspan>
+      <tspan x="3.22195" y="362.224" id="tspan1958">1977</tspan>
+      <tspan x="3.22195" y="405.891" id="tspan1960">1978</tspan>
+      <tspan x="3.22195" y="449.558" id="tspan1962">1979</tspan>
+      <tspan x="3.22195" y="493.225" id="tspan1964">1980</tspan>
+      <tspan x="3.22195" y="536.892" id="tspan1966">1981</tspan>
+      <tspan x="3.22195" y="580.559" id="tspan1968">1982</tspan>
+      <tspan x="3.22195" y="624.227" id="tspan1970">1983</tspan>
+      <tspan x="3.22195" y="667.894" id="tspan1972">1984</tspan>
+      <tspan x="3.22195" y="711.561" id="tspan1974">1985</tspan>
+      <tspan x="3.22195" y="755.228" id="tspan1976">1986</tspan>
+      <tspan x="3.22195" y="798.895" id="tspan1978">1987</tspan>
+      <tspan x="3.22195" y="842.562" id="tspan1980">1988</tspan>
+      <tspan x="3.22195" y="886.229" id="tspan1982">1989</tspan>
+      <tspan x="3.22195" y="929.896" id="tspan1984">1990</tspan>
+      <tspan x="3.22195" y="973.563" id="tspan1986">1991</tspan>
+      <tspan x="3.22195" y="1017.23" id="tspan1988">1992</tspan>
+      <tspan x="3.22195" y="1060.90" id="tspan1990">1993</tspan>
+      <tspan x="3.22195" y="1104.56" id="tspan1992">1994</tspan>
+      <tspan x="3.22195" y="1148.23" id="tspan1994">1995</tspan>
+      <tspan x="3.22195" y="1191.90" id="tspan1996">1996</tspan>
+      <tspan x="3.22195" y="1235.57" id="tspan1998">1997</tspan>
+      <tspan x="3.22195" y="1279.23" id="tspan2000">1998</tspan>
+      <tspan x="3.22195" y="1322.90" id="tspan2002">1999</tspan>
+      <tspan x="3.22195" y="1366.57" id="tspan2004">2000</tspan>
+      <tspan x="3.22195" y="1410.23" id="tspan2006">2001</tspan>
+      <tspan x="3.22195" y="1453.90" id="tspan2008">2002</tspan>
+      <tspan x="3.22195" y="1497.57" id="tspan3818">2003</tspan>
+      <tspan x="3.22195" y="1541.23" id="tspan2010">2004</tspan>
+      <tspan x="3.22195" y="1584.90" id="tspan2012">2005</tspan>
+      <tspan x="3.22195" y="1628.57" id="tspan2014">2006</tspan>
+      <tspan x="3.22195" y="1672.24" id="tspan2018">2007</tspan>
+    </text>
+    <path d="M 969.97258,848.09477 L 969.97258,848.09477" style="fill: none; fill-rule: evenodd; stroke: black; stroke-width: 0.158766px; stroke-linecap: butt; stroke-linejoin: miter; stroke-opacity: 1;" id="path5819"/>
+  </g>
+</svg>

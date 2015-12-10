@@ -43,6 +43,8 @@ ul, ol, dl, figure,
 img {
     max-width: 60%;
     vertical-align: middle;
+    margin-top: $spacing-unit / 2;
+    margin-bottom: $spacing-unit / 2;
 }
 
 
@@ -84,6 +86,30 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 15px;
     margin-top: $spacing-unit;
     margin-bottom: $spacing-unit / 2;
+}
+
+
+
+/**
+ * Tables
+ */
+table {
+    border: 1px solid #ccc;
+    border-radius: 1px;
+}
+table th {
+    padding: 5px 20px 5px 20px;
+    border-top: 1px solid #fafafa;
+    border-bottom: 1px solid #e0e0e0;
+}
+table tr {
+    padding: 5px 20px 5px 20px;
+}
+table td {
+    padding: 5px 10px 5px 10px;
+    border-top: 1px solid #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    border-left: 1px solid #e0e0e0;
 }
 
 

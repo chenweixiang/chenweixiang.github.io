@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "History of Unix System"
+title: "Unix System Overview"
 tags: [Linux]
 toc: true
 ---
 
-This article introduces the history of Unix system.
+This article introduces the Unix system.
 
 <!--more-->
 

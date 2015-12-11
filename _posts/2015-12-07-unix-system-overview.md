@@ -68,6 +68,8 @@ Currently, some versions of the following operating systems have been certified 
 
 ## History of Unix system
 
+This is a short description of Unix releases:
+
 1969: Unix was developed on Summer 1969.
 
 1971: **Unix 1st edition** released on Nov 3, 1971.
@@ -85,6 +87,10 @@ Currently, some versions of the following operating systems have been certified 
 1985: **Unix 8th edition** released in February 1985.
 
 1989: **Unix 10th edition** released in October 1989.
+
+### Unix Timeline
+
+Besides, you can see the preview of the Unix timeline on website [Unix History](http://www.levenez.com/unix/). And following two figures from wikipedia is also very useful to understand the evolution of Unix distributions:
 
 ![Unix history](/assets/unix-history.png)
 

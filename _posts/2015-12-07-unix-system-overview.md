@@ -90,6 +90,6 @@ Currently, some versions of the following operating systems have been certified 
 
 ![Unix history](/assets/unix-history.svg)
 
-# Reference
+## Reference
 
 [Unix, Linux, and variant history](http://www.computerhope.com/history/unix.htm)

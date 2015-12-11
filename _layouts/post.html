@@ -90,7 +90,7 @@ layout: default
                 var selector = prefix+"h1, " + prefix + "h2, " + prefix + "h3, " + prefix + "h4";
                 var toc = document.createElement("div");
                 toc.className = tocClass || "sidebox";
-                toc.appendChild(document.createTextNode("Contents"));
+                toc.appendChild(document.createTextNode("Table of Contents"));
                 toc.appendChild(buildTOC_ul(selector));
                 contentElement.insertBefore(toc, before);
             }

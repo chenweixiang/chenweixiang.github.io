@@ -58,7 +58,7 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 
 <br>
 
-The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. The architecture independent part is comprised of five modules: Core, C++, Desktop, Languages and Printing. The architecture dependent part is comprised of three modules: Core, C++ and Desktop.
+The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. For LSB 4.1, the architecture independent part is comprised of five modules: **Core**, **C++**, **Desktop**, **Runtime Languages** and **Printing**. The architecture dependent part is comprised of three modules: **Core**, **C++** and **Desktop**. For LSB 5.0, the architecture independent part is comprised of five modules: **Common**, **Core**, **Desktop**, **Runtime Languages** and **Imaging**. The architecture dependent part is comprised of three modules: **Core** and **Desktop**.
 
 Also, there are **mandatory** and **trial use** modules in the specification. The former impose mandatory requirements on LSB compliant distributions and applications may safely rely on the functionality described in mandatory modules. Functionality in trial use modules is not required in LSB compliant distributions and applications should take this into consideration. Meanwhile, trial use modules represent candidates for inclusion in the next versions of LSB.
 
@@ -72,7 +72,7 @@ Refer to [LSB Certification](https://www.linuxbase.org/lsb-cert/welcome_cert.php
 
 ## Linux kernel Releases
 
-The Linux kernel is the most important part of the Linux system. You get Linux kernel on official site [The Linux Kernel Archives](https://www.kernel.org/). [Here](https://en.wikipedia.org/wiki/History_of_Linux) is a short history of Linux kernel:
+The Linux kernel is the most important part of the Linux system. You can get Linux kernel source code from its official site [The Linux Kernel Archives](https://www.kernel.org/). [Here](https://en.wikipedia.org/wiki/History_of_Linux) is a short history of Linux kernel:
 
 | kernel version | Release date |  Status  |
 | :------------: | :----------: | :------: |
@@ -149,9 +149,29 @@ If we draw a picture of Linux kernel releases, it should be like this:
 
 ![Linux_Kernel_Releases](/assets/Linux_Kernel_Releases_20151114_without_linux-next.svg)
 
+![Linux_Kernel_Timeline](/assets/linux_kernel_timeline.png)
+
 ### Version Numbering
 
-[Linux kernel version numbering](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering)
+The Linux kernel has had [three different numbering schemes](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering):
+
+* First numbering scheme: 0.01 ~ 1.0
+
+    The first scheme was used in the run-up to "1.0". The first version of the kernel was 0.01. This was followed by 0.02, 0.03, 0.10, 0.11, 0.12 (the first GPL version), 0.95, 0.96, 0.97, 0.98, 0.99 and then 1.0. From 0.95 on there were many patch releases between versions.
+
+* Second numbering scheme: 1.0 ~ 2.6.0, Even-odd version numbering scheme
+
+    After the 1.0 release and prior to version 2.6, the number was composed as "a.b.c", where the number "a" denoted the kernel version, the number "b" denoted the major revision of the kernel, and the number "c" indicated the minor revision of the kernel. The kernel version was changed only when major changes in the code and the concept of the kernel occurred (Note: version 3.0 was released in 2011, but it was not a major change in kernel concept). The major revision was assigned according to the **even-odd version numbering scheme**. The minor revision had been changed whenever security patches, bug fixes, new features or drivers were implemented in the kernel.
+
+* Third numbering scheme: 2.6.0 ~ present, Time-based release numbering scheme
+
+    After version 2.6.0 was released in 2004, a "time-based" release cycle was adopted. For about seven years, the first two numbers remained "2.6", and the third number was incremented with each new release, which rolled out after two to three months. A fourth number was sometimes added to account for bug and security fixes (only) to the kernel version. The even-odd system of alternation between stable and unstable was gone. Instead, development pre-releases are titled release candidates, which is indicated by appending the suffix '-rc' to the kernel version, followed by an ordinal number.
+
+    The first use of the fourth number occurred when a grave error, which required immediate fixing, was encountered in 2.6.8's NFS code. However, there were not enough other changes to legitimize the release of a new minor revision (which would have been 2.6.9). So, 2.6.8.1 was released, with the only change being the fix of that error. With 2.6.11, this was adopted as the new official versioning policy. Later it became customary to continuously back-port major bug-fixes and security patches to released kernels and indicate that by updating the fourth number.
+
+    On 29 May 2011, Linus Torvalds [announced](https://lkml.org/lkml/2011/5/29/204) that the kernel version would be bumped to 3.0 for the release following 2.6.39, **due to the minor version number getting too large and to commemorate the 20th anniversary of Linux**. It continued the time-based release practice introduced with 2.6.0, but using the second number; for example, 3.1 would follow 3.0 after a few months.
+
+    The major version number was also raised to 4 [announced on 22 Feb 2015](https://lkml.org/lkml/2015/2/22/203), for the release following version 3.19.
 
 # Reference
 

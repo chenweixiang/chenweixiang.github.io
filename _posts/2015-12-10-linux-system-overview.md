@@ -38,7 +38,18 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 
 * **LSB 3.1** Core was released on October 27, 2005; LSB 3.1 C++ and Desktop were released April 24, 2006.
 
-    Note that the Core module specification of LSB 3.1 is the document submitted for publication by ISO/IEC as **IS 23360:1996**.
+    Note that the Core module specification of LSB 3.1 is the document submitted for publication by ISO/IEC as **IS 23360:1996**. The following are the main parts of it and can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html):
+    
+    ISO/IEC 23360-1:2006 Linux Standard Base (LSB) core specification 3.1 – Part 1: Generic specification
+    ISO/IEC 23360-2:2006 Linux Standard Base (LSB) core specification 3.1 – Part 2: Specification for IA-32 architecture
+    ISO/IEC 23360-3:2006 Linux Standard Base (LSB) core specification 3.1 – Part 3: Specification for IA-64 architecture
+    ISO/IEC 23360-4:2006 Linux Standard Base (LSB) core specification 3.1 – Part 4: Specification for AMD64 architecture
+    ISO/IEC 23360-5:2006 Linux Standard Base (LSB) core specification 3.1 – Part 5: Specification for PPC32 architecture
+    ISO/IEC 23360-6:2006 Linux Standard Base (LSB) core specification 3.1 – Part 6: Specification for PPC64 architecture
+    ISO/IEC 23360-7:2006 Linux Standard Base (LSB) core specification 3.1 – Part 7: Specification for S390 architecture
+    ISO/IEC 23360-8:2006 Linux Standard Base (LSB) core specification 3.1 – Part 8: Specification for S390X architecture
+
+    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard.
 
 * **LSB 3.2** was released on January 25, 2008
 
@@ -67,6 +78,152 @@ LSB Database is a central place for storing information about the LSB standard a
 ### LSB Certification
 
 Refer to [LSB Certification](https://www.linuxbase.org/lsb-cert/welcome_cert.php) for detail information about LSB certification. In that website, you can track the industry picture of LSB certification in **Product Directory** area. For instance, a list of Linux distributions and applications certified for compliance with the LSB standard can be found [here](https://www.linuxbase.org/lsb-cert/productdir.php?by_prod).
+
+## Filesystem Hierarchy Standard (FHS)
+
+The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the Linux Foundation. Currently it is only used by Linux distributions. And the Linux Standard Base (LSB) refers to it as a standard.
+
+[Filesystem Hierarchy Standard Specifications Archive](http://refspecs.linuxfoundation.org/fhs.shtml)
+
+### History of FHS
+
+FHS releases the following versions, which can be downloaded from [here](http://www.ibiblio.org/pub/Linux/docs/fsstnd/old/fsstnd-1.0/) for FHS 1.0, and [Filesystem Hierarchy Standard Specifications Archive](http://refspecs.linuxfoundation.org/fhs.shtml) for FHS 2.3 and beyond.
+
+| Version | Release Date | Notes |
+| :-----: | :----------: | :---- |
+| 1.0     | 1994-02-14   | FSSTND (**F**ile**S**ystem **ST**a**ND**ard) |
+| 1.1     | 1994-10-09   | FSSTND (**F**ile**S**ystem **ST**a**ND**ard) |
+| 1.2     | 1995-03-28   | FSSTND (**F**ile**S**ystem **ST**a**ND**ard) |
+| 2.0     | 1997-10-26   | FHS 2.0 is the direct successor for FSSTND 1.2. Name changed from FSSTND to FHS. |
+| 2.1     | 2000-04-12   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
+| 2.2     | 2001-05-23   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
+| 2.3     | 2004-01-29   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
+| 3.0     | 2015-05-18   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
+
+### FHS 3.0 Directory Structure
+
+| Directory | Requirement | Description |
+| :-------- | :---------: | :---------- |
+| **```/```** | **Required** | **Primary hierarchy** root directory. |
+| **```/bin```** | **Required** | Essential command binaries (for use by all users). Must be no subdirectories in ```/bin```. |
+| **```/boot```** | **Required** | Static files of the boot loader. |
+| **```/dev```** | **Required** | Device files. |
+| **```/etc```** | **Required** | Host-specific system configuration. |
+| ```/etc/opt``` | **Required** | Configuration files for add-on packages that are stored in ```/opt/```. |
+| ```/etc/X11``` | Optional | Configuration for the X Window system. |
+| ```/etc/sgml``` | Optional | Configuration for SGML. |
+| ```/etc/xml``` | Optional | Configuration for XML. |
+| **```/home```** | Optional | User home directories. |
+| **```/lib```** | **Required** | Essential shared libraries and kernel modules. |
+| ```/lib/modules``` | Optional | Loadable kernel modules. |
+| ```/lib<qual>``` | Optional | Alternate format essential shared libraries. |
+| **```/media```** | **Required** | Mount point for removable media (appeared in FHS 2.3). |
+| ```/media/floppy``` | Optional | Floppy drive. |
+| ```/media/cdrom``` | Optional | CD-ROM drive. |
+| ```/media/cdrecorder``` | Optional | CD writer. |
+| ```/media/zip``` | Optional | Zip drive. |
+| **```/mnt```** | **Required** |  Mount point for a temporarily mounted filesystem. |
+| **```/opt```** | **Required** | Add-on application software packages. |
+| **```/proc```** | ***De-facto*** | Virtual filesystem providing process and kernel information as files. |
+| **```/root```** | Optional | Home directory for the root user. |
+| **```/run```** | **Required** | Data relevant to running processes. |
+| **```/sbin```** | **Required** | Essential system binaries, e.g., fsck, init, route. |
+| **```/srv```** | **Required** | Data for services provided by this system. |
+| **```/tmp```** | **Required** | Temporary files. Often not preserved between system reboots, see ```/var/tmp```. |
+| **```/usr```** | **Required** | **Secondary hierarchy** for read-only user data. |
+| ```/usr/bin``` | **Required** | Non-essential command binaries. |
+| ```/usr/games``` | Optional | Games and educational binaries. |
+| ```/usr/include``` | Optional | Header files included by C programs. |
+| ```/usr/include/bsd``` | Optional | BSD compatibility include files. |
+| ```/usr/lib``` | **Required** | Libraries for the binaries in ```/usr/bin/``` and ```/usr/sbin/```. |
+| ```/usr/libexec``` | Optional | Binaries run by other programs. |
+| ```/usr/lib<qual>``` | Optional | Alternate format libraries. |
+| **```/usr/local```** | **Required** | **Tertiary hierarchy** for local data, specific to this host. |
+| ```/usr/local/bin``` | **Required** | Local binaries. |
+| ```/usr/local/etc``` | **Required** | Host-specific system configuration for local binaries. |
+| ```/usr/local/games``` | **Required** | Local game binaries. |
+| ```/usr/local/include``` | **Required** | Local C header files. |
+| ```/usr/local/lib``` | **Required** | Local libraries. |
+| ```/usr/local/lib<qual>``` | Optional | Exist only if ```/lib<qual>``` or ```/usr/lib<qual>``` exist. |
+| ```/usr/local/man``` | **Required** | Local online manuals. |
+| ```/usr/local/sbin``` | **Required** | Local system binaries. |
+| ```/usr/local/share``` | **Required** | Local architecture-independent hierarchy. |
+| ```/usr/local/src``` | **Required** | Local source code. |
+| ```/usr/sbin``` | **Required** | Non-essential standard system binaries. |
+| ```/usr/share``` | **Required** | Architecture-independent (shared) data. |
+| ```/usr/share/color``` | Optional | Color management information. |
+| ```/usr/share/color/icc``` | Optional | ICC color profiles. |
+| ```/usr/share/dict``` | Optional | Word lists. |
+| ```/usr/share/dict/words``` | Optional | List of English words. |
+| ```/usr/share/doc``` | Optional | Miscellaneous documentation. |
+| ```/usr/share/games``` | Optional | Static data files for ```/usr/games```. |
+| ```/usr/share/info``` | Optional | Primary directory for GNU Info system. |
+| ```/usr/share/locale``` | Optional | Locale information. |
+| ```/usr/share/man``` | **Required** | Manual pages. |
+| ```/usr/share/man/man1``` | Optional | User programs. |
+| ```/usr/share/man/man2``` | Optional | System calls. |
+| ```/usr/share/man/man3``` | Optional | Library calls. |
+| ```/usr/share/man/man4``` | Optional | Special files. |
+| ```/usr/share/man/man5``` | Optional | File formats. |
+| ```/usr/share/man/man6``` | Optional | Games. |
+| ```/usr/share/man/man7``` | Optional | Miscellaneous. |
+| ```/usr/share/man/man8``` | Optional | System administration. |
+| ```/usr/share/misc``` | **Required** | Miscellaneous architecture-independent data. |
+| ```/usr/share/misc/ascii``` | Optional | ASCII character set table. |
+| ```/usr/share/misc/termcap``` | Optional | Terminal capability database. |
+| ```/usr/share/misc/termcap.db``` | Optional | Terminal capability database. |
+| ```/usr/share/nls``` | Optional | Message catalogs for Native language support. |
+| ```/usr/share/ppd``` | Optional | Printer definitions. |
+| ```/usr/share/sgml``` | Optional | SGML data. |
+| ```/usr/share/sgml/docbook``` | Optional | docbook DTD. |
+| ```/usr/share/sgml/tei``` | Optional | tei DTD. |
+| ```/usr/share/sgml/html``` | Optional | html DTD. |
+| ```/usr/share/sgml/mathml``` | Optional | mathml DTD. |
+| ```/usr/share/terminfo``` | Optional | Directories for terminfo database. |
+| ```/usr/share/tmac``` | Optional | troff macros not distributed with groff. |
+| ```/usr/share/xml``` | Optional | XML data. |
+| ```/usr/share/xml/docbook``` | Optional | docbook XML DTD. |
+| ```/usr/share/xml/xhtml``` | Optional | XHTML DTD. |
+| ```/usr/share/xml/mathml``` | Optional | MathML DTD. |
+| ```/usr/share/zoneinfo``` | Optional | Timezone information and configuration. |
+| ```/usr/src``` | Optional | Source code, e.g., kernel source code with its header files. |
+| ```/usr/X11R6``` | Optional | X Window System, Version 11, Release 6 (up to FHS-2.3). |
+| **```/var```** | **Required** | Variable files. |
+| ```/var/account``` | Optional | Process accounting logs. |
+| ```/var/account/fonts``` | Optional | Locally-generated fonts. |
+| ```/var/account/man``` | Optional | Locally-formatted manual pages. |
+| ```/var/account/www``` | Optional | WWW proxy or cache data. |
+| ```/var/account/<package>``` | Optional | Package specific cache data. |
+| ```/var/cache``` | **Required** | Application cache data.  |
+| ```/var/cache/fonts``` | Optional | Locally-generated fonts. |
+| ```/var/cache/man``` | Optional | Locally-formatted manual pages. |
+| ```/var/crash``` | Optional | System crash dumps. |
+| ```/var/games``` | Optional | Variable game data. |
+| ```/var/lib``` | **Required** | Variable state information. |
+| ```/var/lib/<editor>``` | Optional | Editor backup files and state. |
+| ```/var/lib/<pkgtool>``` | Optional | Packaging support files. |
+| ```/var/lib/<package>``` | Optional | State data for packages and subsystems. |
+| ```/var/lib/color``` | Optional | Color management information. |
+| ```/var/lib/hwclock``` | Optional | State directory for hwclock. |
+| ```/var/lib/misc``` | **Required** | Miscellaneous variable data. |
+| ```/var/lib/xdm``` | Optional | X display manager variable data. |
+| ```/var/local``` | **Required** | Variable data for ```/usr/local```. |
+| ```/var/lock``` | **Required** | Lock files. Files keeping track of resources currently in use. |
+| ```/var/log``` | **Required** | Log files and directories. |
+| ```/var/log/lastlog``` | **Required** | Record of last login of each user. |
+| ```/var/log/messages``` | **Required** | System messages from syslogd. |
+| ```/var/log/wtmp``` | **Required** | Record of all logins and logouts. |
+| ```/var/mail``` | Optional | User mailbox files. |
+| ```/var/opt``` | **Required** | Variable data from add-on packages that are stored in ```/opt/```. |
+| ```/var/run``` | **Required** | Data relevant to running processes. |
+| ```/var/spool``` | **Required** | Application spool data. |
+| ```/var/spool/lpd``` | Optional | Printer spool directory. |
+| ```/var/spool/mqueue``` | Optional | Outgoing mail queue. |
+| ```/var/spool/news``` | Optional | News spool directory. |
+| ```/var/spool/rwho``` | Optional | Rwhod files. |
+| ```/var/spool/uucp``` | Optional | Spool directory for UUCP. |
+| ```/var/tmp``` | **Required** | Temporary files to be preserved between reboots.|
+| ```/var/yp``` | Optional | Network Information Service (NIS) database files. |
 
 ## Linux kernel Releases
 
@@ -188,3 +345,5 @@ If you want to know all information for all of those different linux distributio
 [The Linux Kernel Archives](https://www.kernel.org/)
 
 [Linux kernel version numbering](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering)
+
+[Linux Foundation Referenced Specifications](http://refspecs.linuxfoundation.org/)

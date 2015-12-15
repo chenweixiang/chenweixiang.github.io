@@ -39,7 +39,7 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 * **LSB 3.1** Core was released on October 27, 2005; LSB 3.1 C++ and Desktop were released April 24, 2006.
 
     Note that the Core module specification of LSB 3.1 is the document submitted for publication by ISO/IEC as **IS 23360:1996**. The following are the main parts of it and can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html):
-    
+
     ISO/IEC 23360-1:2006 Linux Standard Base (LSB) core specification 3.1 – Part 1: Generic specification
     ISO/IEC 23360-2:2006 Linux Standard Base (LSB) core specification 3.1 – Part 2: Specification for IA-32 architecture
     ISO/IEC 23360-3:2006 Linux Standard Base (LSB) core specification 3.1 – Part 3: Specification for IA-64 architecture
@@ -100,7 +100,9 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | 2.3     | 2004-01-29   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 | 3.0     | 2015-05-18   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 
-### FHS 3.0 Directory Structure
+### Directory Structure defined in FHS 3.0
+
+The following table is the directory structure of FHS 3.0. Refer to FHS 3.0 for more detail explanation and files contained in the directories.
 
 | Directory | Requirement | Description |
 | :-------- | :---------: | :---------- |
@@ -108,36 +110,48 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | **```/bin```** | **Required** | Essential command binaries (for use by all users). Must be no subdirectories in ```/bin```. |
 | **```/boot```** | **Required** | Static files of the boot loader. |
 | **```/dev```** | **Required** | Device files. |
-| **```/etc```** | **Required** | Host-specific system configuration. |
-| ```/etc/opt``` | **Required** | Configuration files for add-on packages that are stored in ```/opt/```. |
+| **```/etc```** | **Required** | Host-specific system configuration. Recommended that configuration files are stored in subdirectories of ```/etc``` rather than directly in ```/etc```. |
+| ```/etc/opt``` | **Required** | Configuration files for add-on software packages that are stored in ```/opt```. |
 | ```/etc/X11``` | Optional | Configuration for the X Window system. |
 | ```/etc/sgml``` | Optional | Configuration for SGML. |
 | ```/etc/xml``` | Optional | Configuration for XML. |
-| **```/home```** | Optional | User home directories. |
+| **```/home```** | Optional | User home directories. User configuration files are ```~/.<file>``` or ```~/.<subdir>/<files>``` |
 | **```/lib```** | **Required** | Essential shared libraries and kernel modules. |
 | ```/lib/modules``` | Optional | Loadable kernel modules. |
 | ```/lib<qual>``` | Optional | Alternate format essential shared libraries. |
-| **```/media```** | **Required** | Mount point for removable media (appeared in FHS 2.3). |
-| ```/media/floppy``` | Optional | Floppy drive. |
+| **```/media```** | **Required** | Mount point for removable media (appeared in **FHS 2.3**), which contains subdirectories for different removable medias. |
 | ```/media/cdrom``` | Optional | CD-ROM drive. |
 | ```/media/cdrecorder``` | Optional | CD writer. |
+| ```/media/floppy``` | Optional | Floppy drive. |
 | ```/media/zip``` | Optional | Zip drive. |
 | **```/mnt```** | **Required** |  Mount point for a temporarily mounted filesystem. |
-| **```/opt```** | **Required** | Add-on application software packages. |
+| **```/opt```** | **Required** | Add-on application software packages. A package to be installed in ```/opt``` must locate its static files in a separate directory ```/opt/<package>``` or ```/opt/<provider>```. |
+| ```/opt/<package>``` | Optional | Static package objects. |
+| ```/opt/<package>/bin``` | Optional | Binaries of the software package. |
+| ```/opt/<package>/share/man``` | Optional | UNIX manual pages of the software package. Has the same substructure as ```/usr/share/man```. |
+| ```/opt/<provider>``` | Optional | ```<provider>``` is [LANANA](http://www.lanana.org/) registered provider name. Recommended that packages are installed in ```/opt/<provider>/<package>``` and follow a similar structure of ```/opt/<package>```. |
+| ```/opt/bin``` | Reserved | Reserved for local system administrator use. |
+| ```/opt/doc``` | Reserved | Reserved for local system administrator use. |
+| ```/opt/include``` | Reserved | Reserved for local system administrator use. |
+| ```/opt/info``` | Reserved | Reserved for local system administrator use. |
+| ```/opt/lib``` | Reserved | Reserved for local system administrator use. |
+| ```/opt/man``` | Reserved | Reserved for local system administrator use. |
 | **```/proc```** | ***De-facto*** | Virtual filesystem providing process and kernel information as files. |
 | **```/root```** | Optional | Home directory for the root user. |
-| **```/run```** | **Required** | Data relevant to running processes. |
-| **```/sbin```** | **Required** | Essential system binaries, e.g., fsck, init, route. |
-| **```/srv```** | **Required** | Data for services provided by this system. |
+| **```/run```** | **Required** | Data relevant to running processes since system was booted. The purposes of this directory were once served by ```/var/run```. |
+| **```/run/<program-name>.pid```** | Optional | Process identifier (PID) files, which were originally placed in ```/etc```, must be placed in ```/run```. The file contains the process identifier in ASCII-encoded decimal, followed by a newline character. |
+| **```/sbin```** | **Required** | Essential system binaries used for system administration (and other root-only commands) are stored in ```/sbin```, ```/usr/sbin```, and ```/usr/local/sbin```. ```/sbin``` contains binaries essential for booting, restoring, recovering, and/or repairing the system in addition to the binaries in ```/bin```. Must be no subdirectories in ```/sbin```. |
+| **```/srv```** | **Required** | Site-specific data for services provided by this system. |
 | **```/tmp```** | **Required** | Temporary files. Often not preserved between system reboots, see ```/var/tmp```. |
-| **```/usr```** | **Required** | **Secondary hierarchy** for read-only user data. |
-| ```/usr/bin``` | **Required** | Non-essential command binaries. |
+| **```/usr```** | **Required** | **Secondary hierarchy** for shareable, read-only user data. |
+| ```/usr/bin``` | **Required** | Non-essential command binaries. This is the primary directory of executable commands on the system. Must be no subdirectories in ```/usr/bin```. |
 | ```/usr/games``` | Optional | Games and educational binaries. |
 | ```/usr/include``` | Optional | Header files included by C programs. |
 | ```/usr/include/bsd``` | Optional | BSD compatibility include files. |
-| ```/usr/lib``` | **Required** | Libraries for the binaries in ```/usr/bin/``` and ```/usr/sbin/```. |
-| ```/usr/libexec``` | Optional | Binaries run by other programs. |
-| ```/usr/lib<qual>``` | Optional | Alternate format libraries. |
+| ```/usr/lib``` | **Required** | Libraries for the binaries in ```/usr/bin/``` and ```/usr/sbin/```. Applications may use a single subdirectory under ```/usr/lib```. |
+| ```/usr/lib/sendmail``` | Optional | Symbolic link to the *sendmail*-compatible command for historical reasons. |
+| ```/usr/libexec``` | Optional | Binaries run by other programs. Applications may use a single subdirectory under ```/usr/libexec```. |
+| ```/usr/lib<qual>``` | Optional | Alternate format libraries, which performs the same role as ```/usr/lib```. The symbolic links ```/usr/lib<qual>/sendmail``` and ```/usr/lib<qual>/X11``` are not required. |
 | **```/usr/local```** | **Required** | **Tertiary hierarchy** for local data, specific to this host. |
 | ```/usr/local/bin``` | **Required** | Local binaries. |
 | ```/usr/local/etc``` | **Required** | Host-specific system configuration for local binaries. |
@@ -188,6 +202,9 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | ```/usr/share/zoneinfo``` | Optional | Timezone information and configuration. |
 | ```/usr/src``` | Optional | Source code, e.g., kernel source code with its header files. |
 | ```/usr/X11R6``` | Optional | X Window System, Version 11, Release 6 (up to FHS-2.3). |
+| ```/usr/spool``` | Optional | Symbolic links to ```/var/spool``` for backwards compatibility. |
+| ```/usr/spool/locks``` | Optional | Symbolic links to ```/var/lock``` for backwards compatibility. |
+| ```/usr/tmp``` | Optional | Symbolic links to ```/var/tmp``` for backwards compatibility. |
 | **```/var```** | **Required** | Variable files. |
 | ```/var/account``` | Optional | Process accounting logs. |
 | ```/var/account/fonts``` | Optional | Locally-generated fonts. |
@@ -214,8 +231,8 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | ```/var/log/messages``` | **Required** | System messages from syslogd. |
 | ```/var/log/wtmp``` | **Required** | Record of all logins and logouts. |
 | ```/var/mail``` | Optional | User mailbox files. |
-| ```/var/opt``` | **Required** | Variable data from add-on packages that are stored in ```/opt/```. |
-| ```/var/run``` | **Required** | Data relevant to running processes. |
+| ```/var/opt``` | **Required** | Variable data from add-on software packages that are stored in ```/opt/```. |
+| ```/var/run``` | **Required** | Data relevant to running processes. The ```/var/run``` is used for the purposes of backwards compatibility. Migration to use ```/run``` is recommended. |
 | ```/var/spool``` | **Required** | Application spool data. |
 | ```/var/spool/lpd``` | Optional | Printer spool directory. |
 | ```/var/spool/mqueue``` | Optional | Outgoing mail queue. |

@@ -65,15 +65,15 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 
 * **LSB 5.0** was released on June 3, 2015.
 
-    Note that the LSB 5.0 Core specification set is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
+    Note that the LSB 5.0 Core specification set is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard. LSB 5.0 contains two major changes to the specification: (1) the first major release to **break 100% compatibility with earlier versions**. It is compatible with LSB 3.0, and mostly compatible with LSB 3.1 and later, with one exception (Qt 3 Removed); (2) LSB 5.0 supports seven architectures: IA32, IA64, PPC32, PPC64, S390, S390X, and X86_64.
 
-The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. For LSB 4.1, the architecture independent part is comprised of five modules: **Core**, **C++**, **Desktop**, **Runtime Languages** and **Printing**. The architecture dependent part is comprised of three modules: **Core**, **C++** and **Desktop**. For LSB 5.0, the architecture independent part is comprised of five modules: **Common**, **Core**, **Desktop**, **Runtime Languages** and **Imaging**. The architecture dependent part is comprised of three modules: **Core** and **Desktop**.
+The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. For LSB 4.1, the architecture independent part is comprised of five modules: **Core**, **C++**, **Desktop**, **Runtime Languages** and **Printing**. The architecture dependent part is comprised of three modules: **Core**, **C++** and **Desktop**. For LSB 5.0, the architecture independent part is comprised of five modules: **Common**, **Core**, **Desktop**, **Runtime Languages** and **Imaging**. The architecture dependent part is comprised of two modules: **Core** and **Desktop**.
 
 Also, there are **mandatory** and **trial use** modules in the specification. The former impose mandatory requirements on LSB compliant distributions and applications may safely rely on the functionality described in mandatory modules. Functionality in trial use modules is not required in LSB compliant distributions and applications should take this into consideration. Meanwhile, trial use modules represent candidates for inclusion in the next versions of LSB.
 
 ### LSB Navigator
 
-LSB Database is a central place for storing information about the LSB standard and about the surrounding Linux ecosystem. [LSB Navigator](http://www.linuxbase.org/navigator/commons/welcome.php) represents web based interface over all these information. It can be used by Linux developers, Linux distribution vendors and LSB workgroup to browse, query, analyze and submit various information.
+**LSB Database** is a central place for storing information about the LSB standard and about the surrounding Linux ecosystem. [LSB Navigator](http://www.linuxbase.org/navigator/commons/welcome.php) represents web based interface over all these information. It can be used by Linux developers, Linux distribution vendors and LSB workgroup to browse, query, analyze and submit various information.
 
 ### LSB Certification
 
@@ -81,13 +81,11 @@ Refer to [LSB Certification](https://www.linuxbase.org/lsb-cert/welcome_cert.php
 
 ## Filesystem Hierarchy Standard (FHS)
 
-The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the Linux Foundation. Currently it is only used by Linux distributions. And the Linux Standard Base (LSB) refers to it as a standard.
-
-[Filesystem Hierarchy Standard Specifications Archive](http://refspecs.linuxfoundation.org/fhs.shtml)
+The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the [Linux Foundation](http://www.linuxfoundation.org/). Currently it is only used by Linux distributions. And the [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) refers to it as a standard, see section "VI. Execution Environment 16. File System Hierarchy" in [Linux Standard Base (LSB) Core Specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
 
 ### History of FHS
 
-FHS releases the following versions, which can be downloaded from [here](http://www.ibiblio.org/pub/Linux/docs/fsstnd/old/fsstnd-1.0/) for FHS 1.0, and [Filesystem Hierarchy Standard Specifications Archive](http://refspecs.linuxfoundation.org/fhs.shtml) for FHS 2.3 and beyond.
+FHS releases the following versions, which can be downloaded from [here](http://www.ibiblio.org/pub/Linux/docs/fsstnd/old/fsstnd-1.0/) for FHS 1.0, and from [Filesystem Hierarchy Standard Specifications Archive](http://refspecs.linuxfoundation.org/fhs.shtml) for FHS 2.3 and beyond.
 
 | Version | Release Date | Notes |
 | :-----: | :----------: | :---- |
@@ -102,7 +100,7 @@ FHS releases the following versions, which can be downloaded from [here](http://
 
 ### Directory Structure defined in FHS 3.0
 
-The following table is the directory structure of FHS 3.0. Refer to FHS 3.0 for more detail explanation and files contained in the directories.
+The following table is the directory structure defined in FHS 3.0. Refer to [FHS 3.0](http://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html) for more detail explanations and the files contained in the directories.
 
 | Directory | Requirement | Description |
 | :-------- | :---------: | :---------- |
@@ -139,7 +137,7 @@ The following table is the directory structure of FHS 3.0. Refer to FHS 3.0 for 
 | **```/proc```** | ***De-facto*** | Virtual filesystem providing process and kernel information as files. |
 | **```/root```** | Optional | Home directory for the root user. |
 | **```/run```** | **Required** | Data relevant to running processes since system was booted. The purposes of this directory were once served by ```/var/run```. |
-| **```/run/<program-name>.pid```** | Optional | Process identifier (PID) files, which were originally placed in ```/etc```, must be placed in ```/run```. The file contains the process identifier in ASCII-encoded decimal, followed by a newline character. |
+| ```/run/<program-name>.pid``` | Optional | Process identifier (PID) files, which were originally placed in ```/etc```, must be placed in ```/run```. The file contains the process identifier in ASCII-encoded decimal, followed by a newline character. |
 | **```/sbin```** | **Required** | Essential system binaries used for system administration (and other root-only commands) are stored in ```/sbin```, ```/usr/sbin```, and ```/usr/local/sbin```. ```/sbin``` contains binaries essential for booting, restoring, recovering, and/or repairing the system in addition to the binaries in ```/bin```. Must be no subdirectories in ```/sbin```. |
 | **```/srv```** | **Required** | Site-specific data for services provided by this system. |
 | **```/tmp```** | **Required** | Temporary files. Often not preserved between system reboots, see ```/var/tmp```. |
@@ -154,26 +152,27 @@ The following table is the directory structure of FHS 3.0. Refer to FHS 3.0 for 
 | ```/usr/lib<qual>``` | Optional | Alternate format libraries, which performs the same role as ```/usr/lib```. The symbolic links ```/usr/lib<qual>/sendmail``` and ```/usr/lib<qual>/X11``` are not required. |
 | **```/usr/local```** | **Required** | **Tertiary hierarchy** for local data, specific to this host. |
 | ```/usr/local/bin``` | **Required** | Local binaries. |
-| ```/usr/local/etc``` | **Required** | Host-specific system configuration for local binaries. |
+| ```/usr/local/etc``` | **Required** | Host-specific system configuration for local binaries. ```/usr/local/etc``` may be a symbolic link to ```/etc/local```. NOTE: ```/usr/etc``` is not allowed: programs in ```/usr``` should place configuration files in ```/etc```. |
 | ```/usr/local/games``` | **Required** | Local game binaries. |
 | ```/usr/local/include``` | **Required** | Local C header files. |
 | ```/usr/local/lib``` | **Required** | Local libraries. |
 | ```/usr/local/lib<qual>``` | Optional | Exist only if ```/lib<qual>``` or ```/usr/lib<qual>``` exist. |
 | ```/usr/local/man``` | **Required** | Local online manuals. |
 | ```/usr/local/sbin``` | **Required** | Local system binaries. |
-| ```/usr/local/share``` | **Required** | Local architecture-independent hierarchy. |
+| ```/usr/local/share``` | **Required** | Local architecture-independent hierarchy. The requirements for the contents of this directory are the same as for ```/usr/share```. |
+| ```/usr/local/share/color``` | Optional | Exist only if ```/usr/share/color``` exists. It follows the same rules as ```/usr/share/color```. |
 | ```/usr/local/src``` | **Required** | Local source code. |
-| ```/usr/sbin``` | **Required** | Non-essential standard system binaries. |
-| ```/usr/share``` | **Required** | Architecture-independent (shared) data. |
-| ```/usr/share/color``` | Optional | Color management information. |
+| ```/usr/sbin``` | **Required** | Non-essential standard system binaries. Must be no subdirectories in ```/usr/sbin```. |
+| ```/usr/share``` | **Required** | Shareable, read-only, architecture-independent data. Recommended that a subdirectory be used in ```/usr/share``` for any program or package. Applications using a single file may use ```/usr/share/misc```. |
+| ```/usr/share/color``` | Optional | Color management information. The top-level directory ```/usr/share/color``` must not contain any files; all files should be in subdirectories of ```/usr/share/color```. |
 | ```/usr/share/color/icc``` | Optional | ICC color profiles. |
 | ```/usr/share/dict``` | Optional | Word lists. |
 | ```/usr/share/dict/words``` | Optional | List of English words. |
 | ```/usr/share/doc``` | Optional | Miscellaneous documentation. |
-| ```/usr/share/games``` | Optional | Static data files for ```/usr/games```. |
+| ```/usr/share/games``` | Optional | Static data files for ```/usr/games```. Any modifiable files, such as score files, game play logs, and so forth, should be placed in ```/var/games```. |
 | ```/usr/share/info``` | Optional | Primary directory for GNU Info system. |
 | ```/usr/share/locale``` | Optional | Locale information. |
-| ```/usr/share/man``` | **Required** | Manual pages. |
+| ```/usr/share/man``` | **Required** | Manual pages for commands and data under the ```/``` and ```/usr``` filesystems. This is the primary ```<mandir>``` of the system. Manual pages are stored in ```<mandir>/<locale>/man<section>/<arch>```. |
 | ```/usr/share/man/man1``` | Optional | User programs. |
 | ```/usr/share/man/man2``` | Optional | System calls. |
 | ```/usr/share/man/man3``` | Optional | Library calls. |
@@ -182,12 +181,13 @@ The following table is the directory structure of FHS 3.0. Refer to FHS 3.0 for 
 | ```/usr/share/man/man6``` | Optional | Games. |
 | ```/usr/share/man/man7``` | Optional | Miscellaneous. |
 | ```/usr/share/man/man8``` | Optional | System administration. |
+| ```/usr/share/man/<locale>/man<section>``` | Optional | Manual pages for specific ```<locale>``` and ```<section>```. The ```<locale>``` is based on Appendix E of the POSIX 1003.1 standard and has format ```<language>[_<territory>][.<character-set>][,<version>]```. |
 | ```/usr/share/misc``` | **Required** | Miscellaneous architecture-independent data. |
 | ```/usr/share/misc/ascii``` | Optional | ASCII character set table. |
 | ```/usr/share/misc/termcap``` | Optional | Terminal capability database. |
 | ```/usr/share/misc/termcap.db``` | Optional | Terminal capability database. |
 | ```/usr/share/nls``` | Optional | Message catalogs for Native language support. |
-| ```/usr/share/ppd``` | Optional | Printer definitions. |
+| ```/usr/share/ppd``` | Optional | Printer definitions, that's PostScript Printer Definition (PPD) files. |
 | ```/usr/share/sgml``` | Optional | SGML data. |
 | ```/usr/share/sgml/docbook``` | Optional | docbook DTD. |
 | ```/usr/share/sgml/tei``` | Optional | tei DTD. |
@@ -200,51 +200,59 @@ The following table is the directory structure of FHS 3.0. Refer to FHS 3.0 for 
 | ```/usr/share/xml/xhtml``` | Optional | XHTML DTD. |
 | ```/usr/share/xml/mathml``` | Optional | MathML DTD. |
 | ```/usr/share/zoneinfo``` | Optional | Timezone information and configuration. |
-| ```/usr/src``` | Optional | Source code, e.g., kernel source code with its header files. |
+| ```/usr/src``` | Optional | Source code only for reference purposes. e.g., kernel source code with its header files. Generally, source should not be built within this hierarchy. |
 | ```/usr/X11R6``` | Optional | X Window System, Version 11, Release 6 (up to FHS-2.3). |
 | ```/usr/spool``` | Optional | Symbolic links to ```/var/spool``` for backwards compatibility. |
 | ```/usr/spool/locks``` | Optional | Symbolic links to ```/var/lock``` for backwards compatibility. |
 | ```/usr/tmp``` | Optional | Symbolic links to ```/var/tmp``` for backwards compatibility. |
-| **```/var```** | **Required** | Variable files. |
-| ```/var/account``` | Optional | Process accounting logs. |
-| ```/var/account/fonts``` | Optional | Locally-generated fonts. |
-| ```/var/account/man``` | Optional | Locally-formatted manual pages. |
-| ```/var/account/www``` | Optional | WWW proxy or cache data. |
-| ```/var/account/<package>``` | Optional | Package specific cache data. |
-| ```/var/cache``` | **Required** | Application cache data.  |
+| **```/var```** | **Required** | Variable files. ```/var``` is specified in order to make it possible to mount ```/usr``` read-only. Some portions of ```/var``` are not shareable between different systems, such as ```/var/log```, ```/var/lock``` and ```/var/run```. Other portions may be shared, such as ```/var/mail``` and ```/var/cache/man```. |
+| ```/var/account``` | Optional | Current active process accounting logs. |
+| ```/var/backups``` | Reserved | Reserved to prevent conflict with historical and/or local practice. |
+| ```/var/cache``` | **Required** | Application cache data. The data must remain valid between invocations of the application and rebooting the system, and may be expired in an application specific manner, by the system administrator, or both. |
 | ```/var/cache/fonts``` | Optional | Locally-generated fonts. |
 | ```/var/cache/man``` | Optional | Locally-formatted manual pages. |
+| ```/var/cache/www``` | Optional | WWW proxy or cache data. |
+| ```/var/cache/<package>``` | Optional | Package specific cache data. |
 | ```/var/crash``` | Optional | System crash dumps. |
-| ```/var/games``` | Optional | Variable game data. |
-| ```/var/lib``` | **Required** | Variable state information. |
+| ```/var/cron``` | Reserved | Reserved to prevent conflict with historical and/or local practice. |
+| ```/var/games``` | Optional | Variable game data relating to games in ```/usr```. |
+| ```/var/lib``` | **Required** | Variable state information pertaining to an application or the system. State information should generally remain valid after a reboot, should not be logging output, and should not be spooled data. An application must use a subdirectory of ```/var/lib``` for its data. |
 | ```/var/lib/<editor>``` | Optional | Editor backup files and state. |
 | ```/var/lib/<pkgtool>``` | Optional | Packaging support files. |
 | ```/var/lib/<package>``` | Optional | State data for packages and subsystems. |
-| ```/var/lib/color``` | Optional | Color management information. |
+| ```/var/lib/color``` | Optional | Color management information. This directory shall be laid out using the same rules as the ```/usr/share/color``` directory. |
 | ```/var/lib/hwclock``` | Optional | State directory for hwclock. |
-| ```/var/lib/misc``` | **Required** | Miscellaneous variable data. |
+| ```/var/lib/misc``` | **Required** | Miscellaneous variable data, which is intended for state files that don't need a subdirectory. |
 | ```/var/lib/xdm``` | Optional | X display manager variable data. |
 | ```/var/local``` | **Required** | Variable data for ```/usr/local```. |
-| ```/var/lock``` | **Required** | Lock files. Files keeping track of resources currently in use. |
+| ```/var/lock``` | **Required** | Lock files keeping track of resources currently in use. The naming convention which must be used is "LCK.." followed by the base name of the device. |
 | ```/var/log``` | **Required** | Log files and directories. |
-| ```/var/log/lastlog``` | **Required** | Record of last login of each user. |
-| ```/var/log/messages``` | **Required** | System messages from syslogd. |
-| ```/var/log/wtmp``` | **Required** | Record of all logins and logouts. |
-| ```/var/mail``` | Optional | User mailbox files. |
+| ```/var/log/lastlog``` | Optional | Record of last login of each user. |
+| ```/var/log/messages``` | Optional | System messages from syslogd. |
+| ```/var/log/wtmp``` | Optional | Record of all logins and logouts. |
+| ```/var/mail``` | Optional | User mailbox files, which must be stored in the standard UNIX mailbox format. Note that ```/var/mail``` may be a symbolic link to another directory. |
+| ```/var/msgs``` | Reserved | Reserved to prevent conflict with historical and/or local practice. |
 | ```/var/opt``` | **Required** | Variable data from add-on software packages that are stored in ```/opt/```. |
-| ```/var/run``` | **Required** | Data relevant to running processes. The ```/var/run``` is used for the purposes of backwards compatibility. Migration to use ```/run``` is recommended. |
-| ```/var/spool``` | **Required** | Application spool data. |
+| ```/var/opt/<subdir>``` | Optional | Variable data of the add-on software package in ```/opt/<subdir>``` must be installed in ```/var/opt/<subdir>```. |
+| ```/var/preserve``` | Reserved | Reserved to prevent conflict with historical and/or local practice. |
+| ```/var/run``` | **Required** | Data relevant to running processes. The ```/var/run``` is used for the purposes of backwards compatibility. Migration to use ```/run``` is recommended. It's valid to implement ```/var/run``` as a symlink to ```/run```. |
+| ```/var/spool``` | **Required** | Application spool data, which is awaiting some kind of later processing. |
 | ```/var/spool/lpd``` | Optional | Printer spool directory. |
+| ```/var/spool/lpd/printer``` | Optional | Spools for a specific printer. |
 | ```/var/spool/mqueue``` | Optional | Outgoing mail queue. |
 | ```/var/spool/news``` | Optional | News spool directory. |
-| ```/var/spool/rwho``` | Optional | Rwhod files. |
+| ```/var/spool/rwho``` | Optional | Rwhod files, which hold the rwhod information for other systems on the local net. |
 | ```/var/spool/uucp``` | Optional | Spool directory for UUCP. |
 | ```/var/tmp``` | **Required** | Temporary files to be preserved between reboots.|
-| ```/var/yp``` | Optional | Network Information Service (NIS) database files. |
+| ```/var/yp``` | Optional | Network Information Service (NIS) database files. Formerly known as the Sun Yellow Pages (YP). |
 
-## Linux kernel Releases
+## Linux kernel
 
-The Linux kernel is the most important part of the Linux system. You can get Linux kernel source code from its official site [The Linux Kernel Archives](https://www.kernel.org/). [Here](https://en.wikipedia.org/wiki/History_of_Linux) is a short history of Linux kernel:
+The Linux kernel is the most important part of the Linux system. You can get Linux kernel source code from its official site [The Linux Kernel Archives](https://www.kernel.org/). Also you can browse Linux kernel source code on git repositories for the [Linux kernel mainline](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/), [Linux kernel stable tree](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/) and [linux-next integration testing tree](linux-next integration testing tree).
+
+### Linux kernel Releases
+
+[Here](https://en.wikipedia.org/wiki/History_of_Linux) is a short history of Linux kernel (until December 06, 2015):
 
 | kernel version | Release date |  Status  |
 | :------------: | :----------: | :------: |

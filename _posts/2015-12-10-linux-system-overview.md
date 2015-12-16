@@ -5,83 +5,13 @@ tags: [Linux]
 toc: true
 ---
 
-This article introduces Linux system overview.
+This article introduces Filesystem Hierarchy Standard (FHS), Linux Standard Base (LSB), Linux kernel and distributions of Linux system briefly.
 
 <!--more-->
 
-## Linux Standard Base (LSB)
-
-The [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) was created to lower the overall costs of supporting the Linux platform. By reducing the differences between individual Linux distributions, the LSB greatly reduces the costs involved with porting applications to different distributions, as well as lowers the cost and effort involved in after-market support of those applications.
-
-The picture below represents the key LSB deliverables for application and distribution developers:
-![LSB Specifications and Tools](/assets/lsb_concept_tools.png)
-
-### LSB Specifications
-
-The official home of the LSB specification is the [Linux Foundation's Reference Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml). The following LSB specifications are released:
-
-* **LSB 1.0** was released on June 29, 2001.
-
-* **LSB 1.1** was released on January 22, 2002.
-
-* **LSB 1.2** was released on June 28, 2002.
-
-* **LSB 1.3** was released on December 17, 2002.
-
-* **LSB 2.0** was released on August 31, 2004. The release omitted the PPC32 and S390 architectures.
-
-* **LSB 2.0.1** was released on October 21, 2004.
-
-* **LSB 2.1** was released on March 11, 2005.
-
-* **LSB 3.0** was released on July 6, 2005.
-
-* **LSB 3.1** Core was released on October 27, 2005; LSB 3.1 C++ and Desktop were released April 24, 2006.
-
-    Note that the Core module specification of LSB 3.1 is the document submitted for publication by ISO/IEC as **IS 23360:1996**. The following are the main parts of it and can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html):
-
-    ISO/IEC 23360-1:2006 Linux Standard Base (LSB) core specification 3.1 – Part 1: Generic specification
-    ISO/IEC 23360-2:2006 Linux Standard Base (LSB) core specification 3.1 – Part 2: Specification for IA-32 architecture
-    ISO/IEC 23360-3:2006 Linux Standard Base (LSB) core specification 3.1 – Part 3: Specification for IA-64 architecture
-    ISO/IEC 23360-4:2006 Linux Standard Base (LSB) core specification 3.1 – Part 4: Specification for AMD64 architecture
-    ISO/IEC 23360-5:2006 Linux Standard Base (LSB) core specification 3.1 – Part 5: Specification for PPC32 architecture
-    ISO/IEC 23360-6:2006 Linux Standard Base (LSB) core specification 3.1 – Part 6: Specification for PPC64 architecture
-    ISO/IEC 23360-7:2006 Linux Standard Base (LSB) core specification 3.1 – Part 7: Specification for S390 architecture
-    ISO/IEC 23360-8:2006 Linux Standard Base (LSB) core specification 3.1 – Part 8: Specification for S390X architecture
-
-    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard.
-
-* **LSB 3.2** was released on January 25, 2008
-
-    Note that the LSB 3.2 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
-
-* **LSB 4.0** was released on May 1, 2009
-
-    Note that the LSB 4.0 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
-
-* **LSB 4.1** was released on February 16, 2011
-
-    Note that the LSB 4.1 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
-
-* **LSB 5.0** was released on June 3, 2015.
-
-    Note that the LSB 5.0 Core specification set is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard. LSB 5.0 contains two major changes to the specification: (1) the first major release to **break 100% compatibility with earlier versions**. It is compatible with LSB 3.0, and mostly compatible with LSB 3.1 and later, with one exception (Qt 3 Removed); (2) LSB 5.0 supports seven architectures: IA32, IA64, PPC32, PPC64, S390, S390X, and X86_64.
-
-The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. For LSB 4.1, the architecture independent part is comprised of five modules: **Core**, **C++**, **Desktop**, **Runtime Languages** and **Printing**. The architecture dependent part is comprised of three modules: **Core**, **C++** and **Desktop**. For LSB 5.0, the architecture independent part is comprised of five modules: **Common**, **Core**, **Desktop**, **Runtime Languages** and **Imaging**. The architecture dependent part is comprised of two modules: **Core** and **Desktop**.
-
-Also, there are **mandatory** and **trial use** modules in the specification. The former impose mandatory requirements on LSB compliant distributions and applications may safely rely on the functionality described in mandatory modules. Functionality in trial use modules is not required in LSB compliant distributions and applications should take this into consideration. Meanwhile, trial use modules represent candidates for inclusion in the next versions of LSB.
-
-### LSB Navigator
-
-**LSB Database** is a central place for storing information about the LSB standard and about the surrounding Linux ecosystem. [LSB Navigator](http://www.linuxbase.org/navigator/commons/welcome.php) represents web based interface over all these information. It can be used by Linux developers, Linux distribution vendors and LSB workgroup to browse, query, analyze and submit various information.
-
-### LSB Certification
-
-Refer to [LSB Certification](https://www.linuxbase.org/lsb-cert/welcome_cert.php) for detail information about LSB certification. In that website, you can track the industry picture of LSB certification in **Product Directory** area. For instance, a list of Linux distributions and applications certified for compliance with the LSB standard can be found [here](https://www.linuxbase.org/lsb-cert/productdir.php?by_prod).
-
 ## Filesystem Hierarchy Standard (FHS)
 
-The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the [Linux Foundation](http://www.linuxfoundation.org/). Currently it is only used by Linux distributions. And the [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) refers to it as a standard, see section "VI. Execution Environment 16. File System Hierarchy" in [Linux Standard Base (LSB) Core Specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
+The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the [Linux Foundation](http://www.linuxfoundation.org/). Currently, it is only used by Linux distributions. And the [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) refers to it as a standard, see section *VI. Execution Environment 16. File System Hierarchy* in [Linux Standard Base (LSB) Core Specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
 
 ### History of FHS
 
@@ -95,12 +25,12 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | 2.0     | 1997-10-26   | FHS 2.0 is the direct successor for FSSTND 1.2. Name changed from FSSTND to FHS. |
 | 2.1     | 2000-04-12   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 | 2.2     | 2001-05-23   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
-| 2.3     | 2004-01-29   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
-| 3.0     | 2015-05-18   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
+| **2.3** | 2004-01-29   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
+| **3.0** | 2015-05-18   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 
 ### Directory Structure defined in FHS 3.0
 
-The following table is the directory structure defined in FHS 3.0. Refer to [FHS 3.0](http://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html) for more detail explanations and the files contained in the directories.
+The following table contains the directory structures defined in FHS 3.0. For more detail explanations and the files contained in the directories, refer to [FHS 3.0](http://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html).
 
 | Directory | Requirement | Description |
 | :-------- | :---------: | :---------- |
@@ -172,7 +102,7 @@ The following table is the directory structure defined in FHS 3.0. Refer to [FHS
 | ```/usr/share/games``` | Optional | Static data files for ```/usr/games```. Any modifiable files, such as score files, game play logs, and so forth, should be placed in ```/var/games```. |
 | ```/usr/share/info``` | Optional | Primary directory for GNU Info system. |
 | ```/usr/share/locale``` | Optional | Locale information. |
-| ```/usr/share/man``` | **Required** | Manual pages for commands and data under the ```/``` and ```/usr``` filesystems. This is the primary ```<mandir>``` of the system. Manual pages are stored in ```<mandir>/<locale>/man<section>/<arch>```. |
+| ```/usr/share/man``` | **Required** | Manual pages for commands and data under the ```/``` and ```/usr``` filesystems. This is the primary ```<mandir>``` of the system. Manual pages are stored in ```<mandir>/<locale>/man<section>```. |
 | ```/usr/share/man/man1``` | Optional | User programs. |
 | ```/usr/share/man/man2``` | Optional | System calls. |
 | ```/usr/share/man/man3``` | Optional | Library calls. |
@@ -181,7 +111,7 @@ The following table is the directory structure defined in FHS 3.0. Refer to [FHS
 | ```/usr/share/man/man6``` | Optional | Games. |
 | ```/usr/share/man/man7``` | Optional | Miscellaneous. |
 | ```/usr/share/man/man8``` | Optional | System administration. |
-| ```/usr/share/man/<locale>/man<section>``` | Optional | Manual pages for specific ```<locale>``` and ```<section>```. The ```<locale>``` is based on Appendix E of the POSIX 1003.1 standard and has format ```<language>[_<territory>][.<character-set>][,<version>]```. |
+| ```/usr/share/man/<locale>/man<section>``` | Optional | Manual pages for specific ```<locale>``` and ```<section>```. The ```<locale>``` is based on Appendix E of the POSIX 1003.1 standard and has format ```<lang>[_<terr>][.<char-set>][,<ver>]```. |
 | ```/usr/share/misc``` | **Required** | Miscellaneous architecture-independent data. |
 | ```/usr/share/misc/ascii``` | Optional | ASCII character set table. |
 | ```/usr/share/misc/termcap``` | Optional | Terminal capability database. |
@@ -245,6 +175,104 @@ The following table is the directory structure defined in FHS 3.0. Refer to [FHS
 | ```/var/spool/uucp``` | Optional | Spool directory for UUCP. |
 | ```/var/tmp``` | **Required** | Temporary files to be preserved between reboots.|
 | ```/var/yp``` | Optional | Network Information Service (NIS) database files. Formerly known as the Sun Yellow Pages (YP). |
+
+## Linux Standard Base (LSB)
+
+The [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) was created to lower the overall costs of supporting the Linux platform. By reducing the differences between individual Linux distributions, the LSB greatly reduces the costs involved with porting applications to different distributions, as well as lowers the cost and effort involved in after-market support of those applications.
+
+The picture below represents the key LSB deliverables for application and distribution developers:
+![LSB Specifications and Tools](/assets/lsb_concept_tools.png)
+
+### LSB Specifications
+
+The official home of the LSB specification is the [Linux Foundation's Reference Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml). The following LSB specifications are released:
+
+* **LSB 1.0** was released on June 29, 2001.
+
+* **LSB 1.1** was released on January 22, 2002.
+
+* **LSB 1.2** was released on June 28, 2002.
+
+* **LSB 1.3** was released on December 17, 2002.
+
+* **LSB 2.0** was released on August 31, 2004. The release omitted the PPC32 and S390 architectures.
+
+* **LSB 2.0.1** was released on October 21, 2004.
+
+* **LSB 2.1** was released on March 11, 2005.
+
+* **LSB 3.0** was released on July 6, 2005.
+
+* **LSB 3.1** Core was released on October 27, 2005; LSB 3.1 C++ and Desktop were released April 24, 2006.
+
+    Note that the Core module specification of LSB 3.1 is the document submitted for publication by ISO/IEC as **IS 23360:1996**. The following are the main parts of it and can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html):
+
+    ISO/IEC 23360-1:2006 Linux Standard Base (LSB) core specification 3.1 – Part 1: Generic specification
+    ISO/IEC 23360-2:2006 Linux Standard Base (LSB) core specification 3.1 – Part 2: Specification for IA-32 architecture
+    ISO/IEC 23360-3:2006 Linux Standard Base (LSB) core specification 3.1 – Part 3: Specification for IA-64 architecture
+    ISO/IEC 23360-4:2006 Linux Standard Base (LSB) core specification 3.1 – Part 4: Specification for AMD64 architecture
+    ISO/IEC 23360-5:2006 Linux Standard Base (LSB) core specification 3.1 – Part 5: Specification for PPC32 architecture
+    ISO/IEC 23360-6:2006 Linux Standard Base (LSB) core specification 3.1 – Part 6: Specification for PPC64 architecture
+    ISO/IEC 23360-7:2006 Linux Standard Base (LSB) core specification 3.1 – Part 7: Specification for S390 architecture
+    ISO/IEC 23360-8:2006 Linux Standard Base (LSB) core specification 3.1 – Part 8: Specification for S390X architecture
+
+    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard.
+
+* **LSB 3.2** was released on January 25, 2008
+
+    Note that the LSB 3.2 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
+
+* **LSB 4.0** was released on May 1, 2009
+
+    Note that the LSB 4.0 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
+
+* **LSB 4.1** was released on February 16, 2011
+
+    Note that the LSB 4.1 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
+
+* **LSB 5.0** was released on June 3, 2015.
+
+    Note that the LSB 5.0 Core specification set is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard. LSB 5.0 contains two major changes to the specification: (1) the first major release to **break 100% compatibility with earlier versions**. It is compatible with LSB 3.0, and mostly compatible with LSB 3.1 and later, with one exception (Qt 3 Removed); (2) LSB 5.0 supports seven architectures: IA32, IA64, PPC32, PPC64, S390, S390X, and X86_64.
+
+The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. For LSB 5.0, the architecture independent part is comprised of five modules: **Common**, **Core**, **Desktop**, **Runtime Languages** and **Imaging**. The architecture dependent part is comprised of two modules: **Core** and **Desktop**.
+
+Also, there are **mandatory** and **trial use** modules in the specification. The former impose mandatory requirements on LSB compliant distributions and applications may safely rely on the functionality described in mandatory modules. Functionality in trial use modules is not required in LSB compliant distributions and applications should take this into consideration. Meanwhile, trial use modules represent candidates for inclusion in the next versions of LSB.
+
+### LSB Navigator
+
+**LSB Database** is a central place for storing information about the LSB standard and about the surrounding Linux ecosystem. [LSB Navigator](http://www.linuxbase.org/navigator/commons/welcome.php) represents web based interface over all these information. It can be used by Linux developers, Linux distribution vendors and LSB workgroup to browse, query, analyze and submit various information.
+
+#### LSB Elements
+
+There are four [Top Level Entities](http://www.linuxbase.org/navigator/browse/index.php) of LSB specifiction: **Modules**, **ELF Elements**, **RPM Tags** and **Interpreted Languages**. And the [Modules](http://www.linuxbase.org/navigator/browse/module.php) contains [ABI (Libraries)](http://www.linuxbase.org/navigator/browse/abi.php) and [Commands](http://www.linuxbase.org/navigator/browse/command.php). The [ELF Elements](http://www.linuxbase.org/navigator/browse/elfindex.php) and [RPM Tags](http://www.linuxbase.org/navigator/browse/rpmtag.php) belong to [LSB_Core](http://www.linuxbase.org/navigator/browse/module.php?cmd=display_module&module=LSB_Core) module only. The [Interpreted Languages](http://www.linuxbase.org/navigator/browse/intlang.php) contains **Java**, **Perl** and **Python** languages.
+
+![Top Level Schema of LSB Elements](/assets/top_level_of_lsb_elements.png)
+
+### LSB Certification
+
+This part of the [LSB Certification System](https://www.linuxbase.org/lsb-cert/welcome_cert.php) represents central place for managing certification workflow and status. In that website, you can track the industry picture of LSB certification in **Product Directory** area. For instance, a list of Linux distributions and applications certified for compliance with the LSB standard can be found [here](https://www.linuxbase.org/lsb-cert/productdir.php?by_prod).
+
+### Additional Requirements for FHS in LSB 3.1
+
+An **LSB conforming application** shall conform to the [Filesystem Hierarchy Standard (FHS)](http://refspecs.linuxfoundation.org/lsb.shtml).
+
+An **LSB conforming implementation** shall provide the mandatory portions of the file system hierarchy specified in the [Filesystem Hierarchy Standard (FHS)](http://refspecs.linuxfoundation.org/lsb.shtml), together with following additional requirements made in [LSB specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
+
+| Directory | Requirement | Description |
+| :-------- | :---------: | :---------- |
+| **```/dev```** | **Required** | Device files. |
+| ```/dev/null``` | **Required** | An infinite data source and data sink. Data written to this device shall be discarded. Reads from this device shall always return end-of-file (EOF). |
+| ```/dev/zero``` | **Required** | An infinite data source and data sink. |
+| ```/dev/null``` | **Required** | This device is a source of zeroed out data. All data written to this device shall be discarded. A read from this device shall always return the requested number of bytes, each initialized to the value ```\0```. |
+| ```/dev/tty``` | **Required** | In each process, a synonym for the controlling terminal associated with the process group of that process, if any. All reads and writes to this device shall behave as if the actual controlling terminal device had been opened. |
+| **```/etc```** | **Required** | Host-specific system configuration. Recommended that configuration files are stored in subdirectories of ```/etc``` rather than directly in ```/etc```. |
+| ```/etc/cron.d``` | **Required** | A directory containing extended crontab files, refer to [Cron Jobs](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/sysinit.html#CRONJOBS). |
+| ```/etc/cron.daily``` | **Required** | A directory containing shell scripts to be executed once a day. |
+| ```/etc/cron.hourly``` | **Required** | A directory containing shell scripts to be executed once per hour. |
+| ```/etc/cron.monthly``` | **Required** | A directory containing shell scripts to be executed once per month. |
+| ```/etc/cron.weekly``` | **Required** | A directory containing shell scripts to be executed once a week. |
+| ```/etc/init.d``` | **Required** | A directory containing system initialization scripts. |
+| ```/etc/profile.d``` | **Required** | A directory containing shell scripts. Script names should follow the same conventions as specified for cron jobs, but should have the suffix ```.sh```. The behavior is unspecified if a script is installed in this directory that does not have the suffix ```.sh```. |
 
 ## Linux kernel
 

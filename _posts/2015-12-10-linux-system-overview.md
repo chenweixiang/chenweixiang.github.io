@@ -11,7 +11,7 @@ This article introduces Filesystem Hierarchy Standard (FHS), Linux Standard Base
 
 ## Filesystem Hierarchy Standard (FHS)
 
-The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the [Linux Foundation](http://www.linuxfoundation.org/). Currently, it is only used by Linux distributions. And the [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) refers to it as a standard, see section *VI. Execution Environment 16. File System Hierarchy* in [Linux Standard Base (LSB) Core Specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
+The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the [Linux Foundation](http://www.linuxfoundation.org/). [This page](http://www.pathname.com/fhs/) is the home of the Filesystem Hierarchy Standard (FHS). Currently, it is only used by Linux distributions. And the [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) refers to it as a standard, see section *VI. Execution Environment 16. File System Hierarchy* in [Linux Standard Base (LSB) Core Specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
 
 ### History of FHS
 
@@ -189,19 +189,35 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 
 * **LSB 1.0** was released on June 29, 2001.
 
+    LSB 1.0 supports [Filesystem Hierarchy Standard (FHS) 2.2](http://refspecs.linuxfoundation.org/LSB_1.0.0/gLSB/fhs.html).
+
 * **LSB 1.1** was released on January 22, 2002.
+
+    LSB 1.1 supports [Filesystem Hierarchy Standard (FHS) 2.2](http://refspecs.linuxfoundation.org/LSB_1.1.0/gLSB/execenvfhs.html).
 
 * **LSB 1.2** was released on June 28, 2002.
 
+    LSB 1.2 supports [Filesystem Hierarchy Standard (FHS) 2.2](http://refspecs.linuxfoundation.org/LSB_1.2.0/gLSB/execenvfhs.html).
+
 * **LSB 1.3** was released on December 17, 2002.
+
+    LSB 1.3 supports [Filesystem Hierarchy Standard (FHS) 2.2](http://refspecs.linuxfoundation.org/LSB_1.3.0/gLSB/gLSB/execenvfhs.html).
 
 * **LSB 2.0** was released on August 31, 2004. The release omitted the PPC32 and S390 architectures.
 
+    LSB 2.0 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_2.0.0/LSB-Core/LSB-Core/normativerefs.html#STD.FHS).
+
 * **LSB 2.0.1** was released on October 21, 2004.
+
+    LSB 2.0.1 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_2.0.1/LSB-Core/LSB-Core/normativerefs.html#STD.FHS).
 
 * **LSB 2.1** was released on March 11, 2005.
 
+    LSB 3.0 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_2.1.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
+
 * **LSB 3.0** was released on July 6, 2005.
+
+    LSB 3.0 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
 
 * **LSB 3.1** Core was released on October 27, 2005; LSB 3.1 C++ and Desktop were released April 24, 2006.
 
@@ -218,21 +234,31 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 
     There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard.
 
+    LSB 3.1 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
+
 * **LSB 3.2** was released on January 25, 2008
 
     Note that the LSB 3.2 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
+
+    LSB 3.2 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_3.2.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
 
 * **LSB 4.0** was released on May 1, 2009
 
     Note that the LSB 4.0 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
 
+    LSB 4.0 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
+
 * **LSB 4.1** was released on February 16, 2011
 
     Note that the LSB 4.1 Core specification is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard.
 
+    LSB 4.1 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
+
 * **LSB 5.0** was released on June 3, 2015.
 
     Note that the LSB 5.0 Core specification set is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard. LSB 5.0 contains two major changes to the specification: (1) the first major release to **break 100% compatibility with earlier versions**. It is compatible with LSB 3.0, and mostly compatible with LSB 3.1 and later, with one exception (Qt 3 Removed); (2) LSB 5.0 supports seven architectures: IA32, IA64, PPC32, PPC64, S390, S390X, and X86_64.
+
+    LSB 5.0 supports [Filesystem Hierarchy Standard (FHS) 3.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
 
 The Linux Standard Base (LSB) specifications are made available in two parts: **an architecture independent (generic) part** and **an architecture dependent part**. For LSB 5.0, the architecture independent part is comprised of five modules: **Common**, **Core**, **Desktop**, **Runtime Languages** and **Imaging**. The architecture dependent part is comprised of two modules: **Core** and **Desktop**.
 
@@ -282,80 +308,82 @@ The Linux kernel is the most important part of the Linux system. You can get Lin
 
 [Here](https://en.wikipedia.org/wiki/History_of_Linux) is a short history of Linux kernel (until December 06, 2015):
 
-| kernel version | Release date |  Status  |
-| :------------: | :----------: | :------: |
-| 0.01           | Sep 17, 1991 |          |
-| 0.10           | Nov 1991     |          |
-| 0.95           | Mar 08, 1992 |          |
-| 1.0            | Mar 14, 1994 |          |
-| 1.1            | Apr 06, 1994 |          |
-| 1.2            | Mar 07, 1995 |          |
-| 1.3            | Jun 12, 1995 |          |
-| pre2.0         | May 12, 1996 |          |
-| 2.0            | Jun 09, 1996 |          |
-| 2.2            | Jan 26, 1999 |          |
-| 2.4            | Jan 04, 2001 |          |
-| 2.6            | Dec 17, 2003 |          |
-| 2.6.11         | Mar 02, 2005 |          |
-| 2.6.12         | Jun 18, 2005 |          |
-| 2.6.13         | Aug 28, 2005 |          |
-| 2.6.14         | Oct 27, 2005 |          |
-| 2.6.15         | Jan 02, 2006 |          |
-| 2.6.16         | Mar 20, 2006 |          |
-| 2.6.17         | Jun 17, 2006 |          |
-| 2.6.18         | Sep 20, 2006 |          |
-| 2.6.19         | Nov 26, 2006 |          |
-| 2.6.20         | Feb 04, 2007 |          |
-| 2.6.21         | Apr 25, 2007 |          |
-| 2.6.22         | Jul 08, 2007 |          |
-| 2.6.23         | Oct 09, 2007 |          |
-| 2.6.24         | Jan 24, 2008 |          |
-| 2.6.25         | Apr 16, 2008 |          |
-| 2.6.26         | Jul 13, 2008 |          |
-| 2.6.27         | Oct 09, 2008 |          |
-| 2.6.28         | Dec 12, 2008 |          |
-| 2.6.29         | Mar 23, 2009 |          |
-| 2.6.30         | Jun 09, 2009 |          |
-| 2.6.31         | Sep 09, 2009 |          |
-| 2.6.32         | Dec 02, 2009 | longterm |
-| 2.6.33         | Feb 24, 2010 |          |
-| 2.6.34         | May 16, 2010 |          |
-| 2.6.35         | Aug 01, 2010 |          |
-| 2.6.36         | Oct 20, 2010 |          |
-| 2.6.37         | Jan 04, 2011 |          |
-| 2.6.38         | Mar 14, 2011 |          |
-| 2.6.39         | May 18, 2011 |          |
-| 3.0            | Jul 21, 2011 |          |
-| 3.1            | Oct 24, 2011 |          |
-| 3.2            | Jan 04, 2012 | longterm |
-| 3.3            | Mar 18, 2012 |          |
-| 3.4            | May 20, 2012 | longterm |
-| 3.5            | Jul 21, 2012 |          |
-| 3.6            | Sep 30, 2012 |          |
-| 3.7            | Dec 10, 2012 |          |
-| 3.8            | Feb 18, 2013 |          |
-| 3.9            | Apr 28, 2013 |          |
-| 3.10           | Jun 30, 2013 | longterm |
-| 3.11           | Sep 02, 2013 |          |
-| 3.12           | Nov 03, 2013 | longterm |
-| 3.13           | Jan 19, 2014 |          |
-| 3.14           | Mar 30, 2014 | longterm |
-| 3.15           | Jun 08, 2014 |          |
-| 3.16           | Aug 03, 2014 |          |
-| 3.17           | Oct 05, 2014 |          |
-| 3.18           | Dec 07, 2014 | longterm |
-| 3.19           | Feb 08, 2015 |          |
-| 4.0            | Apr 12, 2015 |          |
-| 4.1            | Jun 22, 2015 | longterm |
-| 4.2            | Aug 30, 2015 | stable   |
-| 4.3            | Nov 01, 2015 | stable   |
-| 4.4            | Dec 06, 2015 | mainline |
+| kernel version | Release date |  Status  | Note |
+| :------------: | :----------: | :------: | :--- |
+| 0.01           | Sep 17, 1991 | EOL      |      |
+| 0.10           | Nov 1991     | EOL      |      |
+| 0.11           | Dec 1991     | EOL      | The first version to be self-hosted, as Linux kernel 0.11 could be compiled by a computer running the same kernel version. |
+| 0.12           | Feb 1992     | EOL      | Adopt the GNU General Public License (GPL). |
+| 0.95           | Mar 08, 1992 | EOL      | The first version to be capable of running X Window System. |
+| 1.0            | Mar 14, 1994 | EOL      |      |
+| 1.1            | Apr 06, 1994 | EOL      |      |
+| 1.2            | Mar 07, 1995 | EOL      |      |
+| pre2.0         | May 12, 1996 | EOL      |      |
+| 1.3            | Jun 12, 1995 | EOL      |      |
+| 2.0            | Jun 09, 1996 | EOL      |      |
+| 2.2            | Jan 26, 1999 | EOL      |      |
+| 2.4            | Jan 04, 2001 | EOL      |      |
+| 2.6            | Dec 17, 2003 | EOL      |      |
+| 2.6.11         | Mar 02, 2005 | EOL      |      |
+| 2.6.12         | Jun 18, 2005 | EOL      |      |
+| 2.6.13         | Aug 28, 2005 | EOL      |      |
+| 2.6.14         | Oct 27, 2005 | EOL      |      |
+| 2.6.15         | Jan 02, 2006 | EOL      |      |
+| 2.6.16         | Mar 20, 2006 | EOL      |      |
+| 2.6.17         | Jun 17, 2006 | EOL      |      |
+| 2.6.18         | Sep 20, 2006 | EOL      |      |
+| 2.6.19         | Nov 26, 2006 | EOL      |      |
+| 2.6.20         | Feb 04, 2007 | EOL      |      |
+| 2.6.21         | Apr 25, 2007 | EOL      |      |
+| 2.6.22         | Jul 08, 2007 | EOL      |      |
+| 2.6.23         | Oct 09, 2007 | EOL      |      |
+| 2.6.24         | Jan 24, 2008 | EOL      |      |
+| 2.6.25         | Apr 16, 2008 | EOL      |      |
+| 2.6.26         | Jul 13, 2008 | EOL      |      |
+| 2.6.27         | Oct 09, 2008 | EOL      |      |
+| 2.6.28         | Dec 12, 2008 | EOL      |      |
+| 2.6.29         | Mar 23, 2009 | EOL      |      |
+| 2.6.30         | Jun 09, 2009 | EOL      |      |
+| 2.6.31         | Sep 09, 2009 | EOL      |      |
+| **2.6.32**     | Dec 02, 2009 | Longterm |      |
+| 2.6.33         | Feb 24, 2010 | EOL      |      |
+| 2.6.34         | May 16, 2010 | EOL      |      |
+| 2.6.35         | Aug 01, 2010 | EOL      |      |
+| 2.6.36         | Oct 20, 2010 | EOL      |      |
+| 2.6.37         | Jan 04, 2011 | EOL      |      |
+| 2.6.38         | Mar 14, 2011 | EOL      |      |
+| 2.6.39         | May 18, 2011 | EOL      |      |
+| 3.0            | Jul 21, 2011 | EOL      | Release kernel 3.0 to mark the kernel's 20th anniversary. |
+| 3.1            | Oct 24, 2011 | EOL      |      |
+| **3.2**        | Jan 04, 2012 | Longterm |      |
+| 3.3            | Mar 18, 2012 | EOL      |      |
+| **3.4**        | May 20, 2012 | Longterm |      |
+| 3.5            | Jul 21, 2012 | EOL      |      |
+| 3.6            | Sep 30, 2012 | EOL      |      |
+| 3.7            | Dec 10, 2012 | EOL      |      |
+| 3.8            | Feb 18, 2013 | EOL      |      |
+| 3.9            | Apr 28, 2013 | EOL      |      |
+| **3.10**       | Jun 30, 2013 | Longterm |      |
+| 3.11           | Sep 02, 2013 | EOL      |      |
+| **3.12**       | Nov 03, 2013 | Longterm |      |
+| 3.13           | Jan 19, 2014 | EOL      |      |
+| **3.14**       | Mar 30, 2014 | Longterm |      |
+| 3.15           | Jun 08, 2014 | EOL      |      |
+| 3.16           | Aug 03, 2014 | EOL      |      |
+| 3.17           | Oct 05, 2014 | EOL      |      |
+| **3.18**       | Dec 07, 2014 | Longterm |      |
+| 3.19           | Feb 08, 2015 | EOL      |      |
+| 4.0            | Apr 12, 2015 | EOL      |      |
+| **4.1**        | Jun 22, 2015 | Longterm |      |
+| **4.2**        | Aug 30, 2015 | Stable   |      |
+| **4.3**        | Nov 01, 2015 | Stable   |      |
+| **4.4**        | Dec 06, 2015 | Mainline |      |
 
 <br>
 
 If we draw a picture of Linux kernel releases, it should be like this:
 
-![Linux_Kernel_Releases](/assets/Linux_Kernel_Releases_20151114_without_linux-next.svg)
+![Linux_Kernel_Releases](/assets/Linux_Kernel_Releases.20151218.svg)
 
 ![Linux_Kernel_Timeline](/assets/linux_kernel_timeline.png)
 

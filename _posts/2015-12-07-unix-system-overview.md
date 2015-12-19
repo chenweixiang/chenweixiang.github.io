@@ -28,10 +28,12 @@ After 1997, the [Austin Group](http://www.opengroup.org/austin/) developed the P
 
 * **POSIX.1-2001 (IEEE Std 1003.1-2001)**: equates to the **Single UNIX Specification version 3 (SUSv3)**, see [The Open Group announces completion of the joint revision to POSIX® and the Single UNIX® Specification](http://www.unix.org/version3/pr.html)
 * **POSIX.1-2004 (IEEE Std 1003.1-2004)**: involves a minor update of POSIX.1-2001 (IEEE Std 1003.1-2001). It incorporated two TCs (Technical Corrigenda).
-* **POSIX.1-2008 (IEEE Std 1003.1-2008)**: Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008.html).
+* **POSIX.1-2008 (IEEE Std 1003.1-2008)**: Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008.html). In December 2008, the Austin Group published a new major revision, known as POSIX:2008 (formally: IEEE Std 1003.1-2008). This is the core of the **Single UNIX Specification, Version 4 (SUSv4)**.
 * **POSIX.1-2008 with TC1 (IEEE Std 1003.1-2008/Cor 1-2013)**: Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html).
 
 ### POSIX-certified Systems
+
+The POSIX Certification web site is [here](http://get.posixcertified.ieee.org/). The **POSIX®** Certified by IEEE and The Open Group certification program is a voluntary program, but is required of suppliers who wish to use the **POSIX®** trademark. Certification is open to any product meeting the conformance requirements. Once a supplier has achieved certification for a product, they are permitted to use the trademark in connection with that product.
 
 Some versions of the following operating systems have been certified to conform to one or more of the various POSIX standards. This means that they passed the automated conformance tests:
 
@@ -46,14 +48,16 @@ Some versions of the following operating systems have been certified to conform 
 
 ## Single UNIX Specification (SUS)
 
-[Single UNIX Specification (SUS)](http://www.unix.org/version4/) is the collective name of a family of standards for computer operating systems, compliance with which is required to qualify for the name **Unix**. The core specifications of the SUS are developed and maintained by the [Austin Group](http://www.opengroup.org/austin/), which is a joint working group of IEEE, [ISO JTC 1 SC22](http://www.open-std.org/JTC1/SC22/) and [The Open Group](http://www.opengroup.org/).
+Beginning in 1998, a joint working group known as the [Austin Group](http://www.opengroup.org/austin/) began to develop the combined standard that would be known as the **Single UNIX Specification Version 3 (SUSv3)** and as **POSIX:2001** (formally: **IEEE Std 1003.1-2001**). It was released on January 30, 2002.
+
+[Single UNIX Specification (SUS)](http://www.unix.org/version4/) is the collective name of a family of standards for computer operating systems, compliance with which is required to qualify for the name **Unix**. The core specifications of the SUS are developed and maintained by the [Austin Group](http://www.opengroup.org/austin/), which is a joint working group of [IEEE](https://www.ieee.org/index.html), [ISO JTC 1 SC22](http://www.open-std.org/JTC1/SC22/) and [The Open Group](http://www.opengroup.org/).
 
 ### SUS Standards
 
 * **Single UNIX Specification version 1 (SUSv1)**: known as **Spec 1170**, the core of the **UNIX 95 brand**.
 * **Single UNIX Specification version 2 (SUSv2)**: released in 1997, the core of the **UNIX 98 brand**.
 * **Single UNIX Specification version 3 (SUSv3)**: released on January 30, 2002, the core of the **UNIX 03 brand**. Equates to the **POSIX:2001 (IEEE Std 1003.1-2001)**.
-* **Single UNIX Specification version 4 (SUSv4)**: released in 2008.
+* **Single UNIX Specification version 4 (SUSv4)**: released in 2008. Equates to the **POSIX:2008 (IEEE Std 1003.1-2008)**.
 
 ### SUS-certified Systems
 

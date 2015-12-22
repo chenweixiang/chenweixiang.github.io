@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="46cm" height="29cm" viewBox="198 -202 903 563" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g>
+    <rect style="fill: #ffc0cb" x="200" y="260" width="900" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="200" y="260" width="900" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="650" y="314.281">
+      <tspan x="650" y="314.281">Hardware</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="320" y="100" width="180" height="160"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="320" y="100" width="180" height="160"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="410" y="184.281">
+      <tspan x="410" y="184.281">Linux Kernel</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #f8f8bc" x="320" y="0" width="180" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="320" y="0" width="180" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="410" y="54.2806">
+      <tspan x="410" y="54.2806">C Standard Library</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #f8f8bc" x="860" y="0" width="240" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="860" y="0" width="240" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="980" y="54.2806">
+      <tspan x="980" y="54.2806">Other Implementations</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #a6a6f6" x="320" y="-200" width="180" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="320" y="-200" width="180" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="410" y="-145.719">
+      <tspan x="410" y="-145.719">User Applications</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="200" y="100" width="120" height="160"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 4; stroke: #000000" x="200" y="100" width="120" height="160"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="260" y="184.281">
+      <tspan x="260" y="184.281">Kernel Mode</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="200" y="-200" width="120" height="300"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 4; stroke: #000000" x="200" y="-200" width="120" height="300"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="260" y="-45.7194">
+      <tspan x="260" y="-45.7194">User Mode</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="500" y="100" width="600" height="40"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="500" y="100" width="600" height="40"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="800" y="124.281">
+      <tspan x="800" y="124.281">System Call Interfaces (SCI)</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="500" y="140" width="120" height="60.1"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="500" y="140" width="120" height="60.1"/>
+    <text font-size="10.16" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="560" y="160.45">
+      <tspan x="560" y="160.45">Process</tspan>
+      <tspan x="560" y="173.15">Scheduling</tspan>
+      <tspan x="560" y="185.85">Subsystem</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="620" y="140" width="120" height="60"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="620" y="140" width="120" height="60"/>
+    <text font-size="9.03111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="680" y="167.111">
+      <tspan x="680" y="167.111">IPC</tspan>
+      <tspan x="680" y="178.4">Subsystem</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="740" y="140" width="120" height="60"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="740" y="140" width="120" height="60"/>
+    <text font-size="9.03111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="800" y="161.467">
+      <tspan x="800" y="161.467">Memory</tspan>
+      <tspan x="800" y="172.756">Management</tspan>
+      <tspan x="800" y="184.044">Subsystem</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="860" y="140" width="120" height="60"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="860" y="140" width="120" height="60"/>
+    <text font-size="9.03111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="920" y="161.467">
+      <tspan x="920" y="161.467">Virtual</tspan>
+      <tspan x="920" y="172.756">Files</tspan>
+      <tspan x="920" y="184.044">Subsystem</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="980" y="140" width="120" height="60"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="980" y="140" width="120" height="60"/>
+    <text font-size="9.03111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="1040" y="167.111">
+      <tspan x="1040" y="167.111">Network</tspan>
+      <tspan x="1040" y="178.4">Subsystem</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #d8e5e5" x="500" y="200" width="600" height="60"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="500" y="200" width="600" height="60"/>
+    <text font-size="9.03111" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="509" y="227.111">
+      <tspan x="509" y="227.111">Other Subsystems: ALSA, DRI, evdev, LVM, Device mapper, Linux Network Scheduler, Netfilter</tspan>
+      <tspan x="509" y="238.4">Linux Security Modules: SELinux, TOMOYO, AppArmor, Smack</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #f8f8bc" x="500" y="0" width="120" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="500" y="0" width="120" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:700" x="560" y="54.2806">
+      <tspan x="560" y="54.2806">glibc</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #f8f8bc" x="620" y="0" width="120" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="620" y="0" width="120" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="680" y="54.2806">
+      <tspan x="680" y="54.2806">uClibc</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #f8f8bc" x="740" y="0" width="120" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="740" y="0" width="120" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="800" y="54.2806">
+      <tspan x="800" y="54.2806">bionic</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #aaf6aa" x="320" y="-100" width="180" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="320" y="-100" width="180" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:700" x="410" y="-54.5389">
+      <tspan x="410" y="-54.5389">Low-level System</tspan>
+      <tspan x="410" y="-36.9">Components</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #aaf6aa" x="500" y="-100" width="160" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="500" y="-100" width="160" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:italic;font-weight:normal" x="509" y="-72.1778">
+      <tspan x="509" y="-72.1778">System daemons:</tspan>
+      <tspan x="509" y="-54.5389">systemd, runit,</tspan>
+      <tspan x="509" y="-36.9">logind, networkd,</tspan>
+      <tspan x="509" y="-19.2611">soundd, ...</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #aaf6aa" x="660" y="-100" width="160.05" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="660" y="-100" width="160.05" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:italic;font-weight:normal" x="669" y="-72.1778">
+      <tspan x="669" y="-72.1778">Windowing system:</tspan>
+      <tspan x="669" y="-54.5389">X11, Wayland, Mir,</tspan>
+      <tspan x="669" y="-36.9">SurfaceFlinger</tspan>
+      <tspan x="669" y="-19.2611">(Android)</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #aaf6aa" x="820" y="-100" width="160" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="820" y="-100" width="160" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:italic;font-weight:normal" x="829" y="-72.1778">
+      <tspan x="829" y="-72.1778">Other Libraries:</tspan>
+      <tspan x="829" y="-54.5389">GTK+, Qt, EFL,</tspan>
+      <tspan x="829" y="-36.9">SDL, SFML, FLTK,</tspan>
+      <tspan x="829" y="-19.2611">GNUstep, ...</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #aaf6aa" x="980" y="-100" width="120" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="980" y="-100" width="120" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:italic;font-weight:normal" x="989" y="-63.3583">
+      <tspan x="989" y="-63.3583">Graphics:</tspan>
+      <tspan x="989" y="-45.7194">Mesa, AMD</tspan>
+      <tspan x="989" y="-28.0806">Catalyst, ...</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #a6a6f6" x="500" y="-200" width="80" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="500" y="-200" width="80" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="540" y="-145.719">
+      <tspan x="540" y="-145.719">Bash</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #a6a6f6" x="580" y="-200" width="80" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="580" y="-200" width="80" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="620" y="-154.539">
+      <tspan x="620" y="-154.539">Mozilla</tspan>
+      <tspan x="620" y="-136.9">Firefox</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #a6a6f6" x="660" y="-200" width="100" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="660" y="-200" width="100" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="710" y="-145.719">
+      <tspan x="710" y="-145.719">LibreOffice</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #a6a6f6" x="760" y="-200" width="100" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="760" y="-200" width="100" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="810" y="-145.719">
+      <tspan x="810" y="-145.719">Blender</tspan>
+    </text>
+  </g>
+  <g>
+    <rect style="fill: #a6a6f6" x="860" y="-200" width="240" height="100"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="860" y="-200" width="240" height="100"/>
+    <text font-size="14.1111" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:italic;font-weight:normal" x="980" y="-145.719">
+      <tspan x="980" y="-145.719">Other User Applications</tspan>
+    </text>
+  </g>
+</svg>

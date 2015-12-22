@@ -1,19 +1,19 @@
 ---
 layout: post
-title: "Linux System Overview"
+title: "Linux Series #2: Linux Standards"
 tags: [Linux]
 toc: true
 ---
 
-This article introduces Filesystem Hierarchy Standard (FHS), Linux Standard Base (LSB), Linux kernel and distributions of Linux system briefly.
+This article introduces standards related to Linux: Filesystem Hierarchy Standard (FHS) and Linux Standard Base (LSB).
 
 <!--more-->
 
-## Filesystem Hierarchy Standard (FHS)
+# Filesystem Hierarchy Standard (FHS)
 
 The [Filesystem Hierarchy Standard (FHS)](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs) defines the directory structure and directory contents in Unix and Unix-like operating systems. It is maintained by the [Linux Foundation](http://www.linuxfoundation.org/). [This page](http://www.pathname.com/fhs/) is the home of the Filesystem Hierarchy Standard (FHS). Currently, it is only used by Linux distributions. And the [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) refers to it as a standard, see section *VI. Execution Environment 16. File System Hierarchy* in [Linux Standard Base (LSB) Core Specification 3.1](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/execenvfhs.html).
 
-### History of FHS
+## History of FHS
 
 FHS releases the following versions, which can be downloaded from [here](http://www.ibiblio.org/pub/Linux/docs/fsstnd/old/fsstnd-1.0/) for FHS 1.0, and from [Filesystem Hierarchy Standard Specifications Archive](http://refspecs.linuxfoundation.org/fhs.shtml) for FHS 2.3 and beyond.
 
@@ -28,7 +28,7 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | **2.3** | 2004-01-29   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 | **3.0** | 2015-05-18   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 
-### Directory Structure defined in FHS 3.0
+## Directory Structure defined in FHS 3.0
 
 The following table contains the directory structures defined in FHS 3.0. For more detail explanations and the files contained in the directories, refer to [FHS 3.0](http://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html).
 
@@ -38,6 +38,9 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | **```/bin```** | **Required** | Essential command binaries (for use by all users). Must be no subdirectories in ```/bin```. |
 | **```/boot```** | **Required** | Static files of the boot loader. |
 | **```/dev```** | **Required** | Device files. |
+| ```/dev/null``` | ***Required*** | **Required for Linux**. All data written to this device is discarded. A read from this device will return an EOF condition. |
+| ```/dev/zero``` | ***Required*** | **Required for Linux**. This device is a source of zeroed out data. All data written to this device is discarded. A read from this device will return as many bytes containing the value zero as was requested. |
+| ```/dev/tty``` | ***Required*** | **Required for Linux**. This device is a synonym for the controlling terminal of a process. Once this device is opened, all reads and writes will behave as if the actual controlling terminal device had been opened. |
 | **```/etc```** | **Required** | Host-specific system configuration. Recommended that configuration files are stored in subdirectories of ```/etc``` rather than directly in ```/etc```. |
 | ```/etc/opt``` | **Required** | Configuration files for add-on software packages that are stored in ```/opt```. |
 | ```/etc/X11``` | Optional | Configuration for the X Window system. |
@@ -64,12 +67,13 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | ```/opt/info``` | Reserved | Reserved for local system administrator use. |
 | ```/opt/lib``` | Reserved | Reserved for local system administrator use. |
 | ```/opt/man``` | Reserved | Reserved for local system administrator use. |
-| **```/proc```** | ***De-facto*** | Virtual filesystem providing process and kernel information as files. |
+| **```/proc```** | ***De-facto*** | Kernel and process information virtual filesystem. |
 | **```/root```** | Optional | Home directory for the root user. |
 | **```/run```** | **Required** | Data relevant to running processes since system was booted. The purposes of this directory were once served by ```/var/run```. |
 | ```/run/<program-name>.pid``` | Optional | Process identifier (PID) files, which were originally placed in ```/etc```, must be placed in ```/run```. The file contains the process identifier in ASCII-encoded decimal, followed by a newline character. |
 | **```/sbin```** | **Required** | Essential system binaries used for system administration (and other root-only commands) are stored in ```/sbin```, ```/usr/sbin```, and ```/usr/local/sbin```. ```/sbin``` contains binaries essential for booting, restoring, recovering, and/or repairing the system in addition to the binaries in ```/bin```. Must be no subdirectories in ```/sbin```. |
 | **```/srv```** | **Required** | Site-specific data for services provided by this system. |
+| **```/sys```** | ***Required*** | **Required for Linux**. Kernel and system information virtual filesystem. |
 | **```/tmp```** | **Required** | Temporary files. Often not preserved between system reboots, see ```/var/tmp```. |
 | **```/usr```** | **Required** | **Secondary hierarchy** for shareable, read-only user data. |
 | ```/usr/bin``` | **Required** | Non-essential command binaries. This is the primary directory of executable commands on the system. Must be no subdirectories in ```/usr/bin```. |
@@ -131,6 +135,7 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | ```/usr/share/xml/mathml``` | Optional | MathML DTD. |
 | ```/usr/share/zoneinfo``` | Optional | Timezone information and configuration. |
 | ```/usr/src``` | Optional | Source code only for reference purposes. e.g., kernel source code with its header files. Generally, source should not be built within this hierarchy. |
+| ```/usr/src/linux``` | Optional | It contains Linux kernel source code, or may be a symbolic link to a kernel source code tree. |
 | ```/usr/X11R6``` | Optional | X Window System, Version 11, Release 6 (up to FHS-2.3). |
 | ```/usr/spool``` | Optional | Symbolic links to ```/var/spool``` for backwards compatibility. |
 | ```/usr/spool/locks``` | Optional | Symbolic links to ```/var/lock``` for backwards compatibility. |
@@ -167,6 +172,7 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | ```/var/preserve``` | Reserved | Reserved to prevent conflict with historical and/or local practice. |
 | ```/var/run``` | **Required** | Data relevant to running processes. The ```/var/run``` is used for the purposes of backwards compatibility. Migration to use ```/run``` is recommended. It's valid to implement ```/var/run``` as a symlink to ```/run```. |
 | ```/var/spool``` | **Required** | Application spool data, which is awaiting some kind of later processing. |
+| ```/var/spool/cron``` | ***Required*** | **Required for Linux**. Contain the variable data for the **cron** and **at** programs. |
 | ```/var/spool/lpd``` | Optional | Printer spool directory. |
 | ```/var/spool/lpd/printer``` | Optional | Spools for a specific printer. |
 | ```/var/spool/mqueue``` | Optional | Outgoing mail queue. |
@@ -176,14 +182,14 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | ```/var/tmp``` | **Required** | Temporary files to be preserved between reboots.|
 | ```/var/yp``` | Optional | Network Information Service (NIS) database files. Formerly known as the Sun Yellow Pages (YP). |
 
-## Linux Standard Base (LSB)
+# Linux Standard Base (LSB)
 
 The [Linux Standard Base (LSB)](http://refspecs.linuxfoundation.org/lsb.shtml) was created to lower the overall costs of supporting the Linux platform. By reducing the differences between individual Linux distributions, the LSB greatly reduces the costs involved with porting applications to different distributions, as well as lowers the cost and effort involved in after-market support of those applications.
 
 The picture below represents the key LSB deliverables for application and distribution developers:
 ![LSB Specifications and Tools](/assets/lsb_concept_tools.png)
 
-### LSB Specifications
+## LSB Specifications
 
 The official home of the LSB specification is the [Linux Foundation's Reference Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml). The following LSB specifications are released:
 
@@ -232,7 +238,7 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
     ISO/IEC 23360-7:2006 Linux Standard Base (LSB) core specification 3.1 – Part 7: Specification for S390 architecture
     ISO/IEC 23360-8:2006 Linux Standard Base (LSB) core specification 3.1 – Part 8: Specification for S390X architecture
 
-    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard.
+    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard. The ISO/IEC TR 24715:2006 can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html).
 
     LSB 3.1 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
 
@@ -264,21 +270,21 @@ The Linux Standard Base (LSB) specifications are made available in two parts: **
 
 Also, there are **mandatory** and **trial use** modules in the specification. The former impose mandatory requirements on LSB compliant distributions and applications may safely rely on the functionality described in mandatory modules. Functionality in trial use modules is not required in LSB compliant distributions and applications should take this into consideration. Meanwhile, trial use modules represent candidates for inclusion in the next versions of LSB.
 
-### LSB Navigator
+## LSB Navigator
 
 **LSB Database** is a central place for storing information about the LSB standard and about the surrounding Linux ecosystem. [LSB Navigator](http://www.linuxbase.org/navigator/commons/welcome.php) represents web based interface over all these information. It can be used by Linux developers, Linux distribution vendors and LSB workgroup to browse, query, analyze and submit various information.
 
-#### LSB Elements
+### LSB Elements
 
 There are four [Top Level Entities](http://www.linuxbase.org/navigator/browse/index.php) of LSB specifiction: **Modules**, **ELF Elements**, **RPM Tags** and **Interpreted Languages**. And the [Modules](http://www.linuxbase.org/navigator/browse/module.php) contains [ABI (Libraries)](http://www.linuxbase.org/navigator/browse/abi.php) and [Commands](http://www.linuxbase.org/navigator/browse/command.php). The [ELF Elements](http://www.linuxbase.org/navigator/browse/elfindex.php) and [RPM Tags](http://www.linuxbase.org/navigator/browse/rpmtag.php) belong to [LSB_Core](http://www.linuxbase.org/navigator/browse/module.php?cmd=display_module&module=LSB_Core) module only. The [Interpreted Languages](http://www.linuxbase.org/navigator/browse/intlang.php) contains **Java**, **Perl** and **Python** languages.
 
 ![Top Level Schema of LSB Elements](/assets/top_level_of_lsb_elements.png)
 
-### LSB Certification
+## LSB Certification
 
 This part of the [LSB Certification System](https://www.linuxbase.org/lsb-cert/welcome_cert.php) represents central place for managing certification workflow and status. In that website, you can track the industry picture of LSB certification in **Product Directory** area. For instance, a list of Linux distributions and applications certified for compliance with the LSB standard can be found [here](https://www.linuxbase.org/lsb-cert/productdir.php?by_prod).
 
-### Additional Requirements for FHS in LSB 3.1
+## Additional Requirements for FHS in LSB 3.1
 
 An **LSB conforming application** shall conform to the [Filesystem Hierarchy Standard (FHS)](http://refspecs.linuxfoundation.org/lsb.shtml).
 
@@ -300,131 +306,11 @@ An **LSB conforming implementation** shall provide the mandatory portions of the
 | ```/etc/init.d``` | **Required** | A directory containing system initialization scripts. |
 | ```/etc/profile.d``` | **Required** | A directory containing shell scripts. Script names should follow the same conventions as specified for cron jobs, but should have the suffix ```.sh```. The behavior is unspecified if a script is installed in this directory that does not have the suffix ```.sh```. |
 
-## Linux kernel
+# References
 
-The Linux kernel is the most important part of the Linux system. You can get Linux kernel source code from its official site [The Linux Kernel Archives](https://www.kernel.org/). Also you can browse Linux kernel source code on git repositories for the [Linux kernel mainline](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/), [Linux kernel stable tree](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/) and [linux-next integration testing tree](linux-next integration testing tree).
-
-### Linux kernel Releases
-
-[Here](https://en.wikipedia.org/wiki/History_of_Linux) is a short history of Linux kernel (until December 06, 2015):
-
-| kernel version | Release date |  Status  | Note |
-| :------------: | :----------: | :------: | :--- |
-| 0.01           | Sep 17, 1991 | EOL      |      |
-| 0.10           | Nov 1991     | EOL      |      |
-| 0.11           | Dec 1991     | EOL      | The first version to be self-hosted, as Linux kernel 0.11 could be compiled by a computer running the same kernel version. |
-| 0.12           | Feb 1992     | EOL      | Adopt the GNU General Public License (GPL). |
-| 0.95           | Mar 08, 1992 | EOL      | The first version to be capable of running X Window System. |
-| 1.0            | Mar 14, 1994 | EOL      |      |
-| 1.1            | Apr 06, 1994 | EOL      |      |
-| 1.2            | Mar 07, 1995 | EOL      |      |
-| pre2.0         | May 12, 1996 | EOL      |      |
-| 1.3            | Jun 12, 1995 | EOL      |      |
-| 2.0            | Jun 09, 1996 | EOL      |      |
-| 2.2            | Jan 26, 1999 | EOL      |      |
-| 2.4            | Jan 04, 2001 | EOL      |      |
-| 2.6            | Dec 17, 2003 | EOL      |      |
-| 2.6.11         | Mar 02, 2005 | EOL      |      |
-| 2.6.12         | Jun 18, 2005 | EOL      |      |
-| 2.6.13         | Aug 28, 2005 | EOL      |      |
-| 2.6.14         | Oct 27, 2005 | EOL      |      |
-| 2.6.15         | Jan 02, 2006 | EOL      |      |
-| 2.6.16         | Mar 20, 2006 | EOL      |      |
-| 2.6.17         | Jun 17, 2006 | EOL      |      |
-| 2.6.18         | Sep 20, 2006 | EOL      |      |
-| 2.6.19         | Nov 26, 2006 | EOL      |      |
-| 2.6.20         | Feb 04, 2007 | EOL      |      |
-| 2.6.21         | Apr 25, 2007 | EOL      |      |
-| 2.6.22         | Jul 08, 2007 | EOL      |      |
-| 2.6.23         | Oct 09, 2007 | EOL      |      |
-| 2.6.24         | Jan 24, 2008 | EOL      |      |
-| 2.6.25         | Apr 16, 2008 | EOL      |      |
-| 2.6.26         | Jul 13, 2008 | EOL      |      |
-| 2.6.27         | Oct 09, 2008 | EOL      |      |
-| 2.6.28         | Dec 12, 2008 | EOL      |      |
-| 2.6.29         | Mar 23, 2009 | EOL      |      |
-| 2.6.30         | Jun 09, 2009 | EOL      |      |
-| 2.6.31         | Sep 09, 2009 | EOL      |      |
-| **2.6.32**     | Dec 02, 2009 | Longterm |      |
-| 2.6.33         | Feb 24, 2010 | EOL      |      |
-| 2.6.34         | May 16, 2010 | EOL      |      |
-| 2.6.35         | Aug 01, 2010 | EOL      |      |
-| 2.6.36         | Oct 20, 2010 | EOL      |      |
-| 2.6.37         | Jan 04, 2011 | EOL      |      |
-| 2.6.38         | Mar 14, 2011 | EOL      |      |
-| 2.6.39         | May 18, 2011 | EOL      |      |
-| 3.0            | Jul 21, 2011 | EOL      | Release kernel 3.0 to mark the kernel's 20th anniversary. |
-| 3.1            | Oct 24, 2011 | EOL      |      |
-| **3.2**        | Jan 04, 2012 | Longterm |      |
-| 3.3            | Mar 18, 2012 | EOL      |      |
-| **3.4**        | May 20, 2012 | Longterm |      |
-| 3.5            | Jul 21, 2012 | EOL      |      |
-| 3.6            | Sep 30, 2012 | EOL      |      |
-| 3.7            | Dec 10, 2012 | EOL      |      |
-| 3.8            | Feb 18, 2013 | EOL      |      |
-| 3.9            | Apr 28, 2013 | EOL      |      |
-| **3.10**       | Jun 30, 2013 | Longterm |      |
-| 3.11           | Sep 02, 2013 | EOL      |      |
-| **3.12**       | Nov 03, 2013 | Longterm |      |
-| 3.13           | Jan 19, 2014 | EOL      |      |
-| **3.14**       | Mar 30, 2014 | Longterm |      |
-| 3.15           | Jun 08, 2014 | EOL      |      |
-| 3.16           | Aug 03, 2014 | EOL      |      |
-| 3.17           | Oct 05, 2014 | EOL      |      |
-| **3.18**       | Dec 07, 2014 | Longterm |      |
-| 3.19           | Feb 08, 2015 | EOL      |      |
-| 4.0            | Apr 12, 2015 | EOL      |      |
-| **4.1**        | Jun 22, 2015 | Longterm |      |
-| **4.2**        | Aug 30, 2015 | Stable   |      |
-| **4.3**        | Nov 01, 2015 | Stable   |      |
-| **4.4**        | Dec 06, 2015 | Mainline |      |
-
-<br>
-
-If we draw a picture of Linux kernel releases, it should be like this:
-
-![Linux_Kernel_Releases](/assets/Linux_Kernel_Releases.20151218.svg)
-
-![Linux_Kernel_Timeline](/assets/linux_kernel_timeline.png)
-
-### Version Numbering
-
-The Linux kernel has had [three different numbering schemes](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering):
-
-* First numbering scheme: **kernel 0.01 ~ 1.0**
-
-    The first scheme was used in the run-up to "1.0". The first version of the kernel was 0.01. This was followed by 0.02, 0.03, 0.10, 0.11, 0.12 (the first GPL version), 0.95, 0.96, 0.97, 0.98, 0.99 and then 1.0. From 0.95 on there were many patch releases between versions.
-
-* Second numbering scheme: **kernel 1.0 ~ 2.6.0**, Even-odd version numbering scheme
-
-    After the 1.0 release and prior to version 2.6, the number was composed as "x.y.z", where the number "x" denoted the kernel version, the number "y" denoted the major revision of the kernel, and the number "z" indicated the minor revision of the kernel. The kernel version was changed only when major changes in the code and the concept of the kernel occurred (Note: version 3.0 was released in 2011, but it was not a major change in kernel concept). The major revision was assigned according to the **even-odd version numbering scheme**. The minor revision had been changed whenever security patches, bug fixes, new features or drivers were implemented in the kernel.
-
-* Third numbering scheme: **kernel 2.6.0 ~ present**, Time-based release numbering scheme
-
-    After version 2.6.0 was released in 2004, a "time-based" release cycle was adopted. For about seven years, the first two numbers remained "2.6", and the third number was incremented with each new release, which rolled out after two to three months. A fourth number was sometimes added to account for bug and security fixes (only) to the kernel version. The even-odd system of alternation between stable and unstable was gone. Instead, development pre-releases are titled release candidates, which is indicated by appending the suffix '-rc' to the kernel version, followed by an ordinal number.
-
-    The first use of the fourth number occurred when a grave error, which required immediate fixing, was encountered in 2.6.8's NFS code. However, there were not enough other changes to legitimize the release of a new minor revision (which would have been 2.6.9). So, [2.6.8.1 was released](https://lwn.net/Articles/97898/), with the [only change](https://www.kernel.org/pub/linux/kernel/v2.6/ChangeLog-2.6.8.1) being the fix of that error. With 2.6.11, this was adopted as the new official versioning policy. Later it became customary to continuously back-port major bug-fixes and security patches to released kernels and indicate that by updating the fourth number.
-
-    On 29 May 2011, Linus Torvalds [announced](https://lkml.org/lkml/2011/5/29/204) that the kernel version would be bumped to 3.0 for the release following 2.6.39, **due to the minor version number getting too large and to commemorate the 20th anniversary of Linux**. It continued the time-based release practice introduced with 2.6.0, but using the second number; for example, 3.1 would follow 3.0 after a few months.
-
-    The major version number was also raised to 4 [announced on 22 Feb 2015](https://lkml.org/lkml/2015/2/22/203), for the release following version 3.19.
-
-## Linux Distributions
-
-### GNU/Linux Distribution Timeline
-
-[GNU/Linux Distribution Timeline](http://futurist.se/gldt/) is a cladogram of GNU/Linux distributions, placed on a timeline. The project started in 2006 and currently lists almost 500 distributions. The following figure is GNU/Linux Distribution Timeline 12.10, you will get more detail information when you open the figure and click the name of specific distribution.
-
-![GNU/Linux Distribution Timeline 12.10](/assets/GNU_Linux_Distribution_Timeline_12.10.svg)
-
-### DistroWatch.com
-
-If you want to know all information for all of those different linux distributions in one place, the website [DistroWatch](http://distrowatch.com/) is what you need.
-
-## Reference
-
-[The Linux Kernel Archives](https://www.kernel.org/)
-
-[Linux kernel version numbering](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering)
-
-[Linux Foundation Referenced Specifications](http://refspecs.linuxfoundation.org/)
+[Filesystem Hierarchy Standard (FHS) on Linux Foundation](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs)
+[Filesystem Hierarchy Standard (FHS) Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml)
+[Linux Standard Base (LSB) Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml)
+[Linux Standard Base (LSB) Navigator](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html)
+[Linux Standard Base (LSB) Certification System](https://www.linuxbase.org/lsb-cert/welcome_cert.php)
+[Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html)

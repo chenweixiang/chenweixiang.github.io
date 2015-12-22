@@ -1,15 +1,17 @@
 ---
 layout: post
-title: "Shell"
-tags: [Programming language, Linux]
+title: "Linux Series #6: Shell"
+tags: [Linux, Programming language]
 toc: true
 ---
 
-As the [wikipedia](https://en.wikipedia.org/wiki/Shell_%28computing%29) says, a shell is a user interface for access to an operating system's services. In general, operating system shells use either a **command-line interface (CLI)** or **graphical user interface (GUI)**, depending on a computer's role and particular operation. Shells are actually special applications that use the kernel API in just the same way as it is used by other application programs. A shell manages the user-system interaction by prompting users for input, interpreting their input, and then handling an output from the underlying operating system.
+This article introduces the shells used in Unix/Linux system.
 
 <!--more-->
 
-## Shell Categories
+As the [wikipedia](https://en.wikipedia.org/wiki/Shell_%28computing%29) says, a shell is a user interface for access to an operating system's services. In general, operating system shells use either a **command-line interface (CLI)** or **graphical user interface (GUI)**, depending on a computer's role and particular operation. Shells are actually special applications that use the kernel API in just the same way as it is used by other application programs. A shell manages the user-system interaction by prompting users for input, interpreting their input, and then handling an output from the underlying operating system.
+
+# Shell Categories
 
 Most operating system shells fall into one of two categories: **command-line** and **graphical**. Command line shells provide a command-line interface (CLI) to the operating system, while graphical shells provide a graphical user interface (GUI). Other possibilities, although not so common, include voice user interface (VUI) and various implementations of a text-based user interface (TUI) that are not CLI. The relative merits of CLI- and GUI-based shells are often debated.
 
@@ -21,7 +23,7 @@ Most operating system shells fall into one of two categories: **command-line** a
 
     Graphical shells provide means for manipulating programs based on graphical user interface (GUI), by allowing for operations such as opening, closing, moving and resizing windows, as well as switching focus between windows. Graphical shells may be included with desktop environments or come separately, even as a set of loosely coupled utilities.
 
-## Shell Variants
+# Shell Variants
 
 The [article](http://www.softpanorama.org/People/Shell_giants/introduction.shtml) introduces of Unix shell history, which describes the four distinct generations of Unix shells in the long history. And here is the list of the most important shells:
 
@@ -74,7 +76,7 @@ The [article](http://www.softpanorama.org/People/Shell_giants/introduction.shtml
 
     The [Z shell](http://www.zsh.org/) ```zsh``` can be thought of as an extended **Bourne shell** with a large number of improvements, including some features of ```bash```, ```ksh```, and ```tcsh```.
 
-## Shell Configuration Files
+# Shell Configuration Files
 
 |                           |   sh   |  ksh  |  csh  |  tcsh  |  bash  |  zsh  |
 | :------------------------ | :----: | :---: | :---: | :----: | :----: | :---: |
@@ -111,15 +113,15 @@ NOTE:
  * "n/login" means a file is read if the shell is not a login shell.
  * "int." means a file is read if the shell is interactive.
 
-## Shell Specifications
+# Shell Specifications
 
-The ```sh``` utility shall behave as specified in **POSIX 1003.1-2008 (ISO/IEC 9945-2009)***. And **Linux Standard Base (LSB)** has the extensions listed [here](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/sh.html). And here is [Shell Command Language Index](http://pubs.opengroup.org/onlinepubs/7908799/xcu/shellix.html).
+The ```sh``` utility shall behave as specified in **POSIX 1003.1-2008 (ISO/IEC 9945-2009)**. And **Linux Standard Base (LSB)** has the extensions listed [here](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/sh.html). And here is [Shell Command Language Index](http://pubs.opengroup.org/onlinepubs/7908799/xcu/shellix.html).
 
-## GNU Bash
+# GNU Bash
 
 Here is [GNU Bash official site](https://www.gnu.org/software/bash/), and here is [Bash Reference Manual](https://www.gnu.org/software/bash/manual/).
 
-### GNU Bash Releases
+## GNU Bash Releases
 
 | GNU Bash Version | Release Date |
 | :--------------: | :----------: |
@@ -137,7 +139,7 @@ Here is [GNU Bash official site](https://www.gnu.org/software/bash/), and here i
 | 4.2              | 10 May 2011  |
 | 4.3              | 26 Feb 2014  |
 
-### GNU Bash Repository
+## GNU Bash Repository
 
 The GNU Bourne-Again SHell Git repository is located [here](http://savannah.gnu.org/git/?group=bash). Run following command to get a copy of the Bash source code from repository:
 
@@ -145,7 +147,7 @@ The GNU Bourne-Again SHell Git repository is located [here](http://savannah.gnu.
 
 or, browse sources repository online [here](http://git.savannah.gnu.org/cgit/bash.git)
 
-## Miscellaneous
+# Miscellaneous
 
 Use the following command to show the valid shells in current system:
 
@@ -193,8 +195,7 @@ or, use just one command instead of above two:
     UID        PID  PPID  C STIME TTY          TIME CMD
     chenwx   17826  2435  0 11:44 pts/9    00:00:00 bash
 
-## References
+# References
 
 [Shell (computing)](https://en.wikipedia.org/wiki/Shell_%28computing%29)
-
 [Unix shell](https://en.wikipedia.org/wiki/Unix_shell)

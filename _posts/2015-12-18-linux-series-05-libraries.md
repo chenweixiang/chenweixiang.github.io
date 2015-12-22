@@ -23,13 +23,13 @@ This article introduces C standard library and its implementations on Linux syst
 
 * **ISO/IEC 9899:1990 (C90)**
 
-    In 1990, the **ANSI C** standard (with formatting changes) was adopted by the International Organization for Standardization (ISO) as **ISO/IEC 9899:1990**, which is sometimes called **C90**. Therefore, the terms **C89** and **C90** refer to the same programming language.
+    In 1990, the **ANSI C** standard (with formatting changes) was adopted by the International Organization for Standardization (ISO) [C Standard Committee (ISO/IEC JTC1/SC22/WG14 - C)](http://www.open-std.org/JTC1/SC22/WG14/www/standards) as **ISO/IEC 9899:1990**, which is sometimes called **C90**. Therefore, the terms **C89** and **C90** refer to the same programming language.
 
     It has since been amended three times by Technical Corrigenda (COR) or Amendment (AMD):
 
-    * ISO/IEC 9899:1990/COR1:1994
-    * ISO/IEC 9899:1990/AMD1:1995 (known as **C90 AMD1** or **C95**)
-    * ISO/IEC 9899:1990/COR2:1996
+    * **ISO/IEC 9899:1990/AM1:1995** (known as **C90 AMD1** or **C95**)
+    * **ISO/IEC 9899:1990/COR1:1995**
+    * **ISO/IEC 9899:1990/COR2:1996**
      <br>
 
 * **ISO/IEC9899:1999 (C99)**
@@ -38,9 +38,9 @@ This article introduces C standard library and its implementations on Linux syst
 
     It has since been amended three times by Technical Corrigenda (COR):
 
-    * ISO/IEC 9899:1999/COR1:2001
-    * ISO/IEC 9899:1999/COR2:2004
-    * ISO/IEC 9899:1999/COR3:2007
+    * **ISO/IEC 9899:1999/COR1:2001**
+    * **ISO/IEC 9899:1999/COR2:2004**
+    * **ISO/IEC 9899:1999/COR3:2007**
      <br>
 
 * **ISO/IEC 9899:2011 (C11)**
@@ -49,13 +49,13 @@ This article introduces C standard library and its implementations on Linux syst
 
     It has since been amended by Technical Corrigenda:
 
-    * ISO/IEC 9899:2011/COR1:2012
+    * **ISO/IEC 9899:2011/COR1:2012**
 
 # C++ Standards
 
 ![C++ Language Evolution](/assets/CPP_Language_Evolution.png)
 
-C++ is standardized by an ISO working group known as [JTC1/SC22/WG21](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released:
+C++ is standardized by the International Organization for Standardization (ISO) [C++ Standards Committee (JTC1/SC22/WG21 - C++)](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released:
 
 * **ISO/IEC 14882:1998 (C++98)**
 
@@ -87,11 +87,11 @@ C++ is standardized by an ISO working group known as [JTC1/SC22/WG21](http://www
 
 # GNU C Library
 
-The **GNU C Library**, commonly known as **glibc**, is the GNU Project's implementation of the C standard library. Despite its name, it now also directly supports C++ (and indirectly other programming languages). Was started in the early 1990s by the **Free Software Foundation (FSF)** for their GNU operating system. Released under the GNU Lesser General Public License (LGPL), **glibc** is free software.
+The [GNU C Library](http://www.gnu.org/software/libc/), commonly known as **glibc**, is the GNU Project's implementation of the C standard library. Despite its name, it now also directly supports C++ (and indirectly other programming languages). Was started in the early 1990s by the **Free Software Foundation (FSF)** for their GNU operating system. Released under the **GNU Lesser General Public License (LGPL)**, **glibc** is free software.
 
 ## glibc Repository
 
-In 2009, glibc was migrated to a [Git repository on Sourceware](https://sourceware.org/glibc/wiki/GlibcGit). You can use following command to clone the git repository:
+In 2009, glibc was migrated to a [Git repository on Sourceware](https://sourceware.org/glibc/wiki/GlibcGit). You can use following command to clone the git repository, and browse the glibc on [gitweb](https://sourceware.org/git/?p=glibc.git).
 
 ```
 chenwx@chenwx $ git clone git://sourceware.org/git/glibc.git
@@ -99,7 +99,7 @@ chenwx@chenwx $ git clone git://sourceware.org/git/glibc.git
 
 ## glibc Versions
 
-| Versions  | Release-Date | Note |
+| Versions  | Release_Date | Note |
 | :-------- | :----------: | :--- |
 | 1.0       | Feb 1992     |      |
 | 2.0       | Jan 1997     |      |
@@ -114,10 +114,10 @@ chenwx@chenwx $ git clone git://sourceware.org/git/glibc.git
 | 2.3.1     | Oct 2002     |      |
 | 2.3.2     | Feb 2003     |      |
 | 2.3.3     | Dec 2003     |      |
-| **2.3.4** | Dec 2004     | Standard for Linux Standard Base (LSB) 3.0 |
+| **2.3.4** | Dec 2004     | **Standard for Linux Standard Base (LSB) 3.0** |
 | 2.3.5     | Apr 2005     |      |
 | 2.3.6     | Nov 2005     |      |
-| **2.4**   | Mar 2006     | Standard for Linux Standard Base (LSB) 4.0, initial inotify support |
+| **2.4**   | Mar 2006     | **Standard for Linux Standard Base (LSB) 4.0**, initial inotify support |
 | 2.5       | Sep 2006     | Full inotify support |
 | 2.6       | May 2007     |      |
 | 2.7       | Oct 2007     |      |
@@ -145,6 +145,6 @@ chenwx@chenwx $ git clone git://sourceware.org/git/glibc.git
 [JTC1/SC22/WG21 - The C++ Standards Committee](http://www.open-std.org/jtc1/sc22/wg21/)
 [C++ programming language on wiki](https://en.wikipedia.org/wiki/C%2B%2B)
 
-[GNU C Library Wiki](https://en.wikipedia.org/wiki/GNU_C_Library)
+[GNU C Library Wikipedia](https://en.wikipedia.org/wiki/GNU_C_Library)
 [GNU C Library FTP](http://ftp.gnu.org/gnu/libc/)
-[GNU C Library Repo](https://sourceware.org/glibc/wiki/GlibcGit)
+[GNU C Library Reporsitory](https://sourceware.org/glibc/wiki/GlibcGit)

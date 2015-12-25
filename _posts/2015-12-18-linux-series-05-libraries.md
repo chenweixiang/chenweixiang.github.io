@@ -51,11 +51,47 @@ This article introduces C standard library and its implementations on Linux syst
 
     * **ISO/IEC 9899:2011/COR1:2012**
 
+## C Standard Library header files
+
+The C Standard Library header files are listed in following table. It also can be found [here on CppReference.com](http://en.cppreference.com/w/c/header).
+
+| C_Headers             | Since_Standard | Note |
+| :-------------------- | :------------: | :--- |
+| \<**assert.h**\>      |                | Conditionally compiled macro that compares its argument to zero |
+| \<**complex.h**\>     | since **C99**  | Complex number arithmetic |
+| \<**ctype.h**\>       |                | Functions to determine the type contained in character data |
+| \<**errno.h**\>       |                | Macros reporting error conditions
+| \<**fenv.h**\>        | since **C99**  | Floating-point environment |
+| \<**float.h**\>       |                | Limits of float types |
+| \<**inttypes.h**\>    | since **C99**  | Format conversion of integer types |
+| \<**iso646.h**\>      | since **C95**  | Alternative operator spellings |
+| \<**limits.h**\>      |                | Sizes of basic types |
+| \<**locale.h**\>      |                | Localization utilities |
+| \<**math.h**\>        |                | Common mathematics functions |
+| \<**setjmp.h**\>      |                | Nonlocal jumps |
+| \<**signal.h**\>      |                | Signal handling |
+| \<**stdalign.h**\>    | since **C11**  | alignas and alignof convenience macros |
+| \<**stdarg.h**\>      |                | Variable arguments |
+| \<**stdatomic.h**\>   | since **C11**  | Atomic types |
+| \<**stdbool.h**\>     | since **C99**  | Boolean type |
+| \<**stddef.h**\>      |                | Common macro definitions |
+| \<**stdint.h**\>      | since **C99**  | Fixed-width integer types |
+| \<**stdio.h**\>       |                | Input/output |
+| \<**stdlib.h**\>      |                | General utilities: memory management, program utilities, string conversions, random numbers |
+| \<**stdnoreturn.h**\> | since **C11**  | noreturn convenience macros |
+| \<**string.h**\>      |                | String handling |
+| \<**tgmath.h**\>      | since **C99**  | Type-generic math (macros wrapping **math.h** and **complex.h** |
+| \<**threads.h**\>     | since **C11**  | Thread library |
+| \<**time.h**\>        |                | Time/date utilities |
+| \<**uchar.h**\>       | since **C11**  | UTF-16 and UTF-32 character utilities |
+| \<**wchar.h**\>       | since **C95**  | Extended multibyte and wide character utilities |
+| \<**wctype.h**\>      | since **C95**  | Wide character classification and mapping utilities |
+
 # C++ Standards
 
 ![C++ Language Evolution](/assets/CPP_Language_Evolution.png)
 
-C++ is standardized by the International Organization for Standardization (ISO) [C++ Standards Committee (JTC1/SC22/WG21 - C++)](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released:
+C++ is standardized by the International Organization for Standardization (ISO) [C++ Standards Committee (JTC1/SC22/WG21 - C++)](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released. Besides, the C++ standards committee publishes [experimental C++ language and library extensions](http://en.cppreference.com/w/cpp/experimental) for future standardization.
 
 * **ISO/IEC 14882:1998 (C++98)**
 
@@ -85,6 +121,22 @@ C++ is standardized by the International Organization for Standardization (ISO) 
 
     In 2014, **C++14** (also known as ***C++1y***) was released as a small extension to **C++11**, featuring mainly bug fixes and small improvements.
 
+## C++ Standard Library header files
+
+The C++ Standard Library header files can be found [here on CppReference.com](http://en.cppreference.com/w/cpp/header).
+
+# Online References of C/C++ Language & Libraries
+
+The online references of C/C++ language & libraries can be found on website:
+
+* [CppReference.com Home Page](http://en.cppreference.com/w/c)
+* [C Reference on CppReference.com](http://en.cppreference.com/w/c)
+* [C/C++ Reference on CppReference.com](http://en.cppreference.com/w/cpp)
+
+Also, you can download the offline archives from website:
+
+* [Archives for offline viewing](http://en.cppreference.com/w/Cppreference:Archives)
+
 # GNU C Library
 
 The [GNU C Library](http://www.gnu.org/software/libc/), commonly known as **glibc**, is the GNU Project's implementation of the C standard library. Despite its name, it now also directly supports C++ (and indirectly other programming languages). Was started in the early 1990s by the **Free Software Foundation (FSF)** for their GNU operating system. Released under the **GNU Lesser General Public License (LGPL)**, **glibc** is free software.
@@ -96,6 +148,10 @@ In 2009, glibc was migrated to a [Git repository on Sourceware](https://sourcewa
 ```
 chenwx@chenwx $ git clone git://sourceware.org/git/glibc.git
 ```
+
+## Build & Install glibc from Source
+
+If you want to build the glibc from source code, you can follow the [Glibc-2.22 building steps from Linux From Scratch (LFS)](http://www.linuxfromscratch.org/lfs/view/stable/chapter06/glibc.html). Also refer to [使用源代码将Glibc升级到2.6](http://www.ibm.com/developerworks/cn/linux/l-cn-glibc-upd/index.html).
 
 ## glibc Versions
 

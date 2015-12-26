@@ -51,6 +51,52 @@ This article introduces C standard library and its implementations on Linux syst
 
     * **ISO/IEC 9899:2011/COR1:2012**
 
+# C++ Standards
+
+![C++ Language Evolution](/assets/CPP_Language_Evolution.png)
+
+C++ is standardized by the International Organization for Standardization (ISO) [C++ Standards Committee (JTC1/SC22/WG21 - C++)](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released. Besides, the C++ standards committee publishes [experimental C++ language and library extensions](http://en.cppreference.com/w/cpp/experimental) for future standardization.
+
+* **ISO/IEC 14882:1998 (C++98)**
+
+    In 1998, the ISO working group standardized C++ for the first time as **ISO/IEC 14882:1998**, which is informally known as **C++98**.
+
+* **ISO/IEC 14882:2003 (C++03)**
+
+    In 2003, ISO working group published a new version of the C++ standard called **ISO/IEC 14882:2003**, which is informally known as **C++03**. This version of the C++ standard fixed problems identified in **C++98**.
+
+* **ISO/IEC TR 19768:2007 - C++ Library Extensions (C++07/TR1)**
+
+    In 2007, a technical report **ISO/IEC TR 19768:2007 - C++ Library Extensions** was released, which is informally known as **C++07/TR1**. While not an official part of the standard, it proposed a number of extensions to the standard library.
+
+* **ISO/IEC TR 29124:2010 - C++ Special Math Functions**
+
+    In 2010, a technical report **ISO/IEC TR 29124:2010 - C++ Special Math Functions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3060.pdf).
+
+* **ISO/IEC 14882:2011 (C++11)**
+
+    In 2011, a major revision of the standard was informally referred to as ***C++0x***, but it was not released until 2011. The **ISO/IEC 14882:2011 (C++11)** included most of the library enhancements of **C++07/TR1**, as well as many additions to the core language.
+
+* **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions**
+
+    In 2011, a technical report **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2849.pdf).
+
+* **ISO/IEC 14882:2014 (C++14)**
+
+    In 2014, **C++14** (also known as ***C++1y***) was released as a small extension to **C++11**, featuring mainly bug fixes and small improvements.
+
+# Online References of C/C++ Language & Libraries
+
+The online references of C/C++ language & libraries can be found on website:
+
+* [CppReference.com Home Page](http://en.cppreference.com/w/c)
+* [C Reference on CppReference.com](http://en.cppreference.com/w/c)
+* [C/C++ Reference on CppReference.com](http://en.cppreference.com/w/cpp)
+
+Also, you can download the offline archives from website:
+
+* [Archives for offline viewing](http://en.cppreference.com/w/Cppreference:Archives)
+
 ## C Standard Library header files
 
 The C Standard Library header files are listed in following table. It also can be found [here on CppReference.com](http://en.cppreference.com/w/c/header).
@@ -87,73 +133,15 @@ The C Standard Library header files are listed in following table. It also can b
 | \<**wchar.h**\>       | since **C95**  | Extended multibyte and wide character utilities |
 | \<**wctype.h**\>      | since **C95**  | Wide character classification and mapping utilities |
 
-# C++ Standards
-
-![C++ Language Evolution](/assets/CPP_Language_Evolution.png)
-
-C++ is standardized by the International Organization for Standardization (ISO) [C++ Standards Committee (JTC1/SC22/WG21 - C++)](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released. Besides, the C++ standards committee publishes [experimental C++ language and library extensions](http://en.cppreference.com/w/cpp/experimental) for future standardization.
-
-* **ISO/IEC 14882:1998 (C++98)**
-
-    In 1998, the ISO working group standardized C++ for the first time as **ISO/IEC 14882:1998**, which is informally known as **C++98**.
-
-* **ISO/IEC 14882:2003 (C++03)**
-
-    In 2003, ISO working group published a new version of the C++ standard called **ISO/IEC 14882:2003**, which is informally known as **C++03**. This version of the C++ standard fixed problems identified in **C++98**.
-
-* **ISO/IEC TR 19768:2007 - C++ Library Extensions (C++07/TR1)**
-
-    In 2007, a technical report **ISO/IEC TR 19768:2007 - C++ Library Extensions** was released, which is informally known as **C++07/TR1**. While not an official part of the standard, it proposed a number of extensions to the standard library.
-
-* **ISO/IEC TR 29124:2010 - C++ Special Math Functions**
-
-    In 2010, a technical report **ISO/IEC TR 29124:2010 - C++ Special Math Functions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3060.pdf).
-
-* **ISO/IEC 14882:2011 (C++11)**
-
-    In 2011, a major revision of the standard was informally referred to as ***C++0x***, but it was not released until 2011. The **ISO/IEC 14882:2011 (C++11)** included most of the library enhancements of **C++07/TR1**, as well as many additions to the core language.
-
-* **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions**
-
-    In 2011, a technical report **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2849.pdf).
-
-* **ISO/IEC 14882:2014 (C++14)**
-
-    In 2014, **C++14** (also known as ***C++1y***) was released as a small extension to **C++11**, featuring mainly bug fixes and small improvements.
-
 ## C++ Standard Library header files
 
 The C++ Standard Library header files can be found [here on CppReference.com](http://en.cppreference.com/w/cpp/header).
 
-# Online References of C/C++ Language & Libraries
-
-The online references of C/C++ language & libraries can be found on website:
-
-* [CppReference.com Home Page](http://en.cppreference.com/w/c)
-* [C Reference on CppReference.com](http://en.cppreference.com/w/c)
-* [C/C++ Reference on CppReference.com](http://en.cppreference.com/w/cpp)
-
-Also, you can download the offline archives from website:
-
-* [Archives for offline viewing](http://en.cppreference.com/w/Cppreference:Archives)
-
-# GNU C Library
+# GNU C Library (glibc)
 
 The [GNU C Library](http://www.gnu.org/software/libc/), commonly known as **glibc**, is the GNU Project's implementation of the C standard library. Despite its name, it now also directly supports C++ (and indirectly other programming languages). Was started in the early 1990s by the **Free Software Foundation (FSF)** for their GNU operating system. Released under the **GNU Lesser General Public License (LGPL)**, **glibc** is free software.
 
-## glibc Repository
-
-In 2009, glibc was migrated to a [Git repository on Sourceware](https://sourceware.org/glibc/wiki/GlibcGit). You can use following command to clone the git repository, and browse the glibc on [gitweb](https://sourceware.org/git/?p=glibc.git).
-
-```
-chenwx@chenwx $ git clone git://sourceware.org/git/glibc.git
-```
-
-## Build & Install glibc from Source
-
-If you want to build the glibc from source code, you can follow the [Glibc-2.22 building steps from Linux From Scratch (LFS)](http://www.linuxfromscratch.org/lfs/view/stable/chapter06/glibc.html). Also refer to [使用源代码将Glibc升级到2.6](http://www.ibm.com/developerworks/cn/linux/l-cn-glibc-upd/index.html).
-
-## glibc Versions
+## glibc Releases
 
 | Versions  | Release_Date | Note |
 | :-------- | :----------: | :--- |
@@ -170,11 +158,11 @@ If you want to build the glibc from source code, you can follow the [Glibc-2.22 
 | 2.3.1     | Oct 2002     |      |
 | 2.3.2     | Feb 2003     |      |
 | 2.3.3     | Dec 2003     |      |
-| **2.3.4** | Dec 2004     | **Standard for Linux Standard Base (LSB) 3.0** |
+| **2.3.4** | **Dec 2004** | **Standard for Linux Standard Base (LSB) 3.0** |
 | 2.3.5     | Apr 2005     |      |
 | 2.3.6     | Nov 2005     |      |
-| **2.4**   | Mar 2006     | **Standard for Linux Standard Base (LSB) 4.0**, initial inotify support |
-| 2.5       | Sep 2006     | Full inotify support |
+| **2.4**   | **Mar 2006** | **Standard for Linux Standard Base (LSB) 4.0**, initial ```inotify``` support |
+| 2.5       | Sep 2006     | Full ```inotify``` support |
 | 2.6       | May 2007     |      |
 | 2.7       | Oct 2007     |      |
 | 2.8       | Apr 2008     |      |
@@ -191,7 +179,244 @@ If you want to build the glibc from source code, you can follow the [Glibc-2.22 
 | 2.19      | Feb 2014     | SystemTap probes for malloc. GNU Indirect Function (IFUNC) support for ppc32 and ppc64. New feature test macro _DEFAULT_SOURCE to replace _SVID_SOURCE and _BSD_SOURCE. Preliminary safety documentation for all functions in the manual. ABI change in ucontext and jmp_buf for s390/s390x. |
 | 2.20      | Sep 2014     | Support for file description locks |
 | 2.21      | Feb 2015     | New semaphore implementation |
-| 2.22      | Aug 2015     | Google Native Client (NaCl) for running on ARMv7-A, Unicode 7.0 |
+| **2.22**  | **Aug 2015** | Google Native Client (NaCl) for running on ARMv7-A, Unicode 7.0 |
+
+## glibc Repository
+
+In 2009, glibc was migrated to a [Git repository on Sourceware](https://sourceware.org/glibc/wiki/GlibcGit). You can browse the glibc source code on [gitweb](https://sourceware.org/git/?p=glibc.git). [The Community wiki for GLIBC](https://sourceware.org/glibc/wiki/HomePage) answers questions a user might have when installing and using glibc. And use following command to clone the git repository:
+
+```
+chenwx@chenwx ~ $ git clone git://sourceware.org/git/glibc.git
+chenwx@chenwx ~ $ cd glibc/
+chenwx@chenwx ~/glibc $ git br
+* master
+chenwx@chenwx ~/glibc $ git tag -l glibc-*
+...
+glibc-2.20
+glibc-2.21
+glibc-2.22
+```
+
+## Build & Install glibc from source
+
+If you want to build the glibc from source code, you can follow the [Glibc-2.22 on Linux From Scratch (LFS)](http://www.linuxfromscratch.org/lfs/view/stable/chapter06/glibc.html). Also refer to [使用源代码将Glibc升级到2.6](http://www.ibm.com/developerworks/cn/linux/l-cn-glibc-upd/index.html).
+
+The **glibc-2.22** installs following programs:
+
+| Programs             | Description |
+| :------------------- | :---------- |
+| ```catchsegv```      | Can be used to create a stack trace when a program terminates with a segmentation fault. <br>```/usr/bin/catchsegv``` |
+| ```gencat```         | Generates message catalogues. <br>```/usr/bin/gencat``` |
+| ```getconf```        | Displays the system configuration values for file system specific variables. <br>```/usr/bin/getconf``` |
+| ```getent```         | Gets entries from an administrative database. <br>```/usr/bin/getent``` |
+| ```iconv```          | Performs character set conversion. <br>```/usr/bin/iconv``` |
+| ```iconvconfig```    | Creates fastloading ```iconv``` module configuration files. <br>```/usr/sbin/iconvconfig``` |
+| ```ldconfig```       | Configures the dynamic linker runtime bindings. <br>```/sbin/ldconfig``` |
+| ```ldd```            | Reports which shared libraries are required by each given program or shared library. <br>```/usr/bin/ldd``` |
+| ```lddlibc4```       | Assists ```ldd``` with object files. <br>```/usr/bin/lddlibc4``` |
+| ```locale```         | Prints various information about the current locale. <br>```/usr/bin/locale``` |
+| ```localedef```      | Compiles locale specifications. <br>```/usr/bin/localedef``` |
+| ```makedb```         | Creates a simple database from textual input. <br>```/usr/bin/makedb``` |
+| ```mtrace```         | Reads and interprets a memory trace file and displays a summary in human-readable format. <br>```/usr/bin/mtrace``` |
+| ```nscd```           | A daemon that provides a cache for the most common name service requests. <br>```/usr/sbin/nscd``` |
+| ```pcprofiledump```  | Dumps information generated by PC profiling. <br>```/usr/bin/pcprofiledump``` |
+| ```pldd```           | Lists dynamic shared objects used by running processes. <br>```/usr/bin/pldd``` |
+| ```rpcgen```         | Generates C code to implement the Remote Procedure Call (RPC) protocol. <br>```/usr/bin/rpcgen``` |
+| ```sln```            | A statically linked ```ln``` program. <br>```/usr/bin/sln``` |
+| ```sotruss```        | Traces shared library procedure calls of a specified command. <br>```/usr/bin/sotruss``` |
+| ```sprof```          | Reads and displays shared object profiling data. <br>```/usr/bin/sprof``` |
+| ```tzselect```       | Asks the user about the location of the system and reports the corresponding time zone description. <br>```/usr/bin/tzselect``` |
+| ```xtrace```         | Traces the execution of a program by printing the currently executed function. <br>```/usr/bin/xtrace``` |
+| ```zdump```          | The time zone dumper. <br>```/usr/bin/zdump``` |
+| ```zic```            | The time zone compiler. <br>```/usr/sbin/zic``` |
+
+<br>
+
+The **glibc-2.19** installs following libraries:
+
+| Libraries | Description |
+| :-------- | :---------- |
+| ```ld-2.19.so``` | The helper program for shared library executables. Run command ```man ld.so``` for more details. <br>```/lib/i386-linux-gnu/ld-2.19.so```<br>```/lib/i386-linux-gnu/ld-linux.so.2 -> ld-2.19.so```<br> ```/lib/x86_64-linux-gnu/ld-2.19.so```<br>```/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 -> ld-2.19.so```<br><br>```/lib/ld-linux.so.2 -> /lib/i386-linux-gnu/ld-2.19.so```<br>```/lib64/ld-linux-x86-64.so.2 -> /lib/x86_64-linux-gnu/ld-2.19.so``` |
+| ```libBrokenLocale.{a,so}``` | Used internally by Glibc as a gross hack to get broken programs (e.g., some Motif applications) running. See comments in ```glibc-2.19/locale/broken_cur_max.c``` for more information. <br>```/usr/lib/x86_64-linux-gnu/libBrokenLocale.a```<br>```/lib/i386-linux-gnu/libBrokenLocale-2.19.so```<br>```/lib/i386-linux-gnu/libBrokenLocale.so.1 -> libBrokenLocale-2.19.so```<br>```/lib/x86_64-linux-gnu/libBrokenLocale-2.19.so```<br>```/lib/x86_64-linux-gnu/libBrokenLocale.so.1 -> libBrokenLocale-2.19.so``` |
+| ```libSegFault.so``` | The segmentation fault signal handler, used by ```catchsegv```. <br>```/lib/i386-linux-gnu/libSegFault.so```<br>```/lib/x86_64-linux-gnu/libSegFault.so``` |
+| ```libanl.{a,so}``` | An asynchronous name lookup library. <br>```/usr/lib/x86_64-linux-gnu/libanl.a```<br>```/lib/i386-linux-gnu/libanl-2.19.so```<br>```/lib/i386-linux-gnu/libanl.so.1 -> libanl-2.19.so```<br>```/lib/x86_64-linux-gnu/libanl-2.19.so```<br>```/lib/x86_64-linux-gnu/libanl.so.1 -> libanl-2.19.so``` |
+| ```libc.{a,so}``` | The main C library. <br>```/usr/lib/x86_64-linux-gnu/libc.a```<br>```/lib/i386-linux-gnu/libc.so.6```<br>```/lib/x86_64-linux-gnu/libc.so.6``` |
+| ```libc_nonshared.a``` | ```/usr/lib/x86_64-linux-gnu/libc_nonshared.a``` |
+| ```libcidn.so``` | Used internally by Glibc for handling internationalized domain names in the ```getaddrinfo()``` function. <br>```/lib/i386-linux-gnu/libcidn-2.19.so```<br>```/lib/i386-linux-gnu/libcidn.so.1 -> libcidn-2.19.so```<br>```/lib/x86_64-linux-gnu/libcidn-2.19.so```<br>```/lib/x86_64-linux-gnu/libcidn.so.1 -> libcidn-2.19.so``` |
+| ```libcrypt.{a,so}``` | The cryptography library. <br>```/usr/lib/x86_64-linux-gnu/libcrypt.a```<br>```/lib/i386-linux-gnu/libcrypt-2.19.so```<br>```/lib/i386-linux-gnu/libcrypt.so.1 -> libcrypt-2.19.so```<br>```/lib/x86_64-linux-gnu/libcrypt-2.19.so```<br>```/lib/x86_64-linux-gnu/libcrypt.so.1 -> libcrypt-2.19.so``` |
+| ```libdl.{a,so}``` | The dynamic linking interface library. <br>```/usr/lib/x86_64-linux-gnu/libdl.a```<br>```/lib/i386-linux-gnu/libdl-2.19.so```<br>```/lib/i386-linux-gnu/libdl.so.2 -> libdl-2.19.so```<br>```/lib/x86_64-linux-gnu/libdl-2.19.so```<br>```/lib/x86_64-linux-gnu/libdl.so.2 -> libdl-2.19.so``` |
+| ```libg.a``` | Dummy library containing no functions. Previously was a runtime library for ```g++```. <br>```/usr/lib/x86_64-linux-gnu/libg.a``` |
+| ```libieee.a``` | Linking in this module forces error handling rules for math functions as defined by the Institute of Electrical and Electronic Engineers (IEEE). The default is **POSIX.1** error handling. <br>```/usr/lib/x86_64-linux-gnu/libieee.a``` |
+| ```libm.{a,so}``` | The mathematical library. <br>```/usr/lib/x86_64-linux-gnu/libm.a```<br>```/lib/i386-linux-gnu/libm-2.19.so```<br>```/lib/i386-linux-gnu/libm.so.6 -> libm-2.19.so```<br>```/lib/x86_64-linux-gnu/libm-2.19.so```<br>```/lib/x86_64-linux-gnu/libm.so.6 -> libm-2.19.so``` |
+| ```libmcheck.a``` | Turns on memory allocation checking when linked to. <br>```/usr/lib/x86_64-linux-gnu/libmcheck.a``` |
+| ```libmemusage.so``` | Used by ```memusage``` to help collect information about the memory usage of a program. <br>```/lib/i386-linux-gnu/libmemusage.so```<br>```/lib/x86_64-linux-gnu/libmemusage.so``` |
+| ```libnsl.{a,so}``` | The network services library. <br>```/usr/lib/x86_64-linux-gnu/libnsl.a```<br>```/lib/i386-linux-gnu/libnsl-2.19.so```<br>```/lib/i386-linux-gnu/libnsl.so.1 -> libnsl-2.19.so```<br>```/lib/x86_64-linux-gnu/libnsl-2.19.so```<br>```/lib/x86_64-linux-gnu/libnsl.so.1 -> libnsl-2.19.so``` |
+| ```libnss_compat.so``` | The Name Service Switch (NSS) libraries, containing functions for resolving host names, user names, group names, aliases, services, protocols, etc. <br>```/lib/i386-linux-gnu/libnss_compat-2.19.so```<br>```/lib/i386-linux-gnu/libnss_compat.so.2 -> libnss_compat-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_compat-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_compat.so.2 -> libnss_compat-2.19.so``` |
+| ```libnss_dns.so``` | The Name Service Switch (NSS) libraries, containing functions for resolving host names, user names, group names, aliases, services, protocols, etc. <br>```/lib/i386-linux-gnu/libnss_dns-2.19.so```<br>```/lib/i386-linux-gnu/libnss_dns.so.2 -> libnss_dns-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_dns-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_dns.so.2 -> libnss_dns-2.19.so``` |
+| ```libnss_files.so``` | The Name Service Switch (NSS) libraries, containing functions for resolving host names, user names, group names, aliases, services, protocols, etc. <br>```/lib/i386-linux-gnu/libnss_files-2.19.so```<br>```/lib/i386-linux-gnu/libnss_files.so.2 -> libnss_files-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_files-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_files.so.2 -> libnss_files-2.19.so``` |
+| ```libnss_hesiod.so``` | The Name Service Switch (NSS) libraries, containing functions for resolving host names, user names, group names, aliases, services, protocols, etc. <br>```/lib/i386-linux-gnu/libnss_hesiod-2.19.so```<br>```/lib/i386-linux-gnu/libnss_hesiod.so.2 -> libnss_hesiod-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_hesiod-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_hesiod.so.2 -> libnss_hesiod-2.19.so``` |
+| ```libnss_nis.so``` | The Name Service Switch (NSS) libraries, containing functions for resolving host names, user names, group names, aliases, services, protocols, etc. <br>```/lib/i386-linux-gnu/libnss_nis-2.19.so```<br>```/lib/i386-linux-gnu/libnss_nis.so.2 -> libnss_nis-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_nis-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_nis.so.2 -> libnss_nis-2.19.so``` |
+| ```libnss_nisplus.so``` | The Name Service Switch (NSS) libraries, containing functions for resolving host names, user names, group names, aliases, services, protocols, etc. <br>```/lib/i386-linux-gnu/libnss_nisplus-2.19.so```<br>```/lib/i386-linux-gnu/libnss_nisplus.so.2 -> libnss_nisplus-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_nisplus-2.19.so```<br>```/lib/x86_64-linux-gnu/libnss_nisplus.so.2 -> libnss_nisplus-2.19.so``` |
+| ```libpcprofile.so``` | Contains profiling functions used to track the amount of CPU time spent in specific source code lines. <br>```/lib/i386-linux-gnu/libpcprofile.so```<br>```/lib/x86_64-linux-gnu/libpcprofile.so``` |
+| ```libpthread.{a,so}``` | The POSIX threads library. <br>```/usr/lib/x86_64-linux-gnu/libpthread.a```<br>```/lib/i386-linux-gnu/libpthread-2.19.so```<br>```/lib/i386-linux-gnu/libpthread.so.0 -> libpthread-2.19.so```<br>```/lib/x86_64-linux-gnu/libpthread-2.19.so```<br>```/lib/x86_64-linux-gnu/libpthread.so.0 -> libpthread-2.19.so``` |
+| ```libpthread_nonshared.a``` | The POSIX threads library. <br>```/usr/lib/x86_64-linux-gnu/libpthread_nonshared.a``` |
+| ```libresolv.{a,so}``` | Contains functions for creating, sending, and interpreting packets to the Internet domain name servers. <br>```/usr/lib/x86_64-linux-gnu/libresolv.a```<br>```/lib/i386-linux-gnu/libresolv-2.19.so```<br>```/lib/i386-linux-gnu/libresolv.so.2 -> libresolv-2.19.so```<br>```/lib/x86_64-linux-gnu/libresolv-2.19.so```<br>```/lib/x86_64-linux-gnu/libresolv.so.2 -> libresolv-2.19.so``` |
+| ```librpcsvc.a``` | Contains functions providing miscellaneous RPC services. <br>```/usr/lib/x86_64-linux-gnu/librpcsvc.a``` |
+| ```librt.{a,so}``` | Contains functions providing most of the interfaces specified by the POSIX.1b Realtime Extension. <br>```/usr/lib/x86_64-linux-gnu/librt.a```<br>```/lib/i386-linux-gnu/librt-2.19.so```<br>```/lib/i386-linux-gnu/librt.so.1 -> librt-2.19.so```<br>```/lib/x86_64-linux-gnu/librt-2.19.so```<br>```/lib/x86_64-linux-gnu/librt.so.1 -> librt-2.19.so``` |
+| ```libthread_db.so``` | Contains functions useful for building debuggers for multi-threaded programs. <br>```/lib/i386-linux-gnu/libthread_db-1.0.so```<br>```/lib/i386-linux-gnu/libthread_db.so.1 -> libthread_db-1.0.so```<br>```/lib/x86_64-linux-gnu/libthread_db-1.0.so```<br>```/lib/x86_64-linux-gnu/libthread_db.so.1 -> libthread_db-1.0.so``` |
+| ```libutil.{a,so}``` | Contains code for ***standard*** functions used in many different Unix utilities. <br>```/usr/lib/x86_64-linux-gnu/libutil.a```<br>```/lib/i386-linux-gnu/libutil-2.19.so```<br>```/lib/i386-linux-gnu/libutil.so.1 -> libutil-2.19.so```<br>```/lib/x86_64-linux-gnu/libutil-2.19.so```<br>```/lib/x86_64-linux-gnu/libutil.so.1 -> libutil-2.19.so``` |
+
+<br>
+Those following directories are created by glibc:
+
+| Directories                  | Files/Subdirectories | Description |
+| :--------------------------- | :------------------- | :---------- |
+| ```/usr/include/arpa```      | ```ftp.hftp.h```<br>```inet.h```<br>```nameser.h```<br>```nameser_compat.h```<br>```telnet.h```<br>```tftp.h``` | |
+| ```/usr/include/bits```      |             | |
+| ```/usr/include/gnu```       |             | |
+| ```/usr/include/net```       | ```ethernet.h```<br>```if.h```<br>```if_arp.h```<br>```if_packet.h```<br>```if_ppp.h```<br>```if_shaper.h```<br>```if_slip.h```<br>```ppp-comp.h```<br>```ppp_defs.h```<br>```route.h``` | |
+| ```/usr/include/netash```    | ```ash.h``` | |
+| ```/usr/include/netatalk```  | ```at.h```  | |
+| ```/usr/include/netax25```   | ```ax25.h``` | |
+| ```/usr/include/neteconet``` | ```ec.h```  | |
+| ```/usr/include/netinet```   | ```ether.h```<br>```icmp6.h```<br>```if_ether.h```<br>```if_fddi.h```<br>```if_tr.h```<br>```igmp.h```<br>```in.h```<br>```in_systm.h```<br>```ip.h```<br>```ip6.h```<br>```ip_icmp.h```<br>```tcp.h```<br>```udp.h``` | |
+| ```/usr/include/netipx```    | ```ipx.h``` | |
+| ```/usr/include/netiucv```   | ```iucv.h``` | |
+| ```/usr/include/netpacket``` | ```packet.h``` | |
+| ```/usr/include/netrom```    | ```netrom.h``` | |
+| ```/usr/include/netrose```   | ```rose.h``` | |
+| ```/usr/include/nfs```       | ```nfs.h``` | |
+| ```/usr/include/protocols``` | ```routed.h```<br>```rwhod.h```<br>```talkd.h```<br>```timed.h``` | |
+| ```/usr/include/rpc```       | ```auth.h```<br>```auth_des.h```<br>```auth_unix.h```<br>```clnt.h```<br>```des_crypt.h```<br>```key_prot.h```<br>```netdb.h```<br>```pmap_clnt.h```<br>```pmap_prot.h```<br>```pmap_rmt.h```<br>```rpc.h```<br>```rpc_des.h```<br>```rpc_msg.h```<br>```svc.h```<br>```svc_auth.h```<br>```types.h```<br>```xdr.h``` | |
+| ```/usr/include/rpcsvc```    | ```bootparam.h```<br>```bootparam_prot.h```<br>```bootparam_prot.x```<br>```key_prot.h```<br>```key_prot.x```<br>```klm_prot.h```<br>```klm_prot.x```<br>```mount.h```<br>```mount.x```<br>```nfs_prot.h```<br>```nfs_prot.x```<br>```nis.h```<br>```nis.x```<br>```nis_callback.h```<br>```nis_callback.x```<br>```nis_object.x```<br>```nis_tags.h```<br>```nislib.h```<br>```nlm_prot.h```<br>```nlm_prot.x```<br>```rex.h```<br>```rex.x```<br>```rquota.h```<br>```rquota.x```<br>```rstat.h```<br>```rstat.x```<br>```rusers.h```<br>```rusers.x```<br>```sm_inter.h```<br>```sm_inter.x```<br>```spray.h```<br>```spray.x```<br>```yp.h```<br>```yp.x```<br>```yp_prot.h```<br>```ypclnt.h```<br>```yppasswd.h```<br>```yppasswd.x```<br>```ypupd.h``` | |
+| ```/usr/include/sys```       | ```asoundlib.h``` | |
+| ```/usr/lib/audit```         |             | |
+| ```/usr/lib/gconv```         |             | |
+| ```/usr/lib/locale```        | ```locale-archive```<br>```C.UTF-8/``` |
+| ```/usr/libexec/getconf```   |             | |
+| ```/usr/share/i18n```        | ```SUPPORTED```<br>```charmaps/```<br>```locales/``` | |
+| ```/usr/share/zoneinfo```    |             | |
+| ```/var/cache/nscd```        |             | |
+| ```/var/lib/nss_db```        |             | |
+
+# GNU C++ Library (libstdc++)
+
+The **GNU Standard C++ Library v3** (**libstdc++-v3**) is an ongoing project to implement the **ISO 14882 Standard C++ library** as described in clauses ***17 through 30*** and ***annex D***. For those who want to see exactly how far the project has come, or just want the latest bleeding-edge code, the up-to-date source is available over anonymous SVN, and can be browsed over the [web](https://gcc.gnu.org/svn.html). Also refer to following websites for more details:
+
+* [GNU C++ Library](https://gcc.gnu.org/libstdc++/)
+* [GNU C++ Library Online Documentation](https://gcc.gnu.org/onlinedocs/libstdc++/)
+* [GNU C++ Library API Reference](https://gcc.gnu.org/onlinedocs/libstdc++/api.html)
+* [The C++ Runtime Library (libstdc++)](https://gcc.gnu.org/wiki/Libstdc%2B%2B)
+* [FAQ of GNU C++ Library](https://gcc.gnu.org/onlinedocs/libstdc++/faq.html)
+
+# Configure the Dynamic Loader
+
+By default, the dynamic loader ```/lib/ld-linux.so.2``` searches through ```/lib``` and ```/usr/lib``` for dynamic libraries that are needed by programs as they are run. However, if there are libraries in directories other than ```/lib``` and ```/usr/lib```, these need to be added to the ```/etc/ld.so.conf``` file in order for the dynamic loader to find them. Two directories that are commonly known to contain additional libraries are ```/usr/local/lib``` and ```/opt/lib```, so add those directories to the dynamic loader's search path.
+
+Here is the configuration of ```/etc/ld.so.conf``` in my computer:
+
+```
+chenwx@chenwx ~ $ ll /etc/ld.so.conf
+-rw-r--r-- 1 root root 34 Jun 24  2014 /etc/ld.so.conf
+
+chenwx@chenwx ~ $ cat /etc/ld.so.conf   
+include /etc/ld.so.conf.d/*.conf
+
+chenwx@chenwx ~ $ ll /etc/ld.so.conf.d/*.conf  
+-rw-rw-r-- 1 root root  38 Mar 24  2014 /etc/ld.so.conf.d/fakeroot-x86_64-linux-gnu.conf
+lrwxrwxrwx 1 root root  40 Oct 24  2014 /etc/ld.so.conf.d/i386-linux-gnu_GL.conf -> /etc/alternatives/i386-linux-gnu_gl_conf
+-rw-r--r-- 1 root root 108 Apr 12  2014 /etc/ld.so.conf.d/i686-linux-gnu.conf
+-rw-r--r-- 1 root root  44 Aug 10  2009 /etc/ld.so.conf.d/libc.conf
+-rw-r--r-- 1 root root  68 Apr 12  2014 /etc/ld.so.conf.d/x86_64-linux-gnu.conf
+lrwxrwxrwx 1 root root  43 Oct 24  2014 /etc/ld.so.conf.d/x86_64-linux-gnu_EGL.conf -> /etc/alternatives/x86_64-linux-gnu_egl_conf
+lrwxrwxrwx 1 root root  42 Oct 24  2014 /etc/ld.so.conf.d/x86_64-linux-gnu_GL.conf -> /etc/alternatives/x86_64-linux-gnu_gl_conf
+
+chenwx@chenwx ~ $ cat /etc/ld.so.conf.d/fakeroot-x86_64-linux-gnu.conf
+/usr/lib/x86_64-linux-gnu/libfakeroot
+
+chenwx@chenwx ~ $ cat /etc/ld.so.conf.d/libc.conf
+# libc default configuration
+/usr/local/lib
+
+chenwx@chenwx ~ $ cat /etc/ld.so.conf.d/i686-linux-gnu.conf
+# Multiarch support
+/lib/i386-linux-gnu
+/usr/lib/i386-linux-gnu
+/lib/i686-linux-gnu
+/usr/lib/i686-linux-gnu
+
+chenwx@chenwx ~ $ cat /etc/ld.so.conf.d/x86_64-linux-gnu.conf
+# Multiarch support
+/lib/x86_64-linux-gnu
+/usr/lib/x86_64-linux-gnu
+
+chenwx@chenwx ~ $ cat /etc/alternatives/i386-linux-gnu_gl_conf
+/usr/lib/i386-linux-gnu/mesa
+
+chenwx@chenwx ~ $ cat /etc/alternatives/x86_64-linux-gnu_gl_conf
+/usr/lib/x86_64-linux-gnu/mesa
+
+chenwx@chenwx ~ $ cat /etc/alternatives/x86_64-linux-gnu_egl_conf
+/usr/lib/x86_64-linux-gnu/mesa-egl
+```
+
+# Show Shared Library Dependencies
+
+The command ```ldd``` prints the shared libraries required by each program or shared library specified on the command line. For instance:
+
+```
+chenwx@chenwx ~ $ ldd /bin/ln
+	linux-vdso.so.1 =>  (0x00007ffc51d95000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f686ee19000)
+	/lib64/ld-linux-x86-64.so.2 (0x00005606eabc7000)
+
+chenwx@chenwx ~ $ ldd -v /bin/ln
+	linux-vdso.so.1 =>  (0x00007ffc68392000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fd2a4ea5000)
+	/lib64/ld-linux-x86-64.so.2 (0x0000562c348c3000)
+
+	Version information:
+	/bin/ln:
+		libc.so.6 (GLIBC_2.3) => /lib/x86_64-linux-gnu/libc.so.6
+		libc.so.6 (GLIBC_2.3.4) => /lib/x86_64-linux-gnu/libc.so.6
+		libc.so.6 (GLIBC_2.14) => /lib/x86_64-linux-gnu/libc.so.6
+		libc.so.6 (GLIBC_2.4) => /lib/x86_64-linux-gnu/libc.so.6
+		libc.so.6 (GLIBC_2.2.5) => /lib/x86_64-linux-gnu/libc.so.6
+	/lib/x86_64-linux-gnu/libc.so.6:
+		ld-linux-x86-64.so.2 (GLIBC_2.3) => /lib64/ld-linux-x86-64.so.2
+		ld-linux-x86-64.so.2 (GLIBC_PRIVATE) => /lib64/ld-linux-x86-64.so.2
+```
+
+or, use a safer alternative when dealing with untrusted executables is:
+
+```
+chenwx@chenwx ~ $ objdump -p /bin/ln | grep NEEDED
+  NEEDED               libc.so.6
+```
+
+Use the following command to list the dynamic share libraries:
+
+```
+chenwx@chenwx ~ $ ldconfig -p
+1627 libs found in cache `/etc/ld.so.cache'
+	libzvbi.so.0 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libzvbi.so.0
+	libzvbi-chains.so.0 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libzvbi-chains.so.0
+	libzip.so.2 (libc6,x86-64) => /usr/lib/libzip.so.2
+	libzephyr.so.4 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libzephyr.so.4
+	libzeitgeist-2.0.so.0 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libzeitgeist-2.0.so.0
+	libzbar.so.0 (libc6,x86-64) => /usr/lib/libzbar.so.0
+	libz.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libz.so.1
+...
+
+chenwx@chenwx ~ $ ldconfig -p | grep libc.so
+	libc.so.6 (libc6,x86-64, OS ABI: Linux 2.6.24) => /lib/x86_64-linux-gnu/libc.so.6
+	libc.so.6 (libc6, OS ABI: Linux 2.6.24) => /lib/i386-linux-gnu/libc.so.6
+
+chenwx@chenwx ~ $ ldconfig -p | grep libstdc++.so
+	libstdc++.so.6 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+	libstdc++.so.6 (libc6) => /usr/lib/i386-linux-gnu/libstdc++.so.6
+	libstdc++.so.5 (libc6) => /usr/lib/i386-linux-gnu/libstdc++.so.5
+```
 
 # References
 

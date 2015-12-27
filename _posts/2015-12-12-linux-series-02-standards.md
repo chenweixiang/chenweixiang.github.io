@@ -238,7 +238,7 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
     ISO/IEC 23360-7:2006 Linux Standard Base (LSB) core specification 3.1 – Part 7: Specification for S390 architecture
     ISO/IEC 23360-8:2006 Linux Standard Base (LSB) core specification 3.1 – Part 8: Specification for S390X architecture
 
-    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between ISO/IEC 23360 (the Linux Standard Base 3.1 specification) and the ISO/IEC 9945:2003 (POSIX) International Standard. The ISO/IEC TR 24715:2006 can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html).
+    There is also [ISO/IEC TR 24715:2006](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=38825) which identifies areas of conflict between **ISO/IEC 23360** (the Linux Standard Base 3.1 specification) and the **ISO/IEC 9945:2003** (POSIX) International Standard. The **ISO/IEC TR 24715:2006** can be downloaded from [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html).
 
     LSB 3.1 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
 

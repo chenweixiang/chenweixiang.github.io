@@ -151,15 +151,15 @@ The GCC 4.8.4 installs the following programs:
 
 | Programs         | Description |
 | :--------------- | :---------- |
-| ```cpp```        | The C preprocessor; it is used by the compiler to expand the ```#include```, ```#define```, and similar statements in the source files. <br>```/usr/bin/cpp -> cpp-4.8``` |
-| ```gcc```        | The C compiler. <br>```/usr/bin/gcc -> gcc-4.8``` |
-| ```cc```         | The C compiler. <br>```/usr/bin/cc -> /etc/alternatives/cc -> /usr/bin/gcc -> gcc-4.8``` |
-| ```g++```        | The C++ compiler. <br>```/usr/bin/g++ -> g++-4.8``` |
-| ```c++```        | The C++ compiler. <br>```/usr/bin/c++ -> /etc/alternatives/c++ -> /usr/bin/g++ -> g++-4.8``` |
-| ```gcc-ar```     | A wrapper around ```ar``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/ar```<br>```/usr/bin/gcc-ar -> gcc-ar-4.8``` |
-| ```gcc-nm```     | A wrapper around ```nm``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/nm```<br>```/usr/bin/gcc-nm -> gcc-nm-4.8``` |
-| ```gcc-ranlib``` | A wrapper around ```ranlib``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/ranlib```<br>```/usr/bin/gcc-ranlib -> gcc-ranlib-4.8``` |
-| ```gcov```       | A coverage testing tool; it is used to analyze programs to determine where optimizations will have the most effect. <br>```/usr/bin/gcov -> gcov-4.8``` |
+| ```cpp```        | The C preprocessor; it is used by the compiler to expand the ```#include```, ```#define```, and similar statements in the source files. <br>```/usr/bin/cpp -> /usr/bin/cpp-4.8``` |
+| ```gcc```        | The C compiler. <br>```/usr/bin/gcc -> /usr/bin/gcc-4.8``` |
+| ```cc```         | The C compiler. <br>```/usr/bin/cc -> /etc/alternatives/cc -> /usr/bin/gcc -> /usr/bin/gcc-4.8``` |
+| ```g++```        | The C++ compiler. <br>```/usr/bin/g++ -> /usr/bin/g++-4.8``` |
+| ```c++```        | The C++ compiler. <br>```/usr/bin/c++ -> /etc/alternatives/c++ -> /usr/bin/g++ -> /usr/bin/g++-4.8``` |
+| ```gcc-ar```     | A wrapper around ```ar``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/ar```<br>```/usr/bin/gcc-ar -> /usr/bin/gcc-ar-4.8``` |
+| ```gcc-nm```     | A wrapper around ```nm``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/nm```<br>```/usr/bin/gcc-nm -> /usr/bin/gcc-nm-4.8``` |
+| ```gcc-ranlib``` | A wrapper around ```ranlib``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/ranlib```<br>```/usr/bin/gcc-ranlib -> /usr/bin/gcc-ranlib-4.8``` |
+| ```gcov```       | A coverage testing tool; it is used to analyze programs to determine where optimizations will have the most effect. <br>```/usr/bin/gcov -> /usr/bin/gcov-4.8``` |
 
 <br>
 
@@ -170,8 +170,8 @@ The GCC 4.8.4 installs the following libraries:
 | ```libasan.{a,so}```     | The Address Sanitizer runtime library. <br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libasan.a```<br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libasan.so -> /usr/lib/x86_64-linux-gnu/libasan.so.0 -> /usr/lib/x86_64-linux-gnu/libasan.so.0.0.0``` |
 | ```libatomic.{a,so}```   | ```/usr/lib/gcc/x86_64-linux-gnu/4.8/libatomic.a```<br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libatomic.so -> /usr/lib/x86_64-linux-gnu/libatomic.so.1 -> /usr/lib/x86_64-linux-gnu/libatomic.so.1.0.0``` |
 | ```libgcc.a```           | Contains run-time support for ```gcc```. <br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgcc.a```<br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc.a``` |
-| ```libgcc_eh.a```        | Contains run-time support for ```gcc```. <br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgcc_eh.a```<br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc_eh.a``` |
-| ```libgcc_s.so```        | Contains run-time support for ```gcc```. <br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgcc_s.so -> /lib/x86_64-linux-gnu/libgcc_s.so.1```<br><br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc_s.so```<br><br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc_s.so.1 -> /usr/arm-linux-gnueabi/lib/libgcc_s.so.1``` |
+| ```libgcc_eh.a```        | Contains EH support routines for ```gcc```. <br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgcc_eh.a```<br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc_eh.a``` |
+| ```libgcc_s.so```        | Contains Support routines for ```gcc```, including EH. <br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgcc_s.so -> /lib/x86_64-linux-gnu/libgcc_s.so.1```<br><br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc_s.so```<br><br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcc_s.so.1 -> /usr/arm-linux-gnueabi/lib/libgcc_s.so.1``` |
 | ```libgcov.a```          | This library is linked in to a program when GCC is instructed to enable profiling. <br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgcov.a```<br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgcov.a``` |
 | ```libgomp.{a,so}```     | GNU implementation of the OpenMP API for multi-platform shared-memory parallel programming in C/C++ and Fortran. <br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgomp.a```<br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgomp.a```<br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libgomp.so -> /usr/lib/x86_64-linux-gnu/libgomp.so.1 -> /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0```<br><br>```/usr/lib/gcc-cross/arm-linux-gnueabi/4.7/libgomp.so -> /usr/arm-linux-gnueabi/lib/libgomp.so.1 -> /usr/arm-linux-gnueabi/lib/libgomp.so.1.0.0``` |
 | ```libiberty.a```        | Contains routines used by various GNU programs, including ```getopt```, ```obstack```, ```strerror```, ```strtol```, and ```strtoul```. |
@@ -187,12 +187,12 @@ The GCC 4.8.4 installs the following libraries:
 <br>
 Those following directories are created by GCC 4.8.4:
 
-| Directories                  | Subdirectories       | Headers |
-| :--------------------------- | :------------------- | :---------- |
-| ```/usr/include/c++```       | ```4.8.4 -> 4.8```<br>```4.8/``` | ```4.8/cstdio```<br>```4.8/cstdlib```<br>```4.8/cstring```<br>```...``` |
-| ```/usr/lib/gcc```           | ```x86_64-linux-gnu/```<br>```x86_64-linux-gnu/4.8.4 -> 4.8```<br>```x86_64-linux-gnu/4.8```<br><br>```i686-linux-gnu/```<br>```i686-linux-gnu/4.8.4 -> 4.8```<br>```i686-linux-gnu/4.8``` | Static and shared libraries in directories:  <br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/```<br>```/usr/lib/gcc/i686-linux-gnu/4.8/``` |
-| ```/usr/libexec/gcc```       | ***NONE***           |             |
-| ```/usr/share/gcc-4.8.4```   | ***NONE***           |             |
+| Directories                  | Subdirectories/Headers |
+| :--------------------------- | :--------------------- |
+| ```/usr/include/c++```       | Subdirectories:<br>```4.8.4 -> 4.8```<br>```4.8/```<br><br>Headers:<br>```4.8/cstdio```<br>```4.8/cstdlib```<br>```4.8/cstring```<br>```...``` |
+| ```/usr/lib/gcc```           | Subdirectories:<br>```x86_64-linux-gnu/```<br>```x86_64-linux-gnu/4.8.4 -> 4.8```<br>```x86_64-linux-gnu/4.8```<br><br>```i686-linux-gnu/```<br>```i686-linux-gnu/4.8.4 -> 4.8```<br>```i686-linux-gnu/4.8```<br><br>Static and shared libraries are located in following subdirectories:  <br>```x86_64-linux-gnu/4.8/```<br>```i686-linux-gnu/4.8/``` |
+| ```/usr/libexec/gcc```       | ***NONE***           |
+| ```/usr/share/gcc-4.8.4```   | ***NONE***           |
 
 # GNU C Library (glibc)
 
@@ -366,11 +366,11 @@ The **GNU Standard C++ Library v3** (**libstdc++-v3**) is an ongoing project to 
 * [The C++ Runtime Library (libstdc++)](https://gcc.gnu.org/wiki/Libstdc%2B%2B)
 * [GNU C++ Library FAQ](https://gcc.gnu.org/onlinedocs/libstdc++/faq.html)
 
-The **glibstdc++** installs following libraries:
+The **glibstdc++** installs following libraries, refer to section ***Content of GCC 4.8.4*** of this article:
 
 | Libraries | Description |
 | :-------- | :---------- |
-| ```libstdc++.{a,so}``` | ```/usr/lib/gcc/x86_64-linux-gnu/4.8/libsupc++.a```<br>```/usr/lib/i386-linux-gnu/libstdc++.so.6.0.19```<br>```/usr/lib/i386-linux-gnu/libstdc++.so.6 -> libstdc++.so.6.0.19```<br>```/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19```<br>```/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -> libstdc++.so.6.0.19```<br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libstdc++.so -> ../../../x86_64-linux-gnu/libstdc++.so.6``` |
+| ```libstdc++.{a,so}``` | ```/usr/lib/gcc/x86_64-linux-gnu/4.8/libstdc++.a```<br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libstdc++.so -> /usr/lib/x86_64-linux-gnu/libstdc++.so.6 -> /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19```<br><br>```/usr/lib/i386-linux-gnu/libstdc++.so.6 -> /usr/lib/i386-linux-gnu/libstdc++.so.6.0.19```<br><br>```/usr/lib/i386-linux-gnu/libstdc++.so.5 -> /usr/lib/i386-linux-gnu/libstdc++.so.5.0.7``` |
 
 # Configure the Dynamic Loader
 

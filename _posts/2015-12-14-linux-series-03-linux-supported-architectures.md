@@ -13,13 +13,13 @@ This article introduces Linux supported architectures, and commands to check har
 
 According to directory ```arch/``` in Linux kernel source tree, Linux kernel supports following architectures:
 
-* ```alpha/```
+* **```alpha/```**
 
     The [Alpha processor](https://en.wikipedia.org/wiki/DEC_Alpha) was developed by Digital Equipment Corporation (DEC). The  DEC was later bought by Compaq, which then merged with HP. Alpha always had a reputation for excellent performance and could run many different operating systems. Alpha is of great historical importance to Linux as the [first non-PC port incorporated into Linus's tree](http://www.oreilly.com/catalog/opensources/book/linus.html), as well as the first 64-bit port. [This website](http://www.alphalinux.org/wiki/index.php/Main_Page) is about the port of GNU/Linux to the Alpha architecture.
 
     [Alpha: The History in Facts and Comments](http://alasir.com/articles/alpha_history/index.html).
 
-* ```arc/```
+* **```arc/```**
 
 * **```arm/```**, **```arm64/```**
 
@@ -29,47 +29,47 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
     [List of ARM processors](http://www.elinux.org/ARM_Processor)
     [The ARM Linux Project](http://www.arm.linux.org.uk/)
 
-* ```avr32/```
+* **```avr32/```**
 
-* ```blackfin/```
+* **```blackfin/```**
 
-* ```c6x/```
+* **```c6x/```**
 
-* ```cris/```
+* **```cris/```**
 
-* ```frv/```
+* **```frv/```**
 
-* ```h8300/```
+* **```h8300/```**
 
-* ```hexagon/```
+* **```hexagon/```**
 
-* ```ia64/```
+* **```ia64/```**
 
     The **Itanium** was a failed attempt to create a 64-bit successor to the 32-bit x86 processors, a role that went to AMD's x86-64 design instead. In 1994, **Intel** partnered with **Hewlett Packard (HP)** to produce a successor to both **x86** and HP's **PA-RISC**, with a new instruction set ```ia64``` fundamentally different from both. To support software written for the older processors, the designers included a complete implementation of each, because the new chip was already so big and complex that including *two* entire previous processors wasn't a significant increase to either. The result was a late, slow, inefficient chip that was difficult to manufacture, more expensive than available alternatives, difficult to write efficient compilers for, quickly nicknamed ***Itanic*** and essentially ignored by the market.
 
     The history of Itanium through 2003 was extensively detailed [here](http://www.catb.org/~esr/halloween/halloween9.html#itanium). A more recent obituary for the chip is zdnet's [Itanium: A cautionary tale](http://www.zdnet.com/article/itanium-a-cautionary-tale/).
 
-* ```m32r/```
+* **```m32r/```**
 
-* ```m68k/```
+* **```m68k/```**
 
-* ```metag/```
+* **```metag/```**
 
-* ```microblaze/```
+* **```microblaze/```**
 
-* ```mips/```
+* **```mips/```**
 
     **MIPS** (originally an acronym for **Microprocessor without Interlocked Pipeline Stages**) is a reduced instruction set computer (RISC) instruction set architecture (ISA) developed by **MIPS Technologies** (formerly **MIPS Computer Systems, Inc.**). The early MIPS architectures were 32-bit, with 64-bit versions added later. Multiple revisions of the MIPS instruction set exist, including **MIPS I** (introduced in 1985 with the R2000), **MIPS II** (introduced in 1990 with the R6000), **MIPS III** (introduced in 1992 in the R4000), **MIPS IV** (introduced in 1994 with R8000. It is a superset of MIPS III and is compatible with all existing versions of MIPS), **MIPS V**, **MIPS32** (introduced in 1999 based on MIPS II with some additional features from MIPS III, MIPS IV, and MIPS V), and **MIPS64** (introduced in 1999 based on MIPS V). The current revisions are **MIPS32** (for 32-bit implementations) and **MIPS64** (for 64-bit implementations).
 
     **MIPS** is probably the main competitor to **ARM**. One advantage of MIPS is its availability as a FPGA program, allowing easy prototyping of custom hardware.
 
-* ```mn10300/```
+* **```mn10300/```**
 
-* ```nios2/```
+* **```nios2/```**
 
-* ```openrisc/```
+* **```openrisc/```**
 
-* ```parisc/```
+* **```parisc/```**
 
     The **PA-RISC** is an instruction set architecture (ISA) developed by **Hewlett-Packard (HP)**. As the name implies, it is a reduced instruction set computer (RISC) architecture, where the **PA** stands for **Precision Architecture**. The design is also referred to as **HP/PA** for **Hewlett Packard Precision Architecture**. It was scheduled to be discontinued in favor of the **Itanium**, but the failure of ia64 led to a restart of PA-RISC development.
 
@@ -77,7 +77,7 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
     [PA-RISC Linux Project History](https://parisc.wiki.kernel.org/index.php/PA-RISC_Linux_Project_History)
     [Introduction to Linux on PA-RISC](https://parisc.wiki.kernel.org/index.php/Main_Page)
 
-* ```powerpc/```
+* **```powerpc/```**
 
     **PowerPC** (an acronym for **Performance Optimization With Enhanced RISC – Performance Computing**, sometimes abbreviated as **PPC**) is a RISC instruction set architecture created by the 1991 **Apple–IBM–Motorola alliance**, known as **AIM**. Apple switched to x86-64 in 2005 and Motorola spun off its processor division as Freescale. But IBM is still strongly behind PowerPC, and the various users of PowerPC formed a consortium to promote and develop it.
 
@@ -86,17 +86,17 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
     [The Linux Kernel on iSeries](https://www.kernel.org/doc/ols/2001/iseries.pdf) (OLS 2001)
     [PowerPC 64-bit Kernel Internals](https://www.kernel.org/doc/ols/2001/ppc64.pdf) (OLS 2001)
 
-* ```s390/```
+* **```s390/```**
 
-* ```score/```
+* **```score/```**
 
-* ```sh/```
+* **```sh/```**
 
-* ```sparc/```
+* **```sparc/```**
 
-* ```tile/```
+* **```tile/```**
 
-* ```um/```
+* **```um/```**
 
     **User Mode Linux (UML)** is a port of Linux to run as a userspace program. Instead of talking to the hardware, it makes system calls to the C library. Instead of using a memory management unit it makes clever use of mmap.
 
@@ -106,13 +106,13 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
     [User Mode Linux HOWTO](http://landley.net/writing/docs/UML.html)
     [The User-mode Linux Kernel Home Page](http://user-mode-linux.sourceforge.net/)
 
-* ```unicore32/```
+* **```unicore32/```**
 
 * **```x86/```**
 
     [Porting Linux to x86-64](https://www.kernel.org/doc/ols/2001/x86-64.pdf) (OLS 2001)
 
-* ```xtensa/```
+* **```xtensa/```**
 
 # Commands to show Hardware Info
 
@@ -154,13 +154,13 @@ The command ```hardinfo``` is a gtk based gui tool that generates reports about 
 
 ```
 chenwx@chenwx ~ $ sudo apt-get install hardinfo
-
-chenwx@chenwx ~ $ hardinfo
+chenwx@chenwx ~ $ hardinfo &
+chenwx@chenwx ~ $ hardinfo -r > ~/hardinfo.txt
 ```
 
 ### lshw
 
-The command ```lshw``` is a small tool to extract detailed information on the hardware configuration of the machine. It extracts the information from different /proc and /sys files. Use the following command to show the device information in short format:
+The command ```lshw``` is a small tool to extract detailed information on the hardware configuration of the machine. It extracts the information from different ```/proc``` and ```/sys``` files. Use the following command to show the device information in short format:
 
 ```
 chenwx@chenwx ~ $ sudo lshw -short

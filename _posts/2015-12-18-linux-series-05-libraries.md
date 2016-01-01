@@ -372,7 +372,321 @@ The **glibstdc++** installs following libraries, refer to section ***Content of 
 | :-------- | :---------- |
 | ```libstdc++.{a,so}``` | ```/usr/lib/gcc/x86_64-linux-gnu/4.8/libstdc++.a```<br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libstdc++.so -> /usr/lib/x86_64-linux-gnu/libstdc++.so.6 -> /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19```<br><br>```/usr/lib/i386-linux-gnu/libstdc++.so.6 -> /usr/lib/i386-linux-gnu/libstdc++.so.6.0.19```<br><br>```/usr/lib/i386-linux-gnu/libstdc++.so.5 -> /usr/lib/i386-linux-gnu/libstdc++.so.5.0.7``` |
 
-# Configure the Dynamic Loader
+# Static Library (.a)
+
+##  What's static library?
+
+As stated in [wikipedia](https://en.wikipedia.org/wiki/Static_library), a **static library** or **statically-linked library** is a set of routines, external functions and variables which are resolved in a caller at compile-time and copied into a target application by a compiler, linker, or binder, producing an object file and a stand-alone executable. This executable and the process of compiling it are both known as a **static build** of the program. Historically, libraries could only be ***static***. Static libraries are either merged with other static libraries and object files during building/linking to form a single executable, or they may be loaded at run-time into the address space of the loaded executable at a static memory offset determined at compile-time/link-time.
+
+## Advantages and disadvantages
+
+There are several advantages to statically linking libraries with an executable instead of dynamically linking them. The most significant is that the application can be certain that all its libraries are present and that they are the correct version. This avoids dependency problems, known colloquially as [DLL Hell](https://en.wikipedia.org/wiki/DLL_Hell) or more generally [dependency hell](https://en.wikipedia.org/wiki/Dependency_hell). Static linking can also allow the application to be contained in a single executable file, simplifying distribution and installation.
+
+With static linking, it is enough to include those parts of the library that are directly and indirectly referenced by the target executable (or target library). With dynamic libraries, the entire library is loaded, as it is not known in advance which functions will be invoked by applications. Whether this advantage is significant in practice depends on the structure of the library.
+
+In static linking, the size of the executable becomes greater than in dynamic linking, as the library code is stored ***within the executable*** rather than in separate files. But if library files are counted as part of the application then the total size will be similar, or even smaller if the compiler eliminates the unused symbols.
+
+## Creating a Static Library
+
+Static libraries can be easily created in C or C++. These two languages provide storage-class specifiers for indicating external or internal linkage, in addition to providing other features. To create such a library, the exported functions/procedures and other objects variables must be specified for **external linkage** (i.e. by not using the C keyword ***static***). Static library filenames usually have a ***.a*** extension on Unix-like systems and ***.lib*** on Microsoft Windows.
+
+To create a static library, or to add additional object files to an existing static library, use a command like this:
+
+```
+chenwx@chenwx ~/helloworld $ cat helloworldlib1.c
+#include <stdio.h>
+
+void printHelloWorld()
+{
+    printf("Hello World!\n");
+}
+
+chenwx@chenwx ~/helloworld $ cat helloworldlib2.c
+#include <stdio.h>
+
+void printUserName(char *name)
+{
+    printf("Hello World! %s\n", name);
+}
+
+chenwx@chenwx ~/helloworld $ cc -Wall -c -o helloworldlib1.o helloworldlib1.c
+chenwx@chenwx ~/helloworld $ cc -Wall -c -o helloworldlib2.o helloworldlib2.c
+
+chenwx@chenwx ~/helloworld $ ar crsv libhelloworld.a helloworldlib1.o helloworldlib2.o
+a - helloworldlib1.o
+a - helloworldlib2.o
+```
+
+**[Historical Note]**
+After creating the library it was once necessary to run the command ```ranlib libhelloworld.a``` to create a symbol table within the archive. Now, the ```ranlib``` is embedded into the ```ar``` command.
+
+## List Information of Static Library
+
+```
+# Display a table listing the contents of archive
+chenwx@chenwx ~/helloworld $ ar -t libhelloworld.a
+helloworldlib1.o
+helloworldlib2.o
+
+# List symbols from object files
+chenwx@chenwx ~/helloworld $ nm libhelloworld.a
+
+helloworldlib1.o:
+0000000000000000 T printHelloWorld
+                 U puts
+
+helloworldlib2.o:
+0000000000000000 T printUserName
+                 U printf
+```
+
+## Using Static Library
+
+To compile a program that depends on the library ```libhelloworld.a```, one could do:
+
+```
+chenwx@chenwx ~/helloworld $ cat testhelloworld.c
+int main()
+{
+    char *userName = "Alex";
+    printHelloWorld();
+    printUserName(userName);
+
+    return 0;
+}
+
+chenwx@chenwx ~/helloworld $ cc -o testhelloworld testhelloworld.c libhelloworld.a
+chenwx@chenwx ~/helloworld $ ./testhelloworld
+Hello World!
+Hello World! Alex
+```
+
+or, run the following command if ```libhelloworld.a``` is placed in standard library path, like ```/usr/local/lib```:
+
+```
+chenwx@chenwx ~/helloworld $ cc -lhelloworld -o testhelloworld testhelloworld.c
+```
+
+or, run the following command if ```libhelloworld.a``` is placed a directory other than standard library path:
+
+```
+chenwx@chenwx ~/helloworld $ cc -L/path/to/library-directory -lhelloworld -o testhelloworld testhelloworld.c
+```
+
+or, link the libhelloworld.a during linking stage:
+
+```
+chenwx@chenwx ~/helloworld $ cc -c -o testhelloworld.o testhelloworld.c
+chenwx@chenwx ~/helloworld $ ld -lhelloworld -o testhelloworld testhelloworld.o
+```
+
+# Shared Library (.so)
+
+##  What's shared library?
+
+A **shared library** or **shared object** is a file that is intended to be shared by executable files and further shared object files. Modules used by a program are loaded from individual shared objects into memory at load time or run time, rather than being copied by a linker when it creates a single monolithic executable file for the program.
+
+Shared libraries can be statically linked, meaning that references to the library modules are resolved and the modules are allocated memory when the executable file is created. But often linking of shared libraries is postponed until they are loaded.
+
+## Naming Convention of Shared Libraries
+
+Every shared library has a special name called the **soname**. The soname has the prefix ***lib***, the name of the library, the phrase ***.so***, followed by a period and a version number that is incremented whenever the interface changes (as a special exception, the lowest-level C libraries don't start with ***lib***), that's ***lib\<name\>.so.X***. A fully-qualified soname includes as a prefix the directory it's in; on a working system a fully-qualified soname is simply a symbolic link to the shared library's **real name**.
+
+Every shared library also has a **real name**, which is the filename containing the actual library code. The real name adds to the soname a period, a minor number, another period, and the release number, that's ***lib\<name\>.so.X.Y[.Z]***. The last period and release number (***.Z***) are optional. The minor number and release number (***.Y***) support configuration control by letting you know exactly what version(s) of the library are installed. Note that these numbers might not be the same as the numbers used to describe the library in documentation, although that does make things easier.
+
+In addition, there's the name that the compiler uses when requesting a library, **linker name**, which is simply the soname without any version number, that's ***lib\<name\>.so***.
+
+| Type_of_Name | Description |
+| :----------: | :---------- |
+| Real name | The **real name** is the filename containing the actual shared library code. It has formats:<br>```lib<name>.so.X.Y```<br>```lib<name>.so.X.Y.Z``` |
+| **soname** | The **soname** is a symbol link to **real name** of shared library. It has formats: <br>```lib<name>.so.X -> lib<name>.so.X.Y```<br>```lib<name>.so.X -> lib<name>.so.X.Y.Z```<br><br>The **soname** is used by programs depend on it at runtime. It's specified at the library's build-time to GCC's link editor ```ld``` with the ```-soname``` option. You can use following command to check the soname: <br>```objdump -p lib<name>.so.X | grep SONAME```<br>```objdump -p lib<name>.so.X.Y.Z | grep SONAME``` |
+| Linker name | The linker name is used by compiler when requesting a library. It has formats:<br>```lib<name>.so```<br>```lib<name>X.so```<br>which link to the real name or **soname** of the shared library:<br>```lib<name>.so -> lib<name>.so.X```<br>```lib<name>.so -> lib<name>.so.X.Y```<br>```lib<name>.so -> lib<name>.so.X.Y.Z```<br>```lib<name>X.so -> lib<name>.so.X.Y.Z```<br><br>After the linker name ```lib<name>.so``` exist, the compiling command works:<br>```cc -l<name> -o <executable> <source>.c``` |
+
+## Advantages and disadvantages
+
+As [this article](http://osr507doc.sco.com/en/tools/ShLib_WhatIs.html) said, a shared library offers several benefits, like:
+
+* **Save disk storage space**
+
+    Shared library code is not copied into all the executable files that use that code. The executable files are smaller and use less disk space.
+
+* **Save memory**
+
+    By sharing library code at run time the dynamic memory needs of the processes are reduced.
+
+* **Easier to maintain**
+
+    Make executable files using library code easier to maintain.
+
+    At run time shared library code is brought into the processes' address space. Therefore, updating a shared library effectively updates all executable files that use the library. If an error in shared library code is fixed, all processes automatically use the corrected code.
+
+    Non-shared libraries cannot offer this benefit: changes to archive libraries do not affect executable files, because code from the libraries is copied to the files during link editing, not during execution.
+
+As [this article](http://www.informit.com/guides/content.aspx?g=cplusplus&seqNum=152) said, the dynamic linking offers several advantages over static linking:
+
+* **Code Sharing**
+
+    With dynamic linking, programs can share identical code instead of owning individual copies of the same library. Think of the standard C or C++ libraries. They are both huge and ubiquitous. Every C or C++ program uses at least a portion of these libraries for I/O, date and time manipulation, memory allocation, string processing, and so on. If distinct copies of these libraries were statically linked into every executable file, even tiny programs would occupy dozens of megabytes.
+
+    Worse yet, whenever a new version of the said libraries is released, every executable file would have to be replaced with a newly-linked executable in order to reflect the change. Fortunately, these libraries are usually implemented as shared dynamic libraries that are loaded into the core program at runtime.
+
+* **Automatic Updates**
+
+    Whenever a new version of a dynamically-linked library is installed, it automatically supercedes the previous version. When you run a program, it automatically picks the most up-to-date version without forcing the user to re-link.
+
+* **Security**
+
+    If you're concerned about protecting your intellectual property, splitting an application into several linkage units makes it harder for crackers to disassemble and decompile an executable file (at least in theory).
+
+## Creating a Shared Library
+
+Use following commands to create a shared library:
+
+```
+chenwx@chenwx ~/helloworld $ cat helloworldlib1.c
+#include <stdio.h>
+
+void printHelloWorld()
+{
+    printf("Hello World!\n");
+}
+
+chenwx@chenwx ~/helloworld $ cat helloworldlib2.c
+#include <stdio.h>
+
+void printUserName(char *name)
+{
+    printf("Hello World! %s\n", name);
+}
+
+chenwx@chenwx ~/helloworld $ cc -Wall -fPIC -c -o helloworldlib1.o helloworldlib1.c
+chenwx@chenwx ~/helloworld $ cc -Wall -fPIC -c -o helloworldlib2.o helloworldlib2.c
+chenwx@chenwx ~/helloworld $ cc -shared -Wl,-soname,libhelloworld.so.1 -o libhelloworld.so.1.0 helloworldlib1.o helloworldlib2.o
+
+chenwx@chenwx ~/helloworld $ ll libhelloworld.so.1.0
+-rwxrwxr-x 1 chenwx chenwx 8.0K Dec 29 20:54 libhelloworld.so.1.0
+
+henwx@chenwx ~/helloworld $ objdump -p libhelloworld.so.1.0 | grep SONAME
+  SONAME               libhelloworld.so.1
+```
+
+Compiler options:
+
+* ```-Wall``` Include warnings. See man page for warnings specified.
+* ```-fPIC``` Compiler directive to output position independent code, a characteristic required by shared libraries. The ```-fPIC``` always works, but may produce larger code than ```-fpic``` (mnenomic to remember this is that PIC is in a larger case, so it may produce larger amounts of code). Using ```-fpic``` option usually generates smaller and faster code, but will have platform-dependent limitations, such as the number of globally visible symbols or the size of the code. The linker will tell you whether it fits when you create the shared library. When in doubt, choose ```-fPIC```, because it always works.
+* ```-shared``` Produce a shared object which can then be linked with other objects to form an executable.
+* ```-Wl,options``` Pass options to linker.
+
+Here are a few points worth noting:
+
+* Don't strip the resulting library, and don't use the compiler option ```-fomit-frame-pointer``` unless you really have to. The resulting library will work, but these actions make debuggers mostly useless.
+
+* In some cases, the call to ```gcc``` to create the object file will also need to include the option ```-Wl,-export-dynamic```. Normally, the dynamic symbol table contains only symbols which are used by a dynamic object. This option (when creating an ELF file) adds all symbols to the dynamic symbol table (see ```ld(1)``` for more information). You need to use this option when there are ***reverse dependencies***, i.e., a DL library has unresolved symbols that by convention must be defined in the programs that intend to load these libraries. For ***reverse dependencies*** to work, the master program must make its symbols dynamically available. Note that you could say ```-rdynamic``` instead of ```-Wl,export-dynamic``` if you only work with Linux systems, but according to the ELF documentation the ```-rdynamic``` flag doesn't always work for gcc on non-Linux systems.
+
+For more detail about creating shared library, refer to [How to Write Shared Libraries](http://www.akkadia.org/drepper/dsohowto.pdf).
+
+## Installing and Using a Shared Library
+
+### Standard Directory
+
+Once you've created a shared library, you'll want to install it. The simple approach is simply to copy the library into one of the standard directorie, (e.g., ```/lib```, ```/usr/lib``` or ```/usr/local/lib```) and run ```ldconfig```.
+
+First, you need to create the shared libraries somewhere. Then, set up the necessary symbolic links, in particular a link from a **soname** to the real name (as well as from a versionless soname, that is, a soname that ends in ***.so*** for users who don't specify a version at all). The simplest approach is to run:
+
+```
+chenwx@chenwx ~/helloworld $ sudo cp libhelloworld.so.1.0 /lib/
+[sudo] password for chenwx:
+
+chenwx@chenwx ~/helloworld $ ldconfig -n /lib/
+chenwx@chenwx ~/helloworld $ ll /lib/libhelloworld.so*
+lrwxrwxrwx 1 root root   20 Dec 30 19:40 /lib/libhelloworld.so.1 -> libhelloworld.so.1.0
+-rwxr-xr-x 1 root root 8.0K Dec 29 21:24 /lib/libhelloworld.so.1.0
+
+chenwx@chenwx ~/helloworld $ sudo ln -s /lib/libhelloworld.so.1 /lib/libhelloworld.so
+chenwx@chenwx ~/helloworld $ ll /lib/libhelloworld.so*
+lrwxrwxrwx 2 root root   20 Dec 30 19:40 /lib/libhelloworld.so -> libhelloworld.so.1.0
+lrwxrwxrwx 2 root root   20 Dec 30 19:40 /lib/libhelloworld.so.1 -> libhelloworld.so.1.0
+-rwxr-xr-x 1 root root 8.0K Dec 29 21:24 /lib/libhelloworld.so.1.0
+
+chenwx@chenwx ~/helloworld $ sudo ldconfig /lib
+chenwx@chenwx ~/helloworld $ ldconfig -p | grep helloworld
+	libhelloworld.so.1 (libc6,x86-64) => /lib/libhelloworld.so.1
+	libhelloworld.so (libc6,x86-64) => /lib/libhelloworld.so
+```
+
+If the shared library is put into standard directory, then you'll need to tell the linker about shared library:
+
+```
+chenwx@chenwx ~/helloworld $ cat testhelloworld.c
+int main()
+{
+    char *userName = "Alex";
+    printHelloWorld();
+    printUserName(userName);
+
+    return 0;
+}
+
+chenwx@chenwx ~/helloworld $ cc -o testhelloworld testhelloworld.c -lhelloworld
+chenwx@chenwx ~/helloworld $ ll testhelloworld
+-rwxrwxr-x 1 chenwx chenwx 8.5K Dec 30 21:12 testhelloworld
+chenwx@chenwx ~/Downloads/helloworld $ ./testhelloworld
+Hello World!
+Hello World! Alex
+```
+
+NOTE: **Libraries must be listed after the objects that use them** (more precisely, a library will be used only if it contains a symbol that satisfies an undefined reference known at the time it is encountered). So here the ```-lhelloworld``` is appended after ```cc -o testhelloworld testhelloworld.c```. Otherwise, you'll get following error:
+
+```
+chenwx@chenwx ~/helloworld $ cc -lhelloworld -o testhelloworld testhelloworld.c             
+/tmp/cccQMBIY.o: In function `main':
+testhelloworld.c:(.text+0x16): undefined reference to `printHelloWorld'
+testhelloworld.c:(.text+0x27): undefined reference to `printUserName'
+collect2: error: ld returned 1 exit status
+```
+
+### Non-standard Directory
+
+If you can't or don't want to install a library in a standard place (e.g., you don't have the right to modify ```/lib```, ```/usr/lib``` or ```/usr/local/lib```), then you'll need to change your approach. In that case, you'll need to install it somewhere:
+
+```
+chenwx@chenwx ~/helloworld $ mkdir ~/lib
+chenwx@chenwx ~/helloworld $ cp libhelloworld.so.1.0 ~/lib/
+chenwx@chenwx ~/helloworld $ ln -s ~/lib/libhelloworld.so.1.0 ~/lib/libhelloworld.so.1   
+chenwx@chenwx ~/helloworld $ ln -s ~/lib/libhelloworld.so.1.0 ~/lib/libhelloworld.so  
+chenwx@chenwx ~/helloworld $ ll ~/lib/
+lrwxrwxrwx 1 chenwx chenwx   37 Dec 30 21:29 libhelloworld.so -> /home/chenwx/lib/libhelloworld.so.1.0
+lrwxrwxrwx 1 chenwx chenwx   37 Dec 30 21:29 libhelloworld.so.1 -> /home/chenwx/lib/libhelloworld.so.1.0
+-rwxrwxr-x 1 chenwx chenwx 8.0K Dec 30 21:28 libhelloworld.so.1.0
+```
+
+Then give your program enough information so the program can find the library... and there are several ways to do that. You can use gcc's ```-L``` flag in simple cases:
+
+```
+chenwx@chenwx ~/helloworld $ cc -o testhelloworld testhelloworld.c -L/home/chenwx/lib -lhelloworld
+chenwx@chenwx ~/helloworld $ ll testhelloworld
+-rwxrwxr-x 1 chenwx chenwx 8.5K Dec 30 21:30 testhelloworld
+```
+
+Or, you can use the ```rpath``` approach, particularly if you only have a specific program to use the library being placed in a ***non-standard*** place. You can also use environment variables to control things. In particular, you can set ```LD_LIBRARY_PATH```, which is a colon-separated list of directories in which to search for shared libraries before the usual places.
+
+NOTE: ```LD_LIBRARY_PATH``` is handy for development and testing, but shouldn't be modified by an installation process for normal use by normal users. But it's still useful for development or testing, and for working around problems that can't be worked around otherwise. If you don't want to set the ```LD_LIBRARY_PATH``` environment variable, on Linux you can even invoke the program loader directly and pass it arguments. Or use ```--library-path``` instead of it:
+
+```
+chenwx@chenwx ~/helloworld $ cc -o testhelloworld testhelloworld.c -Wl,--library-path=/home/chenwx/lib -lhelloworld
+chenwx@chenwx ~/helloworld $ ll testhelloworld
+-rwxrwxr-x 1 chenwx chenwx 8.5K Dec 30 22:26 testhelloworld
+```
+
+If you're using bash, you could invoke *testhelloworld* this way using:
+
+```
+chenwx@chenwx ~/helloworld $ LD_LIBRARY_PATH=/home/chenwx/lib:$LD_LIBRARY_PATH ./testhelloworld
+Hello World!
+Hello World! Alex
+```
+
+## Configure the Dynamic Loader
 
 By default, the dynamic loader ```/lib/ld-linux.so.2``` searches through ```/lib``` and ```/usr/lib``` for dynamic libraries that are needed by programs as they are run. However, if there are libraries in directories other than ```/lib``` and ```/usr/lib```, these need to be added to the ```/etc/ld.so.conf``` file in order for the dynamic loader to find them. Two directories that are commonly known to contain additional libraries are ```/usr/local/lib``` and ```/opt/lib```, so add those directories to the dynamic loader's search path.
 
@@ -423,7 +737,7 @@ chenwx@chenwx ~ $ cat /etc/alternatives/x86_64-linux-gnu_egl_conf
 /usr/lib/x86_64-linux-gnu/mesa-egl
 ```
 
-# Show Shared Library Dependencies
+## Show Shared Library Dependencies
 
 The command ```ldd``` prints the shared libraries required by each program or shared library specified on the command line. For instance:
 
@@ -492,3 +806,10 @@ chenwx@chenwx ~ $ ldconfig -p | grep libstdc++.so
 [GNU C Library Wikipedia](https://en.wikipedia.org/wiki/GNU_C_Library)
 [GNU C Library FTP](http://ftp.gnu.org/gnu/libc/)
 [GNU C Library Reporsitory](https://sourceware.org/glibc/wiki/GlibcGit)
+
+[动态库(.so)](http://linux-wiki.cn/wiki/%E5%8A%A8%E6%80%81%E5%BA%93%28.so%29)
+[Shared Libraries and naming conventions](https://lists.linux-foundation.org/pipermail/lsb-spec/1999-May/000251.html)
+[Static, Shared Dynamic and Loadable Linux Libraries](http://www.yolinux.com/TUTORIALS/LibraryArchives-StaticAndDynamic.html)
+[Computing Library on Wikipedia](https://en.wikipedia.org/wiki/Library_(computing))
+[Static Libraries](http://tldp.org/HOWTO/Program-Library-HOWTO/static-libraries.html)
+[Shared Libraries](http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html)

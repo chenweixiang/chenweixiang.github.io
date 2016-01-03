@@ -161,7 +161,7 @@ The GCC 4.8.4 installs the following programs:
 | ```gcc-ranlib``` | A wrapper around ```ranlib``` that adds a plugin to the command line. This program is only used to add ***link time optization*** and is not useful with the default build options. <br>```/usr/bin/ranlib```<br>```/usr/bin/gcc-ranlib -> /usr/bin/gcc-ranlib-4.8``` |
 | ```gcov```       | A coverage testing tool; it is used to analyze programs to determine where optimizations will have the most effect. <br>```/usr/bin/gcov -> /usr/bin/gcov-4.8``` |
 
-<br>
+<p/>
 
 The GCC 4.8.4 installs the following libraries:
 
@@ -184,7 +184,8 @@ The GCC 4.8.4 installs the following libraries:
 | ```libsupc++.a```        | Provides supporting routines for the C++ programming language. <br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libsupc++.a``` |
 | ```libtsan.{a,so}```     | The Thread Sanitizer runtime library. <br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libtsan.a```<br><br>```/usr/lib/gcc/x86_64-linux-gnu/4.8/libtsan.so -> /usr/lib/x86_64-linux-gnu/libtsan.so.0 -> /usr/lib/x86_64-linux-gnu/libtsan.so.0.0.0``` |
 
-<br>
+<p/>
+
 Those following directories are created by GCC 4.8.4:
 
 | Directories                  | Subdirectories/Headers |
@@ -287,7 +288,7 @@ The **glibc-2.22** installs following programs:
 | ```zdump```          | The time zone dumper. <br>```/usr/bin/zdump``` |
 | ```zic```            | The time zone compiler. <br>```/usr/sbin/zic``` |
 
-<br>
+<p/>
 
 The **glibc-2.19** installs following libraries:
 
@@ -323,7 +324,8 @@ The **glibc-2.19** installs following libraries:
 | ```libthread_db.so``` | Contains functions useful for building debuggers for multi-threaded programs. <br><br>```/usr/lib/x86_64-linux-gnu/libthread_db.so -> /lib/x86_64-linux-gnu/libthread_db.so.1 -> /lib/x86_64-linux-gnu/libthread_db-1.0.so```<br><br>```/lib/i386-linux-gnu/libthread_db.so.1 -> /lib/i386-linux-gnu/libthread_db-1.0.so```<br><br>```/usr/arm-linux-gnueabi/lib/libthread_db.so.1 -> /usr/arm-linux-gnueabi/lib/libthread_db-1.0.so``` |
 | ```libutil.{a,so}``` | Contains code for ***standard*** functions used in many different Unix utilities. <br><br>```/usr/lib/x86_64-linux-gnu/libutil.a```<br><br>```/usr/lib/x86_64-linux-gnu/libutil.so -> /lib/x86_64-linux-gnu/libutil.so.1 -> /lib/x86_64-linux-gnu/libutil-2.19.so```<br><br>```/lib/i386-linux-gnu/libutil.so.1 -> /lib/i386-linux-gnu/libutil-2.19.so```<br><br>```/usr/arm-linux-gnueabi/lib/libutil.so.1 -> /usr/arm-linux-gnueabi/lib/libutil-2.19.so``` |
 
-<br>
+<p/>
+
 Those following directories are created by glibc:
 
 | Directories                  | Files/Subdirectories | Description |

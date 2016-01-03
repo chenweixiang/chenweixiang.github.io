@@ -88,7 +88,7 @@ The Linux kernel is the most important part of the Linux system. You can get Lin
 | **4.3**        | Nov 01, 2015 | Stable   |      |
 | **4.4**        | Dec 06, 2015 | Mainline |      |
 
-<br>
+<p/>
 
 If we draw a picture of Linux kernel releases, it should be like this:
 

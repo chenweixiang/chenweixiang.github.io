@@ -80,38 +80,40 @@ The [article](http://www.softpanorama.org/People/Shell_giants/introduction.shtml
 
 |                           |   sh   |  ksh  |  csh  |  tcsh  |  bash  |  zsh  |
 | :------------------------ | :----: | :---: | :---: | :----: | :----: | :---: |
-| /etc/.login               |        |       | login | login  |        |       |
-| /etc/csh.cshrc            |        |       | yes   | yes    |        |       |
-| /etc/csh.login            |        |       | login | login  |        |       |
-| ~/.tcshrc                 |        |       |       | yes    |        |       |
-| ~/.cshrc                  |        |       | yes   | yes    |        |       |
-| ~/etc/ksh.kshrc           |        | int.  |       |        |        |       |
-| /etc/sh.shrc              | int.   |       |       |        |        |       |
-| $ENV (typically ~/.kshrc) | int.   | int.  |       |        | int.   |       |
-| ~/.login                  |        |       | login | login  |        |       |
-| ~/.logout                 |        |       | login | login  |        |       |
-| /etc/profile              | login  | login |       |        | login  | login |
-| ~/.profile                | login  | login |       |        | login  | login |
-| ~/.bash_profile           |        |       |       |        | login  |       |
-| ~/.bash_login             |        |       |       |        | login  |       |
-| ~/.bash_logout            |        |       |       |        | login  |       |
-| ~/.bashrc                 |        |       |       |        | int. + n/login | |
-| /etc/zshenv               |        |       |       |        |        | yes   |
-| /etc/zprofile             |        |       |       |        |        | login |
-| /etc/zshrc                |        |       |       |        |        | int.  |
-| /etc/zlogin               |        |       |       |        |        | login |
-| /etc/zlogout              |        |       |       |        |        | login |
-| ~/.zshenv                 |        |       |       |        |        | yes   |
-| ~/.zprofile               |        |       |       |        |        | login |
-| ~/.zshrc                  |        |       |       |        |        | int.  |
-| ~/.zlogin                 |        |       |       |        |        | login |
+| ```/etc/.login```         |        |       | login | login  |        |       |
+| ```/etc/csh.cshrc```      |        |       | yes   | yes    |        |       |
+| ```/etc/csh.login```      |        |       | login | login  |        |       |
+| ```~/.tcshrc```           |        |       |       | yes    |        |       |
+| ```~/.cshrc```            |        |       | yes   | yes    |        |       |
+| ```~/etc/ksh.kshrc```     |        | int.  |       |        |        |       |
+| ```/etc/sh.shrc```        | int.   |       |       |        |        |       |
+| $ENV (typically ```~/.kshrc```) | int.   | int.  |       |        | int.   |       |
+| ```~/.login```            |        |       | login | login  |        |       |
+| ```~/.logout```           |        |       | login | login  |        |       |
+| ```/etc/profile```        | login  | login |       |        | login  | login |
+| ```~/.profile```          | login  | login |       |        | login  | login |
+| ```~/.bash_profile```     |        |       |       |        | login  |       |
+| ```~/.bash_login```       |        |       |       |        | login  |       |
+| ```~/.bash_logout```      |        |       |       |        | login  |       |
+| ```~/.bashrc```           |        |       |       |        | int. + n/login | |
+| ```/etc/zshenv```         |        |       |       |        |        | yes   |
+| ```/etc/zprofile```       |        |       |       |        |        | login |
+| ```/etc/zshrc```          |        |       |       |        |        | int.  |
+| ```/etc/zlogin```         |        |       |       |        |        | login |
+| ```/etc/zlogout```        |        |       |       |        |        | login |
+| ```~/.zshenv```           |        |       |       |        |        | yes   |
+| ```~/.zprofile```         |        |       |       |        |        | login |
+| ```~/.zshrc```            |        |       |       |        |        | int.  |
+| ```~/.zlogin```           |        |       |       |        |        | login |
 
+<p/>
 NOTE:
- * blank means a file is not read by a shell at all.
- * "yes" means a file is always read by a shell upon startup.
- * "login" means a file is read if the shell is a login shell.
- * "n/login" means a file is read if the shell is not a login shell.
- * "int." means a file is read if the shell is interactive.
+
+* blank means a file is not read by a shell at all.
+* ***yes*** means a file is always read by a shell upon startup.
+* ***login*** means a file is read if the shell is a login shell.
+* ***n/login*** means a file is read if the shell is not a login shell.
+* ***int.*** means a file is read if the shell is interactive.
 
 # Shell Specifications
 

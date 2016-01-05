@@ -260,7 +260,7 @@ The official home of the LSB specification is the [Linux Foundation's Reference 
 
     LSB 4.1 supports [Filesystem Hierarchy Standard (FHS) 2.3](http://refspecs.linuxfoundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/normativerefs.html#STD.FHS).
 
-* **LSB 5.0** was released on June 3, 2015.
+* **LSB 5.0** was released on June 3, 2015
 
     Note that the LSB 5.0 Core specification set is an evolution of the ISO/IEC International Standard 23360, which corresponded to LSB 3.1. This edition is not to be considered an ISO standard. LSB 5.0 contains two major changes to the specification: (1) the first major release to **break 100% compatibility with earlier versions**. It is compatible with LSB 3.0, and mostly compatible with LSB 3.1 and later, with one exception (Qt 3 Removed); (2) LSB 5.0 supports seven architectures: IA32, IA64, PPC32, PPC64, S390, S390X, and X86_64.
 
@@ -305,6 +305,222 @@ An **LSB conforming implementation** shall provide the mandatory portions of the
 | ```/etc/cron.weekly``` | **Required** | A directory containing shell scripts to be executed once a week. |
 | ```/etc/init.d``` | **Required** | A directory containing system initialization scripts. |
 | ```/etc/profile.d``` | **Required** | A directory containing shell scripts. Script names should follow the same conventions as specified for cron jobs, but should have the suffix ```.sh```. The behavior is unspecified if a script is installed in this directory that does not have the suffix ```.sh```. |
+
+# Content of LSB 5.0
+
+## Commands and Utilities
+
+According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL), an LSB conforming implementation shall provide the **commands and utilities** as described in following table, with at least the behavior described as mandatory in the referenced underlying specification, with the following exceptions:
+
+* If any operand (except one which follows ```--```) starts with a hyphen, the behavior is unspecified.
+
+    **Rationale** (Informative): Applications should place options before operands, or use ```--```, as needed. This text is needed because, by default, GNU option parsing differs from POSIX, unless the environment variable ```POSIXLY_CORRECT``` is set. For example, ```ls . -a``` in GNU ```ls``` means to list the current directory, showing all files (that is, ```.``` is an operand and ```-a``` is an option). In POSIX, ```.``` and ```-a``` are both operands, and the command means to list the current directory, and also the file named ```-a```. Suggesting that applications rely on the setting of the ```POSIXLY_CORRECT``` environment variable, or try to set it, seems worse than just asking the applications to invoke commands in ways which work with either the POSIX or GNU behaviors.
+
+| Commands            | Reference | Implementations | Note |
+| :------------------ | :-------: | :-------------- | :--- |
+| ```[```             | [1] | [GNU coreutils] [12] | check file types and compare values |
+| ```ar```            | [2] | [GNU Binutils] [10] | create and maintain library archives (DEPRECATED) |
+| ```at```            | [2] |  | examine or delete jobs for later execution |
+| ```awk```           | [2] | [GNU Awk] [11] | pattern scanning and processing language |
+| ```basename```      | [1] | [GNU coreutils] [12] |  |
+| ```batch```         | [2] | [GNU batch] [36] | schedule commands to be executed in a batch queue |
+| ```bc```            | [2] | [GNU bc] [13] | an arbitrary precision calculator language |
+| ```cat```           | [1] | [GNU coreutils] [12] |  |
+| ```chfn```          | [2] | [shadow-utils] [14] | change user name and information |
+| ```chgrp```         | [1] | [GNU coreutils] [12] |  |
+| ```chmod```         | [1] | [GNU coreutils] [12] |  |
+| ```chown```         | [1] | [GNU coreutils] [12] |  |
+| ```chsh```          | [2] | [shadow-utils] [14] | change login shell |
+| ```cksum```         | [1] | [GNU coreutils] [12] |  |
+| ```cmp```           | [1] | [GNU diffutils] [15] |  |
+| ```col```           | [2] |  | filter reverse line feeds from input |
+| ```comm```          | [1] | [GNU coreutils] [12] |  |
+| ```cp```            | [1] | [GNU coreutils] [12] |  |
+| ```cpio```          | [2] | [GNU cpio] [16] | copy file archives in and out |
+| ```crontab```       | [2] |  | maintain crontab files for individual users |
+| ```csplit```        | [1] | [GNU coreutils] [12] |  |
+| ```cut```           | [1] | [GNU coreutils] [12] |  |
+| ```date```          | [1] | [GNU coreutils] [12] |  |
+| ```dd```            | [1] | [GNU coreutils] [12] |  |
+| ```df```            | [2] | [GNU coreutils] [12] | report file system disk space usage |
+| ```diff```          | [1] | [GNU diffutils] [15] |  |
+| ```dirname```       | [1] | [GNU coreutils] [12] |  |
+| ```dmesg```         | [2] | [util-linux] [17] | print or control the system message buffer |
+| ```du```            | [2] | [GNU coreutils] [12] | estimate file space usage |
+| ```echo```          | [2] | [GNU coreutils] [12] | write arguments to standard output |
+| ```ed```            | [1] | [GNU ed] [18] |  |
+| ```egrep```         | [2] | [GNU grep] [19] | search a file with an Extended Regular Expression pattern |
+| ```env```           | [1] | [GNU coreutils] [12] |  |
+| ```expand```        | [1] | [GNU coreutils] [12] |  |
+| ```expr```          | [1] | [GNU coreutils] [12] |  |
+| ```false```         | [1] | [GNU coreutils] [12] |  |
+| ```fgrep```         | [2] | [GNU grep] [19] | search a file with a fixed pattern |
+| ```find```          | [1] | [GNU findutils] [20] |  |
+| ```file```          | [2] | [File] [21] | determine file type |
+| ```fold```          | [1] | [GNU coreutils] [12] |  |
+| ```fuser```         | [2] | [PSmisc] [22] | identify processes using files or sockets |
+| ```gencat```        | [1] |  | generate a formatted message catalog |
+| ```getconf```       | [1] |  | get configuration values |
+| ```gettext```       | [2] | [GNU gettext-tools] [23] | retrieve text string from message catalog |
+| ```grep```          | [2] | [GNU grep] [19] | print lines matching a pattern |
+| ```groupadd```      | [2] | [shadow-utils] [14] | create a new group |
+| ```groupdel```      | [2] | [shadow-utils] [14] | delete a group |
+| ```groupmod```      | [2] | [shadow-utils] [14] | modify a group |
+| ```groups```        | [2] | [GNU coreutils] [12] | display a group |
+| ```gunzip```        | [2] | [GNU Gzip] [24] | uncompress files |
+| ```gzip```          | [2] | [GNU Gzip] [24] | compress or expand files |
+| ```head```          | [1] | [GNU coreutils] [12] |  |
+| ```hostname```      | [2] | [net-tools] [25] | show or set the system's host name |
+| ```iconv```         | [1] |  | codeset conversion |
+| ```id```            | [1] | [GNU coreutils] [12] |  |
+| ```infocmp```       | [3] | [infocmp] [26] |  |
+| ```install```       | [2] | [GNU coreutils] [12] | copy files and set attributes |
+| ```install_initd``` | [2] | [initd-tools] [27] | activate an init script |
+| ```ipcrm```         | [2] | [util-linux] [17] | remove IPC Resources |
+| ```ipcs```          | [2] | [util-linux] [17] | provide information on ipc facilities |
+| ```join```          | [1] | [GNU coreutils] [12] |  |
+| ```kill```          | [1] | [procps-ng] [28] |  |
+| ```killall```       | [2] | [PSmisc] [22] | kill processes by name |
+| ```ln```            | [1] | [GNU coreutils] [12] | link files |
+| ```locale```        | [1] |  | get locale-specific information |
+| ```localedef```     | [1] |  | define locale environment |
+| ```logger```        | [1] | [util-linux] [17] |  |
+| ```logname```       | [1] | [GNU coreutils] [12] |  |
+| ```lp```            | [1] |  | send files to a printer |
+| ```lpr```           | [2] |  | off line print |
+| ```ls```            | [2] | [GNU coreutils] [12] | list directory contents |
+| ```lsb_release```   | [2] |  | print distribution specific information |
+| ```m4```            | [2] | [GNU M4] [29] | macro processor |
+| ```mailx```         | [1] |  | process messages |
+| ```make```          | [1] | [GNU Make] [30] |  |
+| ```man```           | [1] |  | display system documentation |
+| ```md5sum```        | [2] | [GNU coreutils] [12] | generate or check MD5 message digests |
+| ```mkdir```         | [1] | [GNU coreutils] [12] |  |
+| ```mkfifo```        | [1] | [GNU coreutils] [12] |  |
+| ```mknod```         | [2] | [GNU coreutils] [12] | make special files |
+| ```mktemp```        | [2] | [GNU coreutils] [12] | make temporary file name (unique) |
+| ```more```          | [2] | [util-linux] [17] | display files on a page-by-page basis |
+| ```mount```         | [2] | [util-linux] [17] | mount a file system |
+| ```msgfmt```        | [2] | [GNU gettext-tools] [23] | create a message object from a message file  |
+| ```mv```            | [1] | [GNU coreutils] [12] |  |
+| ```newgrp```        | [2] | [shadow-utils] [14] | change group ID |
+| ```nice```          | [1] | [GNU coreutils] [12] |  |
+| ```nl```            | [1] | [GNU coreutils] [12] |  |
+| ```nohup```         | [1] | [GNU coreutils] [12] |  |
+| ```od```            | [2] | [GNU coreutils] [12] | dump files in octal and other formats |
+| ```passwd```        | [2] | [shadow-utils] [14] | change user password |
+| ```paste```         | [1] | [GNU coreutils] [12] |  |
+| ```patch```         | [2] | [GNU patch] [31] | apply a ```diff``` file to an original |
+| ```pathchk```       | [1] | [GNU coreutils] [12] |  |
+| ```pax```           | [1] |  | portable archive interchange |
+| ```pidof```         | [2] |  | find the process ID of a running program |
+| ```pr```            | [1] | [GNU coreutils] [12] |  |
+| ```printf```        | [1] | [GNU coreutils] [12] |  |
+| ```ps```            | [1] | [procps-ng] [28] |  |
+| ```pwd```           | [1] | [GNU coreutils] [12] |  |
+| ```remove_initd```  | [2] | [initd-tools] [27] | clean up init script system modifications introduced by ```install_initd``` |
+| ```renice```        | [2] | [util-linux] [17] | alter priority of running processes |
+| ```rm```            | [1] | [GNU coreutils] [12] |  |
+| ```rmdir```         | [1] | [GNU coreutils] [12] |  |
+| ```sed```           | [2] | [GNU sed] [32] | stream editor |
+| ```sendmail```      | [2] |  | an electronic mail transport agent |
+| ```seq```           | [2] | [GNU coreutils] [12] | generate a sequence of numbers |
+| ```sh```            | [2] | [GNU Bash] [33] | shell, the standard command language interpreter |
+| ```shutdown```      | [2] | [upstart] [34] | shut the system down |
+| ```sleep```         | [1] | [GNU coreutils] [12] |  |
+| ```sort```          | [1] | [GNU coreutils] [12] |  |
+| ```split```         | [1] | [GNU coreutils] [12] |  |
+| ```strings```       | [1] | [GNU Binutils] [10] |  |
+| ```strip```         | [1] | [GNU Binutils] [10] |  |
+| ```su```            | [2] | [shadow-utils] [14] | change user ID |
+| ```stty```          | [1] | [GNU coreutils] [12] |  |
+| ```sync```          | [2] | [GNU coreutils] [12] | flush file system buffers |
+| ```tail```          | [1] | [GNU coreutils] [12] |  |
+| ```tar```           | [2] | [GNU tar] [35] | file archiver |
+| ```tee```           | [1] | [GNU coreutils] [12] |  |
+| ```test```          | [1] | [GNU coreutils] [12] |  |
+| ```tic```           | [3] |  |  |
+| ```time```          | [1] |  | time a simple command |
+| ```touch```         | [1] | [GNU coreutils] [12] |  |
+| ```tput```          | [3] |  |  |
+| ```tr```            | [1] | [GNU coreutils] [12] |  |
+| ```true```          | [1] | [GNU coreutils] [12] |  |
+| ```tsort```         | [1] | [GNU coreutils] [12] |  |
+| ```tty```           | [1] | [GNU coreutils] [12] |  |
+| ```umount```        | [2] | [util-linux] [17] | unmount file systems |
+| ```uname```         | [1] | [GNU coreutils] [12] |  |
+| ```unexpand```      | [1] | [GNU coreutils] [12] |  |
+| ```uniq```          | [1] | [GNU coreutils] [12] |  |
+| ```useradd```       | [2] | [shadow-utils] [14] | create a new user or update default new user information |
+| ```userdel```       | [2] | [shadow-utils] [14] | delete a user account and related files |
+| ```usermod```       | [2] | [shadow-utils] [14] | modify a user account |
+| ```wc```            | [1] | [GNU coreutils] [12] |  |
+| ```xargs```         | [2] | [GNU findutils] [20] | build and execute command lines from standard input |
+| ```zcat```          | [2] | [GNU Gzip] [24] | uncompress files to standard output |
+
+<p/>
+
+***Referenced Specification(s)*** in above two tables:
+**[1]** [POSIX 1003.1-2008 (ISO/IEC 9945-2009)](http://www.unix.org/version3/)
+**[2]** [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL)
+**[3]** [Libncursesw API](http://invisible-island.net/ncurses/man/ncurses.3x.html)
+
+[10]: https://www.gnu.org/software/binutils/ "GNU Binutils"
+[11]: https://www.gnu.org/software/gawk/ "GNU Awk"
+[12]: http://www.gnu.org/software/coreutils/coreutils.html "GNU coreutils"
+[13]: https://www.gnu.org/software/bc/ "GNU bc"
+[14]: http://pkg-shadow.alioth.debian.org/ "shadow-utils"
+[15]: https://www.gnu.org/software/diffutils/ "GNU diffutils"
+[16]: https://www.gnu.org/software/cpio/ "GNU cpio"
+[17]: https://www.kernel.org/pub/linux/utils/util-linux/ "util-linux"
+[18]: https://www.gnu.org/software/ed/ "GNU ed"
+[19]: https://www.gnu.org/software/grep/ "GNU grep"
+[20]: https://www.gnu.org/software/findutils/ "GNU findutils"
+[21]: ftp://ftp.astron.com/pub/file/ "File"
+[22]: http://psmisc.sourceforge.net/index.html "PSmisc"
+[23]: https://www.gnu.org/software/gettext/ "GNU gettext-tools"
+[24]: https://www.gnu.org/software/gzip/ "GNU Gzip"
+[25]: http://sourceforge.net/projects/net-tools/ "net-tools"
+[26]: http://invisible-island.net/ncurses/man/infocmp.1m.html "infocmp"
+[27]: http://people.freedesktop.org/~dbn/initd-tools/releases/ "initd-tools"
+[28]: https://gitlab.com/procps-ng/procps "procps-ng"
+[29]: http://www.gnu.org/software/m4/m4.html "GNU M4"
+[30]: https://www.gnu.org/software/make/ "GNU Make"
+[31]: http://savannah.gnu.org/projects/patch/ "GNU patch"
+[32]: https://www.gnu.org/software/sed/ "GNU sed"
+[33]: https://www.gnu.org/software/bash/ "GNU Bash"
+[34]: http://upstart.ubuntu.com/ "upstart"
+[35]: https://www.gnu.org/software/tar/ "GNU tar"
+[36]: http://www.gnu.org/software/gnubatch/ "GNU batch"
+
+According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL), an LSB conforming implementation shall provide the **shell built in utilities** as described in following table, with at least the behavior described as mandatory in the referenced underlying specification, with the following exceptions:
+
+* The built in commands and utilities shall be provided by the ```sh``` utility itself, and need not be implemented in a manner so that they can be accessed via the ```exec``` family of functions as defined in **POSIX 1003.1-2008** (**ISO/IEC 9945-2009**) and should not be invoked directly by those standard utilities that execute other utilities, that's ```env```, ```find```, ```nice```, ```nohup```, ```time```, ```xargs```.
+
+    **Rationale** (Informative): Since the built in utilities must affect the environment of the calling process, they have no effect when executed as a file.
+
+| LSB_Commands  | Reference | Note |
+| :------------ | :-------: | :--- |
+| ```alias```   |    [1]    | Define or display aliases. |
+| ```bg```      |    [1]    | Run jobs in the background. |
+| ```cd```      |    [1]    | Change the working directory. |
+| ```command``` |    [1]    | Execute a simple command. |
+| ```fc```      |    [1]    | Process the command history list. |
+| ```fg```      |    [1]    | Run jobs in the foreground. |
+| ```getopts``` |    [1]    | Parse utility options. |
+| ```hash```    |    [1]    | Remember or report utility locations. |
+| ```jobs```    |    [1]    | Display status of jobs in the current session. |
+| ```read```    |    [1]    | Read a line from standard input. |
+| ```type```    |    [1]    | Write a description of command type. |
+| ```ulimit```  |    [1]    | Set or report file size limit. |
+| ```umask```   |    [1]    | Get or set the file mode creation mask. |
+| ```unalias``` |    [1]    | Remove alias definitions. |
+| ```wait```    |    [1]    | Await process completion. |
+
+<p/>
+
+***Referenced Specification(s)*** in above two tables:
+**[1]** [POSIX 1003.1-2008 (ISO/IEC 9945-2009)](http://www.unix.org/version3/)
 
 # References
 

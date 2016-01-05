@@ -30,12 +30,12 @@ Before 1997, POSIX comprised several standards:
 
 After 1997, the [Austin Group](http://www.opengroup.org/austin/) developed the POSIX revisions. The specifications are known under the name **Single UNIX Specification (SUS)**, before they become a POSIX standard when formally approved by the ISO.
 
-| POSIX_standards | IEEE_standards | Note |
-| :-------------- | :------------- | :--- |
-| **POSIX.1-2001** | **IEEE Std 1003.1-2001** | The **POSIX.1-2001** equates to the **Single UNIX Specification, version 3** (**SUSv3**), see [The Open Group announces completion of the joint revision to POSIX® and the Single UNIX® Specification](http://www.unix.org/version3/pr.html). |
-| **POSIX.1-2004** | **IEEE Std 1003.1-2004** | The **POSIX.1-2004** involves a minor update of **POSIX.1-2001** (**IEEE Std 1003.1-2001**). It incorporated two TCs (Technical Corrigenda):<br>- **IEEE Std 1003.1-2001/Cor 1-2002**<br>- **IEEE Std 1003.1-2001/Cor 2-2004**<br>Here is the online [IEEE Std 1003.1-2004 specification](http://pubs.opengroup.org/onlinepubs/000095399/). |
-| **POSIX.1-2008** | **IEEE Std 1003.1-2008** | Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008.html). The **POSIX.1-2008** is the core of the **Single UNIX Specification, version 4** (**SUSv4**). |
-| **POSIX.1-2008/TC1** | **IEEE Std 1003.1-2008 /Cor 1-2013** | Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html). Here is the online [IEEE Std 1003.1-2008 specification](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html). |
+| POSIX_standards | IEEE_standards | ISO/IEC_standards | POSIX_Note |
+| :-------------- | :------------- | :---------------- | :--------- |
+| **POSIX.1-2001** | **IEEE Std 1003.1-2001** | **ISO/IEC 9945-2003** | The **POSIX.1-2001** equates to the **Single UNIX Specification, version 3** (**SUSv3**), see [The Open Group announces completion of the joint revision to POSIX® and the Single UNIX® Specification](http://www.unix.org/version3/pr.html). |
+| **POSIX.1-2004** | **IEEE Std 1003.1-2004** | | The **POSIX.1-2004** involves a minor update of **POSIX.1-2001** (**IEEE Std 1003.1-2001**). It incorporated two TCs (Technical Corrigenda):<br>- **IEEE Std 1003.1-2001/Cor 1-2002**<br>- **IEEE Std 1003.1-2001/Cor 2-2004**<br>Here is the online [IEEE Std 1003.1-2004 specification](http://pubs.opengroup.org/onlinepubs/000095399/). |
+| **POSIX.1-2008** | **IEEE Std 1003.1-2008** | **ISO/IEC 9945-2009** | Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008.html). The **POSIX.1-2008** is the core of the **Single UNIX Specification, version 4** (**SUSv4**). |
+| **POSIX.1-2008/TC1** | **IEEE Std 1003.1-2008 /Cor 1-2013** | | Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html). Here is the online [IEEE Std 1003.1-2008 specification](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html). |
 
 # Single UNIX Specification (SUS)
 

@@ -65,11 +65,22 @@ C++ is standardized by the International Organization for Standardization (ISO) 
 
     In 2003, ISO working group published a new version of the C++ standard called **ISO/IEC 14882:2003**, which is informally known as **C++03**. This version of the C++ standard fixed problems identified in **C++98**.
 
-* **ISO/IEC TR 19768:2007 - C++ Library Extensions (C++07/TR1)**
+* **ISO/IEC TR 18015:2006** - Technical Report on C++ Performance
+
+    The aim of ISO/IEC TR 18015 is to:
+
+    * give the reader a model of time and space overheads implied by use of various C++ language and library features;
+    * debunk widespread myths about performance problems in C++;
+    * present techniques for use of C++ in applications where performance matters; and
+    * present techniques for implementing C++ standard language and library facilities to yield efficient code.
+    <p/>
+    The special needs of embedded systems programming are presented, including ROMability and predictability. A separate chapter presents general C and C++ interfaces to the basic hardware facilities of embedded systems.
+
+* **ISO/IEC TR 19768:2007 (C++TR1)** - Technical Report on C++ Library Extensions
 
     In 2007, a technical report **ISO/IEC TR 19768:2007 - C++ Library Extensions** was released, which is informally known as **C++07/TR1**. While not an official part of the standard, it proposed a number of extensions to the standard library.
 
-* **ISO/IEC TR 29124:2010 - C++ Special Math Functions**
+* **ISO/IEC TR 29124:2010** - Extensions to the C++ Library to support mathematical special functions
 
     In 2010, a technical report **ISO/IEC TR 29124:2010 - C++ Special Math Functions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3060.pdf).
 
@@ -77,13 +88,19 @@ C++ is standardized by the International Organization for Standardization (ISO) 
 
     In 2011, a major revision of the standard was informally referred to as ***C++0x***, but it was not released until 2011. The **ISO/IEC 14882:2011 (C++11)** included most of the library enhancements of **C++07/TR1**, as well as many additions to the core language.
 
-* **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions**
+* **ISO/IEC TR 24733:2011** - Extensions for the programming language C++ to support decimal floating-point arithmetic
 
     In 2011, a technical report **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2849.pdf).
 
 * **ISO/IEC 14882:2014 (C++14)**
 
     In 2014, **C++14** (also known as ***C++1y***) was released as a small extension to **C++11**, featuring mainly bug fixes and small improvements.
+
+* **ISO/IEC TS 18822:2015** - File System Technical Specification
+
+    ISO/IEC TS 18822:2015 specifies requirements for implementations of an interface that computer programs written in the C++ programming language may use to perform operations on file systems and their components, such as paths, regular files, and directories. This Technical Specification is applicable to information technology systems that can access hierarchical file systems, such as those with operating systems that conform to the POSIX (3) interface. This Technical Specification is applicable only to vendors who wish to provide the interface it describes.
+
+* **ISO/IEC TS 19570:2015** - Technical Specification for C++ Extensions for Parallelism
 
 # Online References of C/C++ Language & Libraries
 

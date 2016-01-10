@@ -318,49 +318,49 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 
 | Commands            | Reference | Implementations | Note |
 | :------------------ | :-------: | :-------------- | :--- |
-| ```[```             | [1] | [GNU coreutils] [12] | check file types and compare values |
+| ```[```             | [1] | [GNU coreutils] [12] | check file types and compare values. Also see ```test``` |
 | ```ar```            | [2] | [GNU Binutils] [10] | create and maintain library archives (DEPRECATED) |
-| ```at```            | [2] |  | examine or delete jobs for later execution |
+| ```at```            | [2] | [Debian](https://packages.debian.org/wheezy/at), [Ubuntu](https://ftp.iitm.ac.in/linux/ubuntu/pool/main/a/at/) | examine or delete jobs for later execution |
 | ```awk```           | [2] | [GNU Awk] [11] | pattern scanning and processing language |
-| ```basename```      | [1] | [GNU coreutils] [12] |  |
+| ```basename```      | [1] | [GNU coreutils] [12] | strip directory and suffix from a file name |
 | ```batch```         | [2] | [GNU batch] [36] | schedule commands to be executed in a batch queue |
 | ```bc```            | [2] | [GNU bc] [13] | an arbitrary precision calculator language |
-| ```cat```           | [1] | [GNU coreutils] [12] |  |
+| ```cat```           | [1] | [GNU coreutils] [12] | concatenate files and print on the standard output |
 | ```chfn```          | [2] | [shadow-utils] [14] | change user name and information |
-| ```chgrp```         | [1] | [GNU coreutils] [12] |  |
-| ```chmod```         | [1] | [GNU coreutils] [12] |  |
-| ```chown```         | [1] | [GNU coreutils] [12] |  |
+| ```chgrp```         | [1] | [GNU coreutils] [12] | change group ownership |
+| ```chmod```         | [1] | [GNU coreutils] [12] | change file mode bits |
+| ```chown```         | [1] | [GNU coreutils] [12] | change file owner and group |
 | ```chsh```          | [2] | [shadow-utils] [14] | change login shell |
-| ```cksum```         | [1] | [GNU coreutils] [12] |  |
-| ```cmp```           | [1] | [GNU diffutils] [15] |  |
-| ```col```           | [2] |  | filter reverse line feeds from input |
-| ```comm```          | [1] | [GNU coreutils] [12] |  |
-| ```cp```            | [1] | [GNU coreutils] [12] |  |
+| ```cksum```         | [1] | [GNU coreutils] [12] | checksum and count the bytes in a file |
+| ```cmp```           | [1] | [GNU diffutils] [15] | compare two files byte by byte |
+| ```col```           | [2] | [BSD col](http://linuxcommand.org/man_pages/col1.html) | filter reverse line feeds from input |
+| ```comm```          | [1] | [GNU coreutils] [12] | compare two sorted files line by line |
+| ```cp```            | [1] | [GNU coreutils] [12] | copy files and directories |
 | ```cpio```          | [2] | [GNU cpio] [16] | copy file archives in and out |
-| ```crontab```       | [2] |  | maintain crontab files for individual users |
-| ```csplit```        | [1] | [GNU coreutils] [12] |  |
-| ```cut```           | [1] | [GNU coreutils] [12] |  |
-| ```date```          | [1] | [GNU coreutils] [12] |  |
-| ```dd```            | [1] | [GNU coreutils] [12] |  |
+| ```crontab```       | [2] | [BSD crontab](https://www.freebsd.org/doc/handbook/configtuning-cron.html) | maintain crontab files for individual users |
+| ```csplit```        | [1] | [GNU coreutils] [12] | split a file into sections determined by context lines. Also refer to ```split``` |
+| ```cut```           | [1] | [GNU coreutils] [12] | remove sections from each line of files |
+| ```date```          | [1] | [GNU coreutils] [12] | print or set the system date and time |
+| ```dd```            | [1] | [GNU coreutils] [12] | convert and copy a file |
 | ```df```            | [2] | [GNU coreutils] [12] | report file system disk space usage |
-| ```diff```          | [1] | [GNU diffutils] [15] |  |
-| ```dirname```       | [1] | [GNU coreutils] [12] |  |
+| ```diff```          | [1] | [GNU diffutils] [15] | compare files line by line |
+| ```dirname```       | [1] | [GNU coreutils] [12] | strip last component from file name |
 | ```dmesg```         | [2] | [util-linux] [17] | print or control the system message buffer |
 | ```du```            | [2] | [GNU coreutils] [12] | estimate file space usage |
 | ```echo```          | [2] | [GNU coreutils] [12] | write arguments to standard output |
-| ```ed```            | [1] | [GNU ed] [18] |  |
+| ```ed```            | [1] | [GNU ed] [18] | line-oriented text editor |
 | ```egrep```         | [2] | [GNU grep] [19] | search a file with an Extended Regular Expression pattern |
-| ```env```           | [1] | [GNU coreutils] [12] |  |
-| ```expand```        | [1] | [GNU coreutils] [12] |  |
-| ```expr```          | [1] | [GNU coreutils] [12] |  |
-| ```false```         | [1] | [GNU coreutils] [12] |  |
+| ```env```           | [1] | [GNU coreutils] [12] | run a program in a modified environment |
+| ```expand```        | [1] | [GNU coreutils] [12] | convert tabs to spaces. Also see ```unexpand``` |
+| ```expr```          | [1] | [GNU coreutils] [12] | evaluate expressions |
+| ```false```         | [1] | [GNU coreutils] [12] | do nothing, unsuccessfully. Also see ```true``` |
 | ```fgrep```         | [2] | [GNU grep] [19] | search a file with a fixed pattern |
-| ```find```          | [1] | [GNU findutils] [20] |  |
+| ```find```          | [1] | [GNU findutils] [20] | search for files in a directory hierarchy |
 | ```file```          | [2] | [File] [21] | determine file type |
-| ```fold```          | [1] | [GNU coreutils] [12] |  |
+| ```fold```          | [1] | [GNU coreutils] [12] | wrap each input line to fit in specified width |
 | ```fuser```         | [2] | [PSmisc] [22] | identify processes using files or sockets |
-| ```gencat```        | [1] |  | generate a formatted message catalog |
-| ```getconf```       | [1] |  | get configuration values |
+| ```gencat```        | [1] | BSD gencat | generate a formatted message catalog |
+| ```getconf```       | [1] | BSD getconf | get configuration values |
 | ```gettext```       | [2] | [GNU gettext-tools] [23] | retrieve text string from message catalog |
 | ```grep```          | [2] | [GNU grep] [19] | print lines matching a pattern |
 | ```groupadd```      | [2] | [shadow-utils] [14] | create a new group |
@@ -369,98 +369,98 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 | ```groups```        | [2] | [GNU coreutils] [12] | display a group |
 | ```gunzip```        | [2] | [GNU Gzip] [24] | uncompress files |
 | ```gzip```          | [2] | [GNU Gzip] [24] | compress or expand files |
-| ```head```          | [1] | [GNU coreutils] [12] |  |
+| ```head```          | [1] | [GNU coreutils] [12] | output the first part of files. Also see ```tail``` |
 | ```hostname```      | [2] | [net-tools] [25] | show or set the system's host name |
-| ```iconv```         | [1] |  | codeset conversion |
-| ```id```            | [1] | [GNU coreutils] [12] |  |
-| ```infocmp```       | [3] | [infocmp] [26] |  |
+| ```iconv```         | [1] | BSD iconv | convert encoding of given files from one encoding to another |
+| ```id```            | [1] | [GNU coreutils] [12] | print real and effective user and group IDs |
+| ```infocmp```       | [3] | [GNU ncurses] [41] | compare or print out ```terminfo``` descriptions |
 | ```install```       | [2] | [GNU coreutils] [12] | copy files and set attributes |
 | ```install_initd``` | [2] | [initd-tools] [27] | activate an init script |
 | ```ipcrm```         | [2] | [util-linux] [17] | remove IPC Resources |
 | ```ipcs```          | [2] | [util-linux] [17] | provide information on ipc facilities |
-| ```join```          | [1] | [GNU coreutils] [12] |  |
-| ```kill```          | [1] | [procps-ng] [28] |  |
+| ```join```          | [1] | [GNU coreutils] [12] | join lines of two files on a common field |
+| ```kill```          | [1] | [procps-ng] [28] | send a signal to a process |
 | ```killall```       | [2] | [PSmisc] [22] | kill processes by name |
 | ```ln```            | [1] | [GNU coreutils] [12] | link files |
-| ```locale```        | [1] |  | get locale-specific information |
-| ```localedef```     | [1] |  | define locale environment |
-| ```logger```        | [1] | [util-linux] [17] |  |
-| ```logname```       | [1] | [GNU coreutils] [12] |  |
-| ```lp```            | [1] |  | send files to a printer |
-| ```lpr```           | [2] |  | off line print |
+| ```locale```        | [1] | [BSD locale](https://www.freebsd.org/doc/handbook/using-localization.html) | get locale-specific information |
+| ```localedef```     | [1] | [BSD locale](https://www.freebsd.org/doc/handbook/using-localization.html) | define locale environment |
+| ```logger```        | [1] | [util-linux] [17] | a shell command interface to the ```syslog```(3) system log module |
+| ```logname```       | [1] | [GNU coreutils] [12] | print user's login name |
+| ```lp```            | [1] | [Apple lp] [37] | send files to a printer |
+| ```lpr```           | [2] | [Apple lpr] [38] | off line print |
 | ```ls```            | [2] | [GNU coreutils] [12] | list directory contents |
-| ```lsb_release```   | [2] |  | print distribution specific information |
+| ```lsb_release```   | [2] | [lsb_release](http://refspecs.linuxbase.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/lsbrelease.html) | print distribution specific information |
 | ```m4```            | [2] | [GNU M4] [29] | macro processor |
-| ```mailx```         | [1] |  | process messages |
-| ```make```          | [1] | [GNU Make] [30] |  |
-| ```man```           | [1] |  | display system documentation |
+| ```mailx```         | [1] | [Heirloom mailx] [39] | process messages |
+| ```make```          | [1] | [GNU Make] [30] | GNU make utility to maintain groups of programs |
+| ```man```           | [1] | [man on wikipedia](https://en.wikipedia.org/wiki/Man_page) | format and display the on-line manual pages |
 | ```md5sum```        | [2] | [GNU coreutils] [12] | generate or check MD5 message digests |
-| ```mkdir```         | [1] | [GNU coreutils] [12] |  |
-| ```mkfifo```        | [1] | [GNU coreutils] [12] |  |
+| ```mkdir```         | [1] | [GNU coreutils] [12] | make directories |
+| ```mkfifo```        | [1] | [GNU coreutils] [12] | make FIFOs (named pipes) |
 | ```mknod```         | [2] | [GNU coreutils] [12] | make special files |
 | ```mktemp```        | [2] | [GNU coreutils] [12] | make temporary file name (unique) |
 | ```more```          | [2] | [util-linux] [17] | display files on a page-by-page basis |
 | ```mount```         | [2] | [util-linux] [17] | mount a file system |
 | ```msgfmt```        | [2] | [GNU gettext-tools] [23] | create a message object from a message file  |
-| ```mv```            | [1] | [GNU coreutils] [12] |  |
+| ```mv```            | [1] | [GNU coreutils] [12] | move (rename) files |
 | ```newgrp```        | [2] | [shadow-utils] [14] | change group ID |
-| ```nice```          | [1] | [GNU coreutils] [12] |  |
-| ```nl```            | [1] | [GNU coreutils] [12] |  |
-| ```nohup```         | [1] | [GNU coreutils] [12] |  |
+| ```nice```          | [1] | [GNU coreutils] [12] | run a program with modified scheduling priority |
+| ```nl```            | [1] | [GNU coreutils] [12] | number lines of files |
+| ```nohup```         | [1] | [GNU coreutils] [12] | run a command immune to hangups, with output to a non-tty |
 | ```od```            | [2] | [GNU coreutils] [12] | dump files in octal and other formats |
 | ```passwd```        | [2] | [shadow-utils] [14] | change user password |
-| ```paste```         | [1] | [GNU coreutils] [12] |  |
+| ```paste```         | [1] | [GNU coreutils] [12] | merge lines of files |
 | ```patch```         | [2] | [GNU patch] [31] | apply a ```diff``` file to an original |
-| ```pathchk```       | [1] | [GNU coreutils] [12] |  |
-| ```pax```           | [1] |  | portable archive interchange |
-| ```pidof```         | [2] |  | find the process ID of a running program |
-| ```pr```            | [1] | [GNU coreutils] [12] |  |
-| ```printf```        | [1] | [GNU coreutils] [12] |  |
-| ```ps```            | [1] | [procps-ng] [28] |  |
-| ```pwd```           | [1] | [GNU coreutils] [12] |  |
+| ```pathchk```       | [1] | [GNU coreutils] [12] | check whether file names are valid or portable |
+| ```pax```           | [1] | [MirBSD] [40] | read and write file archives and copy directory hierarchies |
+| ```pidof```         | [2] | [pidof](http://linux.die.net/man/8/pidof) | find the process ID of a running program |
+| ```pr```            | [1] | [GNU coreutils] [12] | convert text files for printing |
+| ```printf```        | [1] | [GNU coreutils] [12] | format and print data |
+| ```ps```            | [1] | [procps-ng] [28] | report a snapshot of the current processes |
+| ```pwd```           | [1] | [GNU coreutils] [12] | print name of current/working directory |
 | ```remove_initd```  | [2] | [initd-tools] [27] | clean up init script system modifications introduced by ```install_initd``` |
 | ```renice```        | [2] | [util-linux] [17] | alter priority of running processes |
-| ```rm```            | [1] | [GNU coreutils] [12] |  |
-| ```rmdir```         | [1] | [GNU coreutils] [12] |  |
+| ```rm```            | [1] | [GNU coreutils] [12] | remove files or directories |
+| ```rmdir```         | [1] | [GNU coreutils] [12] | remove empty directories |
 | ```sed```           | [2] | [GNU sed] [32] | stream editor |
-| ```sendmail```      | [2] |  | an electronic mail transport agent |
+| ```sendmail```      | [2] | [sendmail](http://linux.die.net/man/8/sendmail.sendmail) | an electronic mail transport agent |
 | ```seq```           | [2] | [GNU coreutils] [12] | generate a sequence of numbers |
 | ```sh```            | [2] | [GNU Bash] [33] | shell, the standard command language interpreter |
 | ```shutdown```      | [2] | [upstart] [34] | shut the system down |
-| ```sleep```         | [1] | [GNU coreutils] [12] |  |
-| ```sort```          | [1] | [GNU coreutils] [12] |  |
-| ```split```         | [1] | [GNU coreutils] [12] |  |
-| ```strings```       | [1] | [GNU Binutils] [10] |  |
-| ```strip```         | [1] | [GNU Binutils] [10] |  |
+| ```sleep```         | [1] | [GNU coreutils] [12] | delay for a specified amount of time |
+| ```sort```          | [1] | [GNU coreutils] [12] | sort lines of text files |
+| ```split```         | [1] | [GNU coreutils] [12] | split a file into pieces. Also see ```csplit``` |
+| ```strings```       | [1] | [GNU Binutils] [10] | print the strings of printable characters in files |
+| ```strip```         | [1] | [GNU Binutils] [10] | discard symbols from object files |
 | ```su```            | [2] | [shadow-utils] [14] | change user ID |
-| ```stty```          | [1] | [GNU coreutils] [12] |  |
+| ```stty```          | [1] | [GNU coreutils] [12] | change and print terminal line settings. Also see ```tty``` |
 | ```sync```          | [2] | [GNU coreutils] [12] | flush file system buffers |
-| ```tail```          | [1] | [GNU coreutils] [12] |  |
+| ```tail```          | [1] | [GNU coreutils] [12] | output the last part of files. Also see ```head``` |
 | ```tar```           | [2] | [GNU tar] [35] | file archiver |
-| ```tee```           | [1] | [GNU coreutils] [12] |  |
-| ```test```          | [1] | [GNU coreutils] [12] |  |
-| ```tic```           | [3] |  |  |
-| ```time```          | [1] |  | time a simple command |
-| ```touch```         | [1] | [GNU coreutils] [12] |  |
-| ```tput```          | [3] |  |  |
-| ```tr```            | [1] | [GNU coreutils] [12] |  |
-| ```true```          | [1] | [GNU coreutils] [12] |  |
-| ```tsort```         | [1] | [GNU coreutils] [12] |  |
-| ```tty```           | [1] | [GNU coreutils] [12] |  |
+| ```tee```           | [1] | [GNU coreutils] [12] | read from standard input and write to standard output and files |
+| ```test```          | [1] | [GNU coreutils] [12] | check file types and compare values. Also see ```[``` |
+| ```tic```           | [3] | [GNU ncurses] [41] | the ```terminfo``` entry-description compiler |
+| ```time```          | [1] | [time](http://linux.die.net/man/1/time) | run programs and summarize system resource usage |
+| ```touch```         | [1] | [GNU coreutils] [12] | change file timestamps |
+| ```tput```          | [3] | [GNU ncurses] [41] | initialize a terminal or query ```terminfo``` database |
+| ```tr```            | [1] | [GNU coreutils] [12] | translate or delete characters |
+| ```true```          | [1] | [GNU coreutils] [12] | do nothing, successfully. Also see ```false``` |
+| ```tsort```         | [1] | [GNU coreutils] [12] | perform topological sort. Also see ```sort``` |
+| ```tty```           | [1] | [GNU coreutils] [12] | print the file name of the terminal connected to standard input. Also see ```stty``` |
 | ```umount```        | [2] | [util-linux] [17] | unmount file systems |
-| ```uname```         | [1] | [GNU coreutils] [12] |  |
-| ```unexpand```      | [1] | [GNU coreutils] [12] |  |
-| ```uniq```          | [1] | [GNU coreutils] [12] |  |
+| ```uname```         | [1] | [GNU coreutils] [12] | print system information |
+| ```unexpand```      | [1] | [GNU coreutils] [12] | convert spaces to tabs. Also see ```expand``` |
+| ```uniq```          | [1] | [GNU coreutils] [12] | report or omit repeated lines |
 | ```useradd```       | [2] | [shadow-utils] [14] | create a new user or update default new user information |
 | ```userdel```       | [2] | [shadow-utils] [14] | delete a user account and related files |
 | ```usermod```       | [2] | [shadow-utils] [14] | modify a user account |
-| ```wc```            | [1] | [GNU coreutils] [12] |  |
+| ```wc```            | [1] | [GNU coreutils] [12] | print newline, word, and byte counts for each file |
 | ```xargs```         | [2] | [GNU findutils] [20] | build and execute command lines from standard input |
 | ```zcat```          | [2] | [GNU Gzip] [24] | uncompress files to standard output |
 
 <p/>
 
-***Referenced Specification(s)*** in above two tables:
+***Referenced Specification(s)*** in above table:
 **[1]** [POSIX 1003.1-2008 (ISO/IEC 9945-2009)](http://www.unix.org/version3/)
 **[2]** [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL)
 **[3]** [Libncursesw API](http://invisible-island.net/ncurses/man/ncurses.3x.html)
@@ -481,7 +481,6 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 [23]: https://www.gnu.org/software/gettext/ "GNU gettext-tools"
 [24]: https://www.gnu.org/software/gzip/ "GNU Gzip"
 [25]: http://sourceforge.net/projects/net-tools/ "net-tools"
-[26]: http://invisible-island.net/ncurses/man/infocmp.1m.html "infocmp"
 [27]: http://people.freedesktop.org/~dbn/initd-tools/releases/ "initd-tools"
 [28]: https://gitlab.com/procps-ng/procps "procps-ng"
 [29]: http://www.gnu.org/software/m4/m4.html "GNU M4"
@@ -492,6 +491,13 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 [34]: http://upstart.ubuntu.com/ "upstart"
 [35]: https://www.gnu.org/software/tar/ "GNU tar"
 [36]: http://www.gnu.org/software/gnubatch/ "GNU batch"
+[37]: https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/lp.1.html "Apple lp"
+[38]: https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/lpr.1.html "Apple lpr"
+[39]: http://heirloom.sourceforge.net/mailx.html "Heirloom mailx"
+[40]: https://www.mirbsd.org/htman/i386/man1/pax.htm "MirBSD"
+[41]: https://www.gnu.org/software/ncurses/ "GNU ncurses"
+
+## Shell built-in Utilities
 
 According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL), an LSB conforming implementation shall provide the **shell built in utilities** as described in following table, with at least the behavior described as mandatory in the referenced underlying specification, with the following exceptions:
 
@@ -519,7 +525,7 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 
 <p/>
 
-***Referenced Specification(s)*** in above two tables:
+***Referenced Specification(s)*** in above table:
 **[1]** [POSIX 1003.1-2008 (ISO/IEC 9945-2009)](http://www.unix.org/version3/)
 
 # References

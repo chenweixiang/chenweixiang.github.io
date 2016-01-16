@@ -36,6 +36,10 @@ Following lists are the comparison of terminal emulators:
 
 # Shell
 
+## Shell Specifications
+
+The ```sh``` utility shall behave as specified in **POSIX 1003.1-2008 (ISO/IEC 9945-2009)**. Here is [Shell Command Language Index](http://pubs.opengroup.org/onlinepubs/7908799/xcu/shellix.html). And **Linux Standard Base (LSB)** has the extensions listed [here](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/sh.html).
+
 ## Shell Categories
 
 Most operating system shells fall into one of two categories: **command-line** and **graphical**. Command line shells provide a command-line interface (CLI) to the operating system, while graphical shells provide a graphical user interface (GUI). Other possibilities, although not so common, include voice user interface (VUI) and various implementations of a text-based user interface (TUI) that are not CLI. The relative merits of CLI- and GUI-based shells are often debated.
@@ -139,44 +143,6 @@ NOTE:
 * ***login*** means a file is read if the shell is a login shell.
 * ***n/login*** means a file is read if the shell is not a login shell.
 * ***int.*** means a file is read if the shell is interactive.
-
-## Shell Specifications
-
-The ```sh``` utility shall behave as specified in **POSIX 1003.1-2008 (ISO/IEC 9945-2009)**. Here is [Shell Command Language Index](http://pubs.opengroup.org/onlinepubs/7908799/xcu/shellix.html). And **Linux Standard Base (LSB)** has the extensions listed [here](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/sh.html).
-
-# GNU Bash
-
-Here is [GNU Bash official site](https://www.gnu.org/software/bash/), and here is [Bash Reference Manual](https://www.gnu.org/software/bash/manual/).
-
-## GNU Bash Releases
-
-| GNU Bash Version | Release Date |
-| :--------------: | :----------: |
-| 2.02.1           | 24 Jul 1998  |
-| 2.03             | 20 Feb 1999  |
-| 2.04b5           | 24 Feb 2000  |
-| 2.04             | 21 Mar 2000  |
-| 2.05             | 09 Apr 2001  |
-| 2.05a            | 16 Nov 2001  |
-| 2.05b            | 18 Jul 2002  |
-| 3.0              | 30 Jul 2004  |
-| 3.2              | 13 Nov 2007  |
-| 4.0              | 17 Mar 2009  |
-| 4.1              | 29 Jan 2010  |
-| 4.2              | 10 May 2011  |
-| 4.3              | 26 Feb 2014  |
-
-## GNU Bash Repository
-
-The GNU Bash Git repository is located [here](http://savannah.gnu.org/git/?group=bash). Run following command to get a copy of the GNU Bash source code from repository:
-
-    $ git clone git://git.savannah.gnu.org/bash.git
-
-or, browse sources repository online [here](http://git.savannah.gnu.org/cgit/bash.git).
-
-# Tcsh
-
-
 
 # Miscellaneous
 

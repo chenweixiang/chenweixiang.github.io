@@ -105,7 +105,7 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | ```/usr/share/doc``` | Optional | Miscellaneous documentation. |
 | ```/usr/share/games``` | Optional | Static data files for ```/usr/games```. Any modifiable files, such as score files, game play logs, and so forth, should be placed in ```/var/games```. |
 | ```/usr/share/info``` | Optional | Primary directory for GNU Info system. |
-| ```/usr/share/locale``` | Optional | Locale information. |
+| ```/usr/share/locale``` | Optional | Locale information. Refer to ```man locale``` for locale-specific information. Also refer to [How to add localization support to your bash scripts](http://mywiki.wooledge.org/BashFAQ/098). |
 | ```/usr/share/man``` | **Required** | Manual pages for commands and data under the ```/``` and ```/usr``` filesystems. This is the primary ```<mandir>``` of the system. Manual pages are stored in ```<mandir>/<locale>/man<section>```. |
 | ```/usr/share/man/man1``` | Optional | User programs. |
 | ```/usr/share/man/man2``` | Optional | System calls. |

@@ -3,13 +3,20 @@
 
     {% include head.html %}
 
-    <body>
+    <body data-spy="scroll" data-target="#toc">
 
         {% include header.html %}
 
-        <div class="page-content">
-            <div class="wrapper">
-                {{ content }}
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-9">
+                    {{ content }}
+                </div>
+
+                <div class="col-sm-3">					
+                    <nav id="toc" data-spy="affix" data-toggle="toc"></nav>
+                </div>
+
             </div>
         </div>
 

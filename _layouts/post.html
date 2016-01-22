@@ -2,33 +2,30 @@
 layout: default
 ---
 
-<div class="row">
+<header class="post-header">
+    <h1 class="post-title">{{ page.title }}</h1>
+    <p class="post-meta"> {% if page.author %}{{ page.author }}{% endif %} @ {{ page.date | date: "%b %d, %Y" }}
+      {% if page.tags %}
+          <td> | TAG: </td>
+          {% assign tagidx = 0 %}
+          <tr class="tags clearfix">
+              {% for tag in page.tags %}
+                  {% if tagidx == 0 %}
+                      <td>{{ tag }}</td>
+                  {% else %}
+                      <td>, {{ tag }}</td>
+                  {% endif %}
+                  {% assign tagidx = tagidx | plus: 1 %}
+              {% endfor %}
+          </tr>
+      {% endif %}
+    </p>
+</header>
 
-    <header class="post-header">
-        <h1 class="post-title">{{ page.title }}</h1>
-        <p class="post-meta"> {% if page.author %}{{ page.author }}{% endif %} @ {{ page.date | date: "%b %d, %Y" }}
-          {% if page.tags %}
-              <td> | TAG: </td>
-              {% assign tagidx = 0 %}
-              <tr class="tags clearfix">
-                  {% for tag in page.tags %}
-                      {% if tagidx == 0 %}
-                          <td>{{ tag }}</td>
-                      {% else %}
-                          <td>, {{ tag }}</td>
-                      {% endif %}
-                      {% assign tagidx = tagidx | plus: 1 %}
-                  {% endfor %}
-              </tr>
-          {% endif %}
-        </p>
-    </header>
+{{ content }}
 
-    {{ content }}
+<br>
+<hr></hr>
+<br>
 
-    <br>
-    <hr></hr>
-    <br>
-
-    {% include disqus_comment.html  %}
-</div>
+{% include disqus_comment.html  %}

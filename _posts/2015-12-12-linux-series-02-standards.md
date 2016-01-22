@@ -115,7 +115,7 @@ The following table contains the directory structures defined in FHS 3.0. For mo
 | ```/usr/share/man/man6``` | Optional | Games. |
 | ```/usr/share/man/man7``` | Optional | Miscellaneous. |
 | ```/usr/share/man/man8``` | Optional | System administration. |
-| ```/usr/share/man/<locale>/man<section>``` | Optional | Manual pages for specific ```<locale>``` and ```<section>```. The ```<locale>``` is based on Appendix E of the POSIX 1003.1 standard and has format ```<lang>[_<terr>][.<char-set>][,<ver>]```. |
+| ```/usr/share/man/<locale>/```<br>```man<section>``` | Optional | Manual pages for specific ```<locale>``` and ```<section>```. The ```<locale>``` is based on ***Appendix E*** of the **POSIX 1003.1** standard and has format<br>```<lang>[_<terr>][.<char-set>][,<ver>]``` |
 | ```/usr/share/misc``` | **Required** | Miscellaneous architecture-independent data. |
 | ```/usr/share/misc/ascii``` | Optional | ASCII character set table. |
 | ```/usr/share/misc/termcap``` | Optional | Terminal capability database. |

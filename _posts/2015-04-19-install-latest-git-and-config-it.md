@@ -177,3 +177,81 @@ Then, use the following command to show detail information of specific remote:
 And, the following command shows summarize of 'git log' output:
 
 	$ git shortlog
+
+## All files with absolute path in a commit
+
+If you want to print the absolute path of a commit, you can save the the following script to file *git-ls-each-file.bash*:
+
+    #-------------------------------------------------------------------------------
+    # This Bash script is used to print the files changed by commit with absolute
+    # path. The commit is specified by input parameter $1.
+    #
+    # Usage: git-ls-each-file <commit-id>
+    #-------------------------------------------------------------------------------
+
+    #
+    # 1) Get the commit and its parent
+    #
+
+    if [ "$1" == "" ]; then
+        cmt="HEAD"
+        parent_cmt="HEAD~"
+    else
+        cmt=$1
+        parent_cmt=${cmt}~
+    fi
+
+    #
+    # 2) Get all changed files in <commit-id>~ and <commit-id>
+    #
+
+    files=`git diff-tree --no-commit-id --name-only -r ${parent_cmt} ${cmt}`
+
+    #
+    # 3) Print the absolute path of each file
+    #
+
+    toppath=`git rev-parse --show-toplevel`
+
+    unset absolute_files
+
+    for f in $files
+    do
+        absolute_files+="$toppath/$f "
+    done
+
+    echo $absolute_files
+
+Then, run the script to print the files changed by a commit with absolute path:
+
+    chenwx@chenwx ~/linux/arch/x86/kernel $ . ~/git-ls-each-file.bash 90a2282e23f0
+    /home/chenwx/linux/arch/x86/include/asm/irq.h /home/chenwx/linux/arch/x86/kernel/apic/vector.c /home/chenwx/linux/arch/x86/kernel/irq.c
+
+    chenwx@chenwx ~/linux/arch/x86/kernel $ git lc 90a2282e23f
+    commit 90a2282e23f0522e4b3f797ad447c5e91bf7fe32
+    Author:     Thomas Gleixner <tglx@linutronix.de>
+    AuthorDate: Thu Dec 31 16:30:53 2015 +0000
+    Commit:     Thomas Gleixner <tglx@linutronix.de>
+    CommitDate: Fri Jan 15 13:44:01 2016 +0100
+
+        x86/irq: Call irq_force_move_complete with irq descriptor
+
+        First of all there is no point in looking up the irq descriptor again, but we
+        also need the descriptor for the final cleanup race fix in the next
+        patch. Make that change seperate. No functional difference.
+
+        Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+        Tested-by: Borislav Petkov <bp@alien8.de>
+        Tested-by: Joe Lawrence <joe.lawrence@stratus.com>
+        Cc: Jiang Liu <jiang.liu@linux.intel.com>
+        Cc: Jeremiah Mahler <jmmahler@gmail.com>
+        Cc: andy.shevchenko@gmail.com
+        Cc: Guenter Roeck <linux@roeck-us.net>
+        Cc: stable@vger.kernel.org #4.3+
+        Link: http://lkml.kernel.org/r/20151231160107.125211743@linutronix.de
+        Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+     arch/x86/include/asm/irq.h    |  5 +++--
+     arch/x86/kernel/apic/vector.c | 11 +++++++----
+     arch/x86/kernel/irq.c         |  2 +-
+     3 files changed, 11 insertions(+), 7 deletions(-)

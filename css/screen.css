@@ -3,13 +3,15 @@
 }
 
 .container {
-    padding-top: 40px;
-    padding-bottom: 40px;
+    width: 90%;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 .container-fluid {
     width: 90%;
-    padding-top: 40px;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 .hint {
@@ -31,6 +33,23 @@
 footer {
     margin-top: 50px;
     text-align: center;
+}
+
+#toc {
+    width: 20%;
+    overflow: auto;
+    border: 1px solid #ddd;
+    webkit-border-radius: 1px;
+    moz-border-radius: 1px;
+    border-radius: 1px;
+}
+
+#toc ul, #toc li {
+    list-style: circle inside; /* none; */
+    margin: 0;
+    padding: 0;
+    border: none;
+    line-height: 1.4em;
 }
 
 /* small screens */

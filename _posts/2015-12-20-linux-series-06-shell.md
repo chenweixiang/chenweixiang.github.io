@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #6: Shell"
+title: "Linux: Shell"
 tags: [Linux, Programming language]
 toc: true
 ---

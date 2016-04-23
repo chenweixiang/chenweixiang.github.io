@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #8: GNU Bash"
+title: "Linux: GNU Bash"
 tags: [Linux, Programming language]
 toc: true
 ---

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #1: Overview"
+title: "Linux: Overview"
 tags: [Linux]
 toc: true
 ---

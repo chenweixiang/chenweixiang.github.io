@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #4: Linux kernel"
+title: "Linux: Linux kernel"
 tags: [Linux]
 toc: true
 ---

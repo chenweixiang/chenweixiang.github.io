@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #5: C/C++ Libraries"
+title: "Linux: C/C++ Libraries"
 tags: [Linux]
 toc: true
 ---

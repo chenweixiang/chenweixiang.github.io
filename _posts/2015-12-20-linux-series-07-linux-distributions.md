@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #7: Linux Distributions"
+title: "Linux: Linux Distributions"
 tags: [Linux]
 toc: true
 ---

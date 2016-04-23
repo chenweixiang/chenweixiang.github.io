@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Linux Series #3: Linux Supported Architectures"
+title: "Linux: Linux Supported Architectures"
 tags: [Linux]
 toc: true
 ---

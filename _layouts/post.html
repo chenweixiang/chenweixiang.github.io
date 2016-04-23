@@ -2,110 +2,30 @@
 layout: default
 ---
 
-<style>
-    .sidebox {
-        border: 1px dotted rgb(127, 127, 127);
-        padding: 4px 3px 4px 6px; /* top right bottom left */
-        min-width: 100px ! important;
-        float: center ! important;
-        font-size: 90%;
-        margin-top: 1px;
-        margin-bottom: 20px;
-        margin-left: 0px;
-        visibility: visible;
-        max-width: 60%;
-        width: 80%;
-    }
-    .sidebox ul {
-        padding:0em 0em 0em 1.3em;
-        margin:0em;
-    }
-</style>
+<header class="post-header">
+    <h1 class="post-title">{{ page.title }}</h1>
+    <p class="post-meta"> {% if page.author %}{{ page.author }}{% endif %} @ {{ page.date | date: "%b %d, %Y" }}
+      {% if page.tags %}
+          <td> | TAG: </td>
+          {% assign tagidx = 0 %}
+          <tr class="tags clearfix">
+              {% for tag in page.tags %}
+                  {% if tagidx == 0 %}
+                      <td>{{ tag }}</td>
+                  {% else %}
+                      <td>, {{ tag }}</td>
+                  {% endif %}
+                  {% assign tagidx = tagidx | plus: 1 %}
+              {% endfor %}
+          </tr>
+      {% endif %}
+    </p>
+</header>
 
-<div class="post">
+{{ content }}
 
-    <header class="post-header">
-        <p class="post-title">{{ page.title }}</p>
-        <p class="post-meta"> {% if page.author %}{{ page.author }}{% endif %} @ {{ page.date | date: "%b %d, %Y" }}
-          {% if page.tags %}
-              <td> | TAG: </td>
-              {% assign tagidx = 0 %}
-              <tr class="tags clearfix">
-                  {% for tag in page.tags %}
-                      {% if tagidx == 0 %}
-                          <td>{{ tag }}</td>
-                      {% else %}
-                          <td>, {{ tag }}</td>
-                      {% endif %}
-                      {% assign tagidx = tagidx | plus: 1 %}
-                  {% endfor %}
-              </tr>
-          {% endif %}
-        </p>
-    </header>
+<br>
+<hr></hr>
+<br>
 
-    <h1 id="table-of-content">Table of Content</h1>
-
-    <div id="post">
-        {{ content }}
-    </div>
-
-    {% if page.toc %}
-        <script>
-            function $get(selector) {
-                return document.querySelector(selector);
-            };
-
-            function $all(selector) {
-                return Array.prototype.slice.call(document.querySelectorAll(selector));
-            }
-
-            function buildTOC_ul(selector) {
-                var levels = [document.createElement("ul"), null, null];
-                levels[0].style
-                var lvl=0, c=0;
-                if (!selector)
-                    selector = "h2, h3, h4, h5, h6";
-                $all(selector).forEach(function(el) {
-                    if (!el.id)
-                        el.id = 'section_'+ ++c;
-                    var newLvl = (el.tagName == "H1" ? 0 : el.tagName == "H2" ? 1 : el.tagName == "H3" ? 2 : el.tagName == "H4" ? 3 : el.tagName == "H5" ? 4 : el.tagName == "H6" ? 5 : 6);
-                    for (; lvl < newLvl; lvl++)
-                        levels[lvl].appendChild(levels[lvl+1] = document.createElement("ul"));
-                    lvl = newLvl;
-
-                    var li = document.createElement('li');
-                    li.innerHTML = "<a href='#" + el.id + "'></a>";
-                    li.firstChild.innerHTML = el.innerHTML;
-                    levels[lvl].appendChild(li);
-                });
-                return levels[0];
-            }
-
-            function addTOC(contentElement, before, tocClass) {
-                if (before === undefined)
-                    before = contentElement.firstChild;
-                var prefix = "";
-                var c = contentElement.className;
-                if (c)
-                    prefix = "." + (c.indexOf(" ") == -1? c : c.substr(0, c.indexOf(" "))) + " ";
-                var selector = prefix+"h1, "+prefix+"h2, "+prefix+"h3, "+prefix+"h4, "+prefix+"h5, "+prefix+"h6";
-                var toc = document.createElement("div");
-                toc.className = tocClass || "sidebox";
-                // toc.appendChild(document.createTextNode("Table of Contents"));
-                toc.appendChild(buildTOC_ul(selector));
-                contentElement.insertBefore(toc, before);
-            }
-
-            var _post_ = $get("#post") || $get("#content");
-            addTOC(_post_);
-        </script>
-    {% endif %}
-
-    <br>
-    <hr></hr>
-    <br>
-
-    {% include disqus_comment.html  %}
-
-</div>
+{% include disqus_comment.html  %}

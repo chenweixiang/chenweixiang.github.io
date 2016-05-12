@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Git: Install latest version and configure it"
-tags: [Git, Linux]
+tag: Linux
 toc: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Linux: Shell"
-tags: [Linux, Programming language]
+tag: Linux
 toc: true
 ---
 

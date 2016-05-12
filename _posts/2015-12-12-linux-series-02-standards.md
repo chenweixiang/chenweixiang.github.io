@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Linux: Linux Standards"
-tags: [Linux]
+tag: Linux
 toc: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Linux: Linux Supported Architectures"
-tags: [Linux]
+tag: Linux
 toc: true
 ---
 

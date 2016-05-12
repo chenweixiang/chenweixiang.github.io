@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Linux: C/C++ Libraries"
-tags: [Linux]
+tag: Linux
 toc: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Linux: Linux Distributions"
-tags: [Linux]
+tag: Linux
 toc: true
 ---
 

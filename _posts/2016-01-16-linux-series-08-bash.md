@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Linux: GNU Bash"
-tags: [Linux, Programming language]
+tag: Linux
 toc: true
 ---
 

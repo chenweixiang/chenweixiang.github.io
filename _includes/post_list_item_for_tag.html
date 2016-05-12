@@ -1,0 +1,31 @@
+<article class="row">
+    <div class="col-lg-10 col-md-10 col-sm-10">
+        <!-- Title of the article -->
+        <a href="{{ post.url }}">{{ post.title }}</a>
+
+        <!-- Date & Tag list -->
+<!--
+        <td align="left"><i class="post-meta">{{ post.date | date: "%b %d, %Y" }}</i></td>
+        {% if post.tags %}
+            <td align="left"><i class="post-meta"> | TAG: </i></td>
+            {% assign tagidx = 0 %}
+            {% for tag in post.tags %}
+                {% if tagidx == 0 %}
+                    <td align="left"><i class="post-meta">{{ tag }}</i></td>
+                {% else %}
+                    <td align="left"><i class="post-meta">, {{ tag }}</i></td>
+                {% endif %}
+                {% assign tagidx = tagidx | plus: 1 %}
+            {% endfor %}
+        {% endif %}
+-->
+
+        <!-- Excerpt of the article -->
+<!--
+        <p class="excerpt">
+            {{ post.excerpt | strip_html | newline_to_br}}
+        </p>
+-->
+
+    </div>
+</article>

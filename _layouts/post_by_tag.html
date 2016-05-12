@@ -9,7 +9,7 @@ layout: default
         {% if site.tags[onetag] %}
             {% for post in site.tags[onetag] %}
                 <!-- <p><a href="{{ post.url }}/">{{ post.title }}</a></p> -->
-                {% include post_list_item.html %}
+                {% include post_list_item_for_tag.html %}
             {% endfor %}
         {% else %}
             <p>There are no posts for this tag.</p>

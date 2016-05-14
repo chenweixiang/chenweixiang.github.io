@@ -845,6 +845,25 @@ chenwx@chenwx ~ $ sudo apt-get install htop
 chenwx@chenwx ~ $ htop
 ```
 
+### dmidecode
+
+dmidecode is a tool for dumping a computer's DMI (some say SMBIOS) table contents in a human-readable format. This table contains a description of the system's hardware components, as well as other useful pieces of information such as serial numbers and BIOS revision.  Thanks to this table, you can retrieve this information without having to probe for the actual hardware. While this is a good point in terms of report speed and safeness, this also makes the presented information possibly unreliable.
+
+Use the following dmidecode commands to show the memory information:
+
+```
+chenwx@chenwx ~ $ sudo dmidecode | grep -P -A5 "Memory\s+Device" | grep Size | grep -v Range
+	Size: 2048 MB
+	Size: 2048 MB
+
+chenwx@chenwx ~ $ sudo dmidecode | grep -P 'Maximum\s+Capacity'
+	Maximum Capacity: 4 GB
+
+chenwx@chenwx ~ $ sudo dmidecode | grep -A16 "Memory Device" | grep 'Speed'
+	Speed: 667 MHz
+	Speed: 667 MHz
+```
+
 ## /proc Files
 
 Many of the virtual files in the ```/proc``` directory contain information about hardware and configurations. Here are some of them:

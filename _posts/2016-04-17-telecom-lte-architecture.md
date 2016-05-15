@@ -111,9 +111,11 @@ The following figure from **Figure 13.1-1** of **TS 36.300-8c0** shows the EPS B
 
 According to [LTE Radio Protocol Architecture](http://www.tutorialspoint.com/lte/lte_radio_protocol_architecture.htm), **Figure 4.3.1-1**, **Figure 4.3.2-1**, **Figure 4.6.3.1-1** and **Figure 4.6.3.2-1** of **TS 36.300-8c0**, the protocol architecture on **User-plane** is shown in the following figure:
 ![lte_user_plane](/assets/lte_user_plane.jpg)
+![R8_Interfaces_User_Plane](/assets/R8_Interfaces_User_Plane.png)
 
 The protocol architecture on **Control-plane** is shown in the following figure:
 ![lte_control_plane](/assets/lte_control_plane.jpg)
+![R8_Interfaces_Control_Plane](/assets/R8_Interfaces_Control_Plane.png)
 
 The Radio protocl architecture is shown in the following figure:
 ![lte_protocol_layers](/assets/lte_protocol_layers.jpg)

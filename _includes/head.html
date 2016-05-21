@@ -35,6 +35,9 @@
     </script>
     -->
 
+    <!-- Math formula is supported by MathJax. Math TexT Tutorial cat be found on http://www.forkosh.com/mathtextutorial.html -->
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
+
     <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
     <meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
 

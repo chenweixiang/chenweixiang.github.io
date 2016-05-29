@@ -186,7 +186,7 @@ If you want to print the absolute path of a commit, you can save the the followi
     # This Bash script is used to print the files changed by commit with absolute
     # path. The commit is specified by input parameter $1.
     #
-    # Usage: git-ls-each-file <commit-id>
+    # Usage: git-ls-each-file [commit-id]
     #-------------------------------------------------------------------------------
 
     #

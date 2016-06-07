@@ -9,6 +9,10 @@ This article introduces the Physical Downlink Control CHannel (PDCCH).
 
 <!--more-->
 
+# Flow Diagram of PDCCH
+
+![R8_TS36.211_S6.8_PDCCH](/assets/R8_TS36.211_S6.8_PDCCH.png)
+
 # Downlink Control Information (DCI)
 
 Refer to **TS 36.212 S5.3.3.1**.

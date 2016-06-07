@@ -1441,7 +1441,7 @@ When braces are used, the matching ending brace is the first ```}``` not escaped
 
 #### Format #1
 
-```${parameter}```
+* ```${parameter}```
 
 The value of *parameter* is substituted. The *parameter* is a shell parameter as described in [Shell Parameters](#shell-parameters) or an array reference (see [Arrays](#arrays)). The braces are required when *parameter* is a **positional parameter** with more than one digit, or when *parameter* is followed by a character that is not to be interpreted as part of its name.
 
@@ -1452,7 +1452,7 @@ In each of the cases below, *word* is subject to **tilde expansion**, **paramete
 When not performing substring expansion, using the form described below (e.g., ```:-```), Bash tests for a parameter that is unset or null. Omitting the colon results in a test only for a parameter that is unset. Put another way, if the colon is included, the operator tests for both parameter's existence and that its value is not null; if the colon is omitted, the operator tests only for existence.
 
 ***Examples:***
-```$ p1=10```
+* ```$ p1=10```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1462,7 +1462,7 @@ When not performing substring expansion, using the form described below (e.g., `
 
 #### Format #2
 
-```${parameter:-word}```
+* ```${parameter:-word}```
 
 If *parameter* is unset or null, the expansion of *word* is substituted. Otherwise, the value of *parameter* is substituted.
 
@@ -1493,7 +1493,7 @@ If *parameter* is unset or null, the expansion of *word* is substituted. Otherwi
 
 #### Format #3
 
-```${parameter:=word}```
+* ```${parameter:=word}```
 
 If *parameter* is unset or null, the expansion of *word* is assigned to *parameter*. The value of *parameter* is then substituted. [Positional parameters](#positional-parameters) and [special parameters](#special-parameters) may not be assigned to in this way.
 
@@ -1532,7 +1532,7 @@ If *parameter* is unset or null, the expansion of *word* is assigned to *paramet
 
 #### Format #4
 
-```${parameter:?word}```
+* ```${parameter:?word}```
 
 If *parameter* is null or unset, the expansion of *word* is written to the standard error and the shell, if it is not interactive, exits. Otherwise, the value of *parameter* is substituted.
 
@@ -1571,7 +1571,7 @@ If *parameter* is null or unset, the expansion of *word* is written to the stand
 
 #### Format #5
 
-```${parameter:+word}```
+* ```${parameter:+word}```
 
 If *parameter* is null or unset, nothing is substituted. Otherwise, the expansion of *word* is substituted.
 
@@ -1610,8 +1610,8 @@ If *parameter* is null or unset, nothing is substituted. Otherwise, the expansio
 
 #### Format #6
 
-```${parameter:offset}```
-```${parameter:offset:length}```
+* ```${parameter:offset}```
+* ```${parameter:offset:length}```
 
 This is referred to as **Substring Expansion**. It expands to up to *length* characters of the value of *parameter* starting at the character specified by *offset*. If *length* is omitted, it expands to the substring of the value of *parameter* starting at the character specified by *offset* and extending to the end of the value. *length* and *offset* are arithmetic expressions.
 
@@ -1684,8 +1684,8 @@ Substring indexing is zero-based unless the positional parameters are used, in w
 
 #### Format #7
 
-```${!prefix@}```
-```${!prefix*}```
+* ```${!prefix@}```
+* ```${!prefix*}```
 
 Expands to the names of variables whose names begin with *prefix*, separated by the first character of the **IFS** special variable. When ```@``` is used and the expansion appears within double quotes, each variable name expands to a separate word.
 
@@ -1702,8 +1702,8 @@ Expands to the names of variables whose names begin with *prefix*, separated by 
 
 #### Format #8
 
-```${!name[@]}```
-```${!name[*]}```
+* ```${!name[@]}```
+* ```${!name[*]}```
 
 If *name* is an array variable, expands to the list of array indices (keys) assigned in *name*. If *name* is not an array, expands to **0** if *name* is set and null otherwise. When ```@``` is used and the expansion appears within double quotes, each key expands to a separate word.
 
@@ -1719,7 +1719,7 @@ If *name* is an array variable, expands to the list of array indices (keys) assi
 
 #### Format #9
 
-```${#parameter}```
+* ```${#parameter}```
 
 The length in characters of the expanded value of *parameter* is substituted.
 
@@ -1748,8 +1748,8 @@ last element.
 
 #### Format #10
 
-```${parameter#word}```
-```${parameter##word}```
+* ```${parameter#word}```
+* ```${parameter##word}```
 
 The *word* is expanded to produce a pattern just as in filename expansion. If the pattern matches the **beginning** of the expanded value of *parameter*, then the result of the expansion is the expanded value of *parameter* with the shortest matching pattern (the ```#``` case) or the longest matching pattern (the ```##``` case) deleted.
 
@@ -1777,8 +1777,8 @@ The *word* is expanded to produce a pattern just as in filename expansion. If th
 
 #### Format #11
 
-```${parameter%word}```
-```${parameter%%word}```
+* ```${parameter%word}```
+* ```${parameter%%word}```
 
 The *word* is expanded to produce a pattern just as in filename expansion. If the pattern matches a **trailing** portion of the expanded value of *parameter*, then the result of the expansion is the value of *parameter* with the shortest matching pattern (the ```%``` case) or the longest matching pattern (the ```%%``` case) deleted.
 
@@ -1805,7 +1805,7 @@ The *word* is expanded to produce a pattern just as in filename expansion. If th
 
 #### Format #12
 
-```${parameter/pattern/string}```
+* ```${parameter/pattern/string}```
 
 The *pattern* is expanded to produce a pattern just as in filename expansion. *parameter* is expanded and the longest match of *pattern* against its value is replaced with *string*.
 
@@ -1846,10 +1846,10 @@ The *pattern* is expanded to produce a pattern just as in filename expansion. *p
 
 #### Format #13
 
-```${parameter^pattern}```
-```${parameter^^pattern}```
-```${parameter,pattern}```
-```${parameter,,pattern}```
+* ```${parameter^pattern}```
+* ```${parameter^^pattern}```
+* ```${parameter,pattern}```
+* ```${parameter,,pattern}```
 
 This expansion modifies the case of alphabetic characters in *parameter*. The *pattern* is expanded to produce a *pattern* just as in filename expansion. Each character in the expanded value of *parameter* is tested against *pattern*, and, if it matches the *pattern*, its case is converted.
 
@@ -1897,7 +1897,7 @@ This expansion modifies the case of alphabetic characters in *parameter*. The *p
 
 ***Format:***
 
-```$(( expression ))```
+* ```$(( expression ))```
 
 Arithmetic expansion allows the evaluation of an arithmetic expression and the substitution of the result.
 
@@ -1916,8 +1916,8 @@ The evaluation is performed according to the rules listed in [Shell Arithmetic](
 
 ***Formats:***
 
-```$(command)```
-``` `command` ```
+* ```$(command)```
+* ``` `command` ```
 
 Command substitution allows the output of a command to replace the command itself.
 
@@ -1942,8 +1942,8 @@ If the substitution appears within double quotes, **word splitting** and **filen
 
 ***Formats:***
 
-```<(list)```
-```>(list)```
+* ```<(list)```
+* ```>(list)```
 
 Process substitution is supported on systems that support **named pipes** (**FIFO**s) or the **/dev/fd** method of naming open files.
 

@@ -375,6 +375,24 @@ Those following directories are created by glibc:
 | ```/var/cache/nscd```        |             | |
 | ```/var/lib/nss_db```        |             | |
 
+<p/>
+
+# C Standard Library for Embedded System (newlib)
+
+## What's newlib?
+
+[**Newlib**](http://sourceware.org/newlib/) is a C library intended for use on embedded systems. It is a conglomeration of several library parts, all under free software licenses that make them easily usable on embedded products.
+
+Newlib is only available in source form. It can be compiled for a wide array of processors, and will usually work on any architecture with the addition of a few low-level routines.
+
+Newlib can be downloaded from [ftp directory](ftp://sourceware.org/pub/newlib/index.html) or accessed by [web-based GIT](https://sourceware.org/git/gitweb.cgi?p=newlib-cygwin.git).
+
+## newlib Repository
+
+```
+chenwx@chenwx ~ $ git clone git://sourceware.org/git/newlib-cygwin.git
+```
+
 # GNU C++ Library (libstdc++)
 
 The **GNU Standard C++ Library v3** (**libstdc++-v3**) is an ongoing project to implement the **ISO 14882 Standard C++ library** as described in clauses ***17 through 30*** and ***Annex D***. For those who want to see exactly how far the project has come, or just want the latest bleeding-edge code, the up-to-date source is available over anonymous SVN, and can be browsed over the [web](https://gcc.gnu.org/svn.html). Also refer to following websites for more details:

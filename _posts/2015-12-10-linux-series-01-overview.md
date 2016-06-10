@@ -26,3 +26,5 @@ Please refer to following articles for detail information about layers of Linux 
 * [Linux Series #7: Linux Distributions](http://chenweixiang.github.io/2015/12/20/linux-series-07-linux-distributions.html)
 
 # References
+
+* [The Linux Information Project](http://www.linfo.org/index.html)

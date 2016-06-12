@@ -7021,4 +7021,5 @@ ex.babash
 
 # References
 
-[Bash Reference Manual](https://www.gnu.org/software/bash/manual/)
+* [GNU Bash Official Site](https://www.gnu.org/software/bash/)
+* [GNU Bash Reference Manual](https://www.gnu.org/software/bash/manual/)

@@ -164,94 +164,27 @@ Refer to [Global mobile Suppliers Association (GSA)](http://gsacom.com/).
 
 # References
 
-## Organization Abbreviations
+* [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)
+* [3rd Generation Partnership Project 2 (3GPP2)](http://www.3gpp2.org/)
+* [American National Standards Institute (ANSI)](http://www.ansi.org/)
+* Association of Radio Industries and Businesses (ARIB): 日本无线工业及商贸联合会
+* Automatic Terminal Information Service (ATIS WTSC): 世界无线通讯解决方案联盟 无线技术和系统委员会
+* [European Telecommunications Standards Institute (ETSI)](http://www.etsi.org/)
+* [GSM Association (GSMA)](http://www.gsma.com/)
+* Telecommunications Industry Association / Electronic Industries Associate (TIA/EIA): 美国电信行业协会/美国电子工业协会
+* Institute of Electrical and Electronics Engineers (IEEE 802.16): 美国电气和电子工程师协会 802.16工作组
 
-**3GPP**
-[3rd Generation Partnership Project](http://www.3gpp.org/)
-第三代合作伙伴计划
+* Broadband Wireless Access System (BWA): 宽带无线系统
+* Digital Enhanced Cordless Telecommunications (DECT): 数字增强无线通信
+* Global System for Mobile Communication (GSM): 全球移动通信系统
+* Personal Digital Cellular (PDC): 个人数字蜂窝电话
 
-**3GPP2**
-[3rd Generation Partnership Project 2](http://www.3gpp2.org/)
-第三代合作伙伴计划2
+* Frequency Division Multiple Access (FDMA): 频分多址
+* Time Division Multiple Access (TDMA): 时分多址
+* Code Division Multiple Access (CDMA): 码分多址
+* Universal Terrestrial Radio Access FDD (UTRA FDD): 通用陆地无线接入 频分双工
+* Enhanced Data rates for GSM Evolution (EDGE): 增强型数据速率GSM演进技术
+* Universal Wireless Communication-136 (UWC-136): 通用无线通信-136
 
-**ANSI**
-[American National Standards Institute](#http://www.ansi.org/)
-美国国家标准学会
-
-**ARIB**
-Association of Radio Industries and Businesses
-日本无线工业及商贸联合会
-
-**ATIS WTSC**
-Automatic Terminal Information Service
-世界无线通讯解决方案联盟 无线技术和系统委员会
-
-**ETSI**
-[European Telecommunications Standards Institute](http://www.etsi.org/)
-欧洲电信标准化协会
-
-**ETSI EPDECT**
-[European Telecommunications Standards Institute](http://www.etsi.org/)
-欧洲电信标准化协会 EPDECT工作组
-
-**GSMA**
-[GSM Association](http://www.gsma.com/)
-
-**TIA/EIA**
-Telecommunications Industry Association / Electronic Industries Associate
-美国电信行业协会/美国电子工业协会
-
-**IEEE 802.16**
-Institute of Electrical and Electronics Engineers
-美国电气和电子工程师协会 802.16工作组
-
-## System Abbreviations
-
-**BWA**
-Broadband Wireless Access System
-宽带无线系统
-
-**DECT**
-Digital Enhanced Cordless Telecommunications
-数字增强无线通信
-
-**GSM**
-Global System for Mobile Communication
-全球移动通信系统
-
-**PDC**
-Personal Digital Cellular
-个人数字蜂窝电话
-
-## Technology Abbreviations
-
-**FDMA**
-Frequency Division Multiple Access
-频分多址
-
-**TDMA**
-Time Division Multiple Access
-时分多址
-
-**CDMA**
-Code Division Multiple Access
-码分多址
-
-**UTRA FDD**
-Universal Terrestrial Radio Access FDD
-通用陆地无线接入 频分双工
-
-**EDGE**
-Enhanced Data rates for GSM Evolution
-增强型数据速率GSM演进技术
-
-**UWC-136**
-Universal Wireless Communication-136
-通用无线通信-136
-
-Radiocommunication Assembly 2012 (RA-12)
-http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=ra-12&lang=en
-《IMT-Advanced standards announced for next-generation mobile technology》
-
-World Radiocommunication Conference 2012 (WRC-12)
-http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=wrc-12&lang=en&related-conferences=1
+* [Radiocommunication Assembly 2012 (RA-12)](http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=ra-12&lang=en)
+* [World Radiocommunication Conference 2012 (WRC-12)](http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=wrc-12&lang=en&related-conferences=1)

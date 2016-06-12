@@ -248,4 +248,4 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 
 # References
 
-[3rd Generation Partnership Project (3GPP)](#http://www.3gpp.org/)
+* [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)

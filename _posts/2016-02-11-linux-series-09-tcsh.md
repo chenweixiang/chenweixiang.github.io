@@ -829,6 +829,6 @@ To detect looping, the shell restricts the number of alias substitutions on a si
 
 # References
 
-[Tcsh Manual page](http://www.tcsh.org/tcsh.html/top.html)
-[Download Tcsh (US)](ftp://ftp.astron.com/pub/tcsh/)
-[Download Tcsh (Finland)](http://ftp.funet.fi/pub/mirrors/ftp.astron.com/pub/tcsh/)
+* [Tcsh Manual](http://www.tcsh.org/tcsh.html/top.html)
+* [Download Tcsh (US)](ftp://ftp.astron.com/pub/tcsh/)
+* [Download Tcsh (Finland)](http://ftp.funet.fi/pub/mirrors/ftp.astron.com/pub/tcsh/)

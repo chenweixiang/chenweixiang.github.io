@@ -21,12 +21,6 @@ According to **TS 36.300**, the following figures show the channel mapping betwe
 
 # References
 
-**ShareTechnote**
-
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-
-[http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html](http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html)
-
-**3GLTEInfo**
-
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html](http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

@@ -998,9 +998,9 @@ major minor  #blocks  name
 
 # References
 
-[16 commands to check hardware information on Linux](http://www.binarytides.com/linux-commands-hardware-info/)
-[Check hardware information on Linux with hwinfo command](http://www.binarytides.com/linux-hwinfo-command/)
-[How to install hwinfo on Fedora 19/20 and CentOS 5/6](http://www.binarytides.com/install-hwinfo-fedora-centos/)
-[8 commands to check cpu information on Linux](http://www.binarytides.com/linux-cpu-information/)
-[8 examples of findmnt command to check mounted file systems on Linux](http://www.binarytides.com/linux-findmnt-command/)
-[5 commands to check memory usage on Linux](http://www.binarytides.com/linux-command-check-memory-usage/)
+* [16 commands to check hardware information on Linux](http://www.binarytides.com/linux-commands-hardware-info/)
+* [Check hardware information on Linux with hwinfo command](http://www.binarytides.com/linux-hwinfo-command/)
+* [How to install hwinfo on Fedora 19/20 and CentOS 5/6](http://www.binarytides.com/install-hwinfo-fedora-centos/)
+* [8 commands to check cpu information on Linux](http://www.binarytides.com/linux-cpu-information/)
+* [8 examples of findmnt command to check mounted file systems on Linux](http://www.binarytides.com/linux-findmnt-command/)
+* [5 commands to check memory usage on Linux](http://www.binarytides.com/linux-command-check-memory-usage/)

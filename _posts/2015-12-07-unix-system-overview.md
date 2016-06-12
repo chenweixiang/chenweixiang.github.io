@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Unix System Overview"
+title: "Unix: Overview"
 tag: Linux
 toc: true
 ---

@@ -61,19 +61,11 @@ Refer to the following sheets in *R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx*:
 
 # References
 
-**3GPP Specs**
-
-TS 36.213 S9.1.2
-TS 36.212 S5.3.5
-TS 36.211 S6.9
-
-**ShareTechnote**
-
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-[http://www.sharetechnote.com/html/Handbook_LTE.html](http://www.sharetechnote.com/html/Handbook_LTE.html)
-[http://www.sharetechnote.com/html/Handbook_LTE_PHICH_PHICHGroup.html](http://www.sharetechnote.com/html/Handbook_LTE_PHICH_PHICHGroup.html)
-[http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PHICH.html](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PHICH.html)
-
-**3GLTEInfo**
-
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.213: section 9.1.2
+* TS 36.212: section 5.3.5
+* TS 36.211: section 6.9
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.sharetechnote.com/html/Handbook_LTE.html](http://www.sharetechnote.com/html/Handbook_LTE.html)
+* [http://www.sharetechnote.com/html/Handbook_LTE_PHICH_PHICHGroup.html](http://www.sharetechnote.com/html/Handbook_LTE_PHICH_PHICHGroup.html)
+* [http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PHICH.html](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PHICH.html)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

@@ -194,5 +194,5 @@ or, use just one command instead of above two:
 
 # References
 
-[Shell (computing)](https://en.wikipedia.org/wiki/Shell_%28computing%29)
-[Unix shell](https://en.wikipedia.org/wiki/Unix_shell)
+* [Shell Wikipedia](https://en.wikipedia.org/wiki/Shell_%28computing%29)
+* [Unix Shell](https://en.wikipedia.org/wiki/Unix_shell)

@@ -100,17 +100,9 @@ Refer to **TS 36.211 S6.10.3.2**.
 
 # References
 
-**3GPP Specs**
-
-TS 36.211 S6.10
-
-**ShareTechnote**
-
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-[http://www.sharetechnote.com/html/Handbook_LTE_Reference_Signal_Downlink.html](http://www.sharetechnote.com/html/Handbook_LTE_Reference_Signal_Downlink.html)
-[http://www.sharetechnote.com/html/FrameStructure_DL.html#RS](http://www.sharetechnote.com/html/FrameStructure_DL.html#RS)
-[http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_CellRS.html](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_CellRS.html)
-
-**3GLTEInfo**
-
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.211: S6.10
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.sharetechnote.com/html/Handbook_LTE_Reference_Signal_Downlink.html](http://www.sharetechnote.com/html/Handbook_LTE_Reference_Signal_Downlink.html)
+* [http://www.sharetechnote.com/html/FrameStructure_DL.html#RS](http://www.sharetechnote.com/html/FrameStructure_DL.html#RS)
+* [http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_CellRS.html](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_CellRS.html)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

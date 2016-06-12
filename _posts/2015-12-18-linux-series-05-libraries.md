@@ -834,19 +834,19 @@ chenwx@chenwx ~ $ ldconfig -p | grep libstdc++.so
 
 # References
 
-[ISO/IEC 9899 - Programming languages - C](http://www.open-std.org/jtc1/sc22/wg14/www/standards)
-[C programming language on wiki](https://en.wikipedia.org/wiki/C_%28programming_language%29)
+* [ISO/IEC 9899 - Programming languages - C](http://www.open-std.org/jtc1/sc22/wg14/www/standards)
+* [C programming language on wiki](https://en.wikipedia.org/wiki/C_%28programming_language%29)
 
-[JTC1/SC22/WG21 - The C++ Standards Committee](http://www.open-std.org/jtc1/sc22/wg21/)
-[C++ programming language on wiki](https://en.wikipedia.org/wiki/C%2B%2B)
+* [JTC1/SC22/WG21 - The C++ Standards Committee](http://www.open-std.org/jtc1/sc22/wg21/)
+* [C++ programming language on wiki](https://en.wikipedia.org/wiki/C%2B%2B)
 
-[GNU C Library Wikipedia](https://en.wikipedia.org/wiki/GNU_C_Library)
-[GNU C Library FTP](http://ftp.gnu.org/gnu/libc/)
-[GNU C Library Reporsitory](https://sourceware.org/glibc/wiki/GlibcGit)
+* [GNU C Library Wikipedia](https://en.wikipedia.org/wiki/GNU_C_Library)
+* [GNU C Library FTP](http://ftp.gnu.org/gnu/libc/)
+* [GNU C Library Reporsitory](https://sourceware.org/glibc/wiki/GlibcGit)
 
-[动态库(.so)](http://linux-wiki.cn/wiki/%E5%8A%A8%E6%80%81%E5%BA%93%28.so%29)
-[Shared Libraries and naming conventions](https://lists.linux-foundation.org/pipermail/lsb-spec/1999-May/000251.html)
-[Static, Shared Dynamic and Loadable Linux Libraries](http://www.yolinux.com/TUTORIALS/LibraryArchives-StaticAndDynamic.html)
-[Computing Library on Wikipedia](https://en.wikipedia.org/wiki/Library_(computing))
-[Static Libraries](http://tldp.org/HOWTO/Program-Library-HOWTO/static-libraries.html)
-[Shared Libraries](http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html)
+* [动态库(.so)](http://linux-wiki.cn/wiki/%E5%8A%A8%E6%80%81%E5%BA%93%28.so%29)
+* [Shared Libraries and naming conventions](https://lists.linux-foundation.org/pipermail/lsb-spec/1999-May/000251.html)
+* [Static, Shared Dynamic and Loadable Linux Libraries](http://www.yolinux.com/TUTORIALS/LibraryArchives-StaticAndDynamic.html)
+* [Computing Library on Wikipedia](https://en.wikipedia.org/wiki/Library_(computing))
+* [Static Libraries](http://tldp.org/HOWTO/Program-Library-HOWTO/static-libraries.html)
+* [Shared Libraries](http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html)

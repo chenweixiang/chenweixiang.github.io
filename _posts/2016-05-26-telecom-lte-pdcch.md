@@ -191,16 +191,8 @@ Also refer to the following sheets in *R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx*:
 
 # References
 
-**3GPP Specs**
-
-* TS 36.213 S8.7 UE Transmit Antenna Selection
-* TS 36.212 S5.3.3 Downlink control information
-* TS 36.211 S6.8 Physical downlink control channel
-
-**ShareTechnote**
-
+* TS 36.213: section 8.7 UE Transmit Antenna Selection
+* TS 36.212: section 5.3.3 Downlink control information
+* TS 36.211: section 6.8 Physical downlink control channel
 * [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-
-**3GLTEInfo**
-
 * [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

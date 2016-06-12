@@ -530,9 +530,9 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 
 # References
 
-[Filesystem Hierarchy Standard (FHS) on Linux Foundation](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs)
-[Filesystem Hierarchy Standard (FHS) Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml)
-[Linux Standard Base (LSB) Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml)
-[Linux Standard Base (LSB) Navigator](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html)
-[Linux Standard Base (LSB) Certification System](https://www.linuxbase.org/lsb-cert/welcome_cert.php)
-[Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html)
+* [Filesystem Hierarchy Standard (FHS) on Linux Foundation](http://www.linuxfoundation.org/collaborate/workgroups/lsb/fhs)
+* [Filesystem Hierarchy Standard (FHS) Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml)
+* [Linux Standard Base (LSB) Specifications Archive](http://refspecs.linuxfoundation.org/lsb.shtml)
+* [Linux Standard Base (LSB) Navigator](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html)
+* [Linux Standard Base (LSB) Certification System](https://www.linuxbase.org/lsb-cert/welcome_cert.php)
+* [Publicly Available Standards](http://standards.iso.org/ittf/PubliclyAvailableStandards/index.html)

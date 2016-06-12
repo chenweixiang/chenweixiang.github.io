@@ -120,9 +120,9 @@ The Linux kernel has had [three different numbering schemes](https://en.wikipedi
 
 # References
 
-[The Linux Kernel Archives](https://www.kernel.org/)
-[Linux kernel Mainline Repository](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/)
-[Linux kernel Stable Repository](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/)
-[Linux kernel Next Repository](https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/)
-[Linux kernel version numbering](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering)
-[Linux Foundation Referenced Specifications](http://refspecs.linuxfoundation.org/)
+* [The Linux Kernel Archives](https://www.kernel.org/)
+* [Linux kernel Mainline Repository](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/)
+* [Linux kernel Stable Repository](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/)
+* [Linux kernel Next Repository](https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/)
+* [Linux kernel version numbering](https://en.wikipedia.org/wiki/Linux_kernel#Version_numbering)
+* [Linux Foundation Referenced Specifications](http://refspecs.linuxfoundation.org/)

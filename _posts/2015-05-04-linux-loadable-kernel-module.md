@@ -124,6 +124,4 @@ If you want to
 
 # Initialize and Cleanup LKM
 
-
-
-
+# References

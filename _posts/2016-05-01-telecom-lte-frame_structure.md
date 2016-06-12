@@ -17,14 +17,6 @@ According to **TS 36.211 S4**, there are two types of frame structure in LTE. Th
 
 # References
 
-**3GPP Specs**
-
-TS 36.211 S4
-
-**ShareTechnote**
-
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-
-**3GLTEInfo**
-
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.211: section 4
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

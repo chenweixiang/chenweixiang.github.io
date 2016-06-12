@@ -176,12 +176,7 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 
 # References
 
-**3GPP Specs**
-TR 25.913-800 Requirements for E-UTRA and E-UTRAN
-
-**ShareTechnote**
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-[http://www.sharetechnote.com/html](http://www.sharetechnote.com/html)
-
-**3GLTEInfo**
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TR 25.913-800: Requirements for E-UTRA and E-UTRAN
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.sharetechnote.com/html](http://www.sharetechnote.com/html)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

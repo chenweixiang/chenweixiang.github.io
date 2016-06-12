@@ -21,5 +21,5 @@ If you want to know all information for all of those different linux distributio
 
 # References
 
-[GNU/Linux Distribution Timeline](http://futurist.se/gldt/)
-[DistroWatch](http://distrowatch.com/)
+* [GNU/Linux Distribution Timeline](http://futurist.se/gldt/)
+* [DistroWatch](http://distrowatch.com/)

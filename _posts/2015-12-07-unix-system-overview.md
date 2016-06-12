@@ -174,8 +174,7 @@ Besides, you can see the preview of the Unix timeline on website [Unix History](
 
 ![Unix history](/assets/unix-history.svg)
 
-# Reference
+# References
 
-[Unix, Linux, and variant history](http://www.computerhope.com/history/unix.htm)
-
-[Unix Tree](http://minnie.tuhs.org/cgi-bin/utree.pl)
+* [Unix, Linux, and variant history](http://www.computerhope.com/history/unix.htm)
+* [Unix Tree](http://minnie.tuhs.org/cgi-bin/utree.pl)

@@ -196,17 +196,9 @@ The following figure shows the synchronisation procedure when UE try to access t
 
 # References
 
-**3GPP Specs**
-
-TS 36.211
-
-**ShareTechnote**
-
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-[http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html](http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html)
-[http://www.sharetechnote.com/html/Handbook_LTE_PSS.html](http://www.sharetechnote.com/html/Handbook_LTE_PSS.html)
-[http://www.sharetechnote.com/html/Handbook_LTE_SSS.html](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
-
-**3GLTEInfo**
-
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.211: E-UTRA - Physical Channels and Modulation
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html](http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html)
+* [http://www.sharetechnote.com/html/Handbook_LTE_PSS.html](http://www.sharetechnote.com/html/Handbook_LTE_PSS.html)
+* [http://www.sharetechnote.com/html/Handbook_LTE_SSS.html](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

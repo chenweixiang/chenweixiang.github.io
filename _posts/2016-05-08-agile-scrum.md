@@ -202,10 +202,11 @@ Scrum emphasizes working product at the end of the sprint that is really done. I
         * What could be improved in the next sprint?
     * The recommended duration is one-and-a-half hours for a two-week sprint
     * This event is facilitated by the *scrum master*
+    <p/>
 
 # References
 
-[Agile Alliance](https://www.agilealliance.org/)
-[Agile Software Development wikipedia](https://en.wikipedia.org/wiki/Agile_software_development)
-[Scrum wikipedia](http://en.wikipedia.org/wiki/Scrum_(software_development))
-[Scrum](https://www.scrum.org/)
+* [Agile Alliance](https://www.agilealliance.org/)
+* [Agile Software Development wikipedia](https://en.wikipedia.org/wiki/Agile_software_development)
+* [Scrum wikipedia](http://en.wikipedia.org/wiki/Scrum_(software_development))
+* [Scrum](https://www.scrum.org/)

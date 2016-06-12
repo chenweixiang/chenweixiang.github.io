@@ -122,18 +122,8 @@ The Radio protocl architecture is shown in the following figure:
 
 # References
 
-**3GPP Specs**
-
-TS 36.300-8c0
-
-**ShareTechnote**
-
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-
-[http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
-
-[http://www.sharetechnote.com/html/Handbook_LTE_SAE.html](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
-
-**3GLTEInfo**
-
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.300-8c0: E-UTRA and E-UTRAN Overall description, Stage 2
+* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
+* [http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
+* [http://www.sharetechnote.com/html/Handbook_LTE_SAE.html](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
+* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)

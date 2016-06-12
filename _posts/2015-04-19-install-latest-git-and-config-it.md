@@ -255,3 +255,13 @@ Then, run the script to print the files changed by a commit with absolute path:
      arch/x86/kernel/apic/vector.c | 11 +++++++----
      arch/x86/kernel/irq.c         |  2 +-
      3 files changed, 11 insertions(+), 7 deletions(-)
+
+# References
+
+* [Git Official Site](https://git-scm.com/)
+* [Git Repository on GitHub](https://github.com/git/git)
+* [Gerrit](https://www.gerritcodereview.com/)
+* [GitHub](https://github.com/)
+* [GitLab](https://about.gitlab.com/)
+* [Coding](https://coding.net/)
+* [Quilt](http://savannah.nongnu.org/git/?group=quilt)

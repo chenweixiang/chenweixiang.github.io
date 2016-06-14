@@ -45,7 +45,7 @@ The following table shows the ITU-R Recommendations related to IMT-2000:
 | ITU-R M.1311    | Framework for modularity and radio commonality within IMT-2000 |
 | ITU-R M.1390    | Methodology for the calculation of IMT-2000 terrestrial spectrum requirements |
 | ITU-R M.1456    | Minimum performance characteristics and operational conditions for high altitude platform stations providing IMT-2000 in the bands 1885-1980 MHz, 2010-2025 MHz and 2110-2170 MHz in Regions 1 and 3 and 1885-1980 MHz and 2110-2160 MHz in Region 2 |
-| ITU-R M.1457    | Detailed specifications of the radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) |
+| **ITU-R M.1457** | Detailed specifications of the radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) |
 | ITU-R M.1545    | Measurement uncertainty as it applies to test limits for the terrestrial component of International Mobile Telecommunications-2000 |
 | ITU-R M.1579    | Global circulation of IMT-2000 terminals |
 | ITU-R M.1580    | Generic unwanted emission characteristics of base stations using the terrestrial radio interfaces of IMT 2000 |
@@ -57,6 +57,7 @@ The following table shows the ITU-R Recommendations related to IMT-2000:
 | ITU-R M.1654    | A methodology to assess interference from broadcasting-satellite service (sound) into terrestrial IMT-2000 systems intending to use the band 2 630-2 655 MHz |
 | ITU-R M.1768    | Methodology for calculation of spectrum requirements for the future development of the terrestrial component of IMT-2000 and systems beyond IMT-2000 |
 | ITU-R M.1822    | Framework for services supported by IMT |
+| **ITU-R M.2012** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-Advanced (IMT-Advanced) |
 
 <p/>
 
@@ -118,7 +119,8 @@ The IMT-2000 consists of both **terrestrial** component and **satellite** compon
 
 # IMT-Advanced (4G)
 
-**IMT-R M.1645**: Framework and overall objectives of the future development of IMT-2000 and systems beyond IMT-2000
+* **ITU-R M.1645**: Framework and overall objectives of the future development of IMT-2000 and systems beyond IMT-2000
+* **ITU-R M.2012**: Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-Advanced (IMT-Advanced)
 
 | ITU-R Name | Common Name | Standardization |
 | :--------- | :---------- | :-------------- |
@@ -129,6 +131,101 @@ The IMT-2000 consists of both **terrestrial** component and **satellite** compon
 
 # IMT-2020 (5G)
 
-In February 2013, three ministries of China (MIIT, NDRC and MOST) jointly established **IMT-2020(5G) Promotion group** based on the original IMT-Advanced promotion group.
+## ITU Recommendations
+
+According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx), the following figure is time plan of IMT-2020 and its corresponding reports and recommendations:
+
+![IMT-2020-Timeplan](/assets/IMT-2020-Timeplan.png)
+
+* **Vision & Technology Trends**
+
+| Recommends | Title |
+| :--------- | :---- |
+| **ITU-R M.2320** | Future technology trends of terrestrial IMT systems (November 2014) |
+| **ITU-R M.2083** | Framework and overall objectives of the future development of IMT for 2020 and beyond (September 2015) |
+| **ITU-R M.2376** | Technical feasibility of IMT in bands above 6 GHz (July 2015) |
+
+<p/>
+
+* **Market, Traffic and Future Spectrum Requirements**
+
+| Recommends | Title |
+| :--------- | :---- |
+| **ITU-R M.1768-1** | Methodology for calculation of spectrum requirements for the terrestrial component of International Mobile Telecommunications (April 2013) |
+| **ITU-R M.2243** | Assessment of the global mobile broadband deployments and forecasts for International Mobile Telecommunications (March 2011) |
+| **ITU-R M.2289** | Future radio aspect parameters for use with the terrestrial IMT spectrum estimate methodology of Recommendation ITU-R M.1768-1 (March 2014) |
+| **ITU-R M.2290** | Future spectrum requirements estimate for terrestrial IMT (February 2014) |
+| **ITU-R M.2370** | IMT Traffic estimates for the years 2020 to 2030 (July 2015) |
+
+<p/>
+
+* **Frequency Brand Channeling arrangements & Spectrum Sharing and Compatability**
+
+| Recommends | Title |
+| :--------- | :---- |
+| **ITU-R M.1036-5** | Frequency arrangements for implementation of the terrestrial component of International Mobile Telecommunications (IMT) in the bands identified for IMT in the Radio Regulations (RR) (October 2015) |
+| **ITU-R M.2292** | Characteristics of terrestrial IMT-Advanced systems for frequency sharing/interference analyses (March 2014) |
+| **ITU-R M.2039-3** | Characteristics of terrestrial IMT-2000 systems for frequency sharing/interference analyses (March 2015) |
+| **ITU-R M.2374** | Coexistence of two TDD networks in the 2300-2400 MHz band (July 2015) |
+
+<p/>
+
+* **IMT Specifications and Other Technology Related Work**
+
+| Recommends | Title |
+| :--------- | :---- |
+| **ITU-R M.1457-12** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) (March 2015) |
+| **ITU-R M.2012-2** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications Advanced (IMT-Advanced) (September 2015) |
+| **ITU-R M.1579-2** | Global circulation of IMT-2000 terrestrial terminals (March 2015) |
+| **ITU-R M.2070** | Generic unwanted emission characteristics of base stations using the terrestrial radio interfaces of IMT-Advanced (February 2015) |
+| **ITU-R M.2071** | Generic unwanted emission characteristics of mobile stations using the terrestrial radio interfaces of IMT-Advanced (January 2015) |
+| **ITU-R M.2334** | Passive and active antenna systems for base stations of IMT systems (March 2015) |
+| **ITU-R M.2375** | Architecture and topology of IMT networks (July 2015) |
+
+<p/>
+
+* **Support for IMT Applications & Deployments**
+
+| Recommends | Title |
+| :--------- | :---- |
+| **ITU-R M.2291** | The use of International Mobile Telecommunications (IMT) for broadband public protection and disaster relief (PPDR) applications (March 2014) |
+| **ITU-R Handbook** | ITU-R Handbook on "Global trends in IMT" (May 2015) |
+
+<p/>
+
+* **Workshops & Seminars**
+
+| Title |
+| :---- |
+| Regional Workshops – "IMT for the Next Decade" (2011) |
+| WP5A-WP5B-WP5C workshop on the preparations for WRC-15 (May 2012) |
+| Working Party 5D Workshop - Research Views on IMT Technology Evolution (July 2012) |
+| ITU Telecom World – IMT Vision Panel (November 2013) |
+| ITU Seminar on IMT Towards 2020 and Beyond (in conjunction with ITU-D) (February 2014) |
+| Working Party 5D Workshop - Research views on IMT beyond 2020 (February 2014) |
+
+<p/>
+
+## IMT-2020 (5G) Promotion Group
+
+In February 2013, three ministries of China - that's, the Ministry of Industry and Information Technology (MIIT, 中国工业和信息化部), the National Development and Reform Commission (NDRC, 国家发展和改革委员会) and the Ministry of Science and Technology (MOST, 科学技术部) - jointly established [**IMT-2020(5G) Promotion group**](http://www.imt-2020.cn/) based on the original IMT-Advanced promotion group. It is the major platform to promote the research of 5G in China. Its members include the leading operators, vendors, universities, and research institutes in the field of mobile communications.
+
+![IMT-2020-5G-Promotion-Group-Structure](/assets/IMT-2020-5G-Promotion-Group-Structure.jpg)
+
+* 5G愿景与需求白皮书
+* 5G概念白皮书
+* 5G无线技术架构白皮书
+* 5G网络技术架构白皮书
+* 5G网络架构设计白皮书
 
 # References
+
+* [ITU Official Site](http://www.itu.int/en/Pages/default.aspx)
+* [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx)
+* [IMT-2020 (5G) Promotion Group](http://www.imt-2020.cn/)
+* [The 5G Infrastructure Public Private Partnership](https://5g-ppp.eu/)
+* [4G Americas](http://www.4gamericas.org/)
+* [5G Americas](http://www.5gamericas.org/)
+* [The Fifth Generation Mobile Communications Promotion Forum (5GMF)](http://5gmf.jp/en/)
+* [](http://www.4gamericas.org/en/)
+* [Massive MIMO](https://massivemimo.eu/)

@@ -83,9 +83,11 @@ Refer to [Fourier Series Wikipedia](https://en.wikipedia.org/wiki/Fourier_series
 ## Fourier Series Diagram
 
 **方波 / Square Wave**
+
 ![Fourier-Series-Square-Wave-Fourier](/assets/Fourier-Series-Square-Wave-Fourier.png)
 
 **锯齿波 / Sawtooth Wave**
+
 ![Fourier-Series-Saw-Tooth-Fourier](/assets/Fourier-Series-Saw-Tooth-Fourier.png)
 
 ## Nyquist-CShannon Sampling Theorem
@@ -113,17 +115,19 @@ The **Discrete Fourier Transform** (**DFT**) converts a finite sequence of equal
 
 ## Definition
 
-The sequence of *N* complex numbers $$x_0, x_1, \ldots, x_{N-1}$$ is transformed into an *N*-periodic sequence of complex numbers:
-$$X_k = \sum_{n=0}^{N-1}x_n e^{-2 \pi ikn/N}$$
+For the sequence of *N* complex numbers $$x_0, x_1, \ldots, x_{N-1}$$:
 
-The Inverse Discrete Fourier Transform is:
-$$x_n = \frac{1}{N} \sum_{n=0}^{N-1}X_k e^{2 \pi ikn/N}$$
+| **Discrete Fourier Transform** | $$X_k = \sum_{n=0}^{N-1}x_n e^{-2 \pi ikn/N}$$ |
+| **Inverse Discrete Fourier Transform** | $$x_n = \frac{1}{N} \sum_{n=0}^{N-1}X_k e^{2 \pi ikn/N}$$ |
 
-Using [Euler's formula](https://en.wikipedia.org/wiki/Euler%27s_formula), the DFT formulae can be converted to the trigonometric forms sometimes used in engineering and computer science. Fourier Transform:
-$$X_k = \sum_{n=0}^{N-1}x_n [cos(-2 \pi k \frac{n}{N}) + i \bullet sin(-2 \pi k \frac{n}{N})]$$
+<p/>
 
-The Inverse Discrete Fourier Transform is:
-$$x_n = \frac{1}{N} \sum_{n=0}^{N-1}X_k [cos(2 \pi k \frac{n}{N}) + i \bullet sin(2 \pi k \frac{n}{N})]$$
+Using [Euler's formula](https://en.wikipedia.org/wiki/Euler%27s_formula), the DFT formulae can be converted to the trigonometric forms sometimes used in engineering and computer science.
+
+| **Discrete Fourier Transform** | $$X_k = \sum_{n=0}^{N-1}x_n [cos(-2 \pi k \frac{n}{N}) + i \bullet sin(-2 \pi k \frac{n}{N})]$$ |
+| **Inverse Discrete Fourier Transform** | $$x_n = \frac{1}{N} \sum_{n=0}^{N-1}X_k [cos(2 \pi k \frac{n}{N}) + i \bullet sin(2 \pi k \frac{n}{N})]$$ |
+
+<p/>
 
 ## DFT Diagram
 
@@ -132,8 +136,6 @@ $$x_n = \frac{1}{N} \sum_{n=0}^{N-1}X_k [cos(2 \pi k \frac{n}{N}) + i \bullet si
 ## FFT and IFFT
 
 A **Fast Fourier transform (FFT)** algorithm computes the Discrete Fourier transform (DFT) of a sequence, or its inverse. *Fourier analysis* converts a signal from its original domain (often time or space) to a representation in the frequency domain and vice versa. An FFT rapidly computes such transformations by factorizing the DFT matrix into a product of sparse (mostly zero) factors. As a result, it manages to reduce the complexity of computing the DFT from $$O(n^2)$$, which arises if one simply applies the definition of DFT, to $$O(n \bullet logn)$$, where *n* is the data size.
-
-### Definition
 
 ### Algorithms
 

@@ -1,0 +1,38 @@
+---
+layout: post
+title: "RTOS: Overview"
+tag: RTOS
+toc: true
+---
+
+This article introduces the basic knowledge of Real-Time Operating System (RTOS).
+
+<!--more-->
+
+# What's RTOS?
+
+A real-time operating system (RTOS) is an operating system (OS) intended to serve real-time application process data as it comes in, typically without buffering delays. Processing time requirements (including any OS delay) are measured in tenths of seconds or shorter.
+
+A key characteristic of a RTOS is the level of its consistency concerning the amount of time it takes to accept and complete an application's task; the variability is *jitter*. A *hard* real-time operating system has less jitter than a *soft* real-time operating system. The chief design goal is not high throughput, but rather a guarantee of a soft or hard performance category. A RTOS that can usually or *generally* meet a *deadline* is a *soft real-time OS*, but if it can meet a deadline *deterministically* it is a *hard real-time OS*.
+
+A RTOS has an advanced algorithm for scheduling. Scheduler flexibility enables a wider, computer-system orchestration of process priorities, but a real-time operating system is more frequently dedicated to a narrow set of applications. Key factors in a real-time operating system are minimal interrupt latency and minimal thread switching latency; a real-time operating system is valued more for how quickly or how predictably it can respond than for the amount of work it can perform in a given period of time.
+
+# List of RTOS
+
+The RTOS is developed and supplied by multiple suppliers in an open market. See the [comparison of real-time operating systems](https://en.wikipedia.org/wiki/Comparison_of_real-time_operating_systems) for a comprehensive list. Here is a list of RTOS, which are used during my work.
+
+| Name | License | Source Model | Target | Status | Platforms | Website |
+| :--- | :------ | :----------- | :----- | :----- | :-------- | :------ |
+| **OSE** | Proprietary | Closed | General purpose | Active | ARM, PowerPC, MIPS, IXP2400, TI OMAP, ... | [Enea software](http://www.enea.com/ose) |
+| **ThreadX** | Proprietary | Available to customers | ? | Active | ARC, ARM/Thumb, AVR32, BlackFin, 680x0-ColdFire, H8-300H, Luminary Micro Stellaris, M-CORE, MicroBlaze, PIC24-dsPIC, PIC32, MIPS, V8xx, Nios II, PowerPC, Renesas RX100, RX200, RX600, RX700, Synergy, SH, SHARC, StarCore, STM32, StrongARM, TMS320C54x, TMS320C6x, x86/x386, XScale, Xtensa/Diamond, ZSP | [Express Logic](http://rtos.com/products/threadx) |
+| **Micrium µC/OS-II** | Proprietary | Available under license | Embedded | Active | ARM7-9-11/Cortex-M1-3-4-A8/9, AVR, HC11/12/S12, ColdFire, Blackfin, MicroBlaze, NIOS, 8051, x86, Win32, H8S, M16C, M32C, MIPS, 68000, PIC24-dsPIC33-PIC32, MSP430, PowerPC, SH, StarCore, Renesas RX100-200-600-700, RL; STM32, ... | [Micrium Embedded Software](http://micrium.com/rtos/ucosii/overview) |
+| **Micrium µC/OS-III** | Proprietary | Available under license | Embedded | Active | ARM7-9-11/Cortex-M1-3-4-A8/9, AVR, HC11/12/S12, ColdFire, Blackfin, MicroBlaze, NIOS, 8051, x86, Win32, H8S, M16C, M32C, MIPS, 68000, PIC24/dsPIC33/PIC32, MSP430, PowerPC, SH, StarCore, Renesas RX100-200-600-700, RL; STM32, ... | [Micrium Embedded Software](http://micrium.com/rtos/ucosiii/overview) |
+
+<p/>
+
+# References
+
+* [RTOS Wikipedia](https://en.wikipedia.org/wiki/Real-time_operating_system)
+* [Comparison of Real-Time Operating Systems (RTOS) at Wikipedia](https://en.wikipedia.org/wiki/Comparison_of_real-time_operating_systems)
+* [Comparison of Real-Time Operating Systems (RTOS) at DMOZ](https://www.dmoz.org/Computers/Software/Operating_Systems/Realtime)
+* [2014 Embedded Market Study](http://bd.eduweb.hhs.nl/es/2014-embedded-market-study-then-now-whats-next.pdf)

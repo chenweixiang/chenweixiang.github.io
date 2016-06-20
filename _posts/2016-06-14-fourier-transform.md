@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Fourier Transform"
-tag: Linux
+tag: Algorithm
 toc: true
 ---
 

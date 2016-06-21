@@ -24,6 +24,9 @@ excerpt_separator: <!--more-->
 paginate: 10
 paginate_path: "page:num"
 
+# Make post visible which has date in the future
+future: true
+
 # Default settings
 defaults:
   -

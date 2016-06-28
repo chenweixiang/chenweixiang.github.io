@@ -30,7 +30,7 @@ This article introduces C standard library and its implementations on Linux syst
     * **ISO/IEC 9899:1990/AM1:1995** (known as **C90 AMD1** or **C95**)
     * **ISO/IEC 9899:1990/COR1:1995**
     * **ISO/IEC 9899:1990/COR2:1996**
-     <br>
+     <p/>
 
 * **ISO/IEC9899:1999 (C99)**
 
@@ -41,7 +41,7 @@ This article introduces C standard library and its implementations on Linux syst
     * **ISO/IEC 9899:1999/COR1:2001**
     * **ISO/IEC 9899:1999/COR2:2004**
     * **ISO/IEC 9899:1999/COR3:2007**
-     <br>
+     <p/>
 
 * **ISO/IEC 9899:2011 (C11)**
 

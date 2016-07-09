@@ -11,7 +11,7 @@ This article introduce the 3GPP and its specifications related to Telecommunicat
 
 # 3GPP Brief
 
-The [3rd Generation Partnership Project (3GPP)](#http://www.3gpp.org/) is a collaboration between groups of telecommunications associations, known as the Organizational Partners. The initial scope of 3GPP was to make a globally applicable third-generation (3G) mobile phone system specification based on evolved Global System for Mobile Communications (GSM) specifications within the scope of the International Mobile Telecommunications-2000 (IMT-2000) project of the International Telecommunication Union (ITU). The scope was later enlarged to include the development and maintenance of:
+The [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/) is a collaboration between groups of telecommunications associations, known as the Organizational Partners. The initial scope of 3GPP was to make a globally applicable third-generation (3G) mobile phone system specification based on evolved Global System for Mobile Communications (GSM) specifications within the scope of the International Mobile Telecommunications-2000 (IMT-2000) project of the International Telecommunication Union (ITU). The scope was later enlarged to include the development and maintenance of:
 
 * **GSM** and related 2G and 2.5G standards including GPRS and EDGE
 * **UMTS** and related 3G standards including HSPA

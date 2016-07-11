@@ -42,6 +42,7 @@ The BitBake recipes consist of the source URL (http, https, ftp, cvs, svn, git, 
 * [Yocto Project Aligns Technology with OpenEmbedded and Gains Corporate Collaborators](http://www.linuxfoundation.org/news-media/announcements/2011/03/yocto-project-aligns-technology-openembedded-and-gains-corporate-co)
 * [Deciding between Buildroot & Yocto](https://lwn.net/Articles/682540/)
 * [Yocto Project Development Manual](http://www.yoctoproject.org/docs/current/dev-manual/dev-manual.html)
+* [Yocto Project Quick Start](http://www.yoctoproject.org/docs/2.1/yocto-project-qs/yocto-project-qs.html)
 
 * [BitBake Wikipedia](https://en.wikipedia.org/wiki/BitBake)
 * [BitBake on Yocto Project](https://www.yoctoproject.org/tools-resources/projects/bitbake)

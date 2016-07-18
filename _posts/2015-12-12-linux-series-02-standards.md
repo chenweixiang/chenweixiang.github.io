@@ -461,9 +461,10 @@ According to [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org
 <p/>
 
 ***Referenced Specification(s)*** in above table:
-**[1]** [POSIX 1003.1-2008 (ISO/IEC 9945-2009)](http://www.unix.org/version3/)
-**[2]** [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL)
-**[3]** [Libncursesw API](http://invisible-island.net/ncurses/man/ncurses.3x.html)
+
+* **[1]** [POSIX 1003.1-2008 (ISO/IEC 9945-2009)](http://www.unix.org/version3/)
+* **[2]** [Linux Standard Base (LSB) 5.0](http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/command.html#CMDUTIL)
+* **[3]** [Libncursesw API](http://invisible-island.net/ncurses/man/ncurses.3x.html)
 
 [10]: https://www.gnu.org/software/binutils/ "GNU Binutils"
 [11]: https://www.gnu.org/software/gawk/ "GNU Awk"

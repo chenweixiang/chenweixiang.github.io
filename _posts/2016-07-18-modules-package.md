@@ -61,6 +61,11 @@ Upon invocation of modulecmd module RC files are sourced in the following order:
 
     Lists the current version of the module command, and some configured option values. The command then terminates without further processing.
 
+```
+$ module --version
+3.1.6
+```
+
 * **--force, -f**
 
     Force active dependency resolution. This will result in modules found on a *prereq* command inside a module file being load automatically. Unloading module files using this switch will result in all required modules which have been loaded automatically using the ```-f``` switch being unload. This switch is experimental at the moment.
@@ -108,18 +113,111 @@ Upon invocation of modulecmd module RC files are sourced in the following order:
 
     Print the usage of each sub-command. If an argument is given, print the Module-specific help information for the *modulefile*(s).
 
+```
+$ module help
+
+  Modules Release 3.1.6 (Copyright GNU GPL v2 1991):
+  Available Commands and Usage:
+	+ add|load		modulefile [modulefile ...]
+	+ rm|unload		modulefile [modulefile ...]
+	+ switch|swap		modulefile1 modulefile2
+	+ display|show		modulefile [modulefile ...]
+	+ avail			[modulefile [modulefile ...]]
+	+ use [-a|--append]	dir [dir ...]
+	+ unuse			dir [dir ...]
+	+ update
+	+ purge
+	+ list
+	+ clear
+	+ help			[modulefile [modulefile ...]]
+	+ whatis		[modulefile [modulefile ...]]
+	+ apropos|keyword	string
+	+ initadd		modulefile [modulefile ...]
+	+ initprepend		modulefile [modulefile ...]
+	+ initrm		modulefile [modulefile ...]
+	+ initswitch		modulefile1 modulefile2
+	+ initlist
+	+ initclear
+```
+
 * **list**
 
     List loaded modules.
+
+```
+$ module list -t
+Currently Loaded Modulefiles:
+firefox/3.6.12
+acroread/9.4.0
+flashplayer/10.1
+ica/11.1
+j2re/1.6.0_22
+openoffice/3.2.1
+thunderbird/3.1.6
+xemacs/21.5.29
+vim/7.3.021
+nxclient/3.4.0.7
+sametime/8.0.2
+emacs/23.2
+isit_modules
+gmp/5.0.1
+mpfr/2.4.2
+mpc/0.8.1
+gcc/4.7.2
+chrpath/0.13
+python/2.7.3
+diffstat/1.56
+bcompare/3.3.13
+```
 
 * **avail [path...]**
 
     List all available *modulefiles* in the current **MODULEPATH**. All directories in the **MODULEPATH** are recursively searched for files containing the *modulefile* magic cookie. If an *argument* is given, then each directory in the MODULEPATH is searched for *modulefiles* whose pathname match the argument. Multiple versions of an application can be supported by creating a subdirectory for the application containing *modulefiles* for each version.
 
+```
+$ module avail -t
+...
+xrender/0.9.7
+xv/3.10a
+xz/5.0.4
+xz/5.0.4-vb
+xz/5.0.5
+xz/5.2.1(default)
+yaml/0.1.4
+zlib/1.2.3
+zlib/1.2.5
+zlib/1.2.6
+zlib/1.2.8
+```
+
 * **show modulefile...**
 * **display modulefile...**
 
     Display information about one or more *modulefiles*. The *display* sub-command will list the full path of the *modulefile*(s) and all (or most) of the environment changes the *modulefile*(s) will make if loaded. (It will not display any environment changes found within conditional statements.)
+
+```
+$ module show bcompare/3.3.13
+-------------------------------------------------------------------
+/env/common/modules/bcompare/3.3.13:
+
+prepend-path	 PATH /app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/bin
+prepend-path	 LD_LIBRARY_PATH /app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/lib
+prepend-path	 LD_RUN_PATH /app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/lib
+bcompare-3.3.13.18981 : bcompare vbuild install
+-------------------------------------------------------------------
+
+$ which bcompare
+/app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/bin/bcompare
+
+$ echo $PATH
+/app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/bin:/app/diffstat/1.56/LMWP3/bin:/app/python/2.7.3/LMWP3/bin:/app/chrpath/0.13/LMWP3/bin:/app/gcc/4.7.2/LMWP3/bin:/app/emacs/23.2/LMWP3/bin:/app/sametime/8.0.2:/app/nxclient/3.4.0.7/LMWP3/bin:/app/vim/7.3.021/LMWP3/bin:/app/xemacs/21.5.29/LMWP3/bin:/app/thunderbird/3.1.6/LMWP3:/app/thunderbird/3.1.6/LMWP3/bin:/app/openoffice/3.2.1/LMWP3/bin:/app/j2re/1.6.0_22/LMWP3/bin:/app/ica/client/11.1:/app/acroread/9.4.0/LMWP3/Adobe/Reader9/bin:/app/firefox/3.6.12/LMWP3:/env/seki/bin:/home/ewaadex/.afs/0/ibin:/usr/atria/bin:/usr/NX/bin:/usr/lib64/mpi/gcc/openmpi/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin/X11:/usr/X11R6/bin:/usr/games:/opt/kde3/bin:/opt/cross/bin:/usr/lib/mit/bin:/usr/lib/mit/sbin:/usr/lib/qt3/bin:/app/arc/0/bin
+
+$ echo $LD_LIBRARY_PATH
+/app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/lib:/app/python/2.7.3/LMWP3/lib:/app/python/2.7.3/LMWP3/lib/python2.7/site-packages:/app/python/2.7.3/LMWP3/lib/python2.7/site-packages/PyQt4:/app/mpc/0.8.1/LMWP3/lib:/app/mpfr/2.4.2/LMWP3/lib:/app/gmp/5.0.1/LMWP3/lib:/usr/lib64/mpi/gcc/openmpi/lib64
+
+$ echo $LD_RUN_PATH
+/app/vbuild/SLED11-x86_64/bcompare/3.3.13.18981/lib:/app/python/2.7.3/LMWP3/lib:/app/python/2.7.3/LMWP3/lib/python2.7/site-packages:/app/python/2.7.3/LMWP3/lib/python2.7/site-packages/PyQt4:/app/mpc/0.8.1/LMWP3/lib:/app/mpfr/2.4.2/LMWP3/lib:/app/gmp/5.0.1/LMWP3/lib:/app/gcc/4.7.2/LMWP3/lib64:/app/gcc/4.7.2/LMWP3/lib
+```
 
 * **add modulefile...**
 * **load modulefile...**
@@ -216,25 +314,169 @@ Refer to [Manual page for the modulefile commands](http://modules.sourceforge.ne
 
     The location of the master Modules package file directory containing *module* command initialization scripts, the executable program **modulecmd**, and a directory containing a collection of master **modulefiles**.
 
+```
+$ echo ${MODULESHOME}
+/usr/share/modules
+
+$ ll ${MODULESHOME}
+drwxr-xr-x   4 root root  4096 Feb 25  2009 ./
+drwxr-xr-x 357 root root 12288 Apr 20 13:47 ../
+-rw-r--r--   1 root root  1026 Feb  7  2013 3.1.6
+drwxr-xr-x   2 root root  4096 Apr 18 15:06 init/
+drwxr-xr-x   2 root root  4096 Apr 18 15:08 modulefiles/
+
+$ ll ${MODULESHOME}/init
+drwxr-xr-x 2 root root 4096 Apr 18 15:06 ./
+drwxr-xr-x 4 root root 4096 Feb 25  2009 ../
+-rw-r--r-- 1 root root  704 Feb  7  2013 .modulespath
+-rw-r--r-- 1 root root  547 Feb  7  2013 bash
+-rw-r--r-- 1 root root 1181 Feb  7  2013 csh
+-rw-r--r-- 1 root root  546 Feb  7  2013 ksh
+-rw-r--r-- 1 root root  557 Feb  7  2013 perl
+-rw-r--r-- 1 root root  727 Feb  7  2013 python
+-rw-r--r-- 1 root root  545 Feb  7  2013 sh
+-rw-r--r-- 1 root root  762 Feb  7  2013 tcsh
+-rw-r--r-- 1 root root  546 Feb  7  2013 zsh
+
+$ ll ${MODULESHOME}/modulefiles/
+drwxr-xr-x 2 root root 4096 Apr 18 15:08 ./
+drwxr-xr-x 4 root root 4096 Feb 25  2009 ../
+-rw-r--r-- 1 root root  655 Feb  7  2013 dot
+-rw-r--r-- 1 root root 1517 Feb  7  2013 module-cvs
+-rw-r--r-- 1 root root 1913 Feb  7  2013 module-info
+-rw-r--r-- 1 root root  662 Feb  7  2013 modules
+-rw-r--r-- 1 root root  547 Feb 25  2009 mpich-ch-p4
+-rw-r--r-- 1 root root  550 Feb 25  2009 mpich-ch-p4mpd
+-rw-r--r-- 1 root root  469 Feb  7  2013 null
+-rw-r--r-- 1 root root 1606 Feb  7  2013 use.own
+```
+
 * **MODULEPATH**
 
     The path that the **module** command searches when looking for *modulefiles*. Typically, it is set to a default value by the bootstrap procedure. **MODULEPATH** can be set using *module use* or by the module initialization script to search group or personal *modulefile* directories before or after the master *modulefile* directory.
+
+```
+$ echo $MODULEPATH
+/app/modules/0/modulefiles:/env/seki/modules:/home/ewaadex/.afs/0/imodules:/env/common/modules
+```
 
 * **LOADEDMODULES**
 
     A colon separated list of all loaded *modulefiles*.
 
+```
+$ echo $LOADEDMODULES
+firefox/3.6.12:acroread/9.4.0:flashplayer/10.1:ica/11.1:j2re/1.6.0_22:openoffice/3.2.1:thunderbird/3.1.6:xemacs/21.5.29:vim/7.3.021:nxclient/3.4.0.7:sametime/8.0.2:emacs/23.2:isit_modules:gmp/5.0.1:mpfr/2.4.2:mpc/0.8.1:gcc/4.7.2:chrpath/0.13:python/2.7.3:diffstat/1.56:bcompare/3.3.13
+```
+
 * **\_LMFILES\_**
 
     A colon separated list of the full pathname for all loaded *modulefiles*.
+
+```
+$ echo $_LMFILES_
+/env/common/modules/firefox/3.6.12:/env/common/modules/acroread/9.4.0:/env/common/modules/flashplayer/10.1:/env/common/modules/ica/11.1:/env/common/modules/j2re/1.6.0_22:/env/common/modules/openoffice/3.2.1:/env/common/modules/thunderbird/3.1.6:/env/common/modules/xemacs/21.5.29:/env/common/modules/vim/7.3.021:/env/common/modules/nxclient/3.4.0.7:/env/common/modules/sametime/8.0.2:/env/common/modules/emacs/23.2:/home/ewaadex/.afs/0/imodules/isit_modules:/env/common/modules/gmp/5.0.1:/env/common/modules/mpfr/2.4.2:/env/common/modules/mpc/0.8.1:/env/common/modules/gcc/4.7.2:/env/common/modules/chrpath/0.13:/env/common/modules/python/2.7.3:/env/common/modules/diffstat/1.56:/env/common/modules/bcompare/3.3.13
+```
 
 * **MODULESBEGINENV**
 
     If modules has been configured (BEGINENV=99) to test for this environment variable, then if it exists, it is the name of the file to store the the initial shell environment. This environment variable will have embedded environment variables unrolled to one level. The contents of this variable is only used the first time *modules* is invoked.
 
+```
+$ echo $MODULESBEGINENV
+MODULESBEGINENV: Undefined variable.
+```
+
 * **\_MODULESBEGINENV\_**
 
     The filename of the file containing the initialization environment snapshot.
+
+```
+$ echo $_MODULESBEGINENV_
+/home/ewaadex/.modulesbeginenv
+
+$ ll /home/ewaadex/.modulesbeginenv
+-rw-r--r-- 1 ewaadex rnd 2582 Jul 19 04:08 /home/ewaadex/.modulesbeginenv
+
+$ cat /home/ewaadex/.modulesbeginenv
+USER=ewaadex
+LOGNAME=ewaadex
+HOME=/home/ewaadex
+PATH=/env/seki/bin:/home/ewaadex/.afs/0/ibin:/usr/atria/bin:/usr/NX/bin:/usr/lib64/mpi/gcc/openmpi/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin/X11:/usr/X11R6/bin:/usr/games:/opt/kde3/bin:/opt/cross/bin:/usr/lib/mit/bin:/usr/lib/mit/sbin:/usr/lib/qt3/bin:/usr/sbin:/sbin:/app/arc/0/bin
+MAIL=/var/mail/ewaadex
+SHELL=/bin/tcsh
+SSH_CLIENT=127.0.0.1 56934 22
+SSH_CONNECTION=127.0.0.1 56934 127.0.0.1 22
+SSH_ORIGINAL_COMMAND=/usr/NX/bin/nxnode
+HOSTTYPE=x86_64
+VENDOR=suse
+OSTYPE=linux
+MACHTYPE=x86_64-suse-linux
+SHLVL=1
+PWD=/home/ewaadex
+GROUP=rnd
+HOST=esekilxv8640
+CSHEDIT=emacs
+CPU=x86_64
+HOSTNAME=esekilxv8640.rnd.ki.sw.ericsson.se
+INPUTRC=/etc/inputrc
+LESS=-M -I
+LESSOPEN=lessopen.sh %s
+LESSCLOSE=lessclose.sh %s %s
+LESS_ADVANCED_PREPROCESSOR=no
+LESSKEY=/etc/lesskey.bin
+PAGER=less
+MORE=-sl
+MINICOM=-c on
+MANPATH=/usr/lib64/mpi/gcc/openmpi/man:/usr/share/man:/usr/local/man:/opt/lsb/man:/opt/mpich/man:/opt/quest/man
+INFODIR=/usr/local/info:/usr/share/info:/usr/info
+INFOPATH=/usr/local/info:/usr/share/info:/usr/info
+XKEYSYMDB=/usr/share/X11/XKeysymDB
+XNLSPATH=/usr/share/X11/nls
+COLORTERM=1
+JAVA_BINDIR=/usr/lib64/jvm/java/bin
+JAVA_ROOT=/usr/lib64/jvm/java
+JAVA_HOME=/usr/lib64/jvm/java
+JRE_HOME=/usr/lib64/jvm/java/jre
+JDK_HOME=/usr/lib64/jvm/java
+SDK_HOME=/usr/lib64/jvm/java
+CVS_RSH=ssh
+XCURSOR_THEME=
+QT_HOME_DIR=/usr/share/desktop-data
+GNOME_PATH=/usr
+GNOMEDIR=/usr
+LANG=en_US
+MODULE_VERSION=3.1.6
+MODULE_VERSION_STACK=3.1.6
+MODULESHOME=/usr/share/modules
+MODULEPATH=/app/modules/0/modulefiles:/env/seki/modules:/home/ewaadex/.afs/0/imodules:/env/common/modules
+LOADEDMODULES=
+LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/openmpi/lib64
+NXDIR=/usr/NX
+FROM_HEADER=
+http_proxy=http://www-proxy.ericsson.se:8080/
+https_proxy=http://www-proxy.ericsson.se:8080/
+no_proxy=localhost, 127.0.0.1, .ericsson.se, .ericsson.com
+NNTPSERVER=news
+PYTHONSTARTUP=/etc/pythonstart
+QTDIR=/usr/lib/qt3
+XDG_DATA_DIRS=/usr/local/share:/usr/share:/etc/opt/kde3/share:/opt/kde3/share:/opt/mpich/share:/opt/puppet/share:/opt/quest/share:/usr/share/gnome/help
+XDG_CONFIG_DIRS=/etc/xdg
+G_BROKEN_FILENAMES=1
+G_FILENAME_ENCODING=@locale,UTF-8,ISO-8859-1,CP1252
+ENV=/etc/bash.bashrc
+CSHRCREAD=true
+SITE=seki
+ARC_ENV=seki
+ARC_RELEASE=0
+_system_path=/usr/NX/bin:/usr/lib64/mpi/gcc/openmpi/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/bin/X11:/usr/X11R6/bin:/usr/games:/opt/kde3/bin:/opt/cross/bin:/usr/lib/mit/bin:/usr/lib/mit/sbin:/usr/lib/qt3/bin
+PROJ_NR=0
+CCHOME=/usr/atria
+MAGIC_PATH=/usr/atria/config/magic
+LC_TIME=C
+LC_MESSAGES=C
+LC_COLLATE=C
+```
 
 # Files
 

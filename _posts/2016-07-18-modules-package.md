@@ -117,17 +117,17 @@ Upon invocation of modulecmd module RC files are sourced in the following order:
     List all available *modulefiles* in the current **MODULEPATH**. All directories in the **MODULEPATH** are recursively searched for files containing the *modulefile* magic cookie. If an *argument* is given, then each directory in the MODULEPATH is searched for *modulefiles* whose pathname match the argument. Multiple versions of an application can be supported by creating a subdirectory for the application containing *modulefiles* for each version.
 
 * **show modulefile...**
-  **display modulefile...**
+* **display modulefile...**
 
     Display information about one or more *modulefiles*. The *display* sub-command will list the full path of the *modulefile*(s) and all (or most) of the environment changes the *modulefile*(s) will make if loaded. (It will not display any environment changes found within conditional statements.)
 
 * **add modulefile...**
-  **load modulefile...**
+* **load modulefile...**
 
     Load *modulefile*(s) into the shell environment.
 
 * **rm modulefile...**
-  **unload modulefile...**
+* **unload modulefile...**
 
     Remove *modulefile*(s) from the shell environment.
 
@@ -140,11 +140,11 @@ Upon invocation of modulecmd module RC files are sourced in the following order:
     Unload all loaded *modulefiles*.
 
 * **swap [modulefile1] modulefile2**
-  **switch [modulefile1] modulefile2**
+* **switch [modulefile1] modulefile2**
 
     Switch loaded *modulefile1* with *modulefile2*. If *modulefile1* is not specified, then it is assumed to be the currently loaded module with the same root name as *modulefile2*.
 
-* **use [-a|--append] directory...**
+* **use [-a\|--append] directory...**
 
     Prepend one or more directories to the **MODULEPATH** environment variable. The *--append* flag will append the directory to **MODULEPATH**.
 
@@ -165,7 +165,7 @@ Upon invocation of modulecmd module RC files are sourced in the following order:
     Display the information set up by the module-whatis commands inside the specified *modulefile*(s). If no *modulefile* is specified, all *whatis* lines will be shown.
 
 * **apropos string**
-  **keyword string**
+* **keyword string**
 
     Seeks through the *whatis* informations of all *modulefiles* for the specified string. All module-whatis informations matching the string will be displayed.
 

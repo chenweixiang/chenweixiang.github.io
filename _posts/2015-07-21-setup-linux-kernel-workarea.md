@@ -15,10 +15,9 @@ Run the following commands to clone all Linux kernel repositories into the same 
 
 ```
 #
-# (1) Clone linux.git to ~/linux
-#     - git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-#     - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-#     - https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux.git
+# (1) Clone mainline tree linux.git to ~/linux
+#     git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+#     https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 #
 chenwx@chenwx ~ $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 Cloning into 'linux'...
@@ -31,10 +30,9 @@ Checking connectivity... done.
 Checking out files: 100% (47936/47936), done.
 
 #
-# (2) Add linux-next tree to ~/linux
-#     - git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
-#     - https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
-#     - https://kernel.googlesource.com/pub/scm/linux/kernel/git/next/linux-next.git
+# (2) Add next tree linux-next.git to ~/linux
+#     git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
+#     https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
 #
 chenwx@chenwx ~/linux $ git remote add linux-next https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
 
@@ -50,10 +48,9 @@ chenwx@chenwx ~/linux $ git fetch --tags linux-next
 chenwx@chenwx ~/linux $ git branch --track next-master linux-next/master
 
 #
-# (3) Add linux-stable tree to ~/linux
-#     - git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
-#     - https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
-#     - https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable.git
+# (3) Add stable tree linux-stable.git to ~/linux
+#     git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+#     https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 #
 chenwx@chenwx ~/linux $ git remote add linux-stable https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 
@@ -80,7 +77,7 @@ chenwx@chenwx ~/linux $ git co linux-4.5.y
 chenwx@chenwx ~/linux $ git co linux-4.6.y
 
 #
-# (4) Local branches
+# (4) Show local branches
 #
 chenwx@chenwx ~/linux $ git br
   linux-3.10.y
@@ -98,7 +95,7 @@ chenwx@chenwx ~/linux $ git br
   next-master
 
 #
-# (5) Use following command to fetch objects from all remotes
+# (5) Use the following commands to fetch objects from all remotes
 #
 chenwx@chenwx ~/linux $ git remote -v
 linux-next	https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git (fetch)
@@ -112,13 +109,18 @@ chenwx@chenwx ~/linux $ git remote update
 Fetching origin
 Fetching linux-stable
 Fetching linux-next
+
+chenwx@chenwx ~/linux $ git fetch -all
+Fetching origin
+Fetching linux-stable
+Fetching linux-next
 ```
 
 # Linux Kernel Repository
 
 ## linux-next Tree
 
-The following is *linux-next* tree:
+The *linux-next* tree can be cloned from:
 
 * git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
 * https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git
@@ -195,6 +197,8 @@ Switched to a new branch 'next-br'
 
 ## mainline Tree
 
+The linux mainline tree can be cloned from:
+
 * git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 * https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 * https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux.git
@@ -209,12 +213,16 @@ Refer to *Documentataion/stable_kernel_rules.txt*.
 
 **Linux kernel stable tree**
 
+The linux stable tree can be cloned from:
+
 * https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git
 * git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 * http://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 * https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable.git
 
 **Linux kernel stable patch queue**
+
+Here is the linux kernel stable patch queue:
 
 * https://git.kernel.org/cgit/linux/kernel/git/stable/stable-queue.git
 * git://git.kernel.org/pub/scm/linux/kernel/git/stable/stable-queue.git

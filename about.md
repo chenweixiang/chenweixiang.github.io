@@ -14,5 +14,3 @@ You can always find me on a variety of world wild interweb sites.
 
 * [Linkedin](https://cn.linkedin.com/in/weixiang-chen-ba502935) - largest professional network
 * [GitHub](https://chenweixiang.github.io) - code, juicy code
-* [Twitter](https://twitter.com/Weixiang_Chen) - a good way to make contact
-* [Facebook](https://www.facebook.com/weixiang.chen.583) - friends and foes

@@ -127,3 +127,4 @@ The Radio protocl architecture is shown in the following figure:
 * [http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
 * [http://www.sharetechnote.com/html/Handbook_LTE_SAE.html](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
 * [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [LTE Network Architecture](/docs/LTE_Network_Architecture_StraWhitePaper.pdf)

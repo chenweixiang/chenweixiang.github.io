@@ -978,3 +978,5 @@ EDGE Evolution has:
 * Increased throughput speeds to **1.3Mbps** in the downlink and **653Kbps** in the uplink.
 
 # References
+
+* [GSM Quick Guide](/docs/GSM_Quick_Guide.pdf)

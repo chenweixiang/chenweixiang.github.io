@@ -63,6 +63,8 @@ Note that the PSS sequences in every radio frame are the same, so the UE just ca
 
 # Secondary Synchronization Signal (SSS)
 
+Refer to [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)
+
 ## Generation of SSS Sequence
 
 According to **TS 36.211 S6.11.2.1**, the sequence used for SSS is generated as shown in the following figure:
@@ -202,3 +204,4 @@ The following figure shows the synchronisation procedure when UE try to access t
 * [http://www.sharetechnote.com/html/Handbook_LTE_PSS.html](http://www.sharetechnote.com/html/Handbook_LTE_PSS.html)
 * [http://www.sharetechnote.com/html/Handbook_LTE_SSS.html](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
 * [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)

@@ -18,7 +18,7 @@ gems: [jekyll-paginate]
 # Build settings
 markdown: kramdown
 
-# Highlight by Pygments
+# Highlight by Rouge
 highlighter: rouge
 
 # Post excerpts
@@ -47,7 +47,7 @@ rdiscount:
 redcarpet:
   extensions: [with_toc_data]
 
-# Refer to the following links for kramdown syntax
+# Refer to the following link for kramdown syntax
 #   https://kramdown.gettalong.org/options.html
 kramdown:
   input:          GFM
@@ -56,13 +56,9 @@ kramdown:
   entity_output:  as_char
   toc_levels:     1..6
   smart_quotes:   lsquo,rsquo,ldquo,rdquo
-  syntax_highlighter: true
 
-  syntax_highlighter_opts:
-    wrap:              div
-    line_numbers:      nil
-    line_number_start: 1
-    tab_width:         4
-    bold_every:        10
-    css:               style
+# Refer to the following link for Rouge syntax
+#   http://rouge.jneen.net/
+rouge:
+  linenos:        nil
 

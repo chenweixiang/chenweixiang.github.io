@@ -137,3 +137,8 @@ Refer to the following sites for Markdown syntex:
 * [ReText (for Linux)](http://sourceforge.net/p/retext/home/ReText)
 * [Markable.in](http://markable.in)
 * [Dillinger.io](http://dillinger.io)
+
+* [Using org to Blog with Jekyll](http://orgmode.org/worg/org-tutorials/org-jekyll.html)
+* [Table of Contents plugin for Bootstrap](http://afeld.github.io/bootstrap-toc/)
+* [Tocify](http://gregfranko.com/jquery.tocify.js/)
+* [TOC](http://projects.jga.me/toc/)

@@ -15,7 +15,7 @@ Although marketed as a 4G wireless service, **LTE** (as specified in the 3GPP Re
 
 # Standards
 
-ITU Recommendations related to LTE/LTE-Advanced are introduced in the section <a href="{{ 2016/03/13/telecom-itu-recommendations.html#imt-advanced-4g | prepend: site.github.url }}">IMT-Advanced (4G)</a>.
+ITU Recommendations related to LTE/LTE-Advanced are introduced in the section <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-advanced-4g">IMT-Advanced (4G)</a>.
 
 LTE/LTE-Advanced related Technical Specifications (TS) and Technical Reports (TR) are:
 

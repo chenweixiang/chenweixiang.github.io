@@ -30,7 +30,7 @@ According to [Classifying Programming Languages](http://cs.lmu.edu/~ray/notes/pl
 
 # References
 
-* [TIOBE Index](http://www.tiobe.com/index.php/content/paperinfo/tpci/index.html)
+* [TIOBE Index](http://www.tiobe.com/tiobe-index/)
 * <a href="{{ site.base-url }}/2015/12/18/linux-series-05-libraries.html">Linux: C/C++ Libraries</a>
 
 * [Programming Language wikipedia](https://en.wikipedia.org/wiki/Programming_language)

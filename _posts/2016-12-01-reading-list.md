@@ -21,6 +21,3 @@ This article records the books I'm reading.
 # References
 
 * [Kindle伴侣](https://kindlefere.com/)
-* [番茄工作法(Pomodoro Technique)](http://cirillocompany.de/pages/pomodoro-technique/)
-* ![番茄工作法流程](/assets/pomodoro-technique-procedure.png)
-* [AlloyTimer之番茄工作法](https://alloyteam.github.io/AlloyTimer/)

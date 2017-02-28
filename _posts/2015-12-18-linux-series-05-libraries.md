@@ -50,6 +50,11 @@ This article introduces C standard library and its implementations on Linux syst
     It has since been amended by Technical Corrigenda:
 
     * **ISO/IEC 9899:2011/COR1:2012**
+     <p/>
+
+* **Embedded C**
+
+    Historically, embedded C programming requires nonstandard extensions to the C language in order to support exotic features. In 2008, the C Standards Committee published a technical report [TR 18037: Embedded C](/docs/ISO-IEC_TR_18037.pdf) extending the C language to address these issues by providing a common standard for all implementations to adhere to. It includes a number of features not available in normal C, such as fixed-point arithmetic, named address spaces, and basic I/O hardware addressing.
 
 # C++ Standards
 
@@ -108,7 +113,7 @@ The online references of C/C++ language & libraries can be found on website:
 
 * [CppReference.com Home Page](http://en.cppreference.com/w/c)
 * [C Reference on CppReference.com](http://en.cppreference.com/w/c)
-* [C/C++ Reference on CppReference.com](http://en.cppreference.com/w/cpp)
+* [C++ Reference on CppReference.com](http://en.cppreference.com/w/cpp)
 
 Also, you can download the offline archives from website:
 

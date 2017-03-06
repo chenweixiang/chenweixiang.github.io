@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "Agile/Scrum"
+title: "Agile/Scrum/SAFe"
 tag: Methodology
 toc: true
 ---
 
-This article introduce the **Agile software development** and one of its method **Scrum**.
+This article introduces the **Agile software development** and one of its method **Scrum**. Besides, this article also introduces the **SAFe Scaled Agile**.
 
 <!--more-->
 
@@ -204,9 +204,21 @@ Scrum emphasizes working product at the end of the sprint that is really done. I
     * This event is facilitated by the *scrum master*
     <p/>
 
+# SAFe
+
+The [Scaled Agile Framework (SAFe)](http://www.scaledagileframework.com) is a freely revealed knowledge base of proven, integrated patterns for enterprise-scale Lean-Agile development. It is scalable and modular, allowing each organization to apply it in a way that provides better business outcomes and happier, more engaged employees.
+
+SAFe synchronizes alignment, collaboration, and delivery for large numbers of Agile teams. It supports both software and systems development, from the modest scale of well under 100 practitioners to the largest software solutions and complex cyber-physical systems, systems that require thousands of people to create and maintain. SAFe was developed in the field, based on helping customers solve their most challenging scaling problems. It leverages three primary bodies of knowledge: Agile development, Lean product development, and systems thinking.
+
+![SAFe-4.0-3-level](/assets/SAFe-4.0-3-level.png)
+
+![SAFe-4.0-4-level](/assets/SAFe-4.0-4-level.png)
+
 # References
 
 * [Agile Alliance](https://www.agilealliance.org/)
 * [Agile Software Development wikipedia](https://en.wikipedia.org/wiki/Agile_software_development)
 * [Scrum wikipedia](http://en.wikipedia.org/wiki/Scrum_(software_development))
 * [Scrum](https://www.scrum.org/)
+
+* [SAFe Scaled Agile](http://www.scaledagileframework.com/)

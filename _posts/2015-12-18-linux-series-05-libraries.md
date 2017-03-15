@@ -11,101 +11,11 @@ This article introduces C standard library and its implementations on Linux syst
 
 # C Standards
 
-![C Language Evolution](/assets/C_Language_Evolution.png)
-
-* **K&R C**
-
-    First edition of ***The C Programming Language*** published by **Brian Kernighan** and **Dennis Ritchie** in 1978. This book, known to C programmers as **K&R**, served for many years as an informal specification of the language. The version of C that it describes is commonly referred to as **K&R C**.
-
-* **ANSI X3.159-1989 (ANSI C, C89)**
-
-    In 1983, the **American National Standards Institute (ANSI)** formed a committee, **X3J11**, to establish a standard specification of C. **X3J11** based the C standard on the Unix implementation; however, the non-portable portion of the Unix C library was handed off to the **IEEE working group 1003** to become the basis for the 1988 POSIX standard. In 1989, the C standard was ratified as **ANSI X3.159-1989** ***Programming Language C***. This version of the language is often referred to as **ANSI C**, **Standard C**, or sometimes **C89**.
-
-* **ISO/IEC 9899:1990 (C90)**
-
-    In 1990, the **ANSI C** standard (with formatting changes) was adopted by the International Organization for Standardization (ISO) [C Standard Committee (ISO/IEC JTC1/SC22/WG14 - C)](http://www.open-std.org/JTC1/SC22/WG14/www/standards) as **ISO/IEC 9899:1990**, which is sometimes called **C90**. Therefore, the terms **C89** and **C90** refer to the same programming language.
-
-    It has since been amended three times by Technical Corrigenda (COR) or Amendment (AMD):
-
-    * **ISO/IEC 9899:1990/AM1:1995** (known as **C90 AMD1** or **C95**)
-    * **ISO/IEC 9899:1990/COR1:1995**
-    * **ISO/IEC 9899:1990/COR2:1996**
-     <p/>
-
-* **ISO/IEC9899:1999 (C99)**
-
-    The C standard was further revised in the late 1990s, leading to the publication of **ISO/IEC 9899:1999** in 1999, which is commonly referred to as **C99**.
-
-    It has since been amended three times by Technical Corrigenda (COR):
-
-    * **ISO/IEC 9899:1999/COR1:2001**
-    * **ISO/IEC 9899:1999/COR2:2004**
-    * **ISO/IEC 9899:1999/COR3:2007**
-     <p/>
-
-* **ISO/IEC 9899:2011 (C11)**
-
-    In 2007, work began on another revision of the C standard, informally called **C1X** until its official publication on 2011-12-08. The C standards committee adopted guidelines to limit the adoption of new features that had not been tested by existing implementations. The **C11** standard adds numerous new features to C and the library, including type generic macros, anonymous structures, improved Unicode support, atomic operations, multi-threading, and bounds-checked functions. It also makes some portions of the existing **C99** library optional, and improves compatibility with C++.
-
-    It has since been amended by Technical Corrigenda:
-
-    * **ISO/IEC 9899:2011/COR1:2012**
-     <p/>
-
-* **Embedded C**
-
-    Historically, embedded C programming requires nonstandard extensions to the C language in order to support exotic features. In 2008, the C Standards Committee published a technical report [TR 18037: Embedded C](/docs/ISO-IEC_TR_18037.pdf) extending the C language to address these issues by providing a common standard for all implementations to adhere to. It includes a number of features not available in normal C, such as fixed-point arithmetic, named address spaces, and basic I/O hardware addressing.
+Refer to <a href="{{ site.base-url }}/2016/07/08/c.html#c-standards">C Standards</a>.
 
 # C++ Standards
 
-![C++ Language Evolution](/assets/CPP_Language_Evolution.png)
-
-C++ is standardized by the International Organization for Standardization (ISO) [C++ Standards Committee (JTC1/SC22/WG21 - C++)](http://www.open-std.org/jtc1/sc22/wg21/). So far, it has seen following versions of C++ released. Besides, the C++ standards committee publishes [experimental C++ language and library extensions](http://en.cppreference.com/w/cpp/experimental) for future standardization.
-
-* **ISO/IEC 14882:1998 (C++98)**
-
-    In 1998, the ISO working group standardized C++ for the first time as **ISO/IEC 14882:1998**, which is informally known as **C++98**.
-
-* **ISO/IEC 14882:2003 (C++03)**
-
-    In 2003, ISO working group published a new version of the C++ standard called **ISO/IEC 14882:2003**, which is informally known as **C++03**. This version of the C++ standard fixed problems identified in **C++98**.
-
-* **ISO/IEC TR 18015:2006** - Technical Report on C++ Performance
-
-    The aim of ISO/IEC TR 18015 is to:
-
-    * give the reader a model of time and space overheads implied by use of various C++ language and library features;
-    * debunk widespread myths about performance problems in C++;
-    * present techniques for use of C++ in applications where performance matters; and
-    * present techniques for implementing C++ standard language and library facilities to yield efficient code.
-    <p/>
-    The special needs of embedded systems programming are presented, including ROMability and predictability. A separate chapter presents general C and C++ interfaces to the basic hardware facilities of embedded systems.
-
-* **ISO/IEC TR 19768:2007 (C++TR1)** - Technical Report on C++ Library Extensions
-
-    In 2007, a technical report **ISO/IEC TR 19768:2007 - C++ Library Extensions** was released, which is informally known as **C++07/TR1**. While not an official part of the standard, it proposed a number of extensions to the standard library.
-
-* **ISO/IEC TR 29124:2010** - Extensions to the C++ Library to support mathematical special functions
-
-    In 2010, a technical report **ISO/IEC TR 29124:2010 - C++ Special Math Functions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3060.pdf).
-
-* **ISO/IEC 14882:2011 (C++11)**
-
-    In 2011, a major revision of the standard was informally referred to as ***C++0x***, but it was not released until 2011. The **ISO/IEC 14882:2011 (C++11)** included most of the library enhancements of **C++07/TR1**, as well as many additions to the core language.
-
-* **ISO/IEC TR 24733:2011** - Extensions for the programming language C++ to support decimal floating-point arithmetic
-
-    In 2011, a technical report **ISO/IEC TR 24733:2011 - C++ decimal floating point arithmetic extensions** is released. The draft can be found [here](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2849.pdf).
-
-* **ISO/IEC 14882:2014 (C++14)**
-
-    In 2014, **C++14** (also known as ***C++1y***) was released as a small extension to **C++11**, featuring mainly bug fixes and small improvements.
-
-* **ISO/IEC TS 18822:2015** - File System Technical Specification
-
-    ISO/IEC TS 18822:2015 specifies requirements for implementations of an interface that computer programs written in the C++ programming language may use to perform operations on file systems and their components, such as paths, regular files, and directories. This Technical Specification is applicable to information technology systems that can access hierarchical file systems, such as those with operating systems that conform to the POSIX (3) interface. This Technical Specification is applicable only to vendors who wish to provide the interface it describes.
-
-* **ISO/IEC TS 19570:2015** - Technical Specification for C++ Extensions for Parallelism
+Refer to <a href="{{ site.base-url }}/2016/07/10/c++.html#c-standards">C++ Standards</a>.
 
 # Online References of C/C++ Language & Libraries
 

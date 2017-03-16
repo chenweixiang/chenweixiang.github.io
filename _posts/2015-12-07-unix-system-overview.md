@@ -150,7 +150,7 @@ Here is some resources related to UNIX Certification:
 * [The Practical Guide to the Open Brand](http://www.opengroup.org/openbrand/Certification_Guide/)
 * [The register of Certified Products](http://www.opengroup.org/openbrand/register/) - Registered Products by major product standards.
 
-# History of Unix system
+# Unix Systems
 
 This is a short description of Unix releases:
 
@@ -173,6 +173,22 @@ Besides, you can see the preview of the Unix timeline on website [Unix History](
 ![Unix history](/assets/unix-history.png)
 
 ![Unix history](/assets/unix-history.svg)
+
+## NetBSD
+
+[NetBSD](https://wiki.netbsd.org/) is a free, fast, secure, and highly portable Unix-like Open Source operating system. It is available for many platforms, from 64-bit x86 servers and PC desktop systems to embedded ARM and MIPS based devices. Its clean design and advanced features make it excellent in both production and research environments, and it is user-supported with complete source. Many applications are easily available through pkgsrc, the NetBSD Packages Collection.
+
+## FreeBSD
+
+[FreeBSD](https://www.freebsd.org/) is an advanced computer operating system used to power modern servers, desktops, and embedded platforms. A large community has continually developed it for more than thirty years. Its advanced networking, security, and storage features have made FreeBSD the platform of choice for many of the busiest web sites and most pervasive embedded networking and storage devices.
+
+## OpenBSD
+
+The [OpenBSD project](https://www.openbsd.org/) produces a FREE, multi-platform 4.4BSD-based UNIX-like operating system. Our efforts emphasize portability, standardization, correctness, proactive security and integrated cryptography. As an example of the effect OpenBSD has, the popular OpenSSH software comes from OpenBSD.
+
+## OpenSolaris
+
+[OpenSolaris](https://solaris.java.net/) is a discontinued, open source computer operating system based on Solaris created by Sun Microsystems. It was also the name of the project initiated by Sun to build a developer and user community around the software. After the acquisition of Sun Microsystems in 2010, Oracle decided to discontinue open development of the core software, and replaced the OpenSolaris distribution model with the proprietary Solaris Express.
 
 # References
 

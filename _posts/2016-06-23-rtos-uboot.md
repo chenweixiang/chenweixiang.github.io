@@ -76,6 +76,34 @@ chenwx@chenwx ~/u-boot $ make O=../u-boot-build canyonlands_config
 chenwx@chenwx ~/u-boot $ make O=../u-boot-build all
 ```
 
+# U-Boot Commands
+
+Note that U-Boot is highly configurable, so not all of these commands may be available in the configuration of U-Boot installed on your hardware, or additional commands may exist. You can use the ```help``` command to print a list of all available commands for your configuration.
+
+For most commands, you do not need to type in the full command name; instead it is sufficient to type a few characters. For instance, ```help``` can be abbreviated as ```h```.
+
+* The behaviour of some commands depends on the configuration of U-Boot and on the definition of some variables in your U-Boot environment.
+* Almost all U-Boot commands expect numbers to be entered in hexadecimal input format. (Exception: for historical reasons, the ```sleep``` command takes its argument in decimal input format.)
+* Be careful not to use edit keys besides *Backspace*, as hidden characters in things like environment variables can be very difficult to find.
+
+Refer to [DENX U-Boot and Linux Guide (DULG)](http://www.denx.de/wiki/DULG/Manual) and [U-Boot Command Line Interface](http://www.denx.de/wiki/view/DULG/UBootCommandLineInterface) for more details about U-Boot commands.
+
+```
+=> help help
+help - print online help
+
+Usage:
+help [command ...]
+    - show help information (for 'command')
+'help' prints online help for the monitor commands.
+
+Without arguments, it prints a short usage message for all commands.
+
+To get detailed help information for specific commands you can type
+'help' with one or more command names as arguments.
+=>
+```
+
 # References
 
 * [Das U-Boot Official Website](http://www.denx.de/wiki/U-Boot/)

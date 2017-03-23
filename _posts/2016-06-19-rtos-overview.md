@@ -30,6 +30,67 @@ The RTOS is developed and supplied by multiple suppliers in an open market. See 
 
 <p/>
 
+Here is a list of RTOS, which is open source:
+
+* RT-Thread
+* eCos
+* Fiasco
+* FreeRTOS
+* Phoenix-RTOS
+* Nut/OS
+* Prex
+* RTAI
+* RTEMS
+* RTLinux
+* SHaRK
+* TRON Project
+* Xenomai
+* CoOS
+
+Here is a list of RTOS, which is not open source:
+
+* Ardence RTX
+* BeOS
+* ChorusOS
+* DNIX
+* DMERT
+* e-Tkernel
+* HOPEN OS
+* embOS (Segger)
+* INTEGRITY
+* ITRON
+* LynxOS
+* MERT
+* MicroC/OS-II
+* MQX RTOS
+* Nucleus
+* OS-9
+* OSE
+* OSEK/VDX
+* OSEKtime
+* PDOS
+* Phar Lap ETS
+* PikeOS
+* Portos
+* pSOS
+* QNX
+* RMX
+* RSX-11
+* RT-11
+* RTOS-UH
+* RTXC
+* Salvo RTOS
+* SINTRAN III
+* Symbian OS
+* ThreadX
+* VRTX
+* VxWorks
+* Windows CE
+* µnOS
+* UNIX-RTR
+* REX
+* HP-1000/RTE
+
 # References
 
 * [RTOS Wikipedia](https://en.wikipedia.org/wiki/Real-time_operating_system)

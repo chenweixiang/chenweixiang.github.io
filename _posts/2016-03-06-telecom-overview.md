@@ -13,9 +13,7 @@ This article introduce the overview of Telecommunication.
 
 ## ITU
 
-ITU website: [http://www.itu.int](http://www.itu.int)
-
-The **International Telecommunication Union** (ITU), originally the **International Telegraph Union** formed in **1865**, is a specialized agency of the **United Nations** (UN) that is responsible for issues that concern **information and communication technologies**. ITU became a United Nations specialized agency in **1947**.
+The [**International Telecommunication Union** (ITU)](http://www.itu.int), originally the **International Telegraph Union** formed in **1865**, is a specialized agency of the **United Nations** (UN) that is responsible for issues that concern **information and communication technologies**. ITU became a United Nations specialized agency in **1947**.
 
 The ITU coordinates the shared global use of the radio spectrum, promotes international cooperation in assigning satellite orbits, works to improve telecommunication infrastructure in the developing world, and assists in the development and coordination of worldwide technical standards. The ITU is active in areas including broadband Internet, latest-generation wireless technologies, aeronautical and maritime navigation, radio astronomy, satellite-based meteorology, convergence in fixed-mobile phone, Internet access, data, voice, TV broadcasting, and next-generation networks.
 
@@ -38,9 +36,7 @@ A permanent General Secretariat, headed by the Secretary General, manages the da
 
 ## ETSI
 
-ETSI website: [http://www.etsi.org/](http://www.etsi.org/)
-
-The **European Telecommunications Standards Institute** (ETSI) is an independent, not-for-profit, standardization organization in the telecommunications industry (equipment makers and network operators) in Europe, headquartered in *Sophia-Antipolis, France*, with worldwide projection. ETSI produces globally-applicable standards for Information and Communications Technologies (ICT), including fixed, mobile, radio, converged, broadcast and internet technologies.
+The [**European Telecommunications Standards Institute** (ETSI)](http://www.etsi.org/) is an independent, not-for-profit, standardization organization in the telecommunications industry (equipment makers and network operators) in Europe, headquartered in *Sophia-Antipolis, France*, with worldwide projection. ETSI produces globally-applicable standards for Information and Communications Technologies (ICT), including fixed, mobile, radio, converged, broadcast and internet technologies.
 
 ETSI was created by European Conference of Postal and Telecommunications Administrations (CEPT) in 1988 and is officially recognized by the European Commission (EC) and the European Free Trade Association (EFTA) secretariat. Based in Sophia Antipolis (France), ETSI is officially responsible for standardization of Information and Communication Technologies (ICT) within Europe.
 
@@ -54,9 +50,7 @@ ETSI is a founding partner organization of the [Global Standards Collaboration (
 
 ## 3GPP
 
-3GPP website: [http://www.3gpp.org/](http://www.3gpp.org/)
-
-The **3rd Generation Partnership Project** (3GPP) is a collaboration between groups of telecommunications associations, known as the Organizational Partners. The initial scope of 3GPP was to make a globally applicable third-generation (3G) mobile phone system specification based on evolved Global System for Mobile Communications (GSM) specifications within the scope of the International Mobile Telecommunications-2000 (IMT-2000) project of the International Telecommunication Union (ITU). The scope was later enlarged to include the development and maintenance of:
+The [**3rd Generation Partnership Project** (3GPP)](http://www.3gpp.org/) is a collaboration between groups of telecommunications associations, known as the Organizational Partners. The initial scope of 3GPP was to make a globally applicable third-generation (3G) mobile phone system specification based on evolved Global System for Mobile Communications (GSM) specifications within the scope of the International Mobile Telecommunications-2000 (IMT-2000) project of the International Telecommunication Union (ITU). The scope was later enlarged to include the development and maintenance of:
 
 * **GSM** and related 2G and 2.5G standards including GPRS and EDGE
 * **UMTS** and related 3G standards including HSPA
@@ -67,9 +61,7 @@ The **3rd Generation Partnership Project** (3GPP) is a collaboration between gro
 
 ## 3GPP2
 
-3GPP2 website: [http://www.3gpp2.org/](http://www.3gpp2.org/)
-
-The **3rd Generation Partnership Project 2** (3GPP2) is a collaboration between telecommunications associations to make a globally applicable third generation (3G) mobile phone system specification within the scope of the **ITU's IMT-2000** project. In practice, **3GPP2 is the standardization group for CDMA2000**, the set of 3G standards based on the earlier **cdmaOne 2G CDMA** technology.
+The [**3rd Generation Partnership Project 2** (3GPP2)](http://www.3gpp2.org/) is a collaboration between telecommunications associations to make a globally applicable third generation (3G) mobile phone system specification within the scope of the **ITU's IMT-2000** project. In practice, **3GPP2 is the standardization group for CDMA2000**, the set of 3G standards based on the earlier **cdmaOne 2G CDMA** technology.
 
 The participating associations are **ARIB/TTC** (Japan), **CCSA** (China Communications Standards Association, China), **TIA** (Telecommunications Industry Association, North America) and **TTA** (Telecommunications Technology Association, South Korea).
 

@@ -137,7 +137,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 ![IMT-2020-Timeplan](/assets/IMT-2020-Timeplan.png)
 
-* **Vision & Technology Trends**
+**Vision & Technology Trends**
 
 | Recommends | Title |
 | :--------- | :---- |
@@ -147,7 +147,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 <p/>
 
-* **Market, Traffic and Future Spectrum Requirements**
+**Market, Traffic and Future Spectrum Requirements**
 
 | Recommends | Title |
 | :--------- | :---- |
@@ -159,7 +159,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 <p/>
 
-* **Frequency Brand Channeling arrangements & Spectrum Sharing and Compatability**
+**Frequency Brand Channeling arrangements & Spectrum Sharing and Compatability**
 
 | Recommends | Title |
 | :--------- | :---- |
@@ -170,7 +170,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 <p/>
 
-* **IMT Specifications and Other Technology Related Work**
+**IMT Specifications and Other Technology Related Work**
 
 | Recommends | Title |
 | :--------- | :---- |
@@ -184,7 +184,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 <p/>
 
-* **Support for IMT Applications & Deployments**
+**Support for IMT Applications & Deployments**
 
 | Recommends | Title |
 | :--------- | :---- |
@@ -193,7 +193,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 <p/>
 
-* **Workshops & Seminars**
+**Workshops & Seminars**
 
 | Title |
 | :---- |
@@ -208,7 +208,7 @@ According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R
 
 ## IMT-2020 (5G) Promotion Group
 
-In February 2013, three ministries of China - that's, the Ministry of Industry and Information Technology (MIIT, 中国工业和信息化部), the National Development and Reform Commission (NDRC, 国家发展和改革委员会) and the Ministry of Science and Technology (MOST, 科学技术部) - jointly established [**IMT-2020(5G) Promotion group**](http://www.imt-2020.cn/) based on the original IMT-Advanced promotion group. It is the major platform to promote the research of 5G in China. Its members include the leading operators, vendors, universities, and research institutes in the field of mobile communications.
+In February 2013, three ministries of China - that's, the Ministry of Industry and Information Technology (MIIT, 中国工业和信息化部), the National Development and Reform Commission (NDRC, 国家发展和改革委员会) and the Ministry of Science and Technology (MOST, 科学技术部) - jointly established [**IMT-2020 (5G) Promotion group**](http://www.imt-2020.cn/) based on the original IMT-Advanced promotion group. It is the major platform to promote the research of 5G in China. Its members include the leading operators, vendors, universities, and research institutes in the field of mobile communications.
 
 ![IMT-2020-5G-Promotion-Group-Structure](/assets/IMT-2020-5G-Promotion-Group-Structure.jpg)
 
@@ -227,5 +227,4 @@ In February 2013, three ministries of China - that's, the Ministry of Industry a
 * [4G Americas](http://www.4gamericas.org/)
 * [5G Americas](http://www.5gamericas.org/)
 * [The Fifth Generation Mobile Communications Promotion Forum (5GMF)](http://5gmf.jp/en/)
-* [](http://www.4gamericas.org/en/)
 * [Massive MIMO](https://massivemimo.eu/)

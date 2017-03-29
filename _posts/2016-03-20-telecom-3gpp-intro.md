@@ -62,18 +62,18 @@ As of November 2013 the Market Representation Partners (MRPs) are:
 | :----------- | :------ |
 | IMS Forum | [http://www.imsforum.org/](http://www.imsforum.org/) |
 | TD-Forum | [http://www.tdscdma-forum.org/](http://www.tdscdma-forum.org/) |
-| GSA | [http://www.gsacom.com/](#http://www.gsacom.com/) |
-| GSM Association | [http://www.gsmworld.com/](#http://www.gsmworld.com/) |
-| IPV6 Forum | [http://www.ipv6forum.com/](#http://www.ipv6forum.com/) |
-| UMTS Forum | [http://www.umts-forum.org/](#http://www.umts-forum.org/) |
-| 4G Americas | [http://www.4gamericas.org/](#http://www.4gamericas.org/) |
-| TD SCDMA Industry Alliance | [http://www.tdscdma-alliance.org/](#http://www.tdscdma-alliance.org/) |
-| InfoCommunication Union | [http://www.icu.org.ru/](#http://www.icu.org.ru/) |
-| Small Cell Forum (formerly Femto Forum) | [http://www.smallcellforum.org/](#http://www.smallcellforum.org/) |
-| CDMA Development Group | [http://www.cdg.org/](#http://www.cdg.org/) |
-| Cellular Operators Association of India (COAI) | [http://www.coai.com/](#http://www.coai.com/) |
-| Next Generation Mobile Networks (NGMN) | [http://www.ngmn.org/](#http://www.ngmn.org/) |
-| TETRA and Critical Communications Association (TCCA) | [http://www.tandcca.com/](#http://www.tandcca.com/) |
+| GSA | [http://www.gsacom.com/](http://www.gsacom.com/) |
+| GSM Association | [http://www.gsmworld.com/](http://www.gsmworld.com/) |
+| IPV6 Forum | [http://www.ipv6forum.com/](http://www.ipv6forum.com/) |
+| UMTS Forum | [http://www.umts-forum.org/](http://www.umts-forum.org/) |
+| 4G Americas | [http://www.4gamericas.org/](http://www.4gamericas.org/) |
+| TD SCDMA Industry Alliance | [http://www.tdscdma-alliance.org/](http://www.tdscdma-alliance.org/) |
+| InfoCommunication Union | [http://www.icu.org.ru/](http://www.icu.org.ru/) |
+| Small Cell Forum (formerly Femto Forum) | [http://www.smallcellforum.org/](http://www.smallcellforum.org/) |
+| CDMA Development Group | [http://www.cdg.org/](http://www.cdg.org/) |
+| Cellular Operators Association of India (COAI) | [http://www.coai.com/](http://www.coai.com/) |
+| Next Generation Mobile Networks (NGMN) | [http://www.ngmn.org/](http://www.ngmn.org/) |
+| TETRA and Critical Communications Association (TCCA) | [http://www.tandcca.com/](http://www.tandcca.com/) |
 
 <p/>
 
@@ -87,9 +87,9 @@ GERAN specifies the **GSM radio technology**, including **GPRS** and **EDGE**. I
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
-| GERAN WG1 | GERAN1 | Radio Aspects | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--G1.htm) |
-| GERAN WG2 | GERAN2 | Protocol Aspects | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--G2.htm) |
-| GERAN WG3 | GERAN3 | Terminal Testing | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--G3new.htm) |
+| GERAN WG1 | GERAN1 | Radio Aspects | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--G1.htm) |
+| GERAN WG2 | GERAN2 | Protocol Aspects | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--G2.htm) |
+| GERAN WG3 | GERAN3 | Terminal Testing | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--G3new.htm) |
 
 <p/>
 
@@ -99,11 +99,11 @@ RAN specifies the **UTRAN and the E-UTRAN**. It is composed of five working grou
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
-| RAN WG1 | RAN1 | Radio Layer 1 specification | [List of specs](#http://www.3gpp.org/DynaReport/TSG-WG--R1.htm) |
-| RAN WG2 | RAN2 | Radio Layer 2 and Radio Layer 3 RR specification | [List of specs](#http://www.3gpp.org/DynaReport/TSG-WG--R2.htm) |
-| RAN WG3 | RAN3 | Iub Iur and Iu specification - UTRAN O&M requirements | [List of specs](#http://www.3gpp.org/DynaReport/TSG-WG--R3.htm) |
-| RAN WG4 | RAN4 | Radio performance and protocol aspects (system) - RF parameters and BS conformance | [List of specs](#http://www.3gpp.org/DynaReport/TSG-WG--R4.htm) |
-| RAN WG5 | RAN5 | Mobile terminal conformance testing | [List of specs](#http://www.3gpp.org/DynaReport/TSG-WG--R5.htm) |
+| RAN WG1 | RAN1 | Radio Layer 1 specification | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R1.htm) |
+| RAN WG2 | RAN2 | Radio Layer 2 and Radio Layer 3 RR specification | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R2.htm) |
+| RAN WG3 | RAN3 | Iub Iur and Iu specification - UTRAN O&M requirements | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R3.htm) |
+| RAN WG4 | RAN4 | Radio performance and protocol aspects (system) - RF parameters and BS conformance | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R4.htm) |
+| RAN WG5 | RAN5 | Mobile terminal conformance testing | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R5.htm) |
 
 <p/>
 
@@ -113,12 +113,12 @@ SA specifies the service requirements and the overall architecture of the 3GPP s
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
-| SA WG1 | SA1 | Services | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S1.htm) |
-| SA WG2 | SA2 | Architecture | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S2.htm) |
-| SA WG3 | SA3 | Security | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S3.htm) |
-| SA WG4 | SA4 | Codec | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S4.htm) |
-| SA WG5 | SA5 | Telecom Management | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S5.htm) |
-| SA WG6 | SA6 | Mission-critical applications | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S6.htm) |
+| SA WG1 | SA1 | Services | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S1.htm) |
+| SA WG2 | SA2 | Architecture | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S2.htm) |
+| SA WG3 | SA3 | Security | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S3.htm) |
+| SA WG4 | SA4 | Codec | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S4.htm) |
+| SA WG5 | SA5 | Telecom Management | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S5.htm) |
+| SA WG6 | SA6 | Mission-critical applications | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--S6.htm) |
 
 <p/>
 
@@ -128,12 +128,12 @@ CT specifies the core network and terminal parts of 3GPP. It includes the core n
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
-| CT WG1 | CT1 | MM/CC/SM (lu) | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C1.htm) |
+| CT WG1 | CT1 | MM/CC/SM (lu) | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C1.htm) |
 | CT WG2 | CT2 | closed	| |
-| CT WG3 | CT3 | Interworking with external networks | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C3.htm) |
-| CT WG4 | CT4 | MAP/GTP / BCH/SS | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C4.htm) |
-| CT WG5 | CT5 | OSA (Now transferred to [OMA](#http://www.openmobilealliance.org/)) | |
-| CT WG6 | CT6 | Smart Card Application Aspects | [List of specs](#http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C6.htm) |
+| CT WG3 | CT3 | Interworking with external networks | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C3.htm) |
+| CT WG4 | CT4 | MAP/GTP / BCH/SS | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C4.htm) |
+| CT WG5 | CT5 | OSA (Now transferred to [OMA](http://www.openmobilealliance.org/)) | |
+| CT WG6 | CT6 | Smart Card Application Aspects | [List of specs](http://www.3gpp.org/ftp/Specs/html-info/TSG-WG--C6.htm) |
 
 <p/>
 
@@ -197,7 +197,7 @@ For detail features of each release, refer to [Release Description](http://www.3
 
 Each release incorporates hundreds of individual standards documents, each of which may have been through many revisions. Current 3GPP standards incorporate the latest revision of the GSM standards.
 
-The documents are available freely on [3GPP's Web site](#http://www.3gpp.org/ftp/specs/latest/). While 3GPP standards can be bewildering to the newcomer, they are remarkably complete and detailed, and provide insight into how the cellular industry works. They cover not only the radio part ("Air Interface") and Core Network, but also billing information and speech coding down to source code level. Cryptographic aspects (authentication, confidentiality) are also specified in detail. 3GPP2 offers similar information about its system.
+The documents are available freely on [3GPP's Web site](http://www.3gpp.org/ftp/specs/latest/). While 3GPP standards can be bewildering to the newcomer, they are remarkably complete and detailed, and provide insight into how the cellular industry works. They cover not only the radio part ("Air Interface") and Core Network, but also billing information and speech coding down to source code level. Cryptographic aspects (authentication, confidentiality) are also specified in detail. 3GPP2 offers similar information about its system.
 
 ## Specification Numbering
 

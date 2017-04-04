@@ -16,7 +16,7 @@ This article records the books I'm reading.
 | 2017-02-03 | 2017-02-05  | 《番茄工作法图解：简单易行的时间管理方法》<br>[瑞典]Staffan Noteberg 著，大胖 译 | <a href="{{ site.base-url }}/2017/02/28/the-pomodoro-technique.html"> >> </a> |
 | 2017-02-06 | 2017-03-20  | 《学会提问》原书第10版<br>(Asking the Right Questions: A Guide to Critical Thinking)<br>[美]尼尔.布朗，斯图尔特.利基 著, 吴礼敬 译 | <a href="{{ site.base-url }}/2017/03/20/asking-the-right-questions.html"> >> </a> |
 | 2017-03-20 | 2017-03-21  | 《北京折叠》 | |
-| 2017-03-21 |             | 《精进：如何成为一个很厉害的人》 | |
+| 2017-03-21 | 2017-04-04  | 《精进：如何成为一个很厉害的人》 | |
 
 <p/>
 

@@ -41,6 +41,22 @@ In Source Insight main window, select **View** > **Relation Window** to open Rel
 
 ![source-insight-config-05](/assets/source-insight-config-05.png)
 
+# Source Insight for Python
+
+Download source insight plugin file [Python.CLF](/assets/Python.CLF), and configure source insight like the following figures:
+
+![source_insight_python_1](/assets/source_insight_python_1.png)
+
+![source_insight_python_2](/assets/source_insight_python_2.png)
+
+![source_insight_python_3](/assets/source_insight_python_3.png)
+
+![source_insight_python_4](/assets/source_insight_python_4.png)
+
+![source_insight_python_5](/assets/source_insight_python_5.png)
+
+![source_insight_python_6](/assets/source_insight_python_6.png)
+
 # References
 
 * [Source Insight](http://www.sourceinsight.com/)

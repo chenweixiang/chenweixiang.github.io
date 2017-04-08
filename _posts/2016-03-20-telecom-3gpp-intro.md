@@ -31,14 +31,14 @@ The seven **3GPP Organizational Partners** are from Asia, Europe and North Ameri
 * The allocation of human and financial resources provided by the Organizational Partners to the Project Co-ordination Group;
 * Act as a body of appeal on procedural matters referred to them.
 
-Together with the Market Representation Partners (MRPs) perform the following tasks:
+Together with the **Market Representation Partners** (**MRPs**) perform the following tasks:
 
 * The maintenance of the Partnership Project Agreement;
 * The approval of applications for 3GPP partnership;
 * Take the decision against a possible dissolution of 3GPP.
 
-| Organization | Base region |
-| :----------- | :---------- |
+| Organization | Base Region |
+| :----------- | :---------: |
 | Association of Radio Industries and Businesses (ARIB) | Japan |
 | Alliance for Telecommunications Industry Solutions (ATIS) | USA |
 | China Communications Standards Association (CCSA) | China |
@@ -49,33 +49,29 @@ Together with the Market Representation Partners (MRPs) perform the following ta
 
 <p/>
 
-The 3GPP Organizational Partners can invite a **Market Representation Partner** (**MRPs**) to take part in 3GPP, which:
+The **3GPP Organizational Partners** can invite a **Market Representation Partner** (**MRPs**) to take part in 3GPP, which:
 
 * Has the ability to offer market advice to 3GPP and to bring into 3GPP a consensus view of market requirements (e.g., services, features and functionality) falling within the 3GPP scope;
 * Does not have the capability and authority to define, publish and set standards within the 3GPP scope, nationally or regionally;
 * Has committed itself to all or part of the 3GPP scope;
 * Has signed the Partnership Project Agreement.
 
-As of November 2013 the Market Representation Partners (MRPs) are:
+As of November 2013 the **Market Representation Partners** (**MRPs**) are:
 
-| Organization | Website |
-| :----------- | :------ |
-| IMS Forum | [http://www.imsforum.org/](http://www.imsforum.org/) |
-| TD-Forum | [http://www.tdscdma-forum.org/](http://www.tdscdma-forum.org/) |
-| GSA | [http://www.gsacom.com/](http://www.gsacom.com/) |
-| GSM Association | [http://www.gsmworld.com/](http://www.gsmworld.com/) |
-| IPV6 Forum | [http://www.ipv6forum.com/](http://www.ipv6forum.com/) |
-| UMTS Forum | [http://www.umts-forum.org/](http://www.umts-forum.org/) |
-| 4G Americas | [http://www.4gamericas.org/](http://www.4gamericas.org/) |
-| TD SCDMA Industry Alliance | [http://www.tdscdma-alliance.org/](http://www.tdscdma-alliance.org/) |
-| InfoCommunication Union | [http://www.icu.org.ru/](http://www.icu.org.ru/) |
-| Small Cell Forum (formerly Femto Forum) | [http://www.smallcellforum.org/](http://www.smallcellforum.org/) |
-| CDMA Development Group | [http://www.cdg.org/](http://www.cdg.org/) |
-| Cellular Operators Association of India (COAI) | [http://www.coai.com/](http://www.coai.com/) |
-| Next Generation Mobile Networks (NGMN) | [http://www.ngmn.org/](http://www.ngmn.org/) |
-| TETRA and Critical Communications Association (TCCA) | [http://www.tandcca.com/](http://www.tandcca.com/) |
-
-<p/>
+* [IMS Forum](http://www.imsforum.org/)
+* [TD-Forum](http://www.tdscdma-forum.org/)
+* [Global mobile Suppliers Association (GSA)](http://www.gsacom.com/)
+* [GSM Association](http://www.gsmworld.com/)
+* [IPV6 Forum](http://www.ipv6forum.com/)
+* [UMTS Forum](http://www.umts-forum.org/)
+* [4G Americas](http://www.4gamericas.org/)
+* [TD SCDMA Industry Alliance](http://www.tdscdma-alliance.org/)
+* [InfoCommunication Union](http://www.icu.org.ru/)
+* [Small Cell Forum (formerly Femto Forum)](http://www.smallcellforum.org/)
+* [CDMA Development Group](http://www.cdg.org/)
+* [Cellular Operators Association of India (COAI)](http://www.coai.com/)
+* [Next Generation Mobile Networks (NGMN)](http://www.ngmn.org/)
+* [TETRA and Critical Communications Association (TCCA)](http://www.tandcca.com/)
 
 ## Specification Groups
 
@@ -141,9 +137,9 @@ The 3GPP structure also includes a **Project Coordination Group** (**PCG**), whi
 
 ## Standardization Process
 
-3GPP standardization work is contribution-driven. Companies ("individual members") participate through their membership to a 3GPP Organizational Partner. As of April 2011, 3GPP is composed of more than 370 individual members.
+3GPP standardization work is contribution-driven. Companies (individual members) participate through their membership to a 3GPP Organizational Partner. As of April 2011, 3GPP is composed of more than 370 individual members.
 
-Specification work is done at WG and at TSG level:
+Specification work is done at **WG** and at **TSG** level:
 
 * the **3GPP WGs** hold several meetings a year. They prepare and discuss change requests against 3GPP specifications. A change request accepted at WG level is called "agreed".
 * the **3GPP TSGs** hold plenary meetings quarterly. The TSGs can "approve" the change requests that were agreed at WG level. Some specifications are under the direct responsibility of TSGs and therefore, change requests can also be handled at TSG level. The approved change requests are subsequently incorporated in 3GPP specifications.
@@ -197,7 +193,7 @@ For detail features of each release, refer to [Release Description](http://www.3
 
 Each release incorporates hundreds of individual standards documents, each of which may have been through many revisions. Current 3GPP standards incorporate the latest revision of the GSM standards.
 
-The documents are available freely on [3GPP's Web site](http://www.3gpp.org/ftp/specs/latest/). While 3GPP standards can be bewildering to the newcomer, they are remarkably complete and detailed, and provide insight into how the cellular industry works. They cover not only the radio part ("Air Interface") and Core Network, but also billing information and speech coding down to source code level. Cryptographic aspects (authentication, confidentiality) are also specified in detail. 3GPP2 offers similar information about its system.
+The documents are available freely on [3GPP's Web site](http://www.3gpp.org/ftp/specs/latest/). While 3GPP standards can be bewildering to the newcomer, they are remarkably complete and detailed, and provide insight into how the cellular industry works. They cover not only the radio part (Air Interface) and Core Network, but also billing information and speech coding down to source code level. Cryptographic aspects (authentication, confidentiality) are also specified in detail. 3GPP2 offers similar information about its system.
 
 ## Specification Numbering
 
@@ -205,9 +201,9 @@ All 3GPP specifications have a specification number consisting of 4 or 5 digits.
 
 The first two digits define the series, followed by 2 further digits for the 01 to 13 series or 3 further digits for the 21 to 55 series.
 
-The full title, specification number and latest version number for every specification can be found in the [current status list](http://www.3gpp.org/ftp/Specs/html-info/status-report.htm).
+The full title, specification number and latest version number for every specification can be found in the [3GPP Specification Status Report](http://www.3gpp.org/ftp/Specs/html-info/status-report.htm).
 
-An automated [list of Specification numbers](http://www.3gpp.org/ftp/Specs/html-info/SpecReleaseMatrix.htm) - with the Title and details of the Specification Group responsible.
+The [3GPP Specification Release Version Matrix](http://www.3gpp.org/ftp/Specs/html-info/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications.
 
 The following table is got from [Specification Numbering](http://www.3gpp.org/specifications/79-specification-numbering):
 
@@ -230,7 +226,7 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 | Security aspects | 33 series | (2) | (2) |
 | UE and (U)SIM test specifications | 34 series | (2) | 11 series |
 | Security algorithms (3) | 35 series | 55 series | (4) |
-| LTE (Evolved UTRA), LTE-Advanced, LTE-Advanced Pro radio technology | 36 series | - | - |
+| LTE (Evolved UTRA), LTE-Advanced, LTE-Advanced Pro radio technology | **36 series** | - | - |
 | Multiple radio access technology aspects | 37 series | - | - |
 | Radio technology beyond LTE | 38 series | - | - |
 

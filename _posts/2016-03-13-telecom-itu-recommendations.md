@@ -65,14 +65,14 @@ The following table shows the ITU-R Recommendations related to IMT-2000:
 
 As said in [About mobile technology and IMT-2000](http://www.itu.int/osg/spu/imt-2000/technology.html):
 
-IMT-2000 offers the capability of providing value-added services and applications on the basis of a single standard.  The system envisages a platform for distributing converged fixed, mobile, voice, data, Internet and multimedia services.  One of its key visions is to provide seamless global roaming, enabling users to move across borders while using the same number and handset. IMT-2000 also aims to provide seamless delivery of services, over a number of media (satellite, fixed, etc…). It is expected that IMT-2000 will provide higher transmission rates: **a minimum speed of 2Mbit/s for stationary or walking users, and 348 kbit/s in a moving vehicle**. Second-generation systems only provide speeds ranging from 9.6 kbit/s to 28.8 kbit/s.
+IMT-2000 offers the capability of providing value-added services and applications on the basis of a single standard.  The system envisages a platform for distributing converged fixed, mobile, voice, data, Internet and multimedia services.  One of its key visions is to provide seamless global roaming, enabling users to move across borders while using the same number and handset. IMT-2000 also aims to provide seamless delivery of services, over a number of media (satellite, fixed, etc…). It is expected that IMT-2000 will provide higher transmission rates: **a minimum speed of 2 Mbit/s for stationary or walking users, and 348 kbit/s in a moving vehicle**. Second-generation systems only provide speeds ranging from **9.6 kbit/s** to **28.8 kbit/s**.
 
 The following figure shows the Core Network and Access Network:
 ![CoreNetwork AccessNetwork](/assets/CoreNetwork_AccessNetwork.png)
 
 ## IMT-2000 Radio Interfaces
 
-The IMT-2000 consists of both **terrestrial** component and **satellite** component radio interfaces:
+The IMT-2000 consists of both [**terrestrial component**](#imt-2000-terrestrial-radio-interfaces) and [**satellite component**](#imt-2000-satellite-radio-interfaces) radio interfaces:
 
 ### IMT-2000 Terrestrial Radio Interfaces
 
@@ -91,7 +91,7 @@ The IMT-2000 consists of both **terrestrial** component and **satellite** compon
 
 ### IMT-2000 Satellite Radio Interfaces
 
-**ITU-R M.1850**: Detailed specifications of the radio interfaces for the satellite component of International Mobile Telecommunications-2000 (IMT-2000)
+**ITU-R M.1850** Detailed specifications of the radio interfaces for the satellite component of International Mobile Telecommunications-2000 (IMT-2000)
 
 | ITU-R Name | Common Name |
 | :--------- | :---------- |
@@ -108,7 +108,7 @@ The IMT-2000 consists of both **terrestrial** component and **satellite** compon
 
 ## IMT-2000 Core Network
 
-**ITU-D STUDY GROUP 2**: Guidelines on the smooth transition of existing mobile networks to IMT-2000 for developing countries (GST)
+**ITU-D STUDY GROUP 2** Guidelines on the smooth transition of existing mobile networks to IMT-2000 for developing countries (GST)
 
 | ITU-R Name | ITU-T Recommendation | IMT-2000 Radio Technologies supported by the Core Network	|
 | :--------- | :------------------- | :-------------------------------------------------------- |
@@ -119,12 +119,13 @@ The IMT-2000 consists of both **terrestrial** component and **satellite** compon
 
 # IMT-Advanced (4G)
 
-* **ITU-R M.1645**: Framework and overall objectives of the future development of IMT-2000 and systems beyond IMT-2000
-* **ITU-R M.2012**: Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-Advanced (IMT-Advanced)
+**ITU-R M.1645** Framework and overall objectives of the future development of IMT-2000 and systems beyond IMT-2000
+
+**ITU-R M.2012** Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-Advanced (IMT-Advanced)
 
 | ITU-R Name | Common Name | Standardization |
 | :--------- | :---------- | :-------------- |
-| LTE-Advanced | LTE-Advanced based on FDD<br>TD-LTE-Advanced | 3GPP |
+| **LTE-Advanced** | LTE-Advanced based on FDD<br>TD-LTE-Advanced | 3GPP |
 | WirelessMAN-Advanced | 802.16m<br>BWA | IEEE 802.16 |
 
 <p/>

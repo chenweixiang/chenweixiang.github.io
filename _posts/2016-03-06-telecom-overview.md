@@ -124,7 +124,7 @@ Examples for this technology:
 
 ## 2G (pre-IMT-2000)
 
-Refer to the section [Pre-IMT-2000 (2G)](#pre-imt-2000-2g) for ITU-R Recommendations.
+Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#pre-imt-2000-2g">Pre-IMT-2000 (2G)</a> for ITU-R Recommendations.
 
 **2G** is short for second-generation wireless telephone technology. Second generation cellular telecommunication networks were commercially launched on the **GSM** standard in Finland by Radiolinja in **1991**. Three primary benefits of 2G networks over their predecessors were that:
 
@@ -140,31 +140,21 @@ After 2G was launched, the previous mobile telephone systems were retroactively 
 
 ## 3G (IMT-2000)
 
-Refer to the section [IMT-2000 (3G)](#imt-2000-3g) for ITU-R Recommendations.
-
-Table "Overview of 3G/IMT-2000 standards" in https://en.wikipedia.org/wiki/3G#Evolution
+Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-2000-3g">IMT-2000 (3G)</a> for ITU-R Recommendations.
 
 ## 4G (IMT-Advanced)
 
-Refer to the section [IMT-Advanced (4G)](#imt-advanced-4g) for ITU-R Recommendations.
+Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-advanced-4g">IMT-Advanced (4G)</a> for ITU-R Recommendations.
 
 ## 5G (IMT-2020)
+
+Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-2020-5g">IMT-2020 (5G)</a> for ITU-R Recommendations.
 
 # Deployment
 
 Refer to [Global mobile Suppliers Association (GSA)](http://gsacom.com/).
 
-# References
-
-* [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)
-* [3rd Generation Partnership Project 2 (3GPP2)](http://www.3gpp2.org/)
-* [American National Standards Institute (ANSI)](http://www.ansi.org/)
-* Association of Radio Industries and Businesses (ARIB): 日本无线工业及商贸联合会
-* Automatic Terminal Information Service (ATIS WTSC): 世界无线通讯解决方案联盟 无线技术和系统委员会
-* [European Telecommunications Standards Institute (ETSI)](http://www.etsi.org/)
-* [GSM Association (GSMA)](http://www.gsma.com/)
-* Telecommunications Industry Association / Electronic Industries Associate (TIA/EIA): 美国电信行业协会/美国电子工业协会
-* Institute of Electrical and Electronics Engineers (IEEE 802.16): 美国电气和电子工程师协会 802.16工作组
+# Abbreviation
 
 * Broadband Wireless Access System (BWA): 宽带无线系统
 * Digital Enhanced Cordless Telecommunications (DECT): 数字增强无线通信
@@ -178,5 +168,17 @@ Refer to [Global mobile Suppliers Association (GSA)](http://gsacom.com/).
 * Enhanced Data rates for GSM Evolution (EDGE): 增强型数据速率GSM演进技术
 * Universal Wireless Communication-136 (UWC-136): 通用无线通信-136
 
+# References
+
+* [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)
+* [3rd Generation Partnership Project 2 (3GPP2)](http://www.3gpp2.org/)
+* [American National Standards Institute (ANSI)](http://www.ansi.org/)
+* [Association of Radio Industries and Businesses (ARIB)](http://www.arib.or.jp/english/)
+* [Automatic Terminal Information Service (ATIS WTSC)](http://www.atis.org/)
+* [European Telecommunications Standards Institute (ETSI)](http://www.etsi.org/)
+* [GSM Association (GSMA)](http://www.gsma.com/)
+* [Telecommunications Industry Association (TIA)](http://www.tiaonline.org/)
+* [Electronic Industries Associate (EIA)](http://www.eia.org/)
+* [Institute of Electrical and Electronics Engineers (IEEE 802.16)](http://www.ieee.org/)
 * [Radiocommunication Assembly 2012 (RA-12)](http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=ra-12&lang=en)
 * [World Radiocommunication Conference 2012 (WRC-12)](http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=wrc-12&lang=en&related-conferences=1)

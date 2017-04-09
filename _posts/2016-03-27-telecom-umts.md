@@ -18,7 +18,7 @@ Refer to following links for UMTS history:
 
 # Standards
 
-Refer to the table in section [Specification Numbering](#specification-numbering) for the UMTS standards, and the table in section [Releases](#releases) for the UMTS features in each Release.
+Refer to the table in section <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#specification-numbering">Specification Numbering</a> for the UMTS standards, and the table in section <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#3gpp-standards">3GPP Standards</a> for the UMTS features in each Release.
 
 # Network Structure
 
@@ -30,6 +30,7 @@ UMTS network includes following two parts:
 <p/>
 
 The following figure shows the UMTS network structure, which is got from [wikipedia](https://en.wikipedia.org/wiki/UMTS_%28telecommunication%29):
+
 ![UMTS structures](/assets/UMTS_structures.svg)
 
 And refer to following sections for the UMTS network structure in each Release:
@@ -47,17 +48,21 @@ And refer to following sections for the UMTS network structure in each Release:
 * [UMTS Network Architecture in R13](#umts-network-architecture-10)
 
 Refer to section [Interfaces](#interfaces) for details of interfaces in UMTS network. The following figures show the protocols used in different interfaces:
+
 ![CS Protocols](/assets/CS_Protocols.png)
+
 ![Signaling Protocol](/assets/Signaling_Protocol.png)
+
 ![PS Protocol](/assets/PS_Protocol.png)
 
-
 The following figure is **UMTS domains and reference points** from **Rel-99_description_20160701**:
+
 ![UMTS Domains and Reference Points](/assets/UMTS_domains_and_reference_points.png)
 
 ## R99 Network Structure
 
 The following figure is **UMTS and GSM Network Architecture** from **Rel-99_description_20160701**:
+
 ![R99_UMTS_and_GSM_Network_Architecture](/assets/R99_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R98**, the entities in read blocks are new added.
@@ -67,26 +72,33 @@ Compare to **R98**, the entities in read blocks are new added.
 ### GSM Network Architecture
 
 The following figure is **Figure 1: GERAN reference architecture** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_GERAN_Reference_Architecture](/assets/R4_GERAN_Reference_Architecture.png)
 
 The following figure is **Figure 4: User Plane protocols towards Packet Switched Core Network domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_User_Plane_protocols_towards_Packet_Switched_Core_Network_domain](/assets/R4_User_Plane_protocols_towards_Packet_Switched_Core_Network_domain.png)
 
 The following figure is **Figure 5: Control Plane protocols towards Packet Switched Core Network domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_Control_Plane_protocols_towards_Packet_Switched_Core_Network_domain](/assets/R4_Control_Plane_protocols_towards_Packet_Switched_Core_Network_domain.png)
 
 The following figure is **Figure 6: User Plane protocols towards Circuit-Switched Core Network domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_User_Plane_protocols_towards_Circuit_Switched_Core_Network_domain](/assets/R4_User_Plane_protocols_towards_Circuit_Switched_Core_Network_domain.png)
 
 The following figure is **Figure 7: Control Plane Protocols towards Circuit-Switched Core Network Domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_Control_Plane_Protocols_towards_Circuit_Switched_Core_Network_Domain](/assets/R4_Control_Plane_Protocols_towards_Circuit_Switched_Core_Network_Domain.png)
 
 ### UMTS Network Architecture
 
 The following figure is **Figure 4: UTRAN Architecture** from **TS 25.401-460 UTRAN overall description**:
+
 ![UTRAN Architecture](/assets/UTRAN_Architecture.png)
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-480 Network Architecture**:
+
 ![R4_UMTS_and_GSM_Network_Architecture](/assets/R4_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R99**, the entity **CS-MGW** and corresponding interfaces are new added, and interface **Iubis** is renamed to **Iub**.
@@ -94,12 +106,15 @@ Compare to **R99**, the entity **CS-MGW** and corresponding interfaces are new a
 ## R5 Network Structure
 
 The following figure is **Figure 4: UTRAN Architecture** from **TS 25.401-5a0 UTRAN overall description**:
+
 ![R5_UTRAN_Overall_Architecture1](/assets/R5_UTRAN_Overall_Architecture1.png)
 
 The following figure is **Figure 4b: UTRAN and GERAN Iu mode connection with Iur-g** from **TS 25.401-5a0 UTRAN overall description**:
+
 ![R5_UTRAN_and_GERAN_Iu_mode_connection_with_Iur-g](/assets/R5_UTRAN_and_GERAN_Iu_mode_connection.png)
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-5c0 Network Architecture**:
+
 ![R5_UMTS_and_GSM_Network_Architecture](/assets/R5_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R4**, the entities **HLR** and **AuC** are merged into entity **HSS**, and interfaces **IuCS** and **IuPS** are new added to **BSC**.
@@ -107,6 +122,7 @@ Compare to **R4**, the entities **HLR** and **AuC** are merged into entity **HSS
 ## R6 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-6a0 Network Architecture**:
+
 ![R6_UMTS_and_GSM_Network_Architecture](/assets/R6_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R5**, the entities **CRF** (Charging Rules Function), **PDF** (Policy Decision Function) and corresponding interfaces are new added.
@@ -114,6 +130,7 @@ Compare to **R5**, the entities **CRF** (Charging Rules Function), **PDF** (Poli
 ## R7 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-760 Network Architecture**:
+
 ![R7_UMTS_and_GSM_Network_Architecture](/assets/R7_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R6**, the entities **PDF** (Policy Decision Function) and **CRF** (Charging Rules Function) are merged into **PCRF** (Policy and Charging Rules Function).
@@ -121,6 +138,7 @@ Compare to **R6**, the entities **PDF** (Policy Decision Function) and **CRF** (
 ## R8 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-870 Network Architecture**:
+
 ![R8_UMTS_and_GSM_Network_Architecture](/assets/R8_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R8** is the same to that in **R7**.
@@ -128,6 +146,7 @@ The network structure in **R8** is the same to that in **R7**.
 ## R9 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-960 Network Architecture**:
+
 ![R9_UMTS_and_GSM_Network_Architecture](/assets/R9_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R9** is the same to that in **R7** and **R8**.
@@ -135,6 +154,7 @@ The network structure in **R9** is the same to that in **R7** and **R8**.
 ## R10 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-a30 Network Architecture**:
+
 ![R10_UMTS_and_GSM_Network_Architecture](/assets/R10_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R10** is the same to that in **R7**, **R8** and **R9**.
@@ -142,6 +162,7 @@ The network structure in **R10** is the same to that in **R7**, **R8** and **R9*
 ## R11 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-b00 Network Architecture**:
+
 ![R11_UMTS_and_GSM_Network_Architecture](/assets/R11_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R11** is the same to that in **R7**, **R8**, **R9** and **R10**.
@@ -149,6 +170,7 @@ The network structure in **R11** is the same to that in **R7**, **R8**, **R9** a
 ## R12 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-c70 Network Architecture**:
+
 ![R12_UMTS_and_GSM_Network_Architecture](/assets/R12_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R12** is the same to that in **R7**, **R8**, **R9**, **R10** and **R11**.
@@ -156,6 +178,7 @@ The network structure in **R12** is the same to that in **R7**, **R8**, **R9**, 
 ## R13 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-d50 Network Architecture**:
+
 ![R13_UMTS_and_GSM_Network_Architecture](/assets/R13_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R13** is the same to that in **R7**, **R8**, **R9**, **R10**, **R11** and **R12**.
@@ -369,7 +392,7 @@ According to section **6 Mapping and association of physical channels** of **TS 
 
 #### Channel Mapping
 
-The following figure shows the channel mapping of logical channels, transport channels and physical channels:
+The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
 ## R4 Channels
 
@@ -441,7 +464,7 @@ NOTE: The physical channels in **R4** are the same with that in **R99**.
 
 #### Channel Mapping
 
-The following figure shows the channel mapping of logical channels, transport channels and physical channels:
+The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
 ## R5 Channels
 
@@ -509,11 +532,12 @@ According to section **6 Mapping and association of physical channels** of **TS 
 <p/>
 
 NOTE1: The physical channels **PDSCH**, **AP-AICH**, **CSICH** and **CD/CA-ICH** are deleted from R5.
+
 NOTE2: The physical channels **HS-PDSCH**, **HS-SCCH** and **HS-DPCCH** are new added for **HSDPA** in R5.
 
 #### Channel Mapping
 
-The following figure shows the channel mapping of logical channels, transport channels and physical channels:
+The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
 ## R6 Channels
 
@@ -593,7 +617,7 @@ NOTE: The physical channels **MICH**, **F-DPCH**, **E-DPDCH**, **E-DPCCH**, **E-
 
 #### Channel Mapping
 
-The following figure shows the channel mapping of logical channels, transport channels and physical channels:
+The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
 ## R7 Channels
 
@@ -675,7 +699,7 @@ NOTE: The physical channels in **R7** are the same with that in **R6**.
 
 #### Channel Mapping
 
-The following figure shows the channel mapping of logical channels, transport channels and physical channels:
+The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
 ## R8 Channels
 
@@ -722,6 +746,7 @@ According to section **5.2 Layer 1 Services and Functions** of **TS 25.301-750 R
 <p/>
 
 [*NOTE1*] RRC state: CELL_FACH state, IDLE mode
+
 [*NOTE2*] RRC state: CELL_DCH
 
 NOTE: The transport channel **E-DCH** (Common type) is the new added in **R8**.
@@ -760,21 +785,26 @@ NOTE: The physical channels in **R8** are the same with that in **R7**.
 
 #### Channel Mapping
 
-The following figure shows the channel mapping of logical channels, transport channels and physical channels:
+The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
 # User Equipment (UE)
 
 The following figure is **Figure 2: PLMN Access Reference Configuration (UTRAN Iu mode or E-UTRAN)** from **TS 24.002-810 PLMN Access Reference Configuration**:
+
 ![R8_PLMN_Access_Reference_Configuration_UTRAN_Iu_mode_or_E-UTRAN](/assets/R8_PLMN_Access_Reference_Configuration_UTRAN_Iu_mode_or_E-UTRAN.png)
 
 The following figure is **Figure 1a: Functional Model for the User Equipment** from **TS 23.101-400 General UMTS Architecture**:
+
 ![R4_Functional_Model_for_the_User_Equipment](/assets/R4_Functional_Model_for_the_User_Equipment.png)
 
 **UE** = **USIM** + **ME**
+
 **ME** = **MT** + **TE**
 
 **ME**: the phone
+
 **MT**: Mobile Termination, that's the radio transmitting/receiving device of phone
+
 **TE**: Application within phone
 
 According to section **3.1 Mobile Termination (MT)** of **TS 24.002-810 PLMN Access Reference Configuration**, the MT performs the following functions:
@@ -831,9 +861,11 @@ The User Equipment (UE) related standards include:
 ## Radio Interface (Uu)
 
 The following figure is **Figure 1: Assumed UMTS Architecture** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Assumed_UMTS_Architecture](/assets/R8_Assumed_UMTS_Architecture.png)
 
 In the above figure, the **Uu Stratum** (**UuS**) block includes the radio interface protocol stack described in the following figure, which is **Figure 2: Radio Interface protocol architecture (Service Access Points marked by circles)** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![Radio Interface Protocol Architecture](/assets/R8_Radio_Interface_Protocol_Architecture.png)
 
 The radio interface is layered into three protocol layers:
@@ -847,6 +879,7 @@ The radio interface is layered into three protocol layers:
 * [Network Layer (L3)](#network-layer-l3)
 
 The following figure is **Figure 10: Interactions between RRC and lower layers** from **TS 25.301-870 Radio Interface Protocol Architecture**. Also refer to section **10 Primitives of the physical layer** of **TS 25.302-870 Services provided by the physical layer** and section **5.5 Interactions between RRC and lower layers in the C plane** of **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Interactions_between_RRC_and_lower_layers](/assets/R8_Interactions_between_RRC_and_lower_layers.png)
 
 The following **Primitives** are used to layer-to-layer communication:
@@ -870,7 +903,7 @@ The following **Protocol Data Units (PDU)** are used to peer-to-peer communicati
 
 #### L1 Related Standards
 
-**TS 25.1xx - Uu Interface Radio performance (射频性能)**
+**TS 25.1xx - Uu Interface Radio Performance**
 
 * TS 25.101 - User Equipment (UE) radio transmission and reception (FDD)
 * TS 25.102 - User Equipment (UE) radio transmission and reception (TDD)
@@ -983,6 +1016,7 @@ A transport channel is defined by ***how*** and with ***what*** characteristics 
 <p/>
 
 [*NOTE1*] RRC state: CELL_FACH state, IDLE mode
+
 [*NOTE2*] RRC state: CELL_DCH
 
 Refer to [Logical Channels](#logical-channels) for channel mapping between Logical Channel, Transport Channel and Physical Channel.
@@ -998,9 +1032,11 @@ Data stream from/to MAC and higher layers (Transport block / Transport block set
 The following channel coding scheme only applies to the transport channels: **DCH**, **RACH**, **BCH**, **FACH** and **PCH**.
 
 The following figure is **Figure 1: Transport channel multiplexing structure for uplink** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Transport_channel_multiplexing_structure_for_uplink](/assets/R8_Transport_channel_multiplexing_structure_for_uplink.png)
 
 The following figure is **Figure 2: Transport channel multiplexing structure for downlink** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Transport_channel_multiplexing_structure_for_downlink](/assets/R8_Transport_channel_multiplexing_structure_for_downlink.png)
 
 The bit sequences output from **DCH**, **RACH**, **BCH**, **FACH** and **PCH** are mapped to [DPDCH](#dpdch--dpcch), [PRACH](#prach), [P-CCPCH](#p-ccpch) and [S-CCPCH](#s-ccpch).
@@ -1010,6 +1046,7 @@ The bit sequences output from **DCH**, **RACH**, **BCH**, **FACH** and **PCH** a
 Data arrives to the coding unit in form of a maximum of one transport block once every transmission time interval. The transmission time interval is 2 ms which is mapped to a radio sub-frame of 3 slots. In the following figure, the number of transport blocks and the number of transport channels is always one i.e. *m=1, i=1*.
 
 The following figure is **Figure 16: Coding chain for HS-DSCH** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_chain_for_HS-DSCH](/assets/R8_Coding_chain_for_HS-DSCH.png)
 
 The output bit sequence *Rp,i* is mapped to HS-PDSCH sub-frame, refer to [HS-PDSCH](#hs-pdsch).
@@ -1034,12 +1071,15 @@ HS-SCCH orders are commands sent to the UE using HS-SCCH. No HS-PDSCH is associa
 * **Figure 19B: Coding chain for HS-SCCH type 3** for the case when the UE is configured in MIMO mode, with the exception of HS-DSCH serving cell change order, which is always transmitted using HS-SCCH type 1 specified in **Figure 19: Coding chain for HS-SCCH type 1**.
 
 The following figure is **Figure 19: Coding chain for HS-SCCH type 1** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_chain_for_HS-SCCH_type1](/assets/R8_Coding_chain_for_HS-SCCH_type1.png)
 
 The following figure is **Figure 19A: Coding chain for HS-SCCH type 2** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_chain_for_HS-SCCH_type2](/assets/R8_Coding_chain_for_HS-SCCH_type2.png)
 
 The following figure is **Figure 19B: Coding chain for HS-SCCH type 3** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_chain_for_HS-SCCH_type3](/assets/R8_Coding_chain_for_HS-SCCH_type3.png)
 
 The bit sequence *S1,i, i=1..40* is mapped to the first slot of the HS-SCCH sub frame. The bit sequence *R2,i, i=1..80* is mapped to the second and third slot of the HS-SCCH sub frame. Refer to [HS-SCCH](#hs-scch).
@@ -1049,9 +1089,11 @@ The bit sequence *S1,i, i=1..40* is mapped to the first slot of the HS-SCCH sub 
 Data arrives to the coding unit in form of indicators for measurement indication and HARQ acknowledgement.
 
 The following figure is **Figure 20: Coding for HS-DPCCH when the UE is not configured in MIMO mode** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_for_HS-DPCCH_when_the_UE_is_not_configured_in_MIMO_mode](/assets/R8_Coding_for_HS-DPCCH_when_the_UE_is_not_configured_in_MIMO_mode.png)
 
 The following figure is **Figure 20A: Coding for HS-DPCCH when the UE is configured in MIMO mode** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_for_HS-DPCCH_when_the_UE_is_configured_in_MIMO_mode](/assets/R8_Coding_for_HS-DPCCH_when_the_UE_is_configured_in_MIMO_mode.png)
 
 The bit sequences *Wk* and *Bk* are mapped to the corresponding HS-DPCCH sub-frame, refer to [HS-DPCCH](#hs-dpcch).
@@ -1061,6 +1103,7 @@ The bit sequences *Wk* and *Bk* are mapped to the corresponding HS-DPCCH sub-fra
 Data arrives to the coding unit in form of a maximum of one transport block once every transmission time interval (TTI).
 
 The following figure is **Figure 21: Transport channel processing for E-DCH** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Transport_channel_processing_for_E-DCH](/assets/R8_Transport_channel_processing_for_E-DCH.png)
 
 The sequence of bits output from the E-DCH channel coding is mapped to the corresponding E-DPDCH sub-frame, refer to [E-DPDCH](#e-dpdch--e-dpcch).
@@ -1086,6 +1129,7 @@ The following information is transmitted by means of the E-DPCCH: Retransmission
 4. The sequences *Xh,1*, *Xrsn,i* and *Xtfci,i* are encoded by the following figure.
 
 The following figure is **Figure 23: Coding chain for E-DPCCH** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_chain_for_E-DPCCH](/assets/R8_Coding_chain_for_E-DPCCH.png)
 
 The sequence of bits *Zi, i=1..29* output from the E-DPCCH channel coding is mapped to the corresponding E-DPCCH sub-frame. The bits are mapped so that they are transmitted over the air in ascending order with respect to *i*. If the E-DCH TTI is equal to 10 ms the sequence of bits is transmitted in all the E-DPCCH sub frames of the E-DPCCH radio frame. Refer to [E-DPCCH](#e-dpdch--e-dpcch).
@@ -1101,6 +1145,7 @@ The sequence of bits *Zi, i=1..29* output from the E-DPCCH channel coding is map
 4. Then, the sequences *Xagv,i, i=1..5* and *Xags,1* are encoded by the following figure.
 
 The following figure is **Figure 24: Coding for E-AGCH** from **TS 25.212-870 Multiplexing and channel coding (FDD)**:
+
 ![R8_Coding_for_E-AGCH](/assets/R8_Coding_for_E-AGCH.png)
 
 Also refer to [E-AGCH](#e-agch).
@@ -1184,13 +1229,17 @@ The physical channels are:
 ##### P-CCPCH
 
 ***Function:***
+
 The Primary Common Control Physical Channel (**P-CCPCH**) is a fixed rate (30 kbps, **SF=256**) downlink physical channels used to carry the BCH transport channel.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 15: Frame structure for Primary Common Control Physical Channel** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_for_P-CCPCH](/assets/R8_Frame_structure_for_P-CCPCH.png)
+
 The frame structure differs from the downlink DPCH in that no TPC commands, no TFCI and no pilot bits are transmitted. The P-CCPCH is not transmitted during the first 256 chips of each slot. Instead, Primary SCH and Secondary SCH are transmitted during this period, refer to [SCH](#sch).
 
 The input sequence of P-CCPCH comes from output of BCH, refer to [General Channel Coding for TrCHs](#general-channel-coding-for-trchs).
@@ -1198,6 +1247,7 @@ The input sequence of P-CCPCH comes from output of BCH, refer to [General Channe
 ##### S-CCPCH
 
 ***Function:***
+
 The Secondary Common Control Physical Channel (**S-CCPCH**) is used to carry the FACH and PCH. There are two types of S-CCPCH: those that include TFCI and those that do not include TFCI. It is the UTRAN that determines if a TFCI should be transmitted, hence making it mandatory for all UEs to support the use of TFCI.
 
 The FACH and PCH can be mapped to the same or to separate S-CCPCHs. If FACH and PCH are mapped to the same S-CCPCH, they can be mapped to the same frame. The main difference between a CCPCH and a downlink dedicated physical channel is that a CCPCH is not inner-loop power controlled. The main difference between the P-CCPCH and S-CCPCH is that the transport channel mapped to the P-CCPCH (BCH) can only have a fixed predefined transport format combination, while the S-CCPCH support multiple transport format combinations using TFCI.
@@ -1205,8 +1255,11 @@ The FACH and PCH can be mapped to the same or to separate S-CCPCHs. If FACH and 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 17: Frame structure for Secondary Common Control Physical Channel** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_for_P-CCPCH](/assets/R8_Frame_structure_for_S-CCPCH.png)
+
 The parameter *k* determines the total number of bits per downlink S-CCPCH slot. It is related to the spreading factor (SF) of the physical channel as SF = 256/2^k. The spreading factor range is from 256 down to 4.
 
 The input sequence of S-CCPCH comes from output of FACH or PCH, refer to [General Channel Coding for TrCHs](#general-channel-coding-for-trchs).
@@ -1214,82 +1267,108 @@ The input sequence of S-CCPCH comes from output of FACH or PCH, refer to [Genera
 ##### SCH
 
 ***Function:***
+
 The Synchronisation Channel (**SCH**) is a downlink signal used for cell search. The SCH consists of two sub channels, the Primary Synchronisation Channel (**Primary SCH**) and Secondary Synchronisation Channel (**Secondary SCH**). The SCH is not transmitted during the first 256 chips of each slot, refer to [P-CCPCH](#p-ccpch).
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 18: Structure of Synchronisation Channel (SCH)** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_SCH](/assets/R8_Frame_structure_of_SCH.png)
 
 The following figure is **Figure 19: Structure of SCH transmitted by TSTD scheme** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_SCH_transmitted_by_TSTD_scheme](/assets/R8_Frame_structure_of_SCH_transmitted_by_TSTD_scheme.png)
 
 ##### AICH
 
 ***Function:***
+
 The Acquisition Indicator channel (**AICH**) is a fixed rate (**SF=256**) physical channel used to carry Acquisition Indicators (AI) and Extended Acquisition Indicators (EAI). Acquisition Indicator AIs corresponds to signature *s* on the PRACH. Extended Acquisition Indicators (EAIs) represent a set of values corresponding to a set of E-DCH resource configurations.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 21: Structure of Acquisition Indicator Channel (AICH)** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_AICH](/assets/R8_Frame_structure_of_AICH.png)
+
 The AICH consists of a repeated sequence of 15 consecutive *access slots* (AS), each of length 5120 chips. Each *access slot* consists of two parts, an *Acquisition-Indicator* (AI) part consisting of 32 real-valued signals and a part of duration 1024 chips with no transmission that is not formally part of the AICH. The part of the slot with no transmission is reserved for possible future use by other physical channels.
 
 ##### PICH
 
 ***Function:***
+
 The Paging Indicator Channel (**PICH**) is a fixed rate (**SF=256**) physical channel used to carry the paging indicators. The PICH is associated either with an S-CCPCH to which a PCH transport channel is mapped, or with a HS-SCCH associated with the HS-PDSCH(s) to which a HS-DSCH transport channel carrying paging messages is mapped.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 24: Structure of Paging Indicator Channel (PICH)** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_PICH](/assets/R8_Frame_structure_of_PICH.png)
+
 One PICH radio frame of length 10 ms consists of 300 bits (*b0, b1, ..., b299*). Of these, 288 bits (*b0, b1, ..., b287*) are used to carry paging indicators. The remaining 12 bits are not formally part of the PICH and shall not be transmitted (DTX). The part of the frame with no transmission is reserved for possible future use.
 
 ##### MICH
 
 ***Function:***
+
 The MBMS Indicator Channel (**MICH**) is a fixed rate (**SF=256**) physical channel used to carry the MBMS notification indicators. The MICH is always associated with an S-CCPCH to which a FACH transport channel is mapped.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 26D: Structure of MBMS Indicator Channel (MICH)** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_MICH](/assets/R8_Frame_structure_of_MICH.png)
+
 One MICH radio frame of length 10 ms consists of 300 bits (b0, b1, ..., b299). Of these, 288 bits (b0, b1, ..., b287) are used to carry notification indicators. The remaining 12 bits are not formally part of the MICH and shall not be transmitted (DTX).
 
 ##### PRACH
 
 ***Function:***
+
 The Physical Random Access Channel (**PRACH**) is used to carry the RACH. The random-access transmission is based on a **Slotted ALOHA** approach with fast acquisition indication. The UE can start the random-access transmission at the beginning of a number of well-defined time intervals, denoted *access slots*.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 3: RACH access slot numbers and their spacing** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_RACH_access_slot_numbers_and_their_spacing](/assets/R8_RACH_access_slot_numbers_and_their_spacing.png)
 
 The following figure is **Figure 4: Structure of the random-access transmission** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Structure_of_the_random_access_transmission](/assets/R8_Structure_of_the_random_access_transmission.png)
+
 The random-access transmission consists of one or several *preambles* of length 4096 chips and a *message* of length 10 ms or 20 ms. Each *preamble* is of length 4096 chips and consists of 256 repetitions of a signature of length 16 chips. There are a maximum of 16 available signatures.
 
 The following figure is **Figure 5: Structure of the random-access message part radio frame** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Structure_of_the_random-access_message_part_radio_frame](/assets/R8_Structure_of_the_random-access_message_part_radio_frame.png)
+
 Each slot consists of two parts, a *data* part to which the RACH transport channel is mapped and a *control* part that carries Layer 1 control information. The *data* and *control* parts are transmitted in parallel. A 10 ms message part consists of one message part radio frame, while a 20 ms message part consists of two consecutive 10 ms message part radio frames.
 
 The input sequence of PRACH comes from output of RACH, refer to [General Channel Coding for TrCHs](#general-channel-coding-for-trchs).
 
 ***Configuration:***
+
 IE ***PRACH info*** in following messages:
-System Information Block type 5 and 5bis
-System Information Block type 6
+
+* System Information Block type 5 and 5bis
+* System Information Block type 6
 
 ##### CPICH
 
 ***Function:***
+
 The Common Pilot Channel (CPICH) is a fixed rate (30 kbps, **SF=256**) downlink physical channel that carries a pre-defined bit sequence. There are two types of Common pilot channels, the Primary Common Pilot Channel (**P-CPICH**) and Secondary Common Pilot Channel (**S-CPICH**). They differ in their use and the limitations placed on their physical features.
 
 P-CPICH:
@@ -1310,48 +1389,65 @@ S-CPICH:
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 13: Frame structure for Common Pilot Channel** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_CPICH](/assets/R8_Frame_structure_of_CPICH.png)
 
 The following figure is **Figure 14: Modulation pattern for Common Pilot Channel** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Modulation_pattern_for_CPICH](/assets/R8_Modulation_pattern_for_CPICH.png)
 
 ##### HS-PDSCH
 
 ***Function:***
+
 The High Speed Physical Downlink Shared Channel (**HS-PDSCH**) is used to carry the High Speed Downlink Shared Channel (HS-DSCH). A HS-PDSCH corresponds to one channelization code of fixed spreading factor **SF=16** from the set of channelization codes reserved for HS-DSCH transmission.
 
 ***Modulation:***
+
 An HS-PDSCH may use **QPSK**, **16QAM** or **64QAM** modulation symbols.
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 26B: Subframe structure for the HS-PDSCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_HS-PDSCH](/assets/R8_Frame_structure_of_HS-PDSCH.png)
+
 The input sequence of HS-PDSCH comes from output of [Channel Coding for HS-DSCH](#channel-coding-for-hs-dsch).
 
 ##### HS-SCCH
 
 ***Function:***
+
 The Shared Control Channel for HS-DSCH (**HS-SCCH**) is a fixed rate (60 kbps, **SF=128**) downlink physical channel used to carry downlink signalling related to HS-DSCH transmission.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 26A: Subframe structure for the HS-SCCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_for_HS-SCCH](/assets/R8_Frame_structure_for_HS-SCCH.png)
+
 The input sequence of HS-SCCH comes from output of [Channel Coding for HS-SCCH](#channel-coding-for-hs-scch).
 
 ##### HS-DPCCH
 
 ***Function:***
+
 The Dedicated Physical Control Channel for HS-DSCH (**HS-DPCCH**) carries uplink feedback signalling related to downlink HS-DSCH transmission and to HS-SCCH orders. The feedback signalling consists of Hybrid-ARQ Acknowledgement (HARQ-ACK) and Channel-Quality Indication (CQI) and in case the UE is configured in MIMO mode of Precoding Control Indication (PCI) as well. There is at most one HS-DPCCH on each radio link. The HS-DPCCH can only exist together with an uplink DPCCH.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 2A: Frame structure for uplink HS-DPCCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_for_uplink_HS-DPCCH](/assets/R8_Frame_structure_for_uplink_HS-DPCCH.png)
+
 The spreading factor of the HS-DPCCH is **SF=256** i.e. there are 10 bits per uplink HS-DPCCH slot.
+
 The input sequence of HS-DPCCH comes from output of [Channel Coding for HS-DPCCH](#channel-coding-for-hs-dpcch).
 
 ##### DPDCH / DPCCH
@@ -1359,6 +1455,7 @@ The input sequence of HS-DPCCH comes from output of [Channel Coding for HS-DPCCH
 * **DPDCH** and **DPCCH** (uplink)
 
     ***Function:***
+
     The uplink Dedicated Physical Data Channel (**DPDCH**) is used to carry the DCH transport channel. There may be zero, one, or several uplink DPDCHs on each radio link.
 
     The uplink Dedicated Physical Control Channel (**DPCCH**) is used to carry control information generated at Layer 1. The Layer 1 control information consists of known pilot bits to support channel estimation for coherent detection, transmit power-control (TPC) commands, feedback information (FBI), and an optional transport-format combination indicator (TFCI). The transport-format combination indicator (TFCI) informs the receiver about the instantaneous transport format combination of the transport channels mapped to the simultaneously transmitted uplink DPDCH radio frame. There is one and only one uplink DPCCH on each radio link.
@@ -1366,32 +1463,40 @@ The input sequence of HS-DPCCH comes from output of [Channel Coding for HS-DPCCH
     ***Modulation:***
 
     ***Frame/Subframe Structure:***
+
     The following figure is **Figure 1: Frame structure for uplink DPDCH/DPCCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
     ![R8_Frame_structure_for_uplink_DPDCH_DPCCH](/assets/R8_Frame_structure_for_uplink_DPDCH_DPCCH.png)
+
     The DPDCH and DPCCH are always frame aligned with each other. The parameter *k* determines the number of bits per uplink DPDCH slot. It is related to the spreading factor SF of the DPDCH as **SF = 256 / 2^***k*. The DPDCH spreading factor may range from 256 down to 4. The spreading factor of the uplink DPCCH is always equal to **256**, i.e. there are 10 bits per uplink DPCCH slot.
 
     The input sequence of DPDCH comes from output of DCH, refer to [General Channel Coding for TrCHs](#general-channel-coding-for-trchs).
 
     ***Configuration:***
+
     IE ***Uplink DPCH info*** in the following messages:
-    CELL UPDATE CONFIRM
-    HANDOVER TO UTRAN COMMAND
-    TRANSPORT CHANNEL RECONFIGURATION
-    PHYSICAL CHANNEL RECONFIGURATION
-    RADIO BEARER SETUP
-    RADIO BEARER RECONFIGURATION
-    RADIO BEARER RELEASE
-    RRC CONNECTION SETUP
+
+    * CELL UPDATE CONFIRM
+    * HANDOVER TO UTRAN COMMAND
+    * TRANSPORT CHANNEL RECONFIGURATION
+    * PHYSICAL CHANNEL RECONFIGURATION
+    * RADIO BEARER SETUP
+    * RADIO BEARER RECONFIGURATION
+    * RADIO BEARER RELEASE
+    * RRC CONNECTION SETUP
 
 * **DPDCH** and **DPCCH** (downlink)
 
     ***Function:***
+
     Within one downlink DPCH, dedicated data generated at Layer 2 and above, i.e. the dedicated transport channel (DCH), is transmitted in time-multiplex with control information generated at Layer 1 (known pilot bits, TPC commands, and an optional TFCI). The downlink DPCH can thus be seen as a time multiplex of a downlink DPDCH and a downlink DPCCH.
 
     ***Modulation:***
 
     ***Frame/Subframe Structure:***
+
     The following figure is **Figure 9: Frame structure for downlink DPCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
     ![R8_Frame_structure_for_downlink_DPCH](/assets/R8_Frame_structure_for_downlink_DPCH.png)
 
     The input sequence of DPDCH comes from output of DCH, refer to [General Channel Coding for TrCHs](#general-channel-coding-for-trchs).
@@ -1399,49 +1504,65 @@ The input sequence of HS-DPCCH comes from output of [Channel Coding for HS-DPCCH
 ##### F-DPCH
 
 ***Function:***
+
 The Fractional Dedicated Physical Channel (**F-DPCH**) carries control information generated at layer 1 (TPC commands). It is a special case of downlink DPCCH.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 12B: Frame structure for F-DPCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_for_F-DPCH](/assets/R8_Frame_structure_for_F-DPCH.png)
 
 ##### E-DPDCH / E-DPCCH
 
 ***Function:***
+
 The E-DCH Dedicated Physical Data Channel (**E-DPDCH**) is used to carry the E-DCH transport channel. There may be zero, one, or several E-DPDCH on each radio link.
 
 The E-DPCCH is a physical channel used to transmit control information associated with the E-DCH. There is at most one E-DPCCH on each radio link. E-DPCCH shall not be transmitted in a slot unless DPCCH is also transmitted in the same slot.
 
 ***Modulation:***
+
 An E-DPDCH may use BPSK or 4PAM modulation symbols.
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 2B: E-DPDCH frame structure** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_E-DPDCH_frame_structure](/assets/R8_E-DPDCH_frame_structure.png)
+
 The input sequence of E-DPCCH comes from output of [Channel Coding for E-DCH](#channel-coding-for-e-dch).
+
 The input sequence of E-DPCCH comes from output of [Channel Coding for E-DPCCH](#channel-coding-for-e-dpcch).
 
 ***Configuration:***
+
 IE ***E-DPDCH info*** in the following messages:
-System Information Block type 5 and 5bis
+
+* System Information Block type 5 and 5bis
 
 ##### E-AGCH
 
 ***Function:***
+
 The E-DCH Absolute Grant Channel (**E-AGCH**) is a fixed rate (30 kbps, **SF=256**) downlink physical channel carrying the uplink E-DCH absolute grant.
 
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 26C: Sub-frame structure for the E-AGCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Frame_structure_of_E-AGCH](/assets/R8_Frame_structure_of_E-AGCH.png)
+
 The input sequence of E-AGCH comes from output of [Channel Coding for E-AGCH](#channel-coding-for-e-agch).
 
 ##### E-RGCH / E-HICH
 
 ***Function:***
+
 The E-DCH Relative Grant Channel (**E-RGCH**) is a fixed rate (**SF=128**) dedicated downlink physical channel carrying the uplink E-DCH relative grants.
 
 The E-DCH Hybrid ARQ Indicator Channel (**E-HICH**) is a fixed rate (**SF=128**) dedicated downlink physical channel carrying the uplink E-DCH hybrid ARQ acknowledgement indicator.
@@ -1449,24 +1570,31 @@ The E-DCH Hybrid ARQ Indicator Channel (**E-HICH**) is a fixed rate (**SF=128**)
 ***Modulation:***
 
 ***Frame/Subframe Structure:***
+
 The following figure is **Figure 12A: E-RGCH and E-HICH structure** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_E-RGCH_and_E-HICH_structure](/assets/R8_E-RGCH_and_E-HICH_structure.png)
+
 The input sequence of E-RGCH comes from output of [Mapping for E-RGCH Relative Grant](#mapping-for-e-rgch-relative-grant).
+
 The input sequence of E-HICH comes from output of [Mapping for E-HICH ACK/NACK](#mapping-for-e-hich-acknack).
 
 ***Configuration:***
+
 IE ***E-RGCH Info*** in the following messages:
-CELL UPDATE CONFIRM
-HANDOVER TO UTRAN COMMAND
-TRANSPORT CHANNEL RECONFIGURATION
-PHYSICAL CHANNEL RECONFIGURATION
-RADIO BEARER SETUP
-RADIO BEARER RELEASE
-RRC CONNECTION SETUP
-ACTIVE SET UPDATE
+
+* CELL UPDATE CONFIRM
+* HANDOVER TO UTRAN COMMAND
+* TRANSPORT CHANNEL RECONFIGURATION
+* PHYSICAL CHANNEL RECONFIGURATION
+* RADIO BEARER SETUP
+* RADIO BEARER RELEASE
+* RRC CONNECTION SETUP
+* ACTIVE SET UPDATE
 
 IE ***E-HICH Info*** in the following messages:
-System Information Block type 5 and 5bis
+
+* System Information Block type 5 and 5bis
 
 #### Physical Channel Spreading/Modulation
 
@@ -1481,32 +1609,41 @@ System Information Block type 5 and 5bis
 The spreading operation specified in the following figures includes a **spreading stage**, a **weighting stage**, and an **IQ mapping stage**. In the process, the streams of real-valued chips on the I and Q branches are summed; this results in a complex-valued stream of chips for each set of channels.
 
 The following figure is **Figure 1A: Spreading for uplink DPCCH/DPDCHs** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Spreading_for_uplink_DPCCH_DPDCHs](/assets/R8_Spreading_for_uplink_DPCCH_DPDCHs.png)
 
 The following figure is **Figure 1B: Spreading for uplink HS-DPCCH** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Spreading_for_uplink_HS-DPCCH](/assets/R8_Spreading_for_uplink_HS-DPCCH.png)
 
 The following figure is **Figure 1C: Spreading for E-DPDCH/E-DPCCH** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Spreading_for_E-DPDCH_E-DPCCH](/assets/R8_Spreading_for_E-DPDCH_E-DPCCH.png)
 
 The following figure is **Figure 1: Spreading for uplink dedicated channels** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Spreading_for_uplink_dedicated_channels](/assets/R8_Spreading_for_uplink_dedicated_channels.png)
 
 The following figure is **Figure 2: Spreading of PRACH message part** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Spreading_of_PRACH_message_part](/assets/R8_Spreading_of_PRACH_message_part.png)
 
 The following figure is **Figure 7: Uplink modulation** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Uplink_modulation](/assets/R8_Uplink_modulation.png)
 
 ##### Spreading and Modulation for Downlink Physical Channels
 
 The following figure is **Figure 8: Spreading for all downlink physical channels except SCH** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Spreading_for_all_downlink_physical_channels_except_SCH](/assets/R8_Spreading_for_all_downlink_physical_channels_except_SCH.png)
 
 The following figure is **Figure 9: Combining of downlink physical channels** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Combining_of_downlink_physical_channels](/assets/R8_Combining_of_downlink_physical_channels.png)
 
 The following figure is **Figure 11: Downlink modulation** of **TS 25.213-850 Spreading and modulation (FDD)**:
+
 ![R8_Downlink_modulation](/assets/R8_Downlink_modulation.png)
 
 #### Timing relationship between physical channels
@@ -1514,36 +1651,47 @@ The following figure is **Figure 11: Downlink modulation** of **TS 25.213-850 Sp
 The **P-CCPCH**, on which the cell SFN is transmitted, is used as timing reference for all the physical channels, directly for downlink and indirectly for uplink.
 
 The following figure is **Figure 29: Radio frame timing and access slot timing of downlink physical channels** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Radio_frame_timing_and_access_slot_timing_of_downlink_physical_channels](/assets/R8_Radio_frame_timing_and_access_slot_timing_of_downlink_physical_channels.png)
 
 The following figure is **Figure 30: Timing relation between PICH frame and associated S-CCPCH frame** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Timing_relation_between_PICH_frame_and_associated_S-CCPCH_frame](/assets/R8_Timing_relation_between_PICH_frame_and_associated_S-CCPCH_frame.png)
 
 The following figure is **Figure 30a: Timing relation between PICH frame and associated HS-SCCH subframes** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Timing_relation_between_PICH_frame_and_associated_HS-SCCH_subframes](/assets/R8_Timing_relation_between_PICH_frame_and_associated_HS-SCCH_subframes.png)
 
 The following figure is **Figure 31: Timing relation between PRACH and AICH as seen at the UE** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Timing_relation_between_PRACH_and_AICH_as_seen_at_UE](/assets/R8_Timing_relation_between_PRACH_and_AICH_as_seen_at_UE.png)
 
 The following figure is **Figure 31A: UL/DL timing relation for Enhanced Uplink in CELL_FACH state and IDLE mode as seen at the UE** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_UL_DL_timing_relation_for_Enhanced_Uplink_in_CELL_FACH_state_and_IDLE_mode_as_seen_at_UE](/assets/R8_UL_DL_timing_relation_for_Enhanced_Uplink_in_CELL_FACH_state_and_IDLE_mode_as_seen_at_UE.png)
 
 The following figure is **Figure 34: Timing structure at the UE for HS-DPCCH control signalling** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Timing_structure_at_the_UE_for_HS-DPCCH_control_signalling](/assets/R8_Timing_structure_at_the_UE_for_HS-DPCCH_control_signalling.png)
 
 The following figure is **Figure 35: Timing relation between the HS-SCCH and the associated HS-PDSCH** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Timing_relation_between_the_HS-SCCH_and_the_associated_HS-PDSCH](/assets/R8_Timing_relation_between_the_HS-SCCH_and_the_associated_HS-PDSCH.png)
 
 The following figure is **Figure 36: Timing relation between MICH frame and associated S-CCPCH frame** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_Timing_relation_between_MICH_frame_and_associated_S-CCPCH_frame](/assets/R8_Timing_relation_between_MICH_frame_and_associated_S-CCPCH_frame.png)
 
 The following figure is **Figure 37: E-HICH timing** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_E-HICH_timing](/assets/R8_E-HICH_timing.png)
 
 The following figure is **Figure 38: E-RGCH timing** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_E-RGCH_timing](/assets/R8_E-RGCH_timing.png)
 
 The following figure is **Figure 39: E-AGCH timing** from **TS 25.211-870 Physical channels and mapping of transport channels onto physical channels (FDD)**:
+
 ![R8_E-AGCH_timing](/assets/R8_E-AGCH_timing.png)
 
 ### Data Link Layer (L2)
@@ -1641,9 +1789,11 @@ According to section **5.3.1.2 MAC functions** of **TS 25.301-870 Radio Interfac
 ##### Logical Channels
 
 According to **TS 25.321-8g0 Medium Access Control (MAC) protocol specification**, the following figure is Channel Mapping of 3GPP R8 FDD:
+
 ![Channel Mapping of 3GPP R8 FDD](/assets/Channel_Mapping_3GPP_R8_FDD.png)
 
 Refer to [Transport Channels](#transport-channels) for Transport Channels.
+
 Refer to [Physical Channels](#physical-channels) for Physical Channels.
 
 #### Radio Link Control (RLC)
@@ -1836,15 +1986,19 @@ According to section **5.3.5 Data flows through Layer 2** of **TS 25.301-870 Rad
 Data flows through layer 2 are characterised by the applied data transfer modes on RLC (***acknowledged***, ***unacknowledged*** and ***transparent transmission***) in combination with the data transfer type on MAC, i.e. ***whether or not a MAC header is required***. The case where no MAC header is required is referred to as **transparent** MAC transmission. Acknowledged and unacknowledged RLC transmissions both require a RLC header. In unacknowledged transmission, only one type of unacknowledged data PDU is exchanged between peer RLC entities. In acknowledged transmission, both (acknowledged) data PDUs and control PDUs are exchanged between peer RLC entities.
 
 The following figure is **Figure 6: Data flow for transparent RLC and MAC** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Data_flow_for_transparent_RLC_and_MAC](/assets/R8_Data_flow_for_transparent_RLC_and_MAC.png)
 
 The following figure is **Figure 7: Data flow for transparent RLC and non-transparent MAC** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Data_flow_for_transparent_RLC_and_non-transparent_MAC](/assets/R8_Data_flow_for_transparent_RLC_and_non-transparent_MAC.png)
 
 The following figure is **Figure 8: Data flow for non-transparent RLC and transparent MAC** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Data_flow_for_non-transparent_RLC_and_transparent_MAC](/assets/R8_Data_flow_for_non-transparent_RLC_and_transparent_MAC.png)
 
 The following figure is **Figure 9: Data flow for non-transparent RLC and MAC** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Data_flow_for_non-transparent_RLC_and_MAC](/assets/R8_Data_flow_for_non-transparent_RLC_and_MAC.png)
 
 ### Network Layer (L3)
@@ -2100,20 +2254,25 @@ The primitives between RRC and the upper layers are described in section **6 Ser
 #### RRC Layer Model
 
 The following figure is **Figure 4.1-1: Mapping of UE state to 3GPP Specifications** from **TS 25.331-8n0 Radio Resource Control (RRC) protocol specification**:
+
 ![R8_Mapping_of_UE_state_to_3GPP_Specifications](/assets/R8_Mapping_of_UE_state_to_3GPP_Specifications.png)
 
 The following figure is **Figure 4.2-1: UE side model of RRC** from **TS 25.331-8n0 Radio Resource Control (RRC) protocol specification**:
+
 ![R8_UE_side_model_of_RRC](/assets/R8_UE_side_model_of_RRC.png)
 
 The following figure is **Figure 4.2-2: UTRAN side RRC model (DS-MAP system)** from **TS 25.331-8n0 Radio Resource Control (RRC) protocol specification**:
+
 ![R8_UTRAN_side_RRC_model_DS-MAP_system](/assets/R8_UTRAN_side_RRC_model_DS-MAP_system.png)
 
 The following figure is **Figure 4.2-3: UTRAN side RRC model (DS-41 System)** from **TS 25.331-8n0 Radio Resource Control (RRC) protocol specification**:
+
 ![R8_UTRAN_side_RRC_model_DS-41_System](/assets/R8_UTRAN_side_RRC_model_DS-41_System.png)
 
 #### RRC States
 
 The following figure is **Figure 7.1-1: RRC States and State Transitions including GSM and E-UTRA** from **TS 25.331-8n0 Radio Resource Control (RRC) protocol specification**:
+
 ![R8_RRC_States_and_State_Transitions_including_GSM_and_E-UTRA](/assets/R8_RRC_States_and_State_Transitions_including_GSM_and_E-UTRA.png)
 
 According to [UMTS RCC States](http://www.umtsworld.com/technology/RCC_states.htm), each RRC state has following characteristics:
@@ -2147,9 +2306,11 @@ According to [UMTS RCC States](http://www.umtsworld.com/technology/RCC_states.ht
 * The location of the UE is known on UTRAN Registration area level according to the URA assigned to the UE during the last URA update in CELL_FACH state.
 
 The following figure is **Figure 1: Overall Idle Mode process** from **TS 25.304-8c0 User Equipment (UE) procedures in idle mode and procedures for cell reselection in connected mode**:
+
 ![R8_Overall_Idle_Mode_process](/assets/R8_Overall_Idle_Mode_process.png)
 
 The following figure is **Figure 2: Idle Mode Cell Selection and Reselection In any state** from **TS 25.304-8c0 User Equipment (UE) procedures in idle mode and procedures for cell reselection in connected mode**:
+
 ![R8_Idle_Mode_Cell_Selection_and_Reselection_In_any_state](/assets/R8_Idle_Mode_Cell_Selection_and_Reselection_In_any_state.png)
 
 ### Protocol termination
@@ -2159,22 +2320,27 @@ The following figure is **Figure 2: Idle Mode Cell Selection and Reselection In 
 NOTE: The part of physical layer terminating in the Serving RNC is the topmost macrodiversity combining and splitting function for the FDD mode. If no macrodiversity applies, the physical layer is terminated in Node B.
 
 The following figure is **Figure 11: Protocol Termination for DCH, control plane** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Protocol_Termination_for_DCH_C-plane](/assets/R8_Protocol_Termination_for_DCH_C-plane.png)
 
 The following figure is **Figure 12: Protocol Termination for DCH, user plane** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Protocol_Termination_for_DCH_U-plane](/assets/R8_Protocol_Termination_for_DCH_U-plane.png)
 
 #### Protocol termination for RACH/FACH
 
 The following figure is **Figure 13: Protocol Termination for RACH/FACH, control plane** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Protocol_Termination_for_RACH_FACH_C-plane](/assets/R8_Protocol_Termination_for_RACH_FACH_C-plane.png)
 
 The following figure is **Figure 14: Protocol Termination for RACH/FACH, user plane** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Protocol_Termination_for_RACH_FACH_U-plane](/assets/R8_Protocol_Termination_for_RACH_FACH_U-plane.png)
 
 #### Protocol termination for transport channel of type BCH
 
 The following figure is **Figure 21: Protocol termination for BCH** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Protocol_Termination_for_BCH](/assets/R8_Protocol_Termination_for_BCH.png)
 
 NOTE: the RLC sublayer is transparent for this transport channel type.
@@ -2182,6 +2348,7 @@ NOTE: the RLC sublayer is transparent for this transport channel type.
 #### Protocol termination for transport channel of type PCH
 
 The following figure is **Figure 22: Protocol termination for PCH** from **TS 25.301-870 Radio Interface Protocol Architecture**:
+
 ![R8_Protocol_Termination_for_PCH](/assets/R8_Protocol_Termination_for_PCH.png)
 
 NOTE: the RLC sublayer is transparent for this channel.
@@ -2458,7 +2625,8 @@ The second phase of HSDPA is specified in the 3GPP release 7 and has been named 
 
 # IMS
 
-The following figure is **Figure 6: Configuration of IM Subsystem entities** from **3GPP TS 23.002-5c0 Network Architecture**
+The following figure is **Figure 6: Configuration of IM Subsystem entities** from **3GPP TS 23.002-5c0 Network Architecture**:
+
 ![Configuration of IM Subsystem entities in R5](/assets/R5_Configuration_of_IM_Subsystem_entities.png)
 
 # References

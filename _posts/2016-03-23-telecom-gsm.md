@@ -39,13 +39,11 @@ The following table shows some of the important events in the rollout of the GSM
 
 <p/>
 
-Also refer to following links:
-
-* [GSM History](http://www.gsmhistory.com/gsm_2g/)
+Also refer to [GSM History](http://www.gsmhistory.com/gsm_2g/).
 
 # Standards
 
-Refer to the table in section [Specification Numbering](#specification-numbering) for the GSM standards, and the table in section [3GPP Standards](#gpp-standards) for the GSM features in each Release.
+Refer to the table in section <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#specification-numbering">Specification Numbering</a> for the GSM standards, and the table in section <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#3gpp-standards">3GPP Standards</a> for the GSM features in each Release.
 
 # Network Structure
 
@@ -55,16 +53,19 @@ Refer to the table in section [Specification Numbering](#specification-numbering
 <p/>
 
 The following figure shows the GSM network structure, which is got from [wikipedia](https://en.wikipedia.org/wiki/GSM):
+
 ![GSM structures](/assets/GSM_structures.svg)
 
 Also refer to [GSM Network Architecture](#gsm-network-architecture) for details in R4.
 
 The following figure is **UMTS domains and reference points** from **Rel-99_description_20160701**:
+
 ![UMTS Domains and Reference Points](/assets/UMTS_domains_and_reference_points.png)
 
 ## R99 Network Structure
 
 The following figure is **UMTS and GSM Network Architecture** from **Rel-99_description_20160701**:
+
 ![R99_UMTS_and_GSM_Network_Architecture](/assets/R99_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R98**, the entities in read blocks are new added.
@@ -74,29 +75,37 @@ Compare to **R98**, the entities in read blocks are new added.
 ### GSM Network Architecture
 
 The following figure is **Figure 1: GERAN reference architecture** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_GERAN_Reference_Architecture](/assets/R4_GERAN_Reference_Architecture.png)
 
 The following figure is **Figure 4: User Plane protocols towards Packet Switched Core Network domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_User_Plane_protocols_towards_Packet_Switched_Core_Network_domain](/assets/R4_User_Plane_protocols_towards_Packet_Switched_Core_Network_domain.png)
 
 The following figure is **Figure 5: Control Plane protocols towards Packet Switched Core Network domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_Control_Plane_protocols_towards_Packet_Switched_Core_Network_domain](/assets/R4_Control_Plane_protocols_towards_Packet_Switched_Core_Network_domain.png)
 
 The following figure is **Figure 6: User Plane protocols towards Circuit-Switched Core Network domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_User_Plane_protocols_towards_Circuit_Switched_Core_Network_domain](/assets/R4_User_Plane_protocols_towards_Circuit_Switched_Core_Network_domain.png)
 
 The following figure is **Figure 7: Control Plane Protocols towards Circuit-Switched Core Network Domain** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_Control_Plane_Protocols_towards_Circuit_Switched_Core_Network_Domain](/assets/R4_Control_Plane_Protocols_towards_Circuit_Switched_Core_Network_Domain.png)
 
 ## R5 Network Structure
 
 The following figure is **Figure 4: UTRAN Architecture** from **TS 25.401-5a0 UTRAN overall description**:
+
 ![R5_UTRAN_Overall_Architecture1](/assets/R5_UTRAN_Overall_Architecture1.png)
 
 The following figure is **Figure 4b: UTRAN and GERAN Iu mode connection with Iur-g** from **TS 25.401-5a0 UTRAN overall description**:
+
 ![R5_UTRAN_and_GERAN_Iu_mode_connection_with_Iur-g](/assets/R5_UTRAN_and_GERAN_Iu_mode_connection.png)
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-5c0 Network Architecture**:
+
 ![R5_UMTS_and_GSM_Network_Architecture](/assets/R5_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R4**, the entities **HLR** and **AuC** are merged into entity **HSS**, and interfaces **IuCS** and **IuPS** are new added to **BSC**.
@@ -104,6 +113,7 @@ Compare to **R4**, the entities **HLR** and **AuC** are merged into entity **HSS
 ## R6 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-6a0 Network Architecture**:
+
 ![R6_UMTS_and_GSM_Network_Architecture](/assets/R6_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R5**, the entities **CRF** (Charging Rules Function), **PDF** (Policy Decision Function) and corresponding interfaces are new added.
@@ -111,6 +121,7 @@ Compare to **R5**, the entities **CRF** (Charging Rules Function), **PDF** (Poli
 ## R7 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-760 Network Architecture**:
+
 ![R7_UMTS_and_GSM_Network_Architecture](/assets/R7_UMTS_and_GSM_Network_Architecture.png)
 
 Compare to **R6**, the entities **PDF** (Policy Decision Function) and **CRF** (Charging Rules Function) are merged into **PCRF** (Policy and Charging Rules Function).
@@ -118,6 +129,7 @@ Compare to **R6**, the entities **PDF** (Policy Decision Function) and **CRF** (
 ## R8 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-870 Network Architecture**:
+
 ![R8_UMTS_and_GSM_Network_Architecture](/assets/R8_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R8** is the same to that in **R7**.
@@ -125,6 +137,7 @@ The network structure in **R8** is the same to that in **R7**.
 ## R9 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-960 Network Architecture**:
+
 ![R9_UMTS_and_GSM_Network_Architecture](/assets/R9_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R9** is the same to that in **R7** and **R8**.
@@ -132,6 +145,7 @@ The network structure in **R9** is the same to that in **R7** and **R8**.
 ## R10 Network Structure
 
 The following figure is **Figure 1: Basic Configuration of a PLMN supporting CS and PS services and interfaces** from **TS 23.002-a30 Network Architecture**:
+
 ![R10_UMTS_and_GSM_Network_Architecture](/assets/R10_UMTS_and_GSM_Network_Architecture.png)
 
 The network structure in **R10** is the same to that in **R7**, **R8** and **R9**.
@@ -790,16 +804,16 @@ The following figure shows the channel mapping of logical channels, transport ch
 
 # Mobile Station (MS)
 
-The MT plus any TE constitutes the Mobile Station, MS. That's:
-MS = MT + TE
+The MT plus any TE constitutes the Mobile Station (MS). That's: **MS = MT + TE**.
 
 The following figure is **Figure 1: PLMN Access Reference Configuration (in A/Gb mode and GERAN Iu mode)** from **TS 24.002-810 PLMN Access Reference Configuration**:
+
 ![R8_PLMN_Access_Reference_Configuration_in_A-Gb_mode_and_GERAN_Iu_mode](/assets/R8_PLMN_Access_Reference_Configuration_in_A-Gb_mode_and_GERAN_Iu_mode.png)
 
 There are two types of MT:
 
-* MT0 includes functions belonging to the functional group MT, with support of no terminal interfaces.
-* MT2 includes functions belonging to the functional group MT, and with an interface that complies with the **3GPP TS 27.00z** series Terminal Adaptation Function specifications. Accordingly, the interchange circuit mapping at the MT2 to TE interface shall comply with the ITU-T V.24 recommendation; while the physical implementation shall conform either to the ITU-T V.28, or to the IrDA IrPHY Physical signalling standard specification, or to the PCMCIA 2.1, or to the PC-Card 3.0, electrical specification or to later revisions.
+* **MT0** includes functions belonging to the functional group MT, with support of no terminal interfaces.
+* **MT2** includes functions belonging to the functional group MT, and with an interface that complies with the **3GPP TS 27.00z** series Terminal Adaptation Function specifications. Accordingly, the interchange circuit mapping at the MT2 to TE interface shall comply with the ITU-T V.24 recommendation; while the physical implementation shall conform either to the ITU-T V.28, or to the IrDA IrPHY Physical signalling standard specification, or to the PCMCIA 2.1, or to the PC-Card 3.0, electrical specification or to later revisions.
 
     * TS 27.001 - General on Terminal Adaptation Functions (TAF) for Mobile Stations (MS)
     * TS 27.002 - Terminal Adaptation Functions (TAF) for services using asynchronous bearer capabilities
@@ -816,7 +830,7 @@ The Mobile Station (MS) related standards include:
 
 # GSM Radio Access Network (GERAN)
 
-**GERAN** = **BSC** + **BTS**
+**GERAN** = **BSC** (Base Station Controller) + **BTS** (Base Transceiver Station)
 
 ## Overview
 
@@ -825,9 +839,11 @@ The Mobile Station (MS) related standards include:
 ## Radio Interface (Um)
 
 The following figure is **Figure 3: Assumed GERAN Model** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_Assumed_GERAN_Model](/assets/R4_Assumed_GERAN_Model.png)
 
 The following figure is **Figure 10: Radio Interface protocol architecture** from **TS 43.051-400 GSM/EDGE Radio Access Network (GERAN); Overall Description - Stage 2**:
+
 ![R4_GERAN_Radio_Interface_Protocol_Architecture](/assets/R4_GERAN_Radio_Interface_Protocol_Architecture.png)
 
 * TS 45.001 - GERAN Physical layer on the radio path - General description
@@ -931,7 +947,7 @@ GSM offers three basic types of services:
 
 # GPRS (2.5G)
 
-General Packet Radio Service (GPRS) is a packet oriented mobile data service on the 2G and 3G cellular communication system's Global System for Mobile Communications (GSM). GPRS was originally standardized by European Telecommunications Standards Institute (ETSI) in response to the earlier CDPD and i-mode packet-switched cellular technologies. It is now maintained by the 3rd Generation Partnership Project (3GPP).
+General Packet Radio Service (GPRS) is a packet oriented mobile data service on the 2G and 3G cellular communication system's Global System for Mobile Communications (GSM). GPRS was originally standardized by European Telecommunications Standards Institute (ETSI) in response to the earlier Cellular Digital Packet Data (CDPD) and i-mode packet-switched cellular technologies. It is now maintained by the 3rd Generation Partnership Project (3GPP).
 
 GPRS is a best-effort service, implying variable throughput and latency that depend on the number of other users sharing the service concurrently, as opposed to circuit switching, where a certain Quality of Service (QoS) is guaranteed during the connection. In 2G systems, GPRS provides data rates of 56–114 kbit/second. 2G cellular technology combined with GPRS is sometimes described as **2.5G**, that is, a technology between the second (2G) and third (3G) generations of mobile telephony. It provides moderate-speed data transfer, by using unused Time Division Multiple Access (TDMA) channels in, for example, the GSM system. GPRS is integrated into GSM **Release 97** and newer releases.
 
@@ -964,7 +980,7 @@ Through the introduction of sophisticated methods of coding and transmitting dat
 
 EDGE can be used for any packet switched application, such as an Internet connection.
 
-Reading should start with the 44 series and 45 series of the 3GPP specifications.
+Reading should start with the **44 series** and **45 series** of the 3GPP specifications.
 
 ## Evolved EDGE
 

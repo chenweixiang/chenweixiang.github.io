@@ -15,7 +15,7 @@ Although marketed as a 4G wireless service, **LTE** (as specified in the 3GPP Re
 
 # Standards
 
-ITU Recommendations related to LTE/LTE-Advanced are introduced in the section <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-advanced-4g">IMT-Advanced (4G)</a>.
+ITU Recommendations related to LTE/LTE-Advanced are introduced in <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-advanced-4g">IMT-Advanced (4G)</a>.
 
 LTE/LTE-Advanced related Technical Specifications (TS) and Technical Reports (TR) are:
 
@@ -46,7 +46,9 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 * **Peak data rate**
 
     ***Configuration***: 1 transmit antenna and 2 receive antennas at UE
+
     ***Downlink***: instantaneous downlink peak data rate of **100Mb/s** within a **20 MHz** downlink spectrum allocation (5 bps/Hz)
+
     ***Uplink***: instantaneous uplink peak data rate of **50Mb/s** (2.5 bps/Hz) within a **20MHz** uplink spectrum allocation.
 
 * **C-plane latency**
@@ -66,11 +68,13 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 * **User throughput**
 
     ***Downlink***: User throughput per MHz, 2 to 3 times Release 6 HSDPA. Averaged user throughput per MHz, 3 to 4 times Release 6 HSDPA.
+
     ***Uplink***: User throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink. Averaged user throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink.
 
 * **Spectrum efficiency**
 
     ***Downlink***: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 3 to 4 times Release 6 HSDPA.
+
     ***Uplink***: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 2 to 3 times Release 6 Enhanced Uplink.
 
 * **Mobility**
@@ -149,6 +153,7 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
     * Minimize the number of options.
     * No redundant mandatory features.
     * Reduce the number of necessary test cases, e.g. Reduce the number of states of protocols, minimize the number of procedures, appropriate parameter range and granularity.
+    <p/>
 
 * **Complexity requirements for UE**
 
@@ -178,40 +183,59 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 
 According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_network_architecture.htm) and **Figure 4.7.2-1** in **TS 36.300**, the high-level network architecture of LTE is comprised of following three main components:
 
-* User Equipment (UE)
-* Evolved UMTS Terrestrial Radio Access Network (E-UTRAN)
-* Evolved Packet Core (EPC)
+* [User Equipment (UE)](#user-equipment-ue)
+* [Evolved UMTS Terrestrial Radio Access Network (E-UTRAN)](#evolved-umts-radio-access-network-e-utran)
+* [Evolved Packet Core (EPC)](#evolved-packet-core-epc)
 
 ![LTE Architecture](/assets/lte_architecture.jpg)
+
 ![E-UTRAN](/assets/lte_e_utran.jpg)
+
 ![EPC](/assets/lte_epc.jpg)
 
 # Protocol Architecture
 
 The following figure from **Figure 13.1-1** of **TS 36.300-8c0** shows the EPS Bearer Service Architecture:
+
 ![R8_EPS_Bearer_Service_Architecture](/assets/R8_EPS_Bearer_Service_Architecture.png)
 
 According to [LTE Radio Protocol Architecture](http://www.tutorialspoint.com/lte/lte_radio_protocol_architecture.htm), **Figure 4.3.1-1**, **Figure 4.3.2-1**, **Figure 4.6.3.1-1** and **Figure 4.6.3.2-1** of **TS 36.300-8c0**, the protocol architecture on **User-plane** is shown in the following figure:
+
 ![lte_user_plane](/assets/lte_user_plane.jpg)
 
 The protocol architecture on **Control-plane** is shown in the following figure:
+
 ![lte_control_plane](/assets/lte_control_plane.jpg)
 
 The Radio protocl architecture is shown in the following figure:
+
 ![lte_protocol_layers](/assets/lte_protocol_layers.jpg)
 
 # Channel Mapping
 
-The following figure shows the channel mapping between logical channels, transport channels and physical channels:
+The following figure shows the channel mapping between **logical channels**, **transport channels** and **physical channels**:
+
 ![Channel_Mapping_R10_LTE-Advanced](/assets/Channel_Mapping_R10_LTE-Advanced.png)
 
-Each logical channel type is defined by ***what*** type of information is transferred.
+Each **logical channel** type is defined by ***what*** type of information is transferred.
 
 # User Equipment (UE)
 
+The internal architecture of the user equipment (UE) for LTE is identical to the one used by UMTS and GSM which is actually a **Mobile Equipment** (**ME**). The mobile equipment comprised of the following important modules:
+
+* **Mobile Termination** (**MT**): This handles all the communication functions.
+* **Terminal Equipment** (**TE**): This terminates the data streams.
+* **Universal Integrated Circuit Card** (**UICC**) : This is also known as the SIM card for LTE equipment. It runs an application known as the **Universal Subscriber Identity Module** (**USIM**). A USIM stores user-specific data very similar to 3G SIM card. This keeps information about the user's phone number, home network identity and security keys etc.
+
+UE related specifications include:
+
+* TS 36.101-a70 UE radio transmission and reception
+* TS 36.304-a80 UE procedures in idle mode
+* TS 36.305-a50 Stage 2 functional specification of User Equipment (UE) positioning in E-UTRAN
+
 # Evolved UMTS Radio Access Network (E-UTRAN)
 
-## Overview
+## E-UTRAN Overview
 
 * TS 36.401-880 E-UTRAN Architecture description
 * TS 36.300-8c0 E-UTRA and E-UTRAN Overall description - Stage 2
@@ -221,12 +245,12 @@ Each logical channel type is defined by ***what*** type of information is transf
 
 ### Radio Resource Control (RRC)
 
-**TS 36.331-8f0 E-UTRA - RRC Protocol specification**
+* **TS 36.331-8f0 E-UTRA - RRC Protocol specification**
 
 ### Packet Data Convergence Protocol (PDCP)
 
-**TS 36.323-860 E-UTRA - Packet Data Convergence Protocol (PDCP) specification**
-**TS 36.314-830 E-UTRA - Layer 2 Measurements**
+* **TS 36.323-860 E-UTRA - Packet Data Convergence Protocol (PDCP) specification**
+* **TS 36.314-830 E-UTRA - Layer 2 Measurements**
 
 #### PDCP Services
 
@@ -245,9 +269,11 @@ The maximum supported size of a PDCP SDU is **8188 octets**.
 #### PDCP Procedures
 
 The following figure from **Figure 4.2.1.1** of **TS 36.323-860** shows the structure view of PDCP layer:
+
 ![R8_structure_view_of_PDCP](/assets/R8_structure_view_of_PDCP.png)
 
 The following figure from **Figure 4.2.2.1** of **TS 36.323-860** shows the functional view of PDCP layer:
+
 ![R8_functional_view_of_PDCP](/assets/R8_functional_view_of_PDCP.png)
 
 #### ROHC Resources
@@ -256,8 +282,8 @@ The following figure from **Figure 4.2.2.1** of **TS 36.323-860** shows the func
 
 ### Radio Link Control (RLC)
 
-**TS 36.322-880 E-UTRA - RLC protocol specification**
-**TS 36.314-830 E-UTRA - Layer 2 Measurements**
+* **TS 36.322-880 E-UTRA - RLC protocol specification**
+* **TS 36.314-830 E-UTRA - Layer 2 Measurements**
 
 #### RLC Services
 
@@ -272,18 +298,21 @@ The following services are provided by RLC to upper layer (i.e. RRC or PDCP):
 #### RLC Procedures
 
 The following figure from **Figure 4.2.1.1.1-1** of **TS 36.322-880** shows the model of two transparent mode (TM) peer entities:
+
 ![Model_of_two_transparent_mode_peer_entities](/assets/R8_Model_of_two_transparent_mode_peer_entities.png)
 
 The following figure from **Figure 4.2.1.2.1-1** of **TS 36.322-880** shows the model of two unacknowledged mode (UM) peer entities:
+
 ![R8_Model_of_two_unacknowledged_mode_peer_entities](/assets/R8_Model_of_two_unacknowledged_mode_peer_entities.png)
 
 The following figure from **Figure 4.2.1.3.1-1** of **TS 36.322-880** shows the model of two acknowledged mode (AM) peer entities:
+
 ![R8_Model_of_an_acknowledged_mode_entities](/assets/R8_Model_of_an_acknowledged_mode_entities.png)
 
 ### Medium Access Control (MAC)
 
-**TS 36.321-8a0 E-UTRA - MAC protocol specification**
-**TS 36.314-830 E-UTRA - Layer 2 Measurements**
+* **TS 36.321-8a0 E-UTRA - MAC protocol specification**
+* **TS 36.314-830 E-UTRA - Layer 2 Measurements**
 
 #### MAC Services
 
@@ -312,13 +341,14 @@ Refer to section **5** of **TS 36.321-8a0**.
 
 ### Physical Layer (L1)
 
-**TS 36.201-830 E-UTRA - LTE Physical Layer General Description**
-**TS 36.211-890 E-UTRA - Physical Channels and Modulation**
-**TS 36.212-880 E-UTRA - Multiplexing and channel coding**
-**TS 36.213-880 E-UTRA - Physical layer procedures**
-**TS 36.214-870 E-UTRA - Physical layer Measurements**
+* **TS 36.201-830 E-UTRA - LTE Physical Layer General Description**
+* **TS 36.211-890 E-UTRA - Physical Channels and Modulation**
+* **TS 36.212-880 E-UTRA - Multiplexing and channel coding**
+* **TS 36.213-880 E-UTRA - Physical layer procedures**
+* **TS 36.214-870 E-UTRA - Physical layer Measurements**
 
 The following figure from **Figure 2** of **TS 36.201-830** shows the relation between the physical layer specifications:
+
 ![R8_Relation_between_Physical_Layer_specifications](/assets/R8_Relation_between_Physical_Layer_specifications.png)
 
 #### L1 Services
@@ -377,25 +407,13 @@ According to section **4.2.4** of **TS 36.201-830**, there are several Physical 
 
 # References
 
-**ShareTechnote**
-[http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-
-**LTE Dictionary on ShareTechnote**
-
-[http://www.sharetechnote.com/html/Handbook_LTE.html](http://www.sharetechnote.com/html/Handbook_LTE.html)
-
-**Protocol Stack: PDCP/RLC/MAC Layers on ShareTechnote**
-
-[http://www.sharetechnote.com/html/FullStack_LTE.html](http://www.sharetechnote.com/html/FullStack_LTE.html)
-[http://www.sharetechnote.com/html/PDCP_LTE.html](http://www.sharetechnote.com/html/PDCP_LTE.html)
-[http://www.sharetechnote.com/html/RLC_LTE.html](http://www.sharetechnote.com/html/RLC_LTE.html)
-[http://www.sharetechnote.com/html/MAC_LTE.html](http://www.sharetechnote.com/html/MAC_LTE.html)
-
-**Protocol Stack: Physical Layer on ShareTechnote**
-
-[http://www.sharetechnote.com/html/PhyProcessing_LTE.html](http://www.sharetechnote.com/html/PhyProcessing_LTE.html)
-[http://www.sharetechnote.com/html/Handbook_LTE_PhySequence.html](http://www.sharetechnote.com/html/Handbook_LTE_PhySequence.html)
-[http://www.sharetechnote.com/html/BasicProcedure_LTE_PHY_Process.html](http://www.sharetechnote.com/html/BasicProcedure_LTE_PHY_Process.html)
-
-**3GLTEInfo**
-[http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [ShareTechnote](http://www.sharetechnote.com/)
+* [LTE Dictionary on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE.html)
+* [LTE Full Stack on ShareTechnote](http://www.sharetechnote.com/html/FullStack_LTE.html)
+* [LTE PDCP Layer on ShareTechnote](http://www.sharetechnote.com/html/PDCP_LTE.html)
+* [LTE RLC Layer on ShareTechnote](http://www.sharetechnote.com/html/RLC_LTE.html)
+* [LTE MAC Layer on ShareTechnote](http://www.sharetechnote.com/html/MAC_LTE.html)
+* [LTE PHY Processing on ShareTechnote](http://www.sharetechnote.com/html/PhyProcessing_LTE.html)
+* [LTE Quick Reference on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PhySequence.html)
+* [LTE Basic Procedure on ShareTechnote](http://www.sharetechnote.com/html/BasicProcedure_LTE_PHY_Process.html)
+* [3GLTEinfo](http://www.3glteinfo.com/)

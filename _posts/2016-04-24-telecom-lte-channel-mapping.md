@@ -21,6 +21,6 @@ According to **TS 36.300**, the following figures show the channel mapping betwe
 
 # References
 
-* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-* [http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html](http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html)
-* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [ShareTechnote](http://www.sharetechnote.com/)
+* [Typical Packet Call Processing on ShareTechnote](http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html)
+* [3GLTEinfo](http://www.3glteinfo.com/)

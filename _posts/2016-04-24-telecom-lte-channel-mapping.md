@@ -15,6 +15,8 @@ The **logical channel** is defined by ***what*** type of information is transfer
 
 According to **TS 36.300**, the following figures show the channel mapping between logical channels, transport channels and physical channels:
 
+![lte_protocol_layers](/assets/lte_protocol_layers.jpg)
+
 ![Channel_Mapping_R10_LTE-Advanced](/assets/Channel_Mapping_R10_LTE-Advanced.png)
 
 ![Channel_Mapping_R8_TS36.212_S4](/assets/Channel_Mapping_R8_TS36.212_S4.png)

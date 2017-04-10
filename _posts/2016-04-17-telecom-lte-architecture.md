@@ -18,7 +18,9 @@ According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_ne
 * Evolved Packet Core (EPC)
 
 ![LTE Architecture](/assets/lte_architecture.jpg)
+
 ![E-UTRAN](/assets/lte_e_utran.jpg)
+
 ![EPC](/assets/lte_epc.jpg)
 
 More EPC architectures can be found in **TS 23.401**.
@@ -107,24 +109,30 @@ NOTE: The **P-GW** and **S-GW** may be implemented in one physical node or separ
 # Protocol Architecture
 
 The following figure from **Figure 13.1-1** of **TS 36.300-8c0** shows the EPS Bearer Service Architecture:
+
 ![R8_EPS_Bearer_Service_Architecture](/assets/R8_EPS_Bearer_Service_Architecture.png)
 
 According to [LTE Radio Protocol Architecture](http://www.tutorialspoint.com/lte/lte_radio_protocol_architecture.htm), **Figure 4.3.1-1**, **Figure 4.3.2-1**, **Figure 4.6.3.1-1** and **Figure 4.6.3.2-1** of **TS 36.300-8c0**, the protocol architecture on **User-plane** is shown in the following figure:
+
 ![lte_user_plane](/assets/lte_user_plane.jpg)
+
 ![R8_Interfaces_User_Plane](/assets/R8_Interfaces_User_Plane.png)
 
 The protocol architecture on **Control-plane** is shown in the following figure:
+
 ![lte_control_plane](/assets/lte_control_plane.jpg)
+
 ![R8_Interfaces_Control_Plane](/assets/R8_Interfaces_Control_Plane.png)
 
 The Radio protocl architecture is shown in the following figure:
+
 ![lte_protocol_layers](/assets/lte_protocol_layers.jpg)
 
 # References
 
 * TS 36.300-8c0: E-UTRA and E-UTRAN Overall description, Stage 2
-* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-* [http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
-* [http://www.sharetechnote.com/html/Handbook_LTE_SAE.html](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
-* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [ShareTechnote](http://www.sharetechnote.com/)
+* [LTE Network Architecture on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
+* [LTE SAE on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
+* [3GLTEinfo](http://www.3glteinfo.com/)
 * [LTE Network Architecture](/docs/LTE_Network_Architecture_StraWhitePaper.pdf)

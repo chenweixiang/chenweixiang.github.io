@@ -46,7 +46,9 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 * **Peak data rate**
 
     ***Configuration***: 1 transmit antenna and 2 receive antennas at UE
+
     ***Downlink***: instantaneous downlink peak data rate of **100Mb/s** within a **20 MHz** downlink spectrum allocation (5 bps/Hz)
+
     ***Uplink***: instantaneous uplink peak data rate of **50Mb/s** (2.5 bps/Hz) within a **20MHz** uplink spectrum allocation.
 
 * **C-plane latency**
@@ -66,11 +68,13 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 * **User throughput**
 
     ***Downlink***: User throughput per MHz, 2 to 3 times Release 6 HSDPA. Averaged user throughput per MHz, 3 to 4 times Release 6 HSDPA.
+
     ***Uplink***: User throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink. Averaged user throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink.
 
 * **Spectrum efficiency**
 
     ***Downlink***: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 3 to 4 times Release 6 HSDPA.
+
     ***Uplink***: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 2 to 3 times Release 6 Enhanced Uplink.
 
 * **Mobility**
@@ -149,6 +153,7 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
     * Minimize the number of options.
     * No redundant mandatory features.
     * Reduce the number of necessary test cases, e.g. Reduce the number of states of protocols, minimize the number of procedures, appropriate parameter range and granularity.
+    <p/>
 
 * **Complexity requirements for UE**
 
@@ -177,6 +182,6 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 # References
 
 * TR 25.913-800: Requirements for E-UTRA and E-UTRAN
-* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-* [http://www.sharetechnote.com/html](http://www.sharetechnote.com/html)
-* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* [ShareTechnote](http://www.sharetechnote.com/)
+* [ShareTechnote Index](http://www.sharetechnote.com/html)
+* [3GLTEinfo](http://www.3glteinfo.com/)

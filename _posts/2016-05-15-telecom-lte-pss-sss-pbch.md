@@ -198,10 +198,10 @@ The following figure shows the synchronisation procedure when UE try to access t
 
 # References
 
-* TS 36.211: E-UTRA - Physical Channels and Modulation
-* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-* [http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html](http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html)
-* [http://www.sharetechnote.com/html/Handbook_LTE_PSS.html](http://www.sharetechnote.com/html/Handbook_LTE_PSS.html)
-* [http://www.sharetechnote.com/html/Handbook_LTE_SSS.html](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
-* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.211 E-UTRA - Physical Channels and Modulation
+* [ShareTechnote](http://www.sharetechnote.com/)
+* [PBCH (Physical Broadcast Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html)
+* [PSS (Primary Synchronization Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PSS.html)
+* [SSS (Secondary Synchronization Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
+* [3GLTEinfo](http://www.3glteinfo.com/)
 * [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)

@@ -23,7 +23,7 @@ According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_ne
 
 ![EPC](/assets/lte_epc.jpg)
 
-More EPC architectures can be found in **TS 23.401**.
+More EPC architectures can be found in **TS 23.401 GPRS enhancements for E-UTRAN access**.
 
 ## E-URTAN
 
@@ -31,8 +31,8 @@ According to **TS 23.401 S4.4.1**, in addition to the E-UTRAN functions describe
 
 * Header compression and user plane ciphering;
 * MME selection when no routing to an MME can be determined from the information provided by the UE;
-* UL bearer level rate enforcement based on UE-AMBR and MBR via means of uplink scheduling (e.g. by limiting the amount of UL resources granted per UE over time);
-* DL bearer level rate enforcement based on UE-AMBR;
+* UL bearer level rate enforcement based on UE-AMBR (Aggregate Maximum Bit Rate) and MBR (Maximum Bit Rate) via means of uplink scheduling (e.g. by limiting the amount of UL resources granted per UE over time);
+* DL bearer level rate enforcement based on UE-AMBR (Aggregate Maximum Bit Rate);
 * UL and DL bearer level admission control;
 * Transport level packet marking in the uplink, e.g. setting the DiffServ Code Point, based on the QCI of the associated EPS bearer.
 
@@ -72,7 +72,7 @@ According to **TS 23.401 S4.4.3.2**, the Serving GW is the gateway which termina
 * Accounting for inter-operator charging. For GTP-based S5/S8, the Serving GW generates accounting data per UE and bearer;
 * Interfacing OFCS according to charging principles and through reference points specified in TS 32.240.
 
-Additional Serving GW functions for the PMIP-based S5/S8 are captured in TS 23.402. Connectivity to a GGSN is not supported.
+Additional Serving GW functions for the PMIP-based S5/S8 are captured in **TS 23.402**. Connectivity to a GGSN is not supported.
 
 NOTE: The **P-GW** and **S-GW** may be implemented in one physical node or separated physical nodes.
 

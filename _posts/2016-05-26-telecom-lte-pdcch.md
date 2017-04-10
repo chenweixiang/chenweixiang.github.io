@@ -123,7 +123,7 @@ According to **TS 36.212 SS5.3.3.1**, the length of DCI formats before CRC attac
 
 ![DCI_length_before_CRC_attachment](/assets/DCI_length_before_CRC_attachment.png)
 
-NOTE1: 上表中 DCI format 1C 行中存在两个长度值（在某些系统带宽下） ，这是根据 $$N_{gap}$$ 区分的，前者为 $$N_{gap} = N_{gap,1}$$，后者为 $$N_{gap} = N_{gap,2}$$；
+NOTE1：上表中 DCI format 1C 行中存在两个长度值（在某些系统带宽下） ，这是根据 $$N_{gap}$$ 区分的，前者为 $$N_{gap} = N_{gap,1}$$，后者为 $$N_{gap} = N_{gap,2}$$；
 
 NOTE2：上表中 DCI format 1B/1D 行中存在两个长度值，这是根据基站天线数的不同进行区分的，参见 TS 36.212 Table 5.3.3.1.3A-2, Table 5.3.3.1.4A-1，前者为 AP=2，后者为 AP=4；
 
@@ -169,30 +169,30 @@ Refer to **TS 36.211 S6.8.4**.
 
 Refer to **TS 36.211 S6.8.5**.
 
-Also refer to the following sheets in *R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx*:
+Also refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
 
-* *LTE-FDD, DL, NCP, 1 AP, All BW*
-* *LTE-FDD, DL, NCP, 2 AP, All BW*
-* *LTE-FDD, DL, NCP, 4 AP, All BW*
-* *LTE-FDD, DL, NCP, 4 AP, 1.4MHz*
-* *LTE-FDD, DL, NCP, 4 AP, 3MHz*
-* *LTE-FDD, DL, NCP, 4 AP, 5MHz*
-* *LTE-FDD, DL, NCP, 4 AP, 15MHz*
-* *LTE-FDD, DL, NCP, 4 AP, 20MHz*
-* *LTE-FDD, DL, ECP, 1 AP, All BW*
-* *LTE-FDD, DL, ECP, 2 AP, All BW*
-* *LTE-FDD, DL, ECP, 4 AP, All BW*
-* *LTE-TDD, DL, NCP, 1 AP, All BW*
-* *LTE-TDD, DL, NCP, 2 AP, All BW*
-* *LTE-TDD, DL, NCP, 4 AP, All BW*
-* *LTE-TDD, DL, ECP, 1 AP, All BW*
-* *LTE-TDD, DL, ECP, 2 AP, All BW*
-* *LTE-TDD, DL, ECP, 4 AP, All BW*
+* LTE-FDD, DL, NCP, 1 AP, All BW
+* LTE-FDD, DL, NCP, 2 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, 1.4MHz
+* LTE-FDD, DL, NCP, 4 AP, 3MHz
+* LTE-FDD, DL, NCP, 4 AP, 5MHz
+* LTE-FDD, DL, NCP, 4 AP, 15MHz
+* LTE-FDD, DL, NCP, 4 AP, 20MHz
+* LTE-FDD, DL, ECP, 1 AP, All BW
+* LTE-FDD, DL, ECP, 2 AP, All BW
+* LTE-FDD, DL, ECP, 4 AP, All BW
+* LTE-TDD, DL, NCP, 1 AP, All BW
+* LTE-TDD, DL, NCP, 2 AP, All BW
+* LTE-TDD, DL, NCP, 4 AP, All BW
+* LTE-TDD, DL, ECP, 1 AP, All BW
+* LTE-TDD, DL, ECP, 2 AP, All BW
+* LTE-TDD, DL, ECP, 4 AP, All BW
 
 # References
 
-* TS 36.213: section 8.7 UE Transmit Antenna Selection
-* TS 36.212: section 5.3.3 Downlink control information
-* TS 36.211: section 6.8 Physical downlink control channel
-* [http://www.sharetechnote.com/](http://www.sharetechnote.com/)
-* [http://www.3glteinfo.com/](http://www.3glteinfo.com/)
+* TS 36.213 E-UTRA - Physical layer procedures, section 8.7 UE Transmit Antenna Selection
+* TS 36.212 E-UTRA - Multiplexing and channel coding, section 5.3.3 Downlink control information
+* TS 36.211 E-UTRA - Physical Channels and Modulation, section 6.8 Physical downlink control channel
+* [ShareTechnote](http://www.sharetechnote.com/)
+* [3GLTEinfo](http://www.3glteinfo.com/)

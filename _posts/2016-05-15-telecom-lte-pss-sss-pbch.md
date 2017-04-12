@@ -57,6 +57,7 @@ where,
 The following figure shows the PSS mapped resource elements in time-domain and frequency-domain respectively:
 
 ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1.png)
+
 ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p2](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p2.png)
 
 Note that the PSS sequences in every radio frame are the same, so the UE just can determine the slot timing when synchronization to eNB.
@@ -114,10 +115,12 @@ PHICH-Config ::= SEQUENCE {
 ```
 
 **Q: Why is it necessary to have $$N_g$$ in the MIB? Why does not include it in the MIB?**
+
 A: The reason that the UE needs to know the PHICH configuration at the very beginning of the system acquisition process is because of the "chicken-and-egg" problem. On one hand, the UE needs to decode PDCCH to know where to find SIB on PDSCH. On the other hand, PDCCH and PHICH and PCFICH share the resources in the control region of a subframe and the set of the available resources for PDCCH depends on the PHICH configuration (PCFICH resources are fixed and known).
 
 **Q: The System Frame Number (SFN) in LTE has 10 bit length, but why is it only 8 bits in *MIB->systemFrameNumber*?**
-A: In LTE, the SFN has 10 bit length, and the MSB 8 bits are transmitted in *MIB->systemFrameNumber*. The LSB 2 bits are blind-detected by UE according to the position of radio frame in 40 ms PBCH window, that's, the LSB 2 bits are 00, 01, 02, 03 for the radio frame corresponding to the first, second, third and fourth radio frame in 40 ms PBCH window, respectively. The blind-detected is based on the scrambling sequence $c(i)$ in **TS 36.211 S6.6.1**.
+
+A: In LTE, the SFN has 10 bit length, and the MSB 8 bits are transmitted in *MIB->systemFrameNumber*. The LSB 2 bits are blind-detected by UE according to the position of radio frame in 40 ms PBCH window, that's, the LSB 2 bits are 00, 01, 02, 03 for the radio frame corresponding to the first, second, third and fourth radio frame in 40 ms PBCH window, respectively. The blind-detected is based on the scrambling sequence $$c(i)$$ in **TS 36.211 S6.6.1**.
 
 ## BCCH Process in RLC
 

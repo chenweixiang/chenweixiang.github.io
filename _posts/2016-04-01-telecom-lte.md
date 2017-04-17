@@ -45,11 +45,11 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 
 * **Peak data rate**
 
-    ***Configuration***: 1 transmit antenna and 2 receive antennas at UE
+    **Configuration**: 1 transmit antenna and 2 receive antennas at UE
 
-    ***Downlink***: instantaneous downlink peak data rate of **100Mb/s** within a **20 MHz** downlink spectrum allocation (5 bps/Hz)
+    **Downlink**: instantaneous downlink peak data rate of **100Mb/s** within a **20 MHz** downlink spectrum allocation (5 bps/Hz)
 
-    ***Uplink***: instantaneous uplink peak data rate of **50Mb/s** (2.5 bps/Hz) within a **20MHz** uplink spectrum allocation.
+    **Uplink**: instantaneous uplink peak data rate of **50Mb/s** (2.5 bps/Hz) within a **20MHz** uplink spectrum allocation.
 
 * **C-plane latency**
 
@@ -67,15 +67,15 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 
 * **User throughput**
 
-    ***Downlink***: User throughput per MHz, 2 to 3 times Release 6 HSDPA. Averaged user throughput per MHz, 3 to 4 times Release 6 HSDPA.
+    **Downlink**: User throughput per MHz, 2 to 3 times Release 6 HSDPA. Averaged user throughput per MHz, 3 to 4 times Release 6 HSDPA.
 
-    ***Uplink***: User throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink. Averaged user throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink.
+    **Uplink**: User throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink. Averaged user throughput per MHz, 2 to 3 times Release 6 Enhanced Uplink.
 
 * **Spectrum efficiency**
 
-    ***Downlink***: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 3 to 4 times Release 6 HSDPA.
+    **Downlink**: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 3 to 4 times Release 6 HSDPA.
 
-    ***Uplink***: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 2 to 3 times Release 6 Enhanced Uplink.
+    **Uplink**: In a loaded network, target for spectrum efficiency (bits/sec/Hz/site), 2 to 3 times Release 6 Enhanced Uplink.
 
 * **Mobility**
 
@@ -203,9 +203,13 @@ According to [LTE Radio Protocol Architecture](http://www.tutorialspoint.com/lte
 
 ![lte_user_plane](/assets/lte_user_plane.jpg)
 
+![R8_Interfaces_User_Plane](/assets/R8_Interfaces_User_Plane.png)
+
 The protocol architecture on **Control-plane** is shown in the following figure:
 
 ![lte_control_plane](/assets/lte_control_plane.jpg)
+
+![R8_Interfaces_Control_Plane](/assets/R8_Interfaces_Control_Plane.png)
 
 The Radio protocl architecture is shown in the following figure:
 
@@ -383,9 +387,37 @@ According to section **4.2.4** of **TS 36.201-830**, there are several Physical 
 * Random access related procedures
 * HARQ related procedures
 
+## S1 Interface
+
+The S1 interfaces related specifications are:
+
+* TS 36.410-830 E-UTRAN - S1 general aspects and principles
+* TS 36.411-810 E-UTRAN - S1 layer 1
+* TS 36.412-860 E-UTRAN - S1 signaling transport
+* TS 36.413-8a0 E-UTRAN - S1 Application Protocol (S1AP)
+* TS 36.414-840 E-UTRAN - S1 data transport
+
+The S1 interface connects the Evolved NodeB (eNB) component of the E-UTRAN to the Core Network of the SAE system, refer to [Network Architecture](#network-architecture), [Protocol Architecture](#protocol-architecture) and the following figure:
+
+![TS36.410-830-F1-S1-Interface-architecture](/assets/TS36.410-830-F1-S1-Interface-architecture.png)
+
+From the S1 perspective, the E-UTRAN access point is an eNB, and the EPC access point is either the control plane MME logical node or the user plane S-GW logical node. Two types of S1 interfaces are thus defined at the boundary depending on the EPC access point: **S1-MME** towards an MME and **S1-U** towards an S-GW.
+
+The S1 is a **logical interface**. The S1 is a **point-to-point** interface between an eNB within the E-UTRAN and an MME in the EPC. A point-to-point logical interface should be feasible even in the absence of a physical direct connection between the eNB and MME.
+
 ## X2 Interface
 
-## S1 Interface
+The X2 interfaces related specifications are:
+
+* TS 36.420-810 E-UTRAN - X2 general aspects and principles
+* TS 36.421-800 E-UTRAN - X2 layer 1
+* TS 36.422-860 E-UTRAN - X2 signaling transport
+* TS 36.423-890 E-UTRAN - X2 application protocol (X2AP)
+* TS 36.424-850 E-UTRAN - X2 data transport
+
+The S1 interface connects two E-UTRAN NodeB (eNB) components within the E-UTRAN architecture, refer to [Network Architecture](#network-architecture), [Protocol Architecture](#protocol-architecture).
+
+The X2 is a point-to-point interface between two eNBs within the E-UTRAN. A point-to-point logical interface should be feasible even in the absence of a physical direct connection between the two eNBs.
 
 # Evolved Packet Core (EPC)
 

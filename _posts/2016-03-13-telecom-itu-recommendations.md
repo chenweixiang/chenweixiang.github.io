@@ -11,13 +11,13 @@ This article introduce the ITU Recommendations related to Telecommunication.
 
 # Pre-IMT-2000 (2G)
 
-Recommendation **ITU-R M.1073** Digital Cellular Land Mobile Telecommunication Systems
+Recommendation [**ITU-R M.1073**](/docs/R-REC-M.1073-2-200506-Digital_Cellular_Land_Mobile_Telecommunication_Systems.pdf): Digital Cellular Land Mobile Telecommunication Systems
 
 | ITU-R Name | Common Name | Organization | Reference | Technology |
 | :--------- | :---------- | :------ ---- | :-------- | :--------- |
-| **GSM** | **GSM** | ETSI (*1992-2000*)<br>**3GPP** (*2000-present*) | [TS 102 338](http://webapp.etsi.org/exchangefolder/ts_102338v010000p.pdf) | TDMA |
+| **GSM** | **GSM** | **ETSI** (1992-2000)<br>**3GPP** (2000-present) | [TS 102 338](http://webapp.etsi.org/exchangefolder/ts_102338v010000p.pdf) | TDMA |
 | **TIA/EIA/IS-95 CDMA** | **cdmaOne** | TIA/EIA | [TIA-2000.000](ftp://ftp.tiaonline.org/TR-45/TR455/Public/ITUM1073/TIA-2000.00_CDMA_List%20of%20Stds.doc) | CDMA |
-| **TIA/EIA-136 TDMA** | **D-AMPS (Digital AMPS)** | TIA/EIA | [TIA-136-000](http://ftp.tiaonline.org/uwc136/136-000-E.pdf) | TDMA |
+| **TIA/EIA-136 TDMA** | **D-AMPS** (Digital AMPS) | TIA/EIA | [TIA-136-000](http://ftp.tiaonline.org/uwc136/136-000-E.pdf) | TDMA |
 | **PDC** | **PDC** | ARIB | [RCR STD-27](http://www.arib.or.jp/english/html/overview/itu/rcr_std-27_e.pdf) | TDMA |
 
 <p/>
@@ -45,7 +45,7 @@ The following table shows the ITU-R Recommendations related to IMT-2000:
 | ITU-R M.1311    | Framework for modularity and radio commonality within IMT-2000 |
 | ITU-R M.1390    | Methodology for the calculation of IMT-2000 terrestrial spectrum requirements |
 | ITU-R M.1456    | Minimum performance characteristics and operational conditions for high altitude platform stations providing IMT-2000 in the bands 1885-1980 MHz, 2010-2025 MHz and 2110-2170 MHz in Regions 1 and 3 and 1885-1980 MHz and 2110-2160 MHz in Region 2 |
-| **ITU-R M.1457** | Detailed specifications of the radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) |
+| [**ITU-R M.1457**](/docs/R-REC-M.1457-10-201106-Detailed_specifications_of_the_radio_interfaces_of_IMT-2000.pdf) | Detailed specifications of the radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) |
 | ITU-R M.1545    | Measurement uncertainty as it applies to test limits for the terrestrial component of International Mobile Telecommunications-2000 |
 | ITU-R M.1579    | Global circulation of IMT-2000 terminals |
 | ITU-R M.1580    | Generic unwanted emission characteristics of base stations using the terrestrial radio interfaces of IMT 2000 |
@@ -63,7 +63,7 @@ The following table shows the ITU-R Recommendations related to IMT-2000:
 
 ## IMT-2000 Goal
 
-As said in [About mobile technology and IMT-2000](http://www.itu.int/osg/spu/imt-2000/technology.html):
+As said in [About Mobile Technology and IMT-2000](http://www.itu.int/osg/spu/imt-2000/technology.html):
 
 IMT-2000 offers the capability of providing value-added services and applications on the basis of a single standard.  The system envisages a platform for distributing converged fixed, mobile, voice, data, Internet and multimedia services.  One of its key visions is to provide seamless global roaming, enabling users to move across borders while using the same number and handset. IMT-2000 also aims to provide seamless delivery of services, over a number of media (satellite, fixed, etc…). It is expected that IMT-2000 will provide higher transmission rates: **a minimum speed of 2 Mbit/s for stationary or walking users, and 348 kbit/s in a moving vehicle**. Second-generation systems only provide speeds ranging from **9.6 kbit/s** to **28.8 kbit/s**.
 
@@ -76,12 +76,12 @@ The IMT-2000 consists of both [**terrestrial component**](#imt-2000-terrestrial-
 
 ### IMT-2000 Terrestrial Radio Interfaces
 
-**ITU-R M.1457** Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-2000 (IMT-2000)
+Recommendation [**ITU-R M.1457**](/docs/R-REC-M.1457-10-201106-Detailed_specifications_of_the_radio_interfaces_of_IMT-2000.pdf): Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-2000 (IMT-2000)
 
-| ITU-R Name | Common Name | Standardization |
-| :--------- | :---------- | :-------------- |
+| ITU-R Name | Common Name | Organization |
+| :--------- | :---------- | :----------- |
 | **IMT-2000 CDMA Direct Spread** | **UTRA FDD**<br><br>**W-CDMA**<br>**UMTS-FDD** | 3GPP |
-| **IMT-2000 CDMA TDD** | **UTRA TDD**, which has three variations:<br><br>1) UTRA TDD 1.28 Mcps Low Chip Rate (LCR) (**TD-SCDMA**)<br>2) UTRA TDD 3.84 Mcps High Chip Rate (HCR) (**TD-CDMA**)<br>3) UTRA TDD 7.68 Mcps<br><br>**UMTS-TDD** | 3GPP |
+| **IMT-2000 CDMA TDD** | **UTRA TDD**, which has three variations:<br>1) UTRA TDD 1.28 Mcps Low Chip Rate (LCR) (**TD-SCDMA**)<br>2) UTRA TDD 3.84 Mcps High Chip Rate (HCR) (**TD-CDMA**)<br>3) UTRA TDD 7.68 Mcps<br><br>**UMTS-TDD** | 3GPP |
 | **IMT-2000 TDMA Single-Carrier** | Two variations:<br>1) Radio interface used with TIA/EIA-41 Circuit Switched Network Component (**UWC-136**)<br>2) Radio interface used with GSM evolved UMTS Circuit Switched Network Component (**EDGE**) | TIA/EIA-136<br>3GPP TSG GERAN<br>ATIS WTSC |
 | IMT-2000 CDMA Multi-Carrier | CDMA2000 1x and 3x<br>CDMA2000 1xEV-DO<br>CDMA2000 1xEV-DV | 3GPP2 |
 | IMT-2000 FDMA/TDMA | DECT | ETSI |
@@ -91,7 +91,7 @@ The IMT-2000 consists of both [**terrestrial component**](#imt-2000-terrestrial-
 
 ### IMT-2000 Satellite Radio Interfaces
 
-**ITU-R M.1850** Detailed specifications of the radio interfaces for the satellite component of International Mobile Telecommunications-2000 (IMT-2000)
+Recommendation [**ITU-R M.1850**](/docs/R-REC-M.1850-0-201001-Detailed_specifications_of_the_radio_interfaces_for_the_satellite_component_of_International_IMT-2000.pdf): Detailed specifications of the radio interfaces for the satellite component of International Mobile Telecommunications-2000 (IMT-2000)
 
 | ITU-R Name | Common Name |
 | :--------- | :---------- |
@@ -108,7 +108,7 @@ The IMT-2000 consists of both [**terrestrial component**](#imt-2000-terrestrial-
 
 ## IMT-2000 Core Network
 
-**ITU-D STUDY GROUP 2** Guidelines on the smooth transition of existing mobile networks to IMT-2000 for developing countries (GST)
+[**ITU-D STUDY GROUP 2 Question 18/2**](/docs/ITU-D-SG2-Question18_2-Guidelines_on_the_smooth_transition_of_existing_mobile_networks_to_IMT-2000_for_developing_countries.pdf): Guidelines on the smooth transition of existing mobile networks to IMT-2000 for developing countries (GST)
 
 | ITU-R Name | ITU-T Recommendation | IMT-2000 Radio Technologies supported by the Core Network	|
 | :--------- | :------------------- | :-------------------------------------------------------- |
@@ -119,9 +119,9 @@ The IMT-2000 consists of both [**terrestrial component**](#imt-2000-terrestrial-
 
 # IMT-Advanced (4G)
 
-**ITU-R M.1645** Framework and overall objectives of the future development of IMT-2000 and systems beyond IMT-2000
+Recommendation [**ITU-R M.1645**](/docs/R-REC-M.1645-0-200306-Framework_and_overall_objectives_of_the_future_development_of_IMT-2000_and_systems_beyond_IMT-2000.pdf): Framework and overall objectives of the future development of IMT-2000 and systems beyond IMT-2000
 
-**ITU-R M.2012** Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-Advanced (IMT-Advanced)
+Recommendation [**ITU-R M.2012**](/docs/R-REC-M.2012-2-201509-Detailed_specifications_of_the_terrestrial_radio_interfaces_of_IMT-Advanced.pdf): Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-Advanced (IMT-Advanced)
 
 | ITU-R Name | Common Name | Standardization |
 | :--------- | :---------- | :-------------- |
@@ -134,7 +134,7 @@ The IMT-2000 consists of both [**terrestrial component**](#imt-2000-terrestrial-
 
 ## ITU Recommendations
 
-According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx), the following figure is time plan of IMT-2020 and its corresponding reports and recommendations:
+According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx), the following figure is time plan of IMT-2020 and its corresponding reports and recommendations:
 
 ![IMT-2020-Timeplan](/assets/IMT-2020-Timeplan.png)
 

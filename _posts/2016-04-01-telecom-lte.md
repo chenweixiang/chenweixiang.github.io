@@ -217,11 +217,22 @@ The Radio protocl architecture is shown in the following figure:
 
 # Channel Mapping
 
-The following figure shows the channel mapping between **logical channels**, **transport channels** and **physical channels**:
+The **logical channel** is defined by ***what*** type of information is transferred. The **transport channel** is characterized by ***how*** the information is transferred over the radio interface.
+
+According to **TS 36.300**, the following figure shows the channel mapping between **logical channels**, **transport channels** and **physical channels**:
 
 ![Channel_Mapping_R10_LTE-Advanced](/assets/Channel_Mapping_R10_LTE-Advanced.png)
 
-Each **logical channel** type is defined by ***what*** type of information is transferred.
+![Channel_Mapping_R8_TS36.212_S4](/assets/Channel_Mapping_R8_TS36.212_S4.png)
+
+# Frame Structure
+
+According to section 4 of **TS 36.211**, there are two types of frame structure in LTE:
+
+* The frame structure type 1 is applicable to both full duplex and half duplex FDD-LTE.
+* The frame structure type 2 is applicable to TDD-LTE.
+
+![R8_TS36.211_S4_Frame_Type](/assets/R8_TS36.211_S4_Frame_Type.png)
 
 # User Equipment (UE)
 
@@ -241,11 +252,24 @@ UE related specifications include:
 
 ## E-UTRAN Overview
 
+The following specifications are related to E-UTRAN overview:
+
 * TS 36.401-880 E-UTRAN Architecture description
 * TS 36.300-8c0 E-UTRA and E-UTRAN Overall description - Stage 2
 * TS 36.302-820 E-UTRA - Services provided by the physical layer
 
+According to **TS 23.401 S4.4.1**, in addition to the E-UTRAN functions described in **TS 36.300**, E-UTRAN functions include:
+
+* Header compression and user plane ciphering;
+* MME selection when no routing to an MME can be determined from the information provided by the UE;
+* UL bearer level rate enforcement based on UE-AMBR (Aggregate Maximum Bit Rate) and MBR (Maximum Bit Rate) via means of uplink scheduling (e.g. by limiting the amount of UL resources granted per UE over time);
+* DL bearer level rate enforcement based on UE-AMBR (Aggregate Maximum Bit Rate);
+* UL and DL bearer level admission control;
+* Transport level packet marking in the uplink, e.g. setting the DiffServ Code Point, based on the QCI of the associated EPS bearer.
+
 ## Radio Interface (Uu)
+
+Refer to [Protocol Architecture](#protocol-architecture) for the User-plane and Control-plane protocol layers of Uu interface.
 
 ### Radio Resource Control (RRC)
 
@@ -254,7 +278,7 @@ UE related specifications include:
 ### Packet Data Convergence Protocol (PDCP)
 
 * **TS 36.323-860 E-UTRA - Packet Data Convergence Protocol (PDCP) specification**
-* **TS 36.314-830 E-UTRA - Layer 2 Measurements**
+* TS 36.314-830 E-UTRA - Layer 2 Measurements
 
 #### PDCP Services
 
@@ -262,13 +286,11 @@ PDCP provides its services to the **RRC** and **user plane** upper layers at the
 
 * transfer of user plane data;
 * transfer of control plane data;
-* header compression (U-plane only) using ROHC protocol;
+* header compression (U-plane only) using [ROHC protocol](#rohc-resources);
 * integrity protection (C-plane only);
 * ciphering (U-plane and C-plane).
 
 The maximum supported size of a PDCP SDU is **8188 octets**.
-
-#### PDCP Functions
 
 #### PDCP Procedures
 
@@ -280,6 +302,12 @@ The following figure from **Figure 4.2.2.1** of **TS 36.323-860** shows the func
 
 ![R8_functional_view_of_PDCP](/assets/R8_functional_view_of_PDCP.png)
 
+#### PDCP PDU Formats
+
+**Control Plane PDCP PDUs**
+
+**Control Plane PDCP PDUs**
+
 #### ROHC Resources
 
 * [ROHC - Robust Header Compression](http://rohc.sourceforge.net/): a free implementation of **ROHC** (Robust Header Compression) defined in **RFC 3095**
@@ -287,36 +315,34 @@ The following figure from **Figure 4.2.2.1** of **TS 36.323-860** shows the func
 ### Radio Link Control (RLC)
 
 * **TS 36.322-880 E-UTRA - RLC protocol specification**
-* **TS 36.314-830 E-UTRA - Layer 2 Measurements**
+* TS 36.314-830 E-UTRA - Layer 2 Measurements
 
 #### RLC Services
 
 The following services are provided by RLC to upper layer (i.e. RRC or PDCP):
 
-* Transparent Mode (TM) data transfer;
-* Unacknowledged Mode (UM) data transfer;
-* Acknowledged Mode (AM) data transfer, including indication of successful delivery of upper layers PDUs.
-
-#### RLC Functions
+* **Transparent Mode** (**TM**) data transfer;
+* **Unacknowledged Mode** (**UM**) data transfer;
+* **Acknowledged Mode** (**AM**) data transfer, including indication of successful delivery of upper layers PDUs.
 
 #### RLC Procedures
 
-The following figure from **Figure 4.2.1.1.1-1** of **TS 36.322-880** shows the model of two transparent mode (TM) peer entities:
+The following figure from **Figure 4.2.1.1.1-1** of **TS 36.322-880** shows the model of two **transparent mode** (**TM**) peer entities:
 
 ![Model_of_two_transparent_mode_peer_entities](/assets/R8_Model_of_two_transparent_mode_peer_entities.png)
 
-The following figure from **Figure 4.2.1.2.1-1** of **TS 36.322-880** shows the model of two unacknowledged mode (UM) peer entities:
+The following figure from **Figure 4.2.1.2.1-1** of **TS 36.322-880** shows the model of two **unacknowledged mode** (**UM**) peer entities:
 
 ![R8_Model_of_two_unacknowledged_mode_peer_entities](/assets/R8_Model_of_two_unacknowledged_mode_peer_entities.png)
 
-The following figure from **Figure 4.2.1.3.1-1** of **TS 36.322-880** shows the model of two acknowledged mode (AM) peer entities:
+The following figure from **Figure 4.2.1.3.1-1** of **TS 36.322-880** shows the model of two **acknowledged mode** (**AM**) peer entities:
 
 ![R8_Model_of_an_acknowledged_mode_entities](/assets/R8_Model_of_an_acknowledged_mode_entities.png)
 
 ### Medium Access Control (MAC)
 
 * **TS 36.321-8a0 E-UTRA - MAC protocol specification**
-* **TS 36.314-830 E-UTRA - Layer 2 Measurements**
+* TS 36.314-830 E-UTRA - Layer 2 Measurements
 
 #### MAC Services
 
@@ -336,7 +362,7 @@ According to section **4.4** of **TS 36.321-8a0**, the following functions are s
 * error correction through HARQ;
 * priority handling between UEs by means of dynamic scheduling;
 * priority handling between logical channels of one UE;
-* Logical Channel prioritisation;
+* logical channel prioritisation;
 * transport format selection.
 
 #### MAC Procedures
@@ -415,21 +441,95 @@ The X2 interfaces related specifications are:
 * TS 36.423-890 E-UTRAN - X2 application protocol (X2AP)
 * TS 36.424-850 E-UTRAN - X2 data transport
 
-The S1 interface connects two E-UTRAN NodeB (eNB) components within the E-UTRAN architecture, refer to [Network Architecture](#network-architecture), [Protocol Architecture](#protocol-architecture).
+The S1 interface connects two E-UTRAN NodeB (eNB) components within the E-UTRAN architecture, refer to [Network Architecture](#network-architecture) and [Protocol Architecture](#protocol-architecture).
 
 The X2 is a point-to-point interface between two eNBs within the E-UTRAN. A point-to-point logical interface should be feasible even in the absence of a physical direct connection between the two eNBs.
 
 # Evolved Packet Core (EPC)
 
-## S10 Interface
+## EPC Entities
 
-## S11 Interface
+### Mobility Management Entity (MME)
 
-## S5/S8 Interface
+According to **TS 23.401 S4.4.2**, MME functions include:
 
-## S6a Interface
+* NAS signalling;
+* NAS signalling security;
+* Inter CN node signalling for mobility between 3GPP access networks (terminating S3);
+* UE Reachability in ECM-IDLE state (including control and execution of paging retransmission);
+* Tracking Area list management;
+* PDN GW and Serving GW selection;
+* MME selection for handovers with MME change;
+* SGSN selection for handovers to 2G or 3G 3GPP access networks;
+* Roaming (S6a towards home HSS);
+* Authentication;
+* Authorization;
+* Bearer management functions including dedicated bearer establishment;
+* Lawful Interception of signalling traffic;
+* Warning message transfer function (including selection of appropriate eNodeB);
+* UE Reachability procedures.
 
-## SGi Interface
+NOTE: The **S-GW** and the **MME** may be implemented in one physical node or separated physical nodes.
+
+### Serving GW (S-GW)
+
+According to **TS 23.401 S4.4.3.2**, the Serving GW is the gateway which terminates the interface towards E-UTRAN. For each UE associated with the EPS, at a given point of time, there is a single Serving GW. The functions of the Serving GW, for both the GTP-based and the PMIP-based S5/S8, include:
+
+* the local Mobility Anchor point for inter-eNodeB handover;
+* sending of one or more "end marker" to the source eNodeB, source SGSN or source RNC immediately after switching the path during inter-eNodeB and inter-RAT handover, especially to assist the reordering function in eNodeB.
+* Mobility anchoring for inter-3GPP mobility (terminating S4 and relaying the traffic between 2G/3G system and PDN GW);
+* ECM-IDLE mode downlink packet buffering and initiation of network triggered service request procedure;
+* Lawful Interception;
+* Packet routing and forwarding;
+* Transport level packet marking in the uplink and the downlink, e.g. setting the DiffServ Code Point, based on the QCI of the associated EPS bearer;
+* Accounting for inter-operator charging. For GTP-based S5/S8, the Serving GW generates accounting data per UE and bearer;
+* Interfacing OFCS according to charging principles and through reference points specified in TS 32.240.
+
+Additional Serving GW functions for the PMIP-based S5/S8 are captured in **TS 23.402**. Connectivity to a GGSN is not supported.
+
+NOTE: The **P-GW** and **S-GW** may be implemented in one physical node or separated physical nodes.
+
+### PDN GW (P-GW)
+
+According to **TS 23.401 S4.4.3.3**, the PDN GW is the gateway which terminates the SGi interface towards the PDN. If a UE is accessing multiple PDNs, there may be more than one PDN GW for that UE, however a mix of S5/S8 connectivity and Gn/Gp connectivity is not supported for that UE simultaneously. PDN GW functions include for both the GTP-based and the PMIP-based S5/S8:
+
+* Per-user based packet filtering (by e.g. deep packet inspection);
+* Lawful Interception;
+* UE IP address allocation;
+* Transport level packet marking in the uplink and downlink, e.g. setting the DiffServ Code Point, based on the QCI of the associated EPS bearer;
+* Accounting for inter-operator charging;
+* UL and DL service level charging as defined in TS 23.203 (e.g. based on SDFs defined by the PCRF, or based on deep packet inspection defined by local policy);
+* Interfacing OFCS through according to charging principles and through reference points specified in TS 32.240.
+* UL and DL service level gating control as defined in TS 23.203;
+* UL and DL service level rate enforcement as defined in TS 23.203 (e.g. by rate policing/shaping per SDF);
+* UL and DL rate enforcement based on APN-AMBR (e.g. by rate policing/shaping per aggregate of traffic of all SDFs of the same APN that are associated with Non-GBR QCIs);
+* DL rate enforcement based on the accumulated MBRs of the aggregate of SDFs with the same GBR QCI (e.g. by rate policing/shaping);
+* DHCPv4 (server and client) and DHCPv6 (client and server) functions;
+* The network does not support PPP bearer type in this version of the specification. Pre-Release 8 PPP functionality of a GGSN may be implemented in the PDN GW;
+* packet screening.
+
+Additionally the PDN GW includes the following functions for the GTP-based S5/S8:
+
+* UL and DL bearer binding as defined in TS 23.203;
+* UL bearer binding verification as defined in TS 23.203;
+* Functionality as defined in RFC 4861;
+* Accounting per UE and bearer.
+
+The P-GW provides PDN connectivity to both GERAN/UTRAN only UEs and E-UTRAN capable UEs using any of E-UTRAN, GERAN or UTRAN. The P-GW provides PDN connectivity to E-UTRAN capable UEs using E-UTRAN only over the S5/S8 interface.
+
+NOTE: The **P-GW** and **S-GW** may be implemented in one physical node or separated physical nodes.
+
+## Interfaces
+
+### S10 Interface
+
+### S11 Interface
+
+### S5/S8 Interface
+
+### S6a Interface
+
+### SGi Interface
 
 # Technical Details
 
@@ -440,6 +540,7 @@ The X2 is a point-to-point interface between two eNBs within the E-UTRAN. A poin
 # References
 
 * [ShareTechnote](http://www.sharetechnote.com/)
+* [ShareTechnote Index](http://www.sharetechnote.com/html)
 * [LTE Dictionary on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE.html)
 * [LTE Full Stack on ShareTechnote](http://www.sharetechnote.com/html/FullStack_LTE.html)
 * [LTE PDCP Layer on ShareTechnote](http://www.sharetechnote.com/html/PDCP_LTE.html)
@@ -448,4 +549,8 @@ The X2 is a point-to-point interface between two eNBs within the E-UTRAN. A poin
 * [LTE PHY Processing on ShareTechnote](http://www.sharetechnote.com/html/PhyProcessing_LTE.html)
 * [LTE Quick Reference on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PhySequence.html)
 * [LTE Basic Procedure on ShareTechnote](http://www.sharetechnote.com/html/BasicProcedure_LTE_PHY_Process.html)
+* [Typical Packet Call Processing on ShareTechnote](http://www.sharetechnote.com/html/BasicCallFlow_LTE_ChannelMap.html)
+* [LTE Network Architecture on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
+* [LTE SAE on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
 * [3GLTEinfo](http://www.3glteinfo.com/)
+* [LTE Network Architecture](/docs/LTE_Network_Architecture_StraWhitePaper.pdf)

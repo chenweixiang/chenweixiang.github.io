@@ -531,7 +531,94 @@ NOTE: The **P-GW** and **S-GW** may be implemented in one physical node or separ
 
 ### SGi Interface
 
-# Technical Details
+# Technical Components of LTE-Advanced
+
+The followings are the technical components to implement LTE-Advanced:
+
+![LTE_Advanced_Technical_Component_01](/assets/LTE_Advanced_Technical_Component_01.png)
+
+## Carrier Aggregation (CA)
+
+**3GPP Specifications**
+
+Refer to the [3GPP_Carrier Aggregation for LTE_20141015.zip](ftp://www.3gpp.org/Information/WORK_PLAN/Description_Releases/) on 3GPP FTP site.
+
+Refer to the artical **Carrier Aggregation explained** on [3GPP website](http://www.3gpp.org/technologies/keywords-acronyms/101-carrier-aggregation-explained) or [its local copy on GitHub](/docs/Carrier_Aggregation_explained.pdf) for explainations of carrier aggregation.
+
+Refer to the artical **LTE CA: Carrier Aggregation Tutorial** on [Radio-Electronic.com](http://www.radio-electronics.com/info/cellulartelecomms/lte-long-term-evolution/4g-lte-advanced-carrier-channel-aggregation.php) or [its local copy on GitHub](/docs/What_is_LTE_Carrier_Aggregation.pdf) for the tutorial of carrier aggregation.
+
+And read the following specifications:
+
+* TR 36.808 Evolved Universal Terrestrial Radio Access (E-UTRA); Carrier Aggregation; Base Station (BS) radio transmission and reception
+* TR 36.814 Evolved Universal Terrestrial Radio Access (E-UTRA); Further advancements for E-UTRA physical layer aspects
+* TR 36.815 Further Advancements for E-UTRA; LTE-Advanced feasibility studies in RAN WG4
+* TR 36.823 Evolved Universal Terrestrial Radio Access (E-UTRA); Carrier Aggregation Enhancements; UE and BS radio transmission and reception
+* TR 36.912 Feasibility study for Further Advancements for E-UTRA (LTE-Advanced)
+* TR 36.913 Requirements for further advancements for Evolved Universal Terrestrial Radio Access (E-UTRA) (LTE-Advanced)
+* TS 36.101 Evolved Universal Terrestrial Radio Access (E-UTRA); User Equipment (UE) radio transmission and reception
+  * TS 36.101-e30 Section 5.6A: Channel bandwidth for CA
+  * TS 36.101-e30 Table 5.6A-1: CA bandwidth classes and corresponding nominal guard bands
+  * TS 36.101-e30 Section 5.7.1A: Channel spacing for CA
+  * TS 36.101-e30 Section 5.7.2A: Channel raster for CA
+  * TS 36.101-e30 Section 5.7.4A: TX–RX frequency separation for CA
+* TS 36.211 Evolved Universal Terrestrial Radio Access (E-UTRA); Physical channels and modulation
+* TS 36.212 Evolved Universal Terrestrial Radio Access (E-UTRA); Multiplexing and channel coding
+* TS 36.213 Evolved Universal Terrestrial Radio Access (E-UTRA); Physical layer procedures
+* TS 36.300 Evolved Universal Terrestrial Radio Access (E-UTRA) and Evolved Universal Terrestrial Radio Access Network (E-UTRAN); Overall description; Stage 2
+
+**Initial Motivation for Carrier Aggregation**
+
+Does this mean that they already feel the current 20 Mhz LTE bandwidth is not enough? As far as I know, it is not because of this. Even though the current LTE supports 20 Mhz BW in maximum, there are only a few network operators who is certified for such a wide bandwidth. The most common bandwidth that network operators has for LTE is 10 Mhz, which means they are not fully utilizing the LTE capability in terms of bandwidth. This is not because of technical restriction, it is purely because of licensing issues for the allocated bandwidth.
+
+Even though there is not many Network Operators who has 20 Mhz BW, there are some network operators who has license multiple band (e.g, two separated 10 Mhz BW and two or more 5 Mhz BW). These network operators wants to combine those multiple bands to achieve wide BW (in most case 20 Mhz BW) LTE. It is the initial motivation for LTE Advanced for now.
+
+**What is Carrier Aggregation?**
+
+Carrier Aggregation is a special form of LTE technology that enables UE and Network to use more than one carrier frequencies. Actually this is not a new concept in LTE. You might have used/heard Dual Carrier in WCDMA HSDPA (HSDPA DC) or similar mode in WiFi (I forgot the terminology in WiFi).
+
+**How can I know which band combination of bands a UE support in terms of Carrier Aggregation?**
+
+It is also supposed to be reported to network by the UE via UE Capability Information message. Followings are some of the possible IEs a UE may use depending on its release status, refer to TS 36.331:
+
+```
+RF-Parameters-v1020 ::= SEQUENCE {
+    supportedBandCombination-r10    SupportedBandCombination-r10
+}
+
+RF-Parameters-v1090 ::= SEQUENCE {
+    supportedBandCombination-v1090  SupportedBandCombination-v1090  OPTIONAL
+}
+
+RF-Parameters-v1130 ::= SEQUENCE {
+    supportedBandCombination-v1130  SupportedBandCombination-v1130  OPTIONAL
+}
+```
+
+Refer to the following tables for all the possible (allowed) band combination of inter-band and intra-band CA case:
+
+* TS 36.101-e30 Table 5.6A-1: CA bandwidth classes and corresponding nominal guard bands
+* TS 36.101-e30 Table 5.6A.1-1: E-UTRA CA configurations and bandwidth combination sets defined for intra-band contiguous CA
+* TS 36.101-e30 Table 5.6A.1-2: E-UTRA CA configurations and bandwidth combination sets defined for inter-band CA (two bands)
+* TS 36.101-e30 Table 5.6A.1-2a: E-UTRA CA configurations and bandwidth combination sets defined for inter-band CA (three bands)
+* TS 36.101-e30 Table 5.6A.1-2b: E-UTRA CA configurations and bandwidth combination sets defined for inter-band CA (four bands)
+* TS 36.101-e30 Table 5.6A.1-2c: E-UTRA CA configurations and bandwidth combination sets defined for inter-band CA (five bands)
+* TS 36.101-e30 Table 5.6A.1-3: E-UTRA CA configurations and bandwidth combination sets defined for non-contiguous intra-band CA (with two sub-blocks)
+
+## Enhanced UL Transmission (Clustered SC-FDMA)
+
+## Enhanced MIMO
+
+## Relay Node
+
+One of the key modification of LTE advanced is **Relay Node** to improve data communication especially on cell boundary and increase cell coverage.
+
+![LTE_Advanced_R10_Network_Overview](/assets/LTE_Advanced_R10_Network_Overview.png)
+
+The following table from [NTT DoCoMo technical report](/docs/Relay_Technology_in_LTE-Advanced_DoCoMo_Report_Vol12_2_029en.pdf):
+
+![DoCoMo Technology Report vol 12-2](/assets/LTE_Advanced_RN_DoCoMoTechnote.png)
+
+## LTE CoMP (Coordinated Multi Point transmission)
 
 # Procedures
 

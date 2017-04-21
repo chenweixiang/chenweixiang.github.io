@@ -3,39 +3,34 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.1.1/gh-fork-ribbon.min.css" /> -->
 	<link rel="stylesheet" href="/css/gh-fork-ribbon.min.css" />
-	<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous"> -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/css/bootstrap-toc.min.css" media="screen" charset="utf-8">
-	<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css"> -->
     <link rel="stylesheet" href="/css/github.min.css">
 	<link rel="stylesheet" href="/css/screen.css" media="screen" charset="utf-8">
 
-	<!-- <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script> -->
     <script src="/js/jquery-2.1.4.min.js"></script>
-	<!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script> -->
     <script src="/js/bootstrap.min.js"></script>
     <script src="/js/bootstrap-toc.min.js"></script>
-	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script> -->
     <script src="/js/highlight.min.js"></script>
+
+    <!-- added for left side Table of Content (TOC) bar -->
+    <script src="/js/jquery-1.4.4.min.js"></script>
+    <script src="/js/jquery.ztree.core-3.5.js"></script>
+    <script src="/js/ztree_toc.js"></script>
+    <link rel="stylesheet" href="/css/zTreeStyle/zTreeStyle.css" type="text/css">
+    <script type="text/javascript" >
     <!--
-    <script type="text/javascript">
-        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-        ga('create', 'UA-19048260-11', 'auto');
-        ga('send', 'pageview');
-
-        hljs.initHighlightingOnLoad();
-
-        $(function() { });
+    $(document).ready(function(){
+        $('#tree').ztree_toc({
+            is_auto_number:false,
+            is_expand_all:true,
+            documment_selector:'.markdown-body'
+        });
+    });
+    //-->
     </script>
-    -->
 
-    <!-- Math formula is supported by MathJax. Math TexT Tutorial cat be found on http://www.forkosh.com/mathtextutorial.html -->
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
 
     <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>

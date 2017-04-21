@@ -193,6 +193,8 @@ According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_ne
 
 ![EPC](/assets/lte_epc.jpg)
 
+![LTE-Advanced_Network_Architecture](/assets/LTE-Advanced_Network_Architecture.jpg)
+
 # Protocol Architecture
 
 The following figure from **Figure 13.1-1** of **TS 36.300-8c0** shows the EPS Bearer Service Architecture:
@@ -215,6 +217,8 @@ The Radio protocl architecture is shown in the following figure:
 
 ![lte_protocol_layers](/assets/lte_protocol_layers.jpg)
 
+![LTE-Advanced_Protocol_Architecture](/assets/LTE-Advanced_Protocol_Architecture.jpg)
+
 # Channel Mapping
 
 The **logical channel** is defined by ***what*** type of information is transferred. The **transport channel** is characterized by ***how*** the information is transferred over the radio interface.
@@ -233,6 +237,8 @@ According to section 4 of **TS 36.211**, there are two types of frame structure 
 * The frame structure type 2 is applicable to TDD-LTE.
 
 ![R8_TS36.211_S4_Frame_Type](/assets/R8_TS36.211_S4_Frame_Type.png)
+
+![LTE-Advanced_Frame_Structure](/assets/LTE-Advanced_Frame_Structure.jpg)
 
 # User Equipment (UE)
 
@@ -537,6 +543,8 @@ The followings are the technical components to implement LTE-Advanced:
 
 ![LTE_Advanced_Technical_Component_01](/assets/LTE_Advanced_Technical_Component_01.png)
 
+Also refer to article **Overview of Enabling Technologies for 3GPP LTE-Advanced** on [SpringerOpen website](http://jwcn.eurasipjournals.springeropen.com/articles/10.1186/1687-1499-2012-54) or [its local copy on GitHub](/docs/Overview_of_enabling_technologies_for_3GPP_LTE-advanced.pdf).
+
 ## Carrier Aggregation (CA)
 
 **3GPP Specifications**
@@ -576,6 +584,14 @@ Even though there is not many Network Operators who has 20 Mhz BW, there are som
 
 Carrier Aggregation is a special form of LTE technology that enables UE and Network to use more than one carrier frequencies. Actually this is not a new concept in LTE. You might have used/heard Dual Carrier in WCDMA HSDPA (HSDPA DC) or similar mode in WiFi (I forgot the terminology in WiFi).
 
+**Types of Carrier Aggregation**
+
+There are three types of carrier aggregation:
+
+* intra-band contiguous carrier aggregation
+* intra-band non-contiguous carrier aggregation
+* inter-band non-contiguous carrier aggregation
+
 **How can I know which band combination of bands a UE support in terms of Carrier Aggregation?**
 
 It is also supposed to be reported to network by the UE via UE Capability Information message. Followings are some of the possible IEs a UE may use depending on its release status, refer to TS 36.331:
@@ -604,13 +620,21 @@ Refer to the following tables for all the possible (allowed) band combination of
 * TS 36.101-e30 Table 5.6A.1-2c: E-UTRA CA configurations and bandwidth combination sets defined for inter-band CA (five bands)
 * TS 36.101-e30 Table 5.6A.1-3: E-UTRA CA configurations and bandwidth combination sets defined for non-contiguous intra-band CA (with two sub-blocks)
 
-## Enhanced UL Transmission (Clustered SC-FDMA)
+## Clustered SC-FDMA (Enhanced UL Transmission)
+
+The original SC-FDMA was designed to work in a contiguous band. In order to support carrier aggregation in the UL as well as the DL, the LTE-Advanced adopts a modified version of SC-FDMA, which is referred to as clustered SC-FDMA.
+
+The use of clustered SC-FDMA allows non-contiguous bands for UL transmission, and thus enables frequency selective scheduling within a CC. However, the number of clusters is limited to two in release 10, since the clustering usually degrades the PAPR performance due to destruction of single carrier characteristic in the time domain. Another aspect of the carrier aggregation is that different sets of CC’s can be assigned to the DL and UL. Moreover, even within the same cell, different UE’s will work with different numbers of CC’s, depending on their capabilities, channel condition, and so on.
 
 ## Enhanced MIMO
 
+Multiple-input multiple-output (MIMO) refers to a communication system that is equipped with multiple antennas at both transmit and receive sides. The use of MIMO was a key that led to success of IEEE 802.11n, HSPA, and LTE, and now MIMO continues its journey with the LTE-Advanced. According to the LTE-Advanced requirements, the maximum spectral efficiency must be as high as 30 bps/Hz in the DL, which requires the use of 8 × 8 MIMO spatial multiplexing. The DL MIMO was already supported in the LTE in the form of transmit diversity and closed-loop spatial multiplexing up to four layers. The LTE-Advanced adopts a closed-loop precoding to realize 8 × 8 MIMO spatial multiplexing.
+
+The MIMO transmission is supported in the UL as well. Unlike the LTE that does not support single user MIMO in the UL, the LTE-Advanced supports MIMO with two or four layers. Note that the maximum spectral efficiency of 15 bps/Hz can be attained only using spatial multiplexing with four layers.
+
 ## Relay Node
 
-One of the key modification of LTE advanced is **Relay Node** to improve data communication especially on cell boundary and increase cell coverage.
+One of the key modification of LTE advanced is wireless **Relay Node** to improve data communication especially on cell boundary and increase cell coverage.
 
 ![LTE_Advanced_R10_Network_Overview](/assets/LTE_Advanced_R10_Network_Overview.png)
 
@@ -618,7 +642,61 @@ The following table from [NTT DoCoMo technical report](/docs/Relay_Technology_in
 
 ![DoCoMo Technology Report vol 12-2](/assets/LTE_Advanced_RN_DoCoMoTechnote.png)
 
-## LTE CoMP (Coordinated Multi Point transmission)
+## enhanced Inter-Cell Interference Coordination (eICIC)
+
+Refer to [ICIC (Inter-Cell Interference Coordination)](http://www.sharetechnote.com/html/Handbook_LTE_ICIC.html) for descriptions of ICIC and its solution.
+
+With an explosive growth in wireless traffic, a variety of small-size low-power base stations are being deployed within the usual macro eNB to serve hot zone, office, and home areas. This type of overlay architecture is referred to as heterogeneous network (HetNet). The below table shows several types of nodes that may exist in a
+HetNet. Different types of nodes are optimized for better coverage and data transmission.
+
+| Type of nodes | Transmit power (dBm) | Coverage | Backhaul     |
+| :------------ | :------------------- | :------- | :----------- |
+| Macrocell     | 46                   | Few km   | S1 interface |
+| Picocell      | 23-30                | < 1300 m | X2 interface |
+| Femtocell     | < 23                 | < 50 m   | Internet IP  |
+| Relay         | 30                   | 300 m    | Wireless     |
+| RRH           | 46                   | Few km   | Fiber        |
+
+<p/>
+
+Due to a large number of heterogeneous cells that could exist in a certain area, inter-cell interference becomes a challenging issue in HetNet scenarios. In particular, in certain situations, the signal from the serving cell could be much weaker than that from the interfering cells, which is referred to as dominant interference scenario.
+
+The LTE release 8 and 9 employ messages for ICIC that can be exchanged between eNB’s via the X2 interface, such as the following three indicators:
+
+1. Relative Narrowband Transmit Power (RNTP) indicator is used by a certain cell to inform neighboring cells which DL RB’s it is using to serve UE’s within and transmit
+power level for the corresponding RB’s.
+
+2. Overload Indicator (OI) is used to inform neighboring eNB’s on a certain eNB’s self-estimated interference level on UL RB’s. When other eNB’s receive this information, they would attempt to reschedule or reduce activities on those RB’s.
+
+3. High Interference Indicator (HII) allows one eNB to warn neighboring eNB’s that certain UL RB’s will be heavily loaded in the near future to serve its own celledge UE’s. Other eNB’s would abstain from using those RB’s to avoid mutual interference.
+
+The ICIC methods of the LTE release 8 and 9 do not consider dominant interference scenarios of HetNets. In order to address such scenarios, the LTE-Advanced has been developing enhanced ICIC (eICIC) techniques, which can be classified into three categories:
+
+* **Time-domain techniques**: In time-domain techniques, the victim users are scheduled in time-domain resources where interference from other nodes is mitigated. Time-domain techniques employ subframe alignment and OFDM symbol shift.
+
+* **Frequency-domain techniques**: In frequency-domain techniques, control and reference signals are scheduled in reduced bandwidth, so that the signals of different cells are ensured to be orthogonal to one another. While frequency-domain orthogonality can be achieved in a static manner, it may also be implemented dynamically through victim UE detection.
+
+* **Power control techniques**: In power control techniques, femtocells employ power control schemes different from the one used in macrocells. The power control scheme can be designed by accounting for the following factors: the strongest macro eNB received power at a HeNB, path loss between a HeNB and macro UE, target signal-to-interference-plus-noise ratio (SINR) of home UE, and target SINR of macro UE.
+
+![eICIC_Solutions](/assets/eICIC_Solutions.png)
+
+## Coordinated Multi-Point (CoMP) transmission/reception
+
+Carrier aggregation and CoMP are the two most important techniques that boost the data rate of the LTEAdvanced to a new threshold. If we call CA a road of the LTE-Advanced, CoMP surely will be a car which the LTE-Advanced drives.
+
+In traditional telecommunication systems, each UE will be basically served by only one base station (BS) at a moment. Signals come from other BS’s will become interference to the UE. When the UE moves to the cell edge, it will communicate with more than one BS’s to prepare for handover. However, it is still being served by its original BS. This is also the time when the UE receives strong interference, and data rate will be very low. The situation will become worse if the UE is moving with high speed.
+
+Coordinated multipoint can be considered as a distributed MIMO system, in that geographically distributed nodes form multiple antennas and they cooperate to transmit to and/or receive from UE’s. CoMP has been studied as a solution for increasing the system throughput, especially at cell edge areas where inter-cell interference is severe with traditional approach. Due to the potential advantage, CoMP techniques received a lot of attention at the initiatory stage of the LTE-Advanced standardization. However, in practice, there are critical issues in CoMP, such as excessive feedback overhead, backhaul delay and burden, and interference channel estimation. Accordingly, the discussion on CoMP was suspended in release 10, but it is being discussed again in release 11.
+
+Coordinated multipoint can be applied to both the DL and UL:
+
+* DL CoMP techniques can be classified according to the amount of information shared among cells. Joint processing is available when neighboring cells share transmit data as well as the channel state information. On the other hand, coordinated scheduling/coordinated beamforming (CS/CB) can be realized only if the channel state information and scheduling information are shared among eNB’s [44]; data sharing is not required.
+
+* For the case of UL, joint detection and interference prediction are considered.
+
+According to R1-110564 in 3GPP, CoMP techniques can be applied in three different scenarios [52], as illustrated in below figure. Currently, various CoMP schemes are being evaluated by several institutes under the scenarios. The scenarios of particular interest are the two scenarios with remote radio head (RRH), which ensures high capacity and low latency backhaul.
+
+![LTE-Advanced_CoMP_scenarios](/assets/LTE-Advanced_CoMP_scenarios.jpg)
 
 # Procedures
 

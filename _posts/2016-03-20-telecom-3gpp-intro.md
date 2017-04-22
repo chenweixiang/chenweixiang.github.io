@@ -166,6 +166,8 @@ The 3GPP specifications are transposed into deliverables by the Organizational P
 
 ![3GPP Evolution](/assets/3GPP_Evolution.png)
 
+![3GPP_ongoing_releases](/assets/3GPP_ongoing_releases.JPG)
+
 ## Releases
 
 For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications.

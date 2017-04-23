@@ -529,13 +529,27 @@ NOTE: The **P-GW** and **S-GW** may be implemented in one physical node or separ
 
 ### S10 Interface
 
+S10 is a control interface between the MMEs which will be very similar to the S3 interface between the SGSN and MME. The interface is based on Gn/GTP-Control (GTP-C) (interface between SGSN-SGSN) with additional functionality. It is used for user information transfer as well as MME relocation support. Refer to **TS 29.274 GTPv2-C**.
+
+S10 is a many-to-many interface.
+
 ### S11 Interface
+
+S11 is the interface between the MME and S-GW. The interface is based on Gn/GTP-Control (GTP-C) (interface between SGSN-GGSN) with some additional functions for paging coordination, mobility compared to the legacy Gn/GTP-C (SGSN-GGSN) interface. It is used to support mobility and bearer management. Refer to **TS 29.274 GTPv2-C**.
+
+S11 is a many-to-many interface.
 
 ### S5/S8 Interface
 
+S5/S8 is the reference point between S-GW and PDN-GW. It provides user plane tunneling and tunnel management. S8 is inter-PLMN variant of S5 interface.
+
 ### S6a Interface
 
+**TS 29.272**: Mobility Management Entity (MME) and Serving GPRS Support Node (SGSN) related interfaces based on Diameter protocol
+
 ### SGi Interface
+
+SGi is the reference point between the PDN Gateway (P-GW) and the packet data network. Packet data network may be an operator external public or private packet data network or an intra operator packet data network, e.g. for provision of IMS services. This reference point corresponds to Gi for 3GPP accesses. Refer to **TS 29.061**.
 
 # Technical Components of LTE-Advanced
 

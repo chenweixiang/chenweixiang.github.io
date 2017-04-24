@@ -250,8 +250,8 @@ The internal architecture of the user equipment (UE) for LTE is identical to the
 
 UE related specifications include:
 
-* TS 36.101-a70 UE radio transmission and reception
-* TS 36.304-a80 UE procedures in idle mode
+* TS 36.101-a70 User Equipment (UE) radio transmission and reception
+* TS 36.304-a80 User Equipment (UE) procedures in idle mode
 * TS 36.305-a50 Stage 2 functional specification of User Equipment (UE) positioning in E-UTRAN
 
 # Evolved UMTS Radio Access Network (E-UTRAN)
@@ -711,10 +711,6 @@ Coordinated multipoint can be applied to both the DL and UL:
 According to R1-110564 in 3GPP, CoMP techniques can be applied in three different scenarios [52], as illustrated in below figure. Currently, various CoMP schemes are being evaluated by several institutes under the scenarios. The scenarios of particular interest are the two scenarios with remote radio head (RRH), which ensures high capacity and low latency backhaul.
 
 ![LTE-Advanced_CoMP_scenarios](/assets/LTE-Advanced_CoMP_scenarios.jpg)
-
-# Procedures
-
-* TS 36.304 - Evolved Universal Terrestrial Radio Access (E-UTRA); User Equipment (UE) procedures in idle mode
 
 # References
 

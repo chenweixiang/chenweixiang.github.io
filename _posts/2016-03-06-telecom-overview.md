@@ -34,6 +34,39 @@ The ITU comprises three sectors, each managing a different aspect of the matters
 
 A permanent General Secretariat, headed by the Secretary General, manages the day-to-day work of the Union and its sectors.
 
+### WRC
+
+The [World radiocommunication conferences (WRC)](http://www.itu.int/en/ITU-R/conferences/wrc/Pages/default.aspx) are held **every three to four years**. It is the job of WRC to review, and, if necessary, revise the [Radio Regulations](#radio-regulations), the international treaty governing the use of the radio-frequency spectrum and the geostationary-satellite and non-geostationary-satellite orbits. Revisions are made on the basis of an agenda determined by the [ITU Council](http://www.itu.int/en/council), which takes into account recommendations made by previous world radiocommunication conferences.
+
+The general scope of the agenda of world radiocommunication conferences (WRC) is established four to six years in advance, with the final agenda set by the ITU Council two years before the conference, with the concurrence of a majority of Member States.
+
+Under the terms of the [ITU Constitution](http://www.itu.int/pub/S-CONF-PLEN/en), a WRC can:
+
+* revise the [Radio Regulations](#radio-regulations) and any associated Frequency assignment and allotment Plans;
+* address any radiocommunication matter of worldwide character;
+* instruct the [Radio Regulations Board (RRB)](http://www.itu.int/en/ITU-R/conferences/RRB/Pages/default.aspx) and the [Radiocommunication Bureau](http://www.itu.int/ITU-R/go/br/en), and review their activities;
+* determine [Questions](http://www.itu.int/pub/R-QUE/en) for study by the [Radiocommunication Assembly (RA)](http://www.itu.int/en/ITU-R/conferences/RA) and its [Study Groups](http://www.itu.int/en/ITU-R/study-groups) in preparation for future Radiocommunication Conferences.
+
+On the basis of contributions from administrations, the [Special Committee](http://www.itu.int/en/ITU-R/study-groups), the Radiocommunication Study Groups, and other sources (see Article 19 of the Convention (Geneva, 1992)) concerning the regulatory, technical, operational and procedural matters to be considered by World and Regional Radiocommunication Conferences, the [Conference Preparatory Meeting (CPM)](http://www.itu.int/en/ITU-R/study-groups/rcpm) shall prepare a consolidated report to be used in support of the work of such conferences.
+
+Refer to [Complete List of Radio Conferences](http://www.itu.int/en/history/Pages/CompleteListOfRadioConferences.aspx) and [Calendar of Events ](http://www.itu.int/en/events/Pages/Calendar-Events.aspx) for a list of World Radiocommunication Conferences (WRC) in the past and in the future.
+
+#### Radio Regulations
+
+The [Radio Regulations](http://www.itu.int/pub/R-REG-RR/en) contains the complete texts as adopted by the World Radiocommunication Conference (Geneva, 1995) (WRC-95) and subsequently revised and adopted by World Radiocommunication Conferences, including all Appendices, Resolutions, Recommendations and ITU-R Recommendations incorporated by reference.
+
+The Radio Regulations can be downloaded from [here](http://www.itu.int/pub/R-REG-RR/en):
+
+* Radio Regulations edition 2016](http://www.itu.int/en/publications/ITU-R/pages/publications.aspx?parent=R-REG-RR-2016&media=electronic), which contains the complete texts of the Radio Regulations as adopted by the WRC-95, subsequently revised and approved by the **WRC-97**, **WRC-2000**, **WRC-03**, **WRC-07**, **WRC-12** and **WRC-15**, including all Appendices, Resolutions, Recommendations and ITU-R Recommendations incorporated by reference. The assignment and use of frequencies can be found in **Chapter II**.
+
+#### WRC-12
+
+Refer to [WRC-12](http://handle.itu.int/11.1004/020.1000/4.133) and **Final Acts of WRC-12** in [English](/docs/Final_Acts_WRC-12_EN.pdf) or [Chinese](/docs/Final_Acts_WRC-12_CN.pdf).
+
+#### WRC-15
+
+Refer to [WRC-15](http://handle.itu.int/11.1004/020.1000/4.297) and **Final Acts of WRC-15** in [English](/docs/Final_Acts_WRC-15_EN.pdf) or [Chinese](/docs/Final_Acts_WRC-15_CN.pdf).
+
 ## ETSI
 
 The [**European Telecommunications Standards Institute** (ETSI)](http://www.etsi.org/) is an independent, not-for-profit, standardization organization in the telecommunications industry (equipment makers and network operators) in Europe, headquartered in *Sophia-Antipolis, France*, with worldwide projection. ETSI produces globally-applicable standards for Information and Communications Technologies (ICT), including fixed, mobile, radio, converged, broadcast and internet technologies.
@@ -149,6 +182,28 @@ Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.htm
 ## 5G (IMT-2020)
 
 Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-2020-5g">IMT-2020 (5G)</a> for ITU-R Recommendations.
+
+### Projects
+
+#### Horizon 2020
+
+Refer to [Horizon 2020](https://ec.europa.eu/programmes/horizon2020/en).
+
+#### IMT-2020 (5G) Promotion Group
+
+In February 2013, three ministries of China - that's, the Ministry of Industry and Information Technology (MIIT, 中国工业和信息化部), the National Development and Reform Commission (NDRC, 国家发展和改革委员会) and the Ministry of Science and Technology (MOST, 科学技术部) - jointly established [**IMT-2020 (5G) Promotion group**](http://www.imt-2020.cn/) based on the original IMT-Advanced promotion group. It is the major platform to promote the research of 5G in China. Its members include the leading operators, vendors, universities, and research institutes in the field of mobile communications.
+
+![IMT-2020-5G-Promotion-Group-Structure](/assets/IMT-2020-5G-Promotion-Group-Structure.jpg)
+
+* 5G愿景与需求白皮书
+* 5G概念白皮书
+* 5G无线技术架构白皮书
+* 5G网络技术架构白皮书
+* 5G网络架构设计白皮书
+
+#### FuTURE Forum
+
+Refer to [FuTURE Forum](www.future-forum.org/)
 
 # Deployment
 

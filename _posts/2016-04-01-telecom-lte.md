@@ -551,6 +551,8 @@ S5/S8 is the reference point between S-GW and PDN-GW. It provides user plane tun
 
 SGi is the reference point between the PDN Gateway (P-GW) and the packet data network. Packet data network may be an operator external public or private packet data network or an intra operator packet data network, e.g. for provision of IMS services. This reference point corresponds to Gi for 3GPP accesses. Refer to **TS 29.061**.
 
+# Technical Components of LTE
+
 # Technical Components of LTE-Advanced
 
 The followings are the technical components to implement LTE-Advanced:

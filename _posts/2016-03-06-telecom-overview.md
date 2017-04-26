@@ -237,3 +237,4 @@ Refer to [Global mobile Suppliers Association (GSA)](http://gsacom.com/).
 * [Institute of Electrical and Electronics Engineers (IEEE 802.16)](http://www.ieee.org/)
 * [Radiocommunication Assembly 2012 (RA-12)](http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=ra-12&lang=en)
 * [World Radiocommunication Conference 2012 (WRC-12)](http://www.itu.int/ITU-R/index.asp?category=conferences&rlink=wrc-12&lang=en&related-conferences=1)
+* [4G-Portal](http://4g-portal.com/)

@@ -6,9 +6,9 @@
  */
 function encode_id_with_array(opts,arr) {
 	var result = 0;
-  for(var z = 0; z < arr.length; z++ ) {
+	for(var z = 0; z < arr.length; z++ ) {
 		result += factor(opts, arr.length - z ,arr[z]);
-  }
+	}
 
 	return result;
 }
@@ -19,23 +19,23 @@ function encode_id_with_array(opts,arr) {
  * 1.2.2 = 1*100*100 + 2*100 + 3
  *
  * 1 = 0*100 +1
-
-	1,1 = 100
-
+ *
+ * 1,1 = 100
+ *
  */
 function get_parent_id_with_array(opts,arr) {
 	var result_arr = [];
 
-  for(var z = 0; z < arr.length; z++ ) {
+	for(var z = 0; z < arr.length; z++ ) {
 		result_arr.push(arr[z]);
-  }
+	}
 
 	result_arr.pop();
 
 	var result = 0;
-  for(var z = 0; z < result_arr.length; z++ ) {
+	for(var z = 0; z < result_arr.length; z++ ) {
 		result += factor(opts,result_arr.length - z,result_arr[z]);
-  }
+	}
 
 	return result;
 }
@@ -142,7 +142,7 @@ function factor(opts ,count,current) {
 			anchor = _get_anchor_from_head(header_obj);
 		}
 		
-    // 设置锚点id
+		// 设置锚点id
 		$(header_obj).attr('id',anchor);
 
 		log($(header_obj).text());
@@ -153,7 +153,7 @@ function factor(opts ,count,current) {
 
 		opts._header_nodes.push({
 			id:id,
-			pId:pid ,
+			pId:pid,
 			name:$(header_obj).text()||'null',
 			open:true,
 			url:'#'+ anchor,
@@ -190,10 +190,10 @@ function factor(opts ,count,current) {
 			}, opts.refresh_scroll_time);
 		};
 
-	  if (opts.highlight_on_scroll) {
-	    $(opts.scroll_selector).bind('scroll', highlight_on_scroll);
-	    highlight_on_scroll();
-	  }
+		if (opts.highlight_on_scroll) {
+			$(opts.scroll_selector).bind('scroll', highlight_on_scroll);
+			highlight_on_scroll();
+		}
 	}
 
 	/*

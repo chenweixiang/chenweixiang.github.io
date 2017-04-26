@@ -553,6 +553,52 @@ SGi is the reference point between the PDN Gateway (P-GW) and the packet data ne
 
 # Technical Components of LTE
 
+## Diversity
+
+There are basically two types of Diversity called **Reciever Diversity** and **Transmitter Diversity**.
+
+### Reciever Diversity
+
+In Reciever Diversity configuration, single copy of one bit stream is being transmitted and reaches to multiple reciever antenna via a little different path, it means the reciever can have multiple versions of same data. Out of the multiple version, the reciever can select the best one or combine them all together in such a way to improve data quality. By doing this, communication reliability (less error) can be increased, but no advantage in terms data throughput.
+
+![Diversity_Basic_Concept_01](/assets/Diversity_Basic_Concept_01.png)
+
+### Transmitter Diversity
+
+In Transmitter Diversity configuration, multiple copies of one (single) bit stream is being transmitted via multiple Tx antenna and reaches to single reciever antenna via a little different path, it means the reciever can have multiple versions of same data. Out of the multiple version, the reciever can select the best one or combine them all together in such a way to improve data quality. By doing this, communication reliability (less error) can be increased, but no advantage in terms data throughput.
+
+![Diversity_Basic_Concept_02](/assets/Diversity_Basic_Concept_02.png)
+
+## Multiple Input Multiple Output (MIMO)
+
+Multiple Input Multiple Output (MIMO) is a technique to increase the data throughput by using multiple transmitter antenna and multiple reciever antenna. However, there is almost no advantage in terms of reliability of data transfer (e.g, less error) comparing to Single Input Single Output (SISO) case.
+
+Refer to [LTE MIMO on ShareTechnote](http://www.sharetechnote.com/html/BasicProcedure_LTE_MIMO.html) or [its local copy on GitHub](/docs/MIMO_on_ShareTechnote.pdf), and [Assessing a MIMO Channel](/docs/Assessing_a_MIMO_Channel.pdf).
+
+![MIMO_Basic_Concept_01](/assets/MIMO_Basic_Concept_01.png)
+
+![MIMO_Basic_Concept_Config_Procedure_01](/assets/MIMO_Basic_Concept_Config_Procedure_01.png)
+
+## BeamForming
+
+Refer to documtents:
+
+* [LTE BeamForming on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_BeamForming.html) or [its local copy on GitHub](docs/BeamForming_on_ShareTechnote.pdf)
+* [Meeting_the_Needs_of_Midmarket_Firms](/docs/Meeting_the_Needs_of_Midmarket_Firms.pdf)
+* [Wireless_LAN_Design_Guide_for_High_Density_Client_Environments_in_Higher_Education](/docs/Wireless_LAN_Design_Guide_for_High_Density_Client_Environments_in_Higher_Education.pdf)
+
+This is mainly for WLAN, but can be a good introduction:
+
+* **Switched Array Antenna**: This is the technique that change the beam pattern (radiation form) by switching on/off antenna selectively from the array of a antenna system.
+
+* **DSP Based Phase Manipulation**: This is the technique that change the beam pattern (radiation form) by changing the phase of the signal going through each antenna. Using DSP, you can change the signal phase for each antenna port differently to form a specific beam pattern that is best fit for one or multiple specific UEs.
+
+* **Beamforming by Precoding**: This is the technique that change the beam pattern (radiation form) by applying a specific precoding matrix. This is the technique used in LTE. In LTE, following transmission mode is implemeting 'BeamForming' implictely or explicitely.
+
+  * TM 6 - Closed loop spatial multiplexing using a single transmission layer
+  * TM 7 - Beamforming (Antenna port 5)
+  * TM 8 - Dual Layer Beamforming (Antenna ports 7 and 8)
+
 # Technical Components of LTE-Advanced
 
 The followings are the technical components to implement LTE-Advanced:
@@ -730,4 +776,5 @@ According to R1-110564 in 3GPP, CoMP techniques can be applied in three differen
 * [LTE Network Architecture on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_NetworkArchitecture.html)
 * [LTE SAE on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_SAE.html)
 * [3GLTEinfo](http://www.3glteinfo.com/)
+* [4G-Portal](http://4g-portal.com/)
 * [LTE Network Architecture](/docs/LTE_Network_Architecture_StraWhitePaper.pdf)

@@ -126,7 +126,9 @@ function factor(opts ,count,current) {
 		var name = header_obj.html();
 		var aname = name.split('.');
 		var anchor = aname.pop().trim();
-		return anchor;
+		/* only keep [a-z0-9] in anchor and remove other characters */
+		var anchor_format = anchor.toLowerCase().replace(/[^a-zA-Z0-9]+/g, "-");
+		return anchor_format;
 	}
 
 	/*

@@ -181,7 +181,7 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 
 # Network Architecture
 
-According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_network_architecture.htm) and **Figure 4.7.2-1** in **TS 36.300**, the high-level network architecture of LTE is comprised of following three main components:
+According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_network_architecture.htm) and in **TS 36.300 Figure 4.7.2-1**, the high-level network architecture of LTE is comprised of following three main components:
 
 * [User Equipment (UE)](#user-equipment-ue)
 * [Evolved UMTS Terrestrial Radio Access Network (E-UTRAN)](#evolved-umts-radio-access-network-e-utran)
@@ -197,11 +197,11 @@ According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_ne
 
 # Protocol Architecture
 
-The following figure from **Figure 13.1-1** of **TS 36.300-8c0** shows the EPS Bearer Service Architecture:
+The following figure from **TS 36.300-8c0 Figure 13.1-1** shows the EPS Bearer Service Architecture:
 
 ![R8_EPS_Bearer_Service_Architecture](/assets/R8_EPS_Bearer_Service_Architecture.png)
 
-According to [LTE Radio Protocol Architecture](http://www.tutorialspoint.com/lte/lte_radio_protocol_architecture.htm), **Figure 4.3.1-1**, **Figure 4.3.2-1**, **Figure 4.6.3.1-1** and **Figure 4.6.3.2-1** of **TS 36.300-8c0**, the protocol architecture on **User-plane** is shown in the following figure:
+According to [LTE Radio Protocol Architecture](http://www.tutorialspoint.com/lte/lte_radio_protocol_architecture.htm), **TS 36.300-8c0 Figure 4.3.1-1**, **Figure 4.3.2-1**, **Figure 4.6.3.1-1** and **Figure 4.6.3.2-1**, the protocol architecture on **User-plane** is shown in the following figure:
 
 ![lte_user_plane](/assets/lte_user_plane.jpg)
 
@@ -231,7 +231,7 @@ According to **TS 36.300**, the following figure shows the channel mapping betwe
 
 # Frame Structure
 
-According to section 4 of **TS 36.211**, there are two types of frame structure in LTE:
+According to **TS 36.211 Chapter 4**, there are two types of frame structure in LTE:
 
 * The frame structure type 1 is applicable to both full duplex and half duplex FDD-LTE.
 * The frame structure type 2 is applicable to TDD-LTE.
@@ -285,6 +285,7 @@ Refer to [Protocol Architecture](#protocol-architecture) for the User-plane and 
 
 * **TS 36.323-860 E-UTRA - Packet Data Convergence Protocol (PDCP) specification**
 * TS 36.314-830 E-UTRA - Layer 2 Measurements
+* [LTE PDCP on ShareTechnote](http://www.sharetechnote.com/html/PDCP_LTE.html) or [its local copy on GitHub](/docs/LTE_PDCP_on_ShareTechnote.pdf)
 
 #### PDCP Services
 
@@ -300,19 +301,51 @@ The maximum supported size of a PDCP SDU is **8188 octets**.
 
 #### PDCP Procedures
 
-The following figure from **Figure 4.2.1.1** of **TS 36.323-860** shows the structure view of PDCP layer:
+The following figure from **TS 36.323-860 Figure 4.2.1.1** shows the structure view of PDCP layer. PDCP is directly connected to RLC Layer, that's **RLC UM** and **RLC AM**. And PDCP has no connection to **RLC TM** mode, meaning RLC TM mode data does not go through PDCP.
 
 ![R8_structure_view_of_PDCP](/assets/R8_structure_view_of_PDCP.png)
 
-The following figure from **Figure 4.2.2.1** of **TS 36.323-860** shows the functional view of PDCP layer:
+The following figure from of **TS 36.323-860 Figure 4.2.2.1** shows the functional view of PDCP layer:
 
 ![R8_functional_view_of_PDCP](/assets/R8_functional_view_of_PDCP.png)
 
+Let's follow through the diagram from left side:
+
+* Data coming into PDCP first go through **Sequence Numbering** procedure. It means that PDCP add Sequence Number to each of incoming data block. Once it add Sequence Number, it has to manage the number. On reciever side, we can figure out many things like "Is the data getting delivered in order? Is there any duplicate data? How can I combine the multiple chunks of data block into an original big chunk data?"
+
+* Then it goes through **Header Compression**. But it says "this applies only to U-plane data". It means that Signaling Message does not go through this Header Compression. Even though not shown in this diagram, we can disable Header Compression even for U-plane data (e.g, IP Packet data).
+
+* From here we see two paths, one through **Integrity/Ciphering** and the other one directly goes to the last step. Integrity Protection applies only to C-Plane data (C-Plane data means RRC/NAS message, i.e DCCH data, not DTCH data). Again you can disable "Integrity Protection" setp by applying IEA0 to this process. Refer to the following figure and TS 33.401 for Integrity Protection Process. The **Packets not associated to a PDCP SDU** means the packets generated in local PDCP layer, not upper layers, such as, "PDCP status report", "Interspersed ROHC feedback packet", see **TS 36.323 Table 6.3.8.1**.
+
+* Then it goes to Ciphering process. Ciphering applies both C-Plane and U-Plane Data. Ciphering process can also be disabled by applying EEA0.
+
+* Eventually at the last step of transmission PDCP, a header is added and get out of PDCP layer.
+
+![LTE_Security_Integrity](/assets/LTE_Security_Integrity.png)
+
 #### PDCP PDU Formats
 
-**Control Plane PDCP PDUs**
+**PDCP Data PDU format for SRBs**
 
-**Control Plane PDCP PDUs**
+The following figure from **TS 36.323 Figure 6.2.2.1**. All the Control plane data (RRC/NAS message) from upper layer use this data structure:
+
+![LTE_PDCP_5BitSN_MAC_I](/assets/LTE_PDCP_5BitSN_MAC_I.png)
+
+**PDCP Data PDU format for DRBs**
+
+The following two figures from **TS 36.323 Figure 6.2.3.1** and **Figure 6.2.4.1**. All the User plane data from upper layer use this data structure with ```D/C == 1```:
+
+![LTE_PDCP_12BitSN_DC_01](/assets/LTE_PDCP_12BitSN_DC_01.png)
+
+![LTE_PDCP_7BitSN_DC_01](/assets/LTE_PDCP_7BitSN_DC_01.png)
+
+**PDCP Control PDU formats for packets generated in local PDCP layer**
+
+The following two figures from **TS 36.323 Figure 6.2.5.1** and **Figure 6.2.6.1**, which are used for **interspersed ROHC feedback packet** and **PDCP status report** respectively generated in local PDCP layer with ```D/C == 0```:
+
+![LTE_PDCP_ROHC_01](/assets/LTE_PDCP_ROHC_01.png)
+
+![LTE_PDCP_Control_StatusReport_12BitSN_01](/assets/LTE_PDCP_Control_StatusReport_12BitSN_01.png)
 
 #### ROHC Resources
 
@@ -333,15 +366,27 @@ The following services are provided by RLC to upper layer (i.e. RRC or PDCP):
 
 #### RLC Procedures
 
-The following figure from **Figure 4.2.1.1.1-1** of **TS 36.322-880** shows the model of two **transparent mode** (**TM**) peer entities:
+The following figure from **TS36.222-880 Figure 4.2.1-1** illustrates the overview model of the RLC sub layer:
+
+![Overview_model_of_the_RLC_sublayer](/assets/Overview_model_of_the_RLC_sublayer.png)
+
+The following figure from **TS 36.322-880 Figure 4.2.1.1.1-1** shows the model of two **transparent mode** (**TM**) peer entities. According to figures in [PDCP Procedures](#pdcp-procedures), the **RLC TM** has no connection to PDCP layer, meaning RLC TM mode data does not go through PDCP.
 
 ![Model_of_two_transparent_mode_peer_entities](/assets/R8_Model_of_two_transparent_mode_peer_entities.png)
 
-The following figure from **Figure 4.2.1.2.1-1** of **TS 36.322-880** shows the model of two **unacknowledged mode** (**UM**) peer entities:
+In RLC TM mode,
+
+* It does not add or remove any header to the input data.
+* It does not split the input data into multiple segment.
+* It does not combine the multiple input data into a single big chunk.
+
+The only operation operation being done in this mode is a buffering operation, but even this buffering operation is also very simple.
+
+The following figure from **TS 36.322-880 Figure 4.2.1.2.1-1** shows the model of two **unacknowledged mode** (**UM**) peer entities. According to figures in [PDCP Procedures](#pdcp-procedures), the **RLC UM** is directly connected to PDCP layer.
 
 ![R8_Model_of_two_unacknowledged_mode_peer_entities](/assets/R8_Model_of_two_unacknowledged_mode_peer_entities.png)
 
-The following figure from **Figure 4.2.1.3.1-1** of **TS 36.322-880** shows the model of two **acknowledged mode** (**AM**) peer entities:
+The following figure from **TS 36.322-880 Figure 4.2.1.3.1-1** shows the model of two **acknowledged mode** (**AM**) peer entities. According to figures in [PDCP Procedures](#pdcp-procedures), the **RLC AM** is directly connected to PDCP layer.
 
 ![R8_Model_of_an_acknowledged_mode_entities](/assets/R8_Model_of_an_acknowledged_mode_entities.png)
 
@@ -553,6 +598,10 @@ SGi is the reference point between the PDN Gateway (P-GW) and the packet data ne
 
 # Technical Components of LTE
 
+## Orthogonal Frequency Division Multiplexing (OFDM)
+
+Orthogonal Frequency Division Multiplexing (OFDM) is a particular form of **multi-carrier transmission** and is suited for frequency selective channels and high data rates. This technique transforms a frequency-selective wide-band channel into a group of non-selective narrowband channels, which makes it robust against large delay spreads by preserving orthogonality in the frequency domain. Moreover, the ingenious introduction of cyclic redundancy at the transmitter reduces the complexity to only FFT processing and one tap scalar equalization at the receiver. Refer to [Short Introduction to OFDM](/docs/Short_Introduction_to_OFDM.pdf) for details.
+
 ## Diversity
 
 There are basically two types of Diversity called **Reciever Diversity** and **Transmitter Diversity**.
@@ -598,6 +647,40 @@ This is mainly for WLAN, but can be a good introduction:
   * TM 6 - Closed loop spatial multiplexing using a single transmission layer
   * TM 7 - Beamforming (Antenna port 5)
   * TM 8 - Dual Layer Beamforming (Antenna ports 7 and 8)
+
+## Inter-Cell Interference Coordination (ICIC)
+
+**Background**:
+
+* LTE is designed for frequency reuse (To maximize spectrum efficiency), which means that all the neighbor cells are using same frequency channels and therefore there is no cell-planning to deal with the interference issues.
+
+* There is a high probability that a resource block scheduled to cell edge user, is also being transmitted by neighbor cell, resulting in high interference, eventually low throughput or call drops, see below figure.
+
+* Traffic channel can sustain upto 10% of BLER in low SINR but control channels cannot. Neighbor interference can result in radio link failures at cell edge.
+
+* Heterogeneous networks require some sort of interference mitigation, since pico-cells/femto cells and macro-cells are overlapping in many scenarios
+
+![ICIC_1](/assets/ICIC_1.png)
+
+**Inter-Cell Interference Coordination (ICIC) for LTE**:
+
+* Inter-cell interference coordination is introduced in 3GPP release 8.
+
+* ICIC is introduced to deal with interference issues at cell-edge.
+
+* ICIC mitigates interference on traffic channels only.
+
+* ICIC uses power and frequency domain to mitigate cell-edge interference from neighbor cells.
+
+* One scheme of ICIC is where neighbor eNBs use different sets of resource blocks through out the cell at given time i.e. no two neighbor eNBs will use same resource assignments for their UEs. This greatly improves cell-edge SINR. The disadvantage is decrease in throughput throughout the cell, since full resources blocks are not being utilized.
+
+* In the second scheme, all eNBs utilize complete range of resource blocks for centrally located users but for cell-edge users, no two neighbor eNBs uses the same set of resource blocks at give time.
+
+* In the third scheme (probably the preferred scheme), all the neighbor eNBs use different power schemes across the spectrum while resource block assignment can be according to second scheme explained above. For example, eNB can use power boost for cell edge users with specific set of resources (not used by neighbors), while keeping low signal power for center users with availability of all resource blocks, see below figure.
+
+* X2 interface is used to share the information between the eNBs.
+
+![ICIC_2](/assets/ICIC_2.png)
 
 # Technical Components of LTE-Advanced
 
@@ -706,7 +789,23 @@ The following table from [NTT DoCoMo technical report](/docs/Relay_Technology_in
 
 ## enhanced Inter-Cell Interference Coordination (eICIC)
 
-Refer to [ICIC (Inter-Cell Interference Coordination)](http://www.sharetechnote.com/html/Handbook_LTE_ICIC.html) for descriptions of ICIC and its solution.
+**enhanced Inter-Cell Interference Coordination (eICIC) for LTE-Advanced**:
+
+* eICIC introduced in 3GPP release 10.
+
+* eICIC introduced to deal interference issues in Heterogeneous Networks (HetNet).
+
+* eICIC mitigates interference on traffic and control channels.
+
+* eICIC uses power, frequency and also time domain to mitigate intra-frequency interference in heterogeneous networks.
+
+* eICIC introduces concept of **Almost Blank Subframe (ABS)**. ABS subframes do not send any traffic channels and are mostly control channel frames with very low power. If macro cell configure ABS subframes then UEs connected to pico/femto cells can send their data during such ABS frames and avoid interference from macro cell, see below figure.
+
+* ABS configuration is shared via OAM or X2 interface.
+
+![eICIC](/assets/eICIC.png)
+
+Refer to [ICIC (Inter-Cell Interference Coordination)](http://www.sharetechnote.com/html/Handbook_LTE_ICIC.html) for descriptions of ICIC and its solution:
 
 With an explosive growth in wireless traffic, a variety of small-size low-power base stations are being deployed within the usual macro eNB to serve hot zone, office, and home areas. This type of overlay architecture is referred to as heterogeneous network (HetNet). The below table shows several types of nodes that may exist in a
 HetNet. Different types of nodes are optimized for better coverage and data transmission.
@@ -778,3 +877,4 @@ According to R1-110564 in 3GPP, CoMP techniques can be applied in three differen
 * [3GLTEinfo](http://www.3glteinfo.com/)
 * [4G-Portal](http://4g-portal.com/)
 * [LTE Network Architecture](/docs/LTE_Network_Architecture_StraWhitePaper.pdf)
+* [GSM, LTE, UMTS and IMS Call Flows](http://www.eventhelix.com/realtimemantra/Telecom/#.WQG3JH21cTw)

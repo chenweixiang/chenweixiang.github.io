@@ -281,6 +281,27 @@ Refer to [Protocol Architecture](#protocol-architecture) for the User-plane and 
 
 * **TS 36.331-8f0 E-UTRA - RRC Protocol specification**
 
+3GPP Message Decoder:
+
+* [Free Online 3GPP LTE ASN.1 Messages Decoder](https://www.marben-products.com/asn.1/services/decoder-asn1-lte.html)
+* [3GPP Message Decoder](http://www.3glteinfo.com/3gpp-message-decoder/)
+* [3GPP Decoder for LTE, UMTS and GSM](http://www.3glteinfo.com/3gpp-decoder/)
+* [3GPP Message Decoder source code on GitHub](https://github.com/panigrahip/3GPPDecoder)
+* [3GPP Decoder](http://3gppdecoder.free.fr/?q=node/1)
+
+#### RRC Services
+
+The RRC protocol offers the following services to upper layers:
+
+* Broadcast of common control information
+* Notification of UEs in RRC_IDLE, e.g. about a terminating call, for ETWS
+* Transfer of dedicated control information, i.e. information for one specific UE
+
+The following are the main services that RRC expects from lower layers:
+
+* PDCP: integrity protection and ciphering, refer to [Packet Data Convergence Protocol (PDCP)](#packet-data-convergence-protocol-pdcp-)
+* RLC: reliable and in-sequence transfer of information, without introducing duplicates and with support for segmentation and concatenation, refer to [Radio Link Control (RLC)](#radio-link-control-rlc-)
+
 ### Packet Data Convergence Protocol (PDCP)
 
 * **TS 36.323-860 E-UTRA - Packet Data Convergence Protocol (PDCP) specification**
@@ -299,13 +320,36 @@ PDCP provides its services to the **RRC** and **user plane** upper layers at the
 
 The maximum supported size of a PDCP SDU is **8188 octets**.
 
+#### PDCP Functions
+
+According to **TS 36.323-860 Chapter 4.4**, the PDCP layer supports the following functions:
+
+* header compression and decompression of IP data flows using the [ROHC protocol](#rohc-resources);
+* transfer of data (user plane or control plane);
+* maintenance of PDCP SNs;
+* in-sequence delivery of upper layer PDUs at re-establishment of lower layers;
+* duplicate elimination of lower layer SDUs at re-establishment of lower layers for radio bearers mapped on **RLC AM**;
+* ciphering and deciphering of user plane data and control plane data;
+* integrity protection and integrity verification of control plane data;
+* timer based discard;
+* duplicate discarding.
+
+PDCP uses the services provided by the RLC sublayer, also see [RLC Functions](#rlc-functions):
+
+* acknowledged data transfer service, including indication of successful delivery of PDCP PDUs;
+* unacknowledged data transfer service;
+* in-sequence delivery, except at re-establishment of lower layers;
+* duplicate discarding, except at re-establishment of lower layers.
+
+PDCP is used for SRBs and DRBs mapped on DCCH and DTCH type of logical channels. PDCP is not used for any other type of logical channels.
+
 #### PDCP Procedures
 
 The following figure from **TS 36.323-860 Figure 4.2.1.1** shows the structure view of PDCP layer. PDCP is directly connected to RLC Layer, that's **RLC UM** and **RLC AM**. And PDCP has no connection to **RLC TM** mode, meaning RLC TM mode data does not go through PDCP.
 
 ![R8_structure_view_of_PDCP](/assets/R8_structure_view_of_PDCP.png)
 
-The following figure from of **TS 36.323-860 Figure 4.2.2.1** shows the functional view of PDCP layer:
+The following figure from **TS 36.323-860 Figure 4.2.2.1** shows the functional view of PDCP layer:
 
 ![R8_functional_view_of_PDCP](/assets/R8_functional_view_of_PDCP.png)
 
@@ -315,13 +359,11 @@ Let's follow through the diagram from left side:
 
 * Then it goes through **Header Compression**. But it says "this applies only to U-plane data". It means that Signaling Message does not go through this Header Compression. Even though not shown in this diagram, we can disable Header Compression even for U-plane data (e.g, IP Packet data).
 
-* From here we see two paths, one through **Integrity/Ciphering** and the other one directly goes to the last step. Integrity Protection applies only to C-Plane data (C-Plane data means RRC/NAS message, i.e DCCH data, not DTCH data). Again you can disable "Integrity Protection" setp by applying IEA0 to this process. Refer to the following figure and TS 33.401 for Integrity Protection Process. The **Packets not associated to a PDCP SDU** means the packets generated in local PDCP layer, not upper layers, such as, "PDCP status report", "Interspersed ROHC feedback packet", see **TS 36.323 Table 6.3.8.1**.
+* From here we see two paths, one through **Integrity Protection / Ciphering** and the other one directly goes to the last step. Integrity Protection applies only to C-Plane data (C-Plane data means RRC/NAS message, i.e DCCH data, not DTCH data). Again you can disable Integrity Protection step by applying EIA0 (EPS Integrity Algorithm) to this process. The **Packets not associated to a PDCP SDU** means the packets are generated in local PDCP layer, not from upper layers, such as, PDCP status report, Interspersed ROHC feedback packet, see **TS 36.323 Table 6.3.8.1**.
 
-* Then it goes to Ciphering process. Ciphering applies both C-Plane and U-Plane Data. Ciphering process can also be disabled by applying EEA0.
+* Then it goes to **Ciphering** process. Ciphering applies both C-Plane and U-Plane Data. Ciphering process can also be disabled by applying EEA0 (EPS Encryption Algorithms).
 
 * Eventually at the last step of transmission PDCP, a header is added and get out of PDCP layer.
-
-![LTE_Security_Integrity](/assets/LTE_Security_Integrity.png)
 
 #### PDCP PDU Formats
 
@@ -331,6 +373,10 @@ The following figure from **TS 36.323 Figure 6.2.2.1**. All the Control plane da
 
 ![LTE_PDCP_5BitSN_MAC_I](/assets/LTE_PDCP_5BitSN_MAC_I.png)
 
+The MAC-I field carries a message authentication code calculated as specified in the following figure and **TS 33.401**:
+
+![LTE_Security_Integrity](/assets/LTE_Security_Integrity.png)
+
 **PDCP Data PDU format for DRBs**
 
 The following two figures from **TS 36.323 Figure 6.2.3.1** and **Figure 6.2.4.1**. All the User plane data from upper layer use this data structure with ```D/C == 1```:
@@ -339,9 +385,21 @@ The following two figures from **TS 36.323 Figure 6.2.3.1** and **Figure 6.2.4.1
 
 ![LTE_PDCP_7BitSN_DC_01](/assets/LTE_PDCP_7BitSN_DC_01.png)
 
+The length of field PDCP SN can be 7 or 12 bits, which is configured by IE *PDCP-Config*:
+
+```
+PDCP-Config ::=        SEQUENCE {
+    ...
+    rlc-UM             SEQUENCE {
+        pdcp-SN-Size   ENUMERATED {len7bits, len12bits}
+    }                  OPTIONAL, -- Cond Rlc-UM
+    ...
+}
+```
+
 **PDCP Control PDU formats for packets generated in local PDCP layer**
 
-The following two figures from **TS 36.323 Figure 6.2.5.1** and **Figure 6.2.6.1**, which are used for **interspersed ROHC feedback packet** and **PDCP status report** respectively generated in local PDCP layer with ```D/C == 0```:
+The following two figures from **TS 36.323 Figure 6.2.5.1** and **Figure 6.2.6.1** are used for **interspersed ROHC feedback packet** and **PDCP status report** respectively with ```D/C == 0```. Those packets are generated in local PDCP layer and sent to peer for control purpose:
 
 ![LTE_PDCP_ROHC_01](/assets/LTE_PDCP_ROHC_01.png)
 
@@ -364,6 +422,20 @@ The following services are provided by RLC to upper layer (i.e. RRC or PDCP):
 * **Unacknowledged Mode** (**UM**) data transfer;
 * **Acknowledged Mode** (**AM**) data transfer, including indication of successful delivery of upper layers PDUs.
 
+#### RLC Functions
+
+According to **TS36.222-880 Chapter 4.4**, the following functions are supported by the RLC sub layer:
+
+* transfer of upper layer PDUs
+* error correction through ARQ (only for AM data transfer)
+* concatenation, segmentation and reassembly of RLC SDUs (only for UM and AM data transfer)
+* re-segmentation of RLC data PDUs (only for AM data transfer)
+* reordering of RLC data PDUs (only for UM and AM data transfer)
+* duplicate detection (only for UM and AM data transfer)
+* RLC SDU discard (only for UM and AM data transfer)
+* RLC re-establishment
+* Protocol error detection (only for AM data transfer)
+
 #### RLC Procedures
 
 The following figure from **TS36.222-880 Figure 4.2.1-1** illustrates the overview model of the RLC sub layer:
@@ -374,7 +446,7 @@ The following figure from **TS 36.322-880 Figure 4.2.1.1.1-1** shows the model o
 
 ![Model_of_two_transparent_mode_peer_entities](/assets/R8_Model_of_two_transparent_mode_peer_entities.png)
 
-In RLC TM mode,
+In **RLC TM** mode,
 
 * It does not add or remove any header to the input data.
 * It does not split the input data into multiple segment.
@@ -390,6 +462,90 @@ The following figure from **TS 36.322-880 Figure 4.2.1.3.1-1** shows the model o
 
 ![R8_Model_of_an_acknowledged_mode_entities](/assets/R8_Model_of_an_acknowledged_mode_entities.png)
 
+#### RLC PDU Formats
+
+**TMD PDU**
+
+TMD PDU is used to transfer upper layer PDUs by a **TM RLC entity**.
+
+TMD PDU consists only of a Data field and does not consist of any RLC headers.
+
+![RLC_TMD_PDU](/assets/RLC_TMD_PDU.png)
+
+**UMD PDU**
+
+UMD PDU is used to transfer upper layer PDUs by an **UM RLC entity**.
+
+UMD PDU consists of a Data field and an UMD PDU header. An UM RLC entity is configured by RRC to use either a 5 bit SN or a 10 bit SN.
+
+***UMD PDU with 5 bit SN (No LI)***:
+
+![RLC_UMD_PDU_with_5bit_SN_No_LI](/assets/RLC_UMD_PDU_with_5bit_SN_No_LI.png)
+
+***UMD PDU with 5 bit SN (Odd number of LIs, i.e. K = 1, 3, 5, ...)***:
+
+![RLC_UMD_PDU_with_5bit_SN_Odd_LIs](/assets/RLC_UMD_PDU_with_5bit_SN_Odd_LIs.png)
+
+***UMD PDU with 5 bit SN (Even number of LIs, i.e. K = 2, 4, 6, ...)***:
+
+![RLC_UMD_PDU_with_5bit_SN_Even_LIs](/assets/RLC_UMD_PDU_with_5bit_SN_Even_LIs.png)
+
+***UMD PDU with 10 bit SN (No LI)***:
+
+![RLC_UMD_PDU_with_10bit_SN_No_LI](/assets/RLC_UMD_PDU_with_10bit_SN_No_LI.png)
+
+***UMD PDU with 10 bit SN (Odd number of LIs, i.e. K = 1, 3, 5, ...)***:
+
+![RLC_UMD_PDU_with_10bit_SN_Odd_LIs](/assets/RLC_UMD_PDU_with_10bit_SN_Odd_LIs.png)
+
+***UMD PDU with 10 bit SN (Even number of LIs, i.e. K = 2, 4, 6, ...)***:
+
+![RLC_UMD_PDU_with_10bit_SN_Even_LIs](/assets/RLC_UMD_PDU_with_10bit_SN_Even_LIs.png)
+
+**AMD PDU**
+
+AMD PDU is used to transfer upper layer PDUs by an **AM RLC entity**. It is used when the AM RLC entity transmits (part of) the RLC SDU for the first time, or when the AM RLC entity retransmits an AMD PDU without having to perform re-segmentation.
+
+AMD PDU consists of a Data field and an AMD PDU header, where ```D/C = 1```, ```RF = 0```.
+
+***AMD PDU (No LI)***:
+
+![RLC_AMD_PDU_No_LI](/assets/RLC_AMD_PDU_No_LI.png)
+
+***AMD PDU (Odd number of LIs, i.e. K = 1, 3, 5, ...)***:
+
+![RLC_AMD_PDU_Odd_LIs](/assets/RLC_AMD_PDU_Odd_LIs.png)
+
+***AMD PDU (Even number of LIs, i.e. K = 2, 4, 6, ...)***:
+
+![RLC_AMD_PDU_Even_LIs](/assets/RLC_AMD_PDU_Even_LIs.png)
+
+**AMD PDU segment**
+
+AMD PDU segment is used to transfer upper layer PDUs by an **AM RLC entity**. It is used when the AM RLC entity needs to retransmit a portion of an AMD PDU.
+
+AMD PDU segment consists of a Data field and an AMD PDU segment header, where ```D/C = 1```, ```RF = 1```.
+
+***AMD PDU segment (No LI)***:
+
+![RLC_AMD_PDU_segment_No_LI](/assets/RLC_AMD_PDU_segment_No_LI.png)
+
+***AMD PDU segment (Odd number of LIs, i.e. K = 1, 3, 5, ...)***:
+
+![RLC_AMD_PDU_segment_Odd_LIs](/assets/RLC_AMD_PDU_segment_Odd_LIs.png)
+
+***AMD PDU segment (Even number of LIs, i.e. K = 2, 4, 6, ...)***:
+
+![RLC_AMD_PDU_segment_Even_LIs](/assets/RLC_AMD_PDU_segment_Even_LIs.png)
+
+**STATUS PDU**
+
+STATUS PDU is used by the receiving side of an **AM RLC entity** to inform the peer AM RLC entity about RLC data PDUs that are received successfully, and RLC data PDUs that are detected to be lost by the receiving side of an AM RLC entity.
+
+STATUS PDU consists of a STATUS PDU payload and a RLC control PDU header, where ```D/C = 0```.
+
+![RLC_STATUS_PDU](/assets/RLC_STATUS_PDU.png)
+
 ### Medium Access Control (MAC)
 
 * **TS 36.321-8a0 E-UTRA - MAC protocol specification**
@@ -397,14 +553,14 @@ The following figure from **TS 36.322-880 Figure 4.2.1.3.1-1** shows the model o
 
 #### MAC Services
 
-According to section **4.3.1** of **TS 36.321-8a0**, the following two kind of services are provided by MAC sublayer to upper layers:
+According to **TS 36.321-8a0 Chapter 4.3.1**, the following two kind of services are provided by MAC sublayer to upper layers:
 
 * Data transfer
 * Radio resource allocation
 
 #### MAC Functions
 
-According to section **4.4** of **TS 36.321-8a0**, the following functions are supported by MAC sublayer:
+According to **TS 36.321-8a0 Chapter 4.4**, the following functions are supported by MAC sublayer:
 
 * mapping between logical channels and transport channels, refer to [Channel Mapping](#channel-mapping);
 * multiplexing of MAC SDUs from one or different logical channels onto transport blocks (TB) to be delivered to the physical layer on transport channels;
@@ -418,45 +574,95 @@ According to section **4.4** of **TS 36.321-8a0**, the following functions are s
 
 #### MAC Procedures
 
-Refer to section **5** of **TS 36.321-8a0**.
+Refer to **TS 36.321-8a0 Chapter 5**.
+
+#### MAC PDU Formats
+
+**MAC PDU (DL-SCH and UL-SCH except transparent MAC and Random Access Response)**
+
+A MAC PDU consists of a MAC header, zero or more MAC Service Data Units (MAC SDU), zero, or more MAC control elements, and optionally padding. MAC control elements are always placed before any MAC SDU. Both the MAC header and the MAC SDUs are of variable sizes. A maximum of one MAC PDU can be transmitted per TB per UE.
+
+![MAC_PDU_for_DL-SCH_and_UL-SCH](/assets/MAC_PDU_for_DL-SCH_and_UL-SCH.png)
+
+A MAC PDU header consists of one or more MAC PDU subheaders; each subheader corresponds to either a MAC SDU, a MAC control element or padding. MAC PDU subheaders have the same order as the corresponding MAC SDUs, MAC control elements and padding.
+
+A MAC PDU subheader consists of the six header fields R/R/E/LCID/F/L but for the last subheader in the MAC PDU and for fixed sized MAC control elements. The last subheader in the MAC PDU and subheaders for fixed sized MAC control elements consist solely of the four header fields R/R/E/LCID.
+
+![MAC_subheader_R_R_E_LCID_F_L](/assets/MAC_subheader_R_R_E_LCID_F_L.png)
+
+![MAC_subheader_R_R_E_LCID](/assets/MAC_subheader_R_R_E_LCID.png)
+
+The MAC Control Elements include the followings, refer to **TS 36.321-8a0 Chapter 6.1.3** for details:
+
+* Buffer Status Report MAC Control Elements
+* C-RNTI MAC Control Element
+* DRX Command MAC Control Element
+* UE Contention Resolution Identity MAC Control Element
+* Timing Advance Command MAC Control Element
+* Power Headroom MAC Control Element
+
+**MAC PDU (transparent MAC)**
+
+A MAC PDU consists solely of a MAC Service Data Unit (MAC SDU) whose size is aligned to a TB.
+
+![MAC_PDU_transparent_MAC](/assets/MAC_PDU_transparent_MAC.png)
+
+**MAC PDU (Random Access Response)**
+
+A MAC PDU consists of a MAC header and zero or more MAC Random Access Responses (MAC RAR) and optionally padding.
+
+![MAC_PDU_consisting_of_a_MAC_header_and_MAC_RARs](/assets/MAC_PDU_consisting_of_a_MAC_header_and_MAC_RARs.png)
+
+The MAC header is of variable size.
+
+A MAC PDU header consists of one or more MAC PDU subheaders; each subheader corresponding to a MAC RAR except for the Backoff Indicator subheader. If included, the Backoff Indicator subheader is only included once and is the first subheader included within the MAC PDU header.
+
+![MAC_subheader_E_T_R_R_BI](/assets/MAC_subheader_E_T_R_R_BI.png)
+
+![MAC_subheader_E_T_RAPID](/assets/MAC_subheader_E_T_RAPID.png)
+
+![MAC_RAR](/assets/MAC_RAR.png)
 
 ### Physical Layer (L1)
 
+* **TS 36.302-821 E-UTRA - Services provided by the physical layer**
 * **TS 36.201-830 E-UTRA - LTE Physical Layer General Description**
 * **TS 36.211-890 E-UTRA - Physical Channels and Modulation**
 * **TS 36.212-880 E-UTRA - Multiplexing and channel coding**
 * **TS 36.213-880 E-UTRA - Physical layer procedures**
 * **TS 36.214-870 E-UTRA - Physical layer Measurements**
 
-The following figure from **Figure 2** of **TS 36.201-830** shows the relation between the physical layer specifications:
+The following figure from **TS 36.201-830 Figure 2** shows the relation between the physical layer specifications:
 
 ![R8_Relation_between_Physical_Layer_specifications](/assets/R8_Relation_between_Physical_Layer_specifications.png)
 
 #### L1 Services
 
-According to section **4.1.2** of **TS 36.201-830**, the physical layer offers **data transport services to higher layers**. The access to these services is through the use of a transport channel via the MAC sub-layer.
+According to **TS 36.201-830 Chapter 4.1.2**, the physical layer offers **data transport services to higher layers**. The access to these services is through the use of a **transport channel** via the MAC sub-layer.
+
+Also refer to **TS 36.302-821 E-UTRA - Services provided by the physical layer**.
 
 #### L1 Functions
 
-According to section **4.1.2** of **TS 36.201-830**, the physical layer is expected to perform the following functions in order to provide the data transport service:
+According to **TS 36.201-830 Chapter 4.1.2**, the physical layer is expected to perform the following functions in order to provide the data transport service:
 
-* Error detection on the transport channel and indication to higher layers
-* FEC encoding/decoding of the transport channel
+* Error detection on the **transport channel** and indication to higher layers
+* FEC encoding/decoding of the **transport channel**
 * Hybrid ARQ soft-combining
-* Rate matching of the coded transport channel to physical channels
-* Mapping of the coded transport channel onto physical channels
-* Power weighting of physical channels
-* Modulation and demodulation of physical channels
+* Rate matching of the coded transport channel to **physical channels**
+* Mapping of the coded transport channel onto **physical channels**
+* Power weighting of **physical channels**
+* Modulation and demodulation of **physical channels**
 * Frequency and time synchronisation
 * Radio characteristics measurements and indication to higher layers
 * Multiple Input Multiple Output (MIMO) antenna processing
 * Transmit Diversity (TX diversity)
 * Beamforming
-* RF processing. (Note: RF processing aspects are specified in the TS 36.100 series)
+* RF processing (Note: RF processing aspects are specified in the TS 36.100 series)
 
 #### L1 Procedures
 
-According to section **4.2.4** of **TS 36.201-830**, there are several Physical layer procedures involved with LTE operation. Such procedures covered by the physical layer are:
+According to **TS 36.201-830 Chapter 4.2.4**, there are several Physical layer procedures involved with LTE operation. Such procedures covered by the physical layer are:
 
 * Cell search
 * Power control

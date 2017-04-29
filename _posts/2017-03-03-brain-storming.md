@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "头脑风暴法"
+title: "Brain Storming"
 tag: Methodology
 toc: true
 ---

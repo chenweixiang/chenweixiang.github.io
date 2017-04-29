@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "四象限时间管理法"
+title: "Four Quadrant Time Management"
 tag: Methodology
 toc: true
 ---
 
-本文介绍四象限时间管理法。
+本文介绍四象限时间管理法(Four Quadrant Time Management)。
 
 <!--more-->
 

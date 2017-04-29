@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "番茄工作法"
+title: "Pomodoro Technique"
 tag: Methodology
 toc: true
 ---

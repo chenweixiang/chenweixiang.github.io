@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "鱼骨图分析法"
+title: "Fishbone Diagram"
 tag: Methodology
 toc: true
 ---

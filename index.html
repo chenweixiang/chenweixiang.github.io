@@ -2,25 +2,3 @@
 layout: post_by_tag
 title: Alex's Blog
 ---
-<div class="post">
-
-    <header class="post-header">
-        {% if site.tags %}
-            {% for tag in site.tags %}
-                {{ tag[0] }}
-            {% endfor %}
-        {% endif %}
-    </header>
-
-    <body>
-        {% if site.tags %}
-            {% for OneTag in site.tags %}
-                <h1> {{ OneTag[0] }} </h1>
-                {% for OnePost in site.tags.OneTag[0] %}
-                    <tr><a href="/show_by_tag.html?tag={{ tag[0] }}">{{ OnePost }}</a></tr>
-                {% endfor %}
-            {% endfor %}
-        {% endif %}
-    </body>
-
-</div>

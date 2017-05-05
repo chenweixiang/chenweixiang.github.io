@@ -26,7 +26,21 @@ According to [Classifying Programming Languages](http://cs.lmu.edu/~ray/notes/pl
 * **Visual languages** - non-text based
 * **Esoteric languages** - not really intended to be used
 
-**These types are not mutually exclusive**: Perl is both high-level and scripting; C is considered both high-level and system.
+**These types are not mutually exclusive**: **Perl** is both high-level and scripting; **C** is considered both high-level and system.
+
+# Learning Programming Languages
+
+Here is a list of programming languages I'd like to learn:
+
+* <a href="{{ site.base-url }}/2016/07/08/c.html">C</a>
+* <a href="{{ site.base-url }}/2016/07/10/c++.html">C++</a>
+* <a href="{{ site.base-url }}/2017/02/16/java.html">Java</a>
+* <a href="{{ site.base-url }}/2017/03/09/python.html">Python</a>
+* <a href="{{ site.base-url }}/2015/12/20/linux-series-06-shell.html">Shell</a>
+* <a href="{{ site.base-url }}/2016/01/16/linux-series-08-bash.html">Shell: Bash</a>
+* <a href="{{ site.base-url }}/2016/02/11/linux-series-09-tcsh.html">Shell: Tcsh</a>
+* <a href="{{ site.base-url }}/2017/04/26/html.html">HTML</a>
+* <a href="{{ site.base-url }}/2017/04/29/xml.html">XML</a>
 
 # References
 

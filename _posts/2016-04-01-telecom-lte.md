@@ -359,9 +359,9 @@ Let's follow through the diagram from left side:
 
 * Then it goes through **Header Compression**. But it says "this applies only to U-plane data". It means that Signaling Message does not go through this Header Compression. Even though not shown in this diagram, we can disable Header Compression even for U-plane data (e.g, IP Packet data).
 
-* From here we see two paths, one through **Integrity Protection / Ciphering** and the other one directly goes to the last step. Integrity Protection applies only to C-Plane data (C-Plane data means RRC/NAS message, i.e DCCH data, not DTCH data). Again you can disable Integrity Protection step by applying EIA0 (EPS Integrity Algorithm) to this process. The **Packets not associated to a PDCP SDU** means the packets are generated in local PDCP layer, not from upper layers, such as, PDCP status report, Interspersed ROHC feedback packet, see **TS 36.323 Table 6.3.8.1**.
+* From here we see two paths, one through **Integrity Protection / Ciphering** and the other one directly goes to the last step. Integrity Protection applies only to C-Plane data (C-Plane data means RRC/NAS message, i.e DCCH data, not DTCH data). Again you can disable Integrity Protection step by applying [EIA0 (EPS Integrity Algorithm)](/docs/The_New_LTE_Cryptographic_Algorithms_EEA3_and_EIA3.pdf) to this process. The **Packets not associated to a PDCP SDU** means the packets are generated in local PDCP layer, not from upper layers, such as, PDCP status report, Interspersed ROHC feedback packet, see **TS 36.323 Table 6.3.8.1**.
 
-* Then it goes to **Ciphering** process. Ciphering applies both C-Plane and U-Plane Data. Ciphering process can also be disabled by applying EEA0 (EPS Encryption Algorithms).
+* Then it goes to **Ciphering** process. Ciphering applies both C-Plane and U-Plane Data. Ciphering process can also be disabled by applying [EEA0 (EPS Encryption Algorithms)](/docs/The_New_LTE_Cryptographic_Algorithms_EEA3_and_EIA3.pdf).
 
 * Eventually at the last step of transmission PDCP, a header is added and get out of PDCP layer.
 

@@ -244,6 +244,12 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 
 **Note (4)**: The original GSM algorithms are not published and are controlled by the [GSM Association](http://www.gsma.com/).
 
+# 3GPP Specs Reading
+
+* R8  - LTE
+* R10 - LTE-Advanced
+* R15 - 5G New Radio (5GNR)
+
 # References
 
 * [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)

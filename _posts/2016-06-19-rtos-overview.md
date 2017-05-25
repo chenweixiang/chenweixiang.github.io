@@ -35,7 +35,7 @@ Here is a list of RTOS, which is open source:
 * RT-Thread
 * eCos
 * Fiasco
-* FreeRTOS
+* [FreeRTOS](http://www.freertos.org/)
 * Phoenix-RTOS
 * Nut/OS
 * Prex

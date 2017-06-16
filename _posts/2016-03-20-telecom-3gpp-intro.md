@@ -172,24 +172,24 @@ The 3GPP specifications are transposed into deliverables by the Organizational P
 
 For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications.
 
-| Releases | Released | Description |
+| [Releases](http://www.3gpp.org/specifications/67-releases) | Released | Description |
 | :------- | :------- | :---------- |
 | Phase 1 | 1992 | GSM Features. |
 | Phase 2 | 1995 | GSM Features, **EFR Codec**. |
 | Release 96 | 1997 Q1 | GSM Features, **14.4 kbit/s** User Data Rate. |
 | Release 97 | 1998 Q1 | GSM Features, **GPRS**. |
 | Release 98 | 1999 Q1 | GSM Features, **AMR**, **EDGE**, **GPRS** for PCS1900. |
-| **Release 99** | 2000 Q1 | **Specified the first UMTS 3G networks**, incorporating a CDMA air interface. |
-| Release 4 | 2001 Q2 | Originally called the **Release 2000**, added features including an **all-IP Core Network**, **TD-SCDMA** (UTRA-TDD 1.28 Mchip/s Low Chip Rate (LCR)). |
-| Release 5 | 2002 Q1 | Introduced **IMS**, **HSDPA**, **IPv6** (IP transport in UTRAN). |
-| Release 6 | 2004 Q4 | Integrated operation with **Wireless LAN** networks, adds **HSUPA**, **MBMS** (Multimedia Broadcast and Multicast), enhancements to **IMS** such as Push to Talk over Cellular (**PoC**), **GAN**. |
-| Release 7 | 2007 Q4 | Focuses on decreasing latency, improvements to QoS and real-time applications such as VoIP. This specification also focus on **HSPA+** (High Speed Packet Access Evolution), SIM high-speed protocol and contactless front-end interface (Near Field Communication (NFC) enabling operators to deliver contactless services like Mobile Payments), **EDGE Evolution**. |
-| **Release 8** | 2008 Q4 | **First LTE release**. All-IP Network (SAE). New **OFDMA**, **FDE** and **MIMO** based radio interface, not backwards compatible with previous CDMA interfaces. **DC-HSDPA** (Dual-Cell HSDPA). **UMTS HNB**. |
-| Release 9 | 2009 Q4 | SAES Enhancements, WiMAX and LTE/UMTS Interoperability. **Dual-Cell HSDPA** (DC-HSDPA) with MIMO, **DC-HSUPA** (Dual-Cell HSUPA). **LTE HeNB**. |
-| **Release 10** | 2011 Q1 | **LTE Advanced fulfilling IMT-Advanced (4G) requirements**. Backwards compatible with release 8 (LTE). **Multi-Cell HSDPA** (4 carriers). |
-| Release 11 | 2012 Q3 | Advanced IP Interconnection of Services. Service layer interconnection between national operators/carriers as well as third party application providers. Heterogeneous networks (HetNet) improvements, Coordinated Multi-Point operation (CoMP). In-device Co-existence (IDC). |
-| Release 12 | Planned to March 2015 | **Enhanced Small Cells** (higher order modulation, dual connectivity, cell discovery, self configuration), **Carrier Aggregation** (2 uplink carriers, 3 downlink carriers, FDD/TDD carrier aggregation), **MIMO** (3D channel modeling, elevation beamforming, massive MIMO), **New and Enhanced Services** (cost and range of MTC, D2D communication, eMBMS enhancements). |
-| Release 13 | Planned to March 2016 | LTE in unlicensed, LTE enhancements for Machine-Type Communication. Elevation Beamforming / Full-Dimension MIMO, Indoor positioning. |
+| [**Release 99**](http://www.3gpp.org/specifications/releases/77-release-1999) | 2000 Q1 | **Specified the first UMTS 3G networks**, incorporating a CDMA air interface. |
+| [Release 4](http://www.3gpp.org/release-4) | 2001 Q2 | Originally called the **Release 2000**, added features including an **all-IP Core Network**, **TD-SCDMA** (UTRA-TDD 1.28 Mchip/s Low Chip Rate (LCR)). |
+| [Release 5](http://www.3gpp.org/release-5) | 2002 Q1 | Introduced **IMS**, **HSDPA**, **IPv6** (IP transport in UTRAN). |
+| [Release 6](http://www.3gpp.org/release-6) | 2004 Q4 | Integrated operation with **Wireless LAN** networks, adds **HSUPA**, **MBMS** (Multimedia Broadcast and Multicast), enhancements to **IMS** such as Push to Talk over Cellular (**PoC**), **GAN**. |
+| [Release 7](http://www.3gpp.org/release-7) | 2007 Q4 | Focuses on decreasing latency, improvements to QoS and real-time applications such as VoIP. This specification also focus on **HSPA+** (High Speed Packet Access Evolution), SIM high-speed protocol and contactless front-end interface (Near Field Communication (NFC) enabling operators to deliver contactless services like Mobile Payments), **EDGE Evolution**. |
+| [**Release 8**](http://www.3gpp.org/release-8) | 2008 Q4 | **First LTE release**. All-IP Network (SAE). New **OFDMA**, **FDE** and **MIMO** based radio interface, not backwards compatible with previous CDMA interfaces. **DC-HSDPA** (Dual-Cell HSDPA). **UMTS HNB**. |
+| [Release 9](http://www.3gpp.org/release-9) | 2009 Q4 | SAES Enhancements, WiMAX and LTE/UMTS Interoperability. **Dual-Cell HSDPA** (DC-HSDPA) with MIMO, **DC-HSUPA** (Dual-Cell HSUPA). **LTE HeNB**. |
+| [**Release 10**](http://www.3gpp.org/release-10) | 2011 Q1 | **LTE Advanced fulfilling IMT-Advanced (4G) requirements**. Backwards compatible with release 8 (LTE). **Multi-Cell HSDPA** (4 carriers). |
+| [Release 11](http://www.3gpp.org/release-11) | 2012 Q3 | Advanced IP Interconnection of Services. Service layer interconnection between national operators/carriers as well as third party application providers. Heterogeneous networks (HetNet) improvements, Coordinated Multi-Point operation (CoMP). In-device Co-existence (IDC). |
+| [Release 12](http://www.3gpp.org/release-12) | Planned to March 2015 | **Enhanced Small Cells** (higher order modulation, dual connectivity, cell discovery, self configuration), **Carrier Aggregation** (2 uplink carriers, 3 downlink carriers, FDD/TDD carrier aggregation), **MIMO** (3D channel modeling, elevation beamforming, massive MIMO), **New and Enhanced Services** (cost and range of MTC, D2D communication, eMBMS enhancements). |
+| [Release 13](http://www.3gpp.org/release-13) | Planned to March 2016 | LTE in unlicensed, LTE enhancements for Machine-Type Communication. Elevation Beamforming / Full-Dimension MIMO, Indoor positioning. |
 
 <p/>
 
@@ -211,26 +211,26 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 
 | Subject of specification series | 3G and beyond / GSM (R99 and later) (0) | GSM only (R4 and later) | GSM only (before R4) |
 | :------------------------------ | :-------------------------------------: | :---------------------: | :------------------: |
-| General information (long defunct) | | | 00 series |
-| Requirements | 21 series | 41 series | 01 series |
-| Service aspects (stage 1) | 22 series | 42 series | 02 series |
-| Technical realization (stage 2) | 23 series | 43 series | 03 series |
-| Signalling protocols (stage 3)<br>- user equipment to network | 24 series | 44 series | 04 series |
-| Radio aspects | 25 series | 45 series | 05 series |
-| CODECs | 26 series | 46 series | 06 series |
-| Data | 27 series | 47 series (none exists) | 07 series |
-| Signalling protocols (stage 3)<br>- (RSS-CN) and OAM&P and Charging (overflow from 32.- range) | 28 series | 48 series | 08 series |
-| Signalling protocols (stage 3)<br>- intra-fixed-network | 29 series | 49 series | 09 series |
-| Programme management | 30 series | 50 series | 10 series |
-| Subscriber Identity Module (SIM / USIM), IC Cards. Test specs. | 31 series | 51 series | 11 series |
-| OAM&P and Charging | 32 series | 52 series | 12 series |
+| General information (long defunct) | | | [00 series](http://www.3gpp.org/ftp/Specs/html-info/00-series.htm) |
+| Requirements | [21 series](http://www.3gpp.org/ftp/Specs/html-info/21-series.htm) | [41 series](http://www.3gpp.org/ftp/Specs/html-info/41-series.htm) | [01 series](http://www.3gpp.org/ftp/Specs/html-info/01-series.htm) |
+| Service aspects (stage 1) | [22 series](http://www.3gpp.org/ftp/Specs/html-info/22-series.htm) | [42 series](http://www.3gpp.org/ftp/Specs/html-info/42-series.htm) | [02 series](http://www.3gpp.org/ftp/Specs/html-info/02-series.htm) |
+| Technical realization (stage 2) | [23 series](http://www.3gpp.org/ftp/Specs/html-info/23-series.htm) | [43 series](http://www.3gpp.org/ftp/Specs/html-info/43-series.htm) | [03 series](http://www.3gpp.org/ftp/Specs/html-info/03-series.htm) |
+| Signalling protocols (stage 3)<br>- user equipment to network | [24 series](http://www.3gpp.org/ftp/Specs/html-info/24-series.htm) | [44 series](http://www.3gpp.org/ftp/Specs/html-info/44-series.htm) | [04 series](http://www.3gpp.org/ftp/Specs/html-info/04-series.htm) |
+| Radio aspects | [25 series](http://www.3gpp.org/ftp/Specs/html-info/25-series.htm) | [45 series](http://www.3gpp.org/ftp/Specs/html-info/45-series.htm) | [05 series](http://www.3gpp.org/ftp/Specs/html-info/05-series.htm) |
+| CODECs | [26 series](http://www.3gpp.org/ftp/Specs/html-info/26-series.htm) | [46 series](http://www.3gpp.org/ftp/Specs/html-info/46-series.htm) | [06 series](http://www.3gpp.org/ftp/Specs/html-info/06-series.htm) |
+| Data | [27 series](http://www.3gpp.org/ftp/Specs/html-info/27-series.htm) | 47 series (none exists) | [07 series](http://www.3gpp.org/ftp/Specs/html-info/07-series.htm) |
+| Signalling protocols (stage 3)<br>- (RSS-CN) and OAM&P and Charging (overflow from 32.- range) | [28 series](http://www.3gpp.org/ftp/Specs/html-info/28-series.htm) | [48 series](http://www.3gpp.org/ftp/Specs/html-info/48-series.htm) | [08 series](http://www.3gpp.org/ftp/Specs/html-info/08-series.htm) |
+| Signalling protocols (stage 3)<br>- intra-fixed-network | [29 series](http://www.3gpp.org/ftp/Specs/html-info/29-series.htm) | [49 series](http://www.3gpp.org/ftp/Specs/html-info/49-series.htm) | [09 series](http://www.3gpp.org/ftp/Specs/html-info/09-series.htm) |
+| Programme management | [30 series](http://www.3gpp.org/ftp/Specs/html-info/30-series.htm) | [50 series](http://www.3gpp.org/ftp/Specs/html-info/50-series.htm) | [10 series](http://www.3gpp.org/ftp/Specs/html-info/10-series.htm) |
+| Subscriber Identity Module (SIM / USIM), IC Cards. Test specs. | [31 series](http://www.3gpp.org/ftp/Specs/html-info/31-series.htm) | [51 series](http://www.3gpp.org/ftp/Specs/html-info/51-series.htm) | [11 series](http://www.3gpp.org/ftp/Specs/html-info/11-series.htm) |
+| OAM&P and Charging | [32 series](http://www.3gpp.org/ftp/Specs/html-info/32-series.htm) | [52 series](http://www.3gpp.org/ftp/Specs/html-info/52-series.htm) | [12 series](http://www.3gpp.org/ftp/Specs/html-info/12-series.htm) |
 | Access requirements and test specifications | | 13 series (1) | 13 series (1) |
-| Security aspects | 33 series | (2) | (2) |
-| UE and (U)SIM test specifications | 34 series | (2) | 11 series |
-| Security algorithms (3) | 35 series | 55 series | (4) |
-| LTE (Evolved UTRA), LTE-Advanced, LTE-Advanced Pro radio technology | **36 series** | - | - |
-| Multiple radio access technology aspects | 37 series | - | - |
-| Radio technology beyond LTE | 38 series | - | - |
+| Security aspects | [33 series](http://www.3gpp.org/ftp/Specs/html-info/33-series.htm) | (2) | (2) |
+| UE and (U)SIM test specifications | [34 series](http://www.3gpp.org/ftp/Specs/html-info/34-series.htm) | (2) | [11 series](http://www.3gpp.org/ftp/Specs/html-info/11-series.htm) |
+| Security algorithms (3) | [35 series](http://www.3gpp.org/ftp/Specs/html-info/35-series.htm) | [55 series](http://www.3gpp.org/ftp/Specs/html-info/55-series.htm) | (4) |
+| LTE (Evolved UTRA), LTE-Advanced, LTE-Advanced Pro radio technology | [**36 series**](http://www.3gpp.org/ftp/Specs/html-info/36-series.htm) | - | - |
+| Multiple radio access technology aspects | [37 series](http://www.3gpp.org/ftp/Specs/html-info/37-series.htm) | - | - |
+| Radio technology beyond LTE | [**38 series**](http://www.3gpp.org/ftp/Specs/html-info/38-series.htm) | - | - |
 
 <p/>
 

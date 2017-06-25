@@ -170,7 +170,7 @@ The 3GPP specifications are transposed into deliverables by the Organizational P
 
 ## Releases
 
-For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications.
+The following table is from [3GPP wikipedia page](https://en.wikipedia.org/wiki/3GPP). For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications.
 
 | [Releases](http://www.3gpp.org/specifications/67-releases) | Released | Description |
 | :------- | :------- | :---------- |
@@ -188,8 +188,10 @@ For detail features of each release, refer to [Release Description](http://www.3
 | [Release 9](http://www.3gpp.org/release-9) | 2009 Q4 | SAES Enhancements, WiMAX and LTE/UMTS Interoperability. **Dual-Cell HSDPA** (DC-HSDPA) with MIMO, **DC-HSUPA** (Dual-Cell HSUPA). **LTE HeNB**. |
 | [**Release 10**](http://www.3gpp.org/release-10) | 2011 Q1 | **LTE Advanced fulfilling IMT-Advanced (4G) requirements**. Backwards compatible with release 8 (LTE). **Multi-Cell HSDPA** (4 carriers). |
 | [Release 11](http://www.3gpp.org/release-11) | 2012 Q3 | Advanced IP Interconnection of Services. Service layer interconnection between national operators/carriers as well as third party application providers. Heterogeneous networks (HetNet) improvements, Coordinated Multi-Point operation (CoMP). In-device Co-existence (IDC). |
-| [Release 12](http://www.3gpp.org/release-12) | Planned to March 2015 | **Enhanced Small Cells** (higher order modulation, dual connectivity, cell discovery, self configuration), **Carrier Aggregation** (2 uplink carriers, 3 downlink carriers, FDD/TDD carrier aggregation), **MIMO** (3D channel modeling, elevation beamforming, massive MIMO), **New and Enhanced Services** (cost and range of MTC, D2D communication, eMBMS enhancements). |
-| [Release 13](http://www.3gpp.org/release-13) | Planned to March 2016 | LTE in unlicensed, LTE enhancements for Machine-Type Communication. Elevation Beamforming / Full-Dimension MIMO, Indoor positioning. |
+| [Release 12](http://www.3gpp.org/release-12) | 2015 Q1 | **Enhanced Small Cells** (higher order modulation, dual connectivity, cell discovery, self configuration), **Carrier Aggregation** (2 uplink carriers, 3 downlink carriers, FDD/TDD carrier aggregation), **MIMO** (3D channel modeling, elevation beamforming, massive MIMO), **New and Enhanced Services** (cost and range of MTC, D2D communication, eMBMS enhancements). |
+| [Release 13](http://www.3gpp.org/release-13) | 2016 Q1 | LTE in unlicensed, LTE enhancements for Machine-Type Communication. Elevation Beamforming / Full-Dimension MIMO, Indoor positioning. |
+| [Release 14](http://www.3gpp.org/release-14) | Planned for June 2017 | Energy Efficiency, Location Services (LCS), Mission Critical Data over LTE, Mission Critical Video over LTE, Flexible Mobile Service Steering (FMSS), Multimedia Broadcast Supplement for Public Warning System (MBSP), enhancement for TV service, massive Internet of Things, Cell Broadcast Service (CBS) |
+| [Release 15](http://www.3gpp.org/release-15) | Planned for Sept 2018 | Support for 5G Vehicle-to-x service,IP Multimedia Core Network Subsystem (IMS), Future Railway Mobile Communication System |
 
 <p/>
 
@@ -199,9 +201,7 @@ The documents are available freely on [3GPP's Web site](http://www.3gpp.org/ftp/
 
 ## Specification Numbering
 
-All 3GPP specifications have a specification number consisting of 4 or 5 digits. (e.g. 09.02 or 29.002).
-
-The first two digits define the series, followed by 2 further digits for the 01 to 13 series or 3 further digits for the 21 to 55 series.
+All 3GPP specifications have a specification number consisting of 4 or 5 digits. (e.g. 09.02 or 29.002). The first two digits define the series, followed by 2 further digits for the 01 to 13 series or 3 further digits for the 21 to 55 series.
 
 The full title, specification number and latest version number for every specification can be found in the [3GPP Specification Status Report](http://www.3gpp.org/ftp/Specs/html-info/status-report.htm).
 
@@ -240,7 +240,7 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 
 **Note (2)**: The specifications of these aspects are spread throughout several series.
 
-**Note (3)**: Algorithms may be subject to export licensing conditions. See the [relevant 3GPP page](http://www.3gpp.org/Confidentiality-Algorithms). See also the [relevant ETSI pages](http://www.etsi.org/WebSite/OurServices/Algorithms/algorithms.aspx).
+**Note (3)**: Algorithms may be subject to export licensing conditions, see [relevant 3GPP page](http://www.3gpp.org/Confidentiality-Algorithms) and [relevant ETSI pages](http://www.etsi.org/WebSite/OurServices/Algorithms/algorithms.aspx).
 
 **Note (4)**: The original GSM algorithms are not published and are controlled by the [GSM Association](http://www.gsma.com/).
 

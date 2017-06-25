@@ -32,13 +32,10 @@ According to [Classifying Programming Languages](http://cs.lmu.edu/~ray/notes/pl
 
 Here is a list of programming languages I'd like to learn:
 
-* <a href="{{ site.base-url }}/2016/07/08/c.html">C</a>
-* <a href="{{ site.base-url }}/2016/07/10/c++.html">C++</a>
+* <a href="{{ site.base-url }}/2016/07/08/c.html">C</a> / <a href="{{ site.base-url }}/2016/07/10/c++.html">C++</a>
 * <a href="{{ site.base-url }}/2017/02/16/java.html">Java</a>
 * <a href="{{ site.base-url }}/2017/03/09/python.html">Python</a>
-* <a href="{{ site.base-url }}/2015/12/20/linux-series-06-shell.html">Shell</a>
-* <a href="{{ site.base-url }}/2016/01/16/linux-series-08-bash.html">Shell: Bash</a>
-* <a href="{{ site.base-url }}/2016/02/11/linux-series-09-tcsh.html">Shell: Tcsh</a>
+* <a href="{{ site.base-url }}/2015/12/20/linux-series-06-shell.html">Shell</a> / <a href="{{ site.base-url }}/2016/01/16/linux-series-08-bash.html">Bash</a> / <a href="{{ site.base-url }}/2016/02/11/linux-series-09-tcsh.html">Tcsh</a>
 * <a href="{{ site.base-url }}/2017/04/26/html.html">HTML</a>
 * <a href="{{ site.base-url }}/2017/04/29/xml.html">XML</a>
 
@@ -46,10 +43,8 @@ Here is a list of programming languages I'd like to learn:
 
 * [TIOBE Index](http://www.tiobe.com/tiobe-index/)
 * <a href="{{ site.base-url }}/2015/12/18/linux-series-05-libraries.html">Linux: C/C++ Libraries</a>
-
 * [Programming Language wikipedia](https://en.wikipedia.org/wiki/Programming_language)
 * [List of Programming Languages wikipedia](https://en.wikipedia.org/wiki/List_of_programming_languages)
 * [List of Programming Languages by Type wikipedia](https://en.wikipedia.org/wiki/List_of_programming_languages_by_type)
-
 * [Classifying Programming Languages](http://cs.lmu.edu/~ray/notes/pltypes/)
 * [Programming Language Classification wikipedia](https://en.wikipedia.org/wiki/Category:Programming_language_classification)

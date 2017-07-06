@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Programming Languages"
-tag: Programming Languages
+title: "Programming"
+tag: Programming
 toc: true
 ---
 

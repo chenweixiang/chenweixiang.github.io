@@ -1338,7 +1338,10 @@ After all expansions, **quote removal** (see [Quote Removal](#quote-removal)) is
 Brace expansion is a mechanism by which arbitrary strings may be generated. This mechanism is similar to **filename expansion** (see [Filename Expansion](#filename-expansion)), but the filenames generated need not exist.
 
 ***Format #1:***
-```[preamble]{str1,[str2,[str3,...]]}[postscript]```
+
+```
+[preamble]{str1,[str2,[str3,...]]}[postscript]
+```
 
 Patterns to be brace expanded take the form of an optional *preamble*, followed by either a series of comma-separated strings or a sequence expression between a pair of braces, followed by an optional *postscript*. The *preamble* is prefixed to each string contained within the braces, and the *postscript* is then appended to each resulting string, expanding left to right.
 
@@ -1352,7 +1355,10 @@ Patterns to be brace expanded take the form of an optional *preamble*, followed 
 <p/>
 
 ***Format #2:***
-```{x..y[..incr]}```
+
+```
+{x..y[..incr]}
+```
 
 where *x* and *y* are either integers or single characters, and *incr*, an optional increment, is an integer.
 

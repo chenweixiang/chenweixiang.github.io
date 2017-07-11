@@ -15,6 +15,8 @@ The following figure shows the Linux system architecture, which includes **Hardw
 
 ![Linux System Architecture](/assets/linux-kernel-architecture.svg)
 
+![GNU_C_Library](/assets/GNU_C_Library.png)
+
 Please refer to following articles for detail information about layers of Linux system:
 
 * <a href="{{ site.base-url }}/2015/12/10/linux-series-01-overview.html">Linux Series #1: Overview</a>

@@ -31,7 +31,7 @@ Das U-Boot is both a first-stage and second-stage bootloader. It is loaded by th
 
 * **2000-07-19**
 
-  Wolfgang Denk => **PPCBoot-0.4.1**, which is the first public version of PPCBoot. Siemens PSE, Vienna: Development of a Bluetooth LAN Access Point with a MPC850 Processor that needed to be able to boot over Ethernet => first commercial sponsor |
+  Wolfgang Denk => **PPCBoot-0.4.1**, which is the first public version of PPCBoot. Siemens PSE, Vienna: Development of a Bluetooth LAN Access Point with a MPC850 Processor that needed to be able to boot over Ethernet => first commercial sponsor
 
 * **2000-08-08**
 

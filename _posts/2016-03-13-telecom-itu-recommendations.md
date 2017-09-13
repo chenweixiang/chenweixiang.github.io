@@ -132,19 +132,50 @@ Recommendation [**ITU-R M.2012**](/docs/R-REC-M.2012-2-201509-Detailed_specifica
 
 # IMT-2020 (5G)
 
-## ITU Recommendations
+## Timeline of TMT-2020
 
-According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx), the following figure is time plan of IMT-2020 and its corresponding reports and recommendations:
+According to [ITU towards "IMT for 2020 and beyond"](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx):
+
+The buzz in the industry on future steps in mobile technology — 5G — has seen a sharp increase, with attention now focused on enabling a seamlessly connected society in the 2020 timeframe and beyond that brings together people along with things, data, applications, transport systems and cities in a smart networked communications environment. In this context, ITU and its partners, sharing a common community of interest, have recognized the relationship between IMT — International Mobile Telecommunication system — and 5G and are working towards realizing the future vision of mobile broadband communications.
+
+In early 2012, ITU-R embarked on a programme to develop "IMT for 2020 and beyond", setting the stage for 5G research activities that are emerging around the world.
+
+Through the leading role of Working Party 5D, ITU's Radiocommunication Sector (ITU-R) has finalized its view of a timeline towards IMT-2020. The detailed investigation of the key elements of 5G are already well underway, once again utilizing the highly successful partnership ITU-R has with the mobile broadband industry and the wide range of stakeholders in the 5G community.
+
+In September 2015, ITU-R has finalized its "Vision" of the 5G mobile broadband connected society. This view of the horizon for the future of mobile technology will be instrumental in setting the agenda for the *World Radiocommunication Conference 2019*, where deliberations on additional spectrum are taking place in support of the future growth of IMT.
+
+ITU has a rich history in the development of radio interface standards for mobile communications. The framework of standards for International Mobile Telecommunications (IMT), encompassing **IMT-2000** and **IMT-Advanced**, spans the 3G and 4G industry perspectives and will continue to evolve as 5G with **IMT-2020**.
 
 ![IMT-2020-Timeplan](/assets/IMT-2020-Timeplan.png)
+
+Refer to the following documents for more details:
+
+* [Workplan, timeline, process and deliverables for the future development of IMT](/docs/Anticipated-Time-Schedule.pdf)
+* [ITU-R Working Party 5D Planned Meeting Schedule for Years 2016-2020](/docs/ITU-R-5D-Meeting-Schedule.pdf)
+
+## 5G Usage Scenarios
+
+The following figure shows three 5G usage scenarios defined by ITU-R:
+
+![5G_Usage_Scenarios](/assets/5G_Usage_Scenarios.png)
+
+Refer to following documents for details:
+
+* [Emerging Trends in 5G-IMT2020](/docs/Emerging_Trends_in_5G-IMT2020_20160928.pdf)
+* [Overview of ITU-T Activities on 5G/IMT-2020](/docs/Overview_of_ITU-T_Activities_on_5G_IMT-2020.pdf)
+* [Future Use of Millimetre Waves in 5G](/docs/Future_Use_of_Millimetre_Waves_in_5G.pdf)
+
+## ITU Recommendations
+
+According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/study-groups/rsg5/rwp5d/imt-2020/Pages/default.aspx), Working Party 5D is engaged in a wide range of activities for IMT. These activities include new information and deliverables to guide the continuing evolution of terrestrial IMT. At a high level the work is organized in these broad categories:
 
 **Vision & Technology Trends**
 
 | Recommends | Title |
 | :--------- | :---- |
-| **ITU-R M.2320** | Future technology trends of terrestrial IMT systems (November 2014) |
-| **ITU-R M.2083** | Framework and overall objectives of the future development of IMT for 2020 and beyond (September 2015) |
-| **ITU-R M.2376** | Technical feasibility of IMT in bands above 6 GHz (July 2015) |
+| **[ITU-R M.2320](/docs/R-REP-M.2320-2014.pdf)** | Future technology trends of terrestrial IMT systems (November 2014) |
+| **[ITU-R M.2083](/docs/R-REC-M.2083-0-201509.pdf)** | Framework and overall objectives of the future development of IMT for 2020 and beyond (September 2015) |
+| **[ITU-R M.2376](/docs/R-REP-M.2376-2015.pdf)** | Technical feasibility of IMT in bands above 6 GHz (July 2015) |
 
 <p/>
 
@@ -152,11 +183,12 @@ According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/s
 
 | Recommends | Title |
 | :--------- | :---- |
-| **ITU-R M.1768-1** | Methodology for calculation of spectrum requirements for the terrestrial component of International Mobile Telecommunications (April 2013) |
-| **ITU-R M.2243** | Assessment of the global mobile broadband deployments and forecasts for International Mobile Telecommunications (March 2011) |
-| **ITU-R M.2289** | Future radio aspect parameters for use with the terrestrial IMT spectrum estimate methodology of Recommendation ITU-R M.1768-1 (March 2014) |
-| **ITU-R M.2290** | Future spectrum requirements estimate for terrestrial IMT (February 2014) |
-| **ITU-R M.2370** | IMT Traffic estimates for the years 2020 to 2030 (July 2015) |
+| **[ITU-R M.1768-1](/docs/R-REC-M.1768-1-201304.pdf)** | Methodology for calculation of spectrum requirements for the terrestrial component of International Mobile Telecommunications (April 2013) |
+| **[ITU-R M.2243](/docs/R-REP-M.2243-2011.pdf)** | Assessment of the global mobile broadband deployments and forecasts for International Mobile Telecommunications (March 2011) |
+| **[ITU-R M.2289](/docs/R-REP-M.2289-2013.pdf)** | Future radio aspect parameters for use with the terrestrial IMT spectrum estimate methodology of Recommendation ITU-R M.1768-1 (March 2014) |
+| **[ITU-R M.2290](/docs/R-REP-M.2290-2014.pdf)** | Future spectrum requirements estimate for terrestrial IMT (February 2014) |
+| **[ITU-R M.2370](/docs/R-REP-M.2370-2015.pdf)** | IMT Traffic estimates for the years 2020 to 2030 (July 2015) |
+| **[WP 5D Liaison Statement](/docs/5D_TEMP_249(Rev1).pdf)** | Spectrum needs for the terrestrial component of IMT in the frequency range between 24.25 GHz and 86 GHz |
 
 <p/>
 
@@ -164,10 +196,10 @@ According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/s
 
 | Recommends | Title |
 | :--------- | :---- |
-| **ITU-R M.1036-5** | Frequency arrangements for implementation of the terrestrial component of International Mobile Telecommunications (IMT) in the bands identified for IMT in the Radio Regulations (RR) (October 2015) |
-| **ITU-R M.2292** | Characteristics of terrestrial IMT-Advanced systems for frequency sharing/interference analyses (March 2014) |
-| **ITU-R M.2039-3** | Characteristics of terrestrial IMT-2000 systems for frequency sharing/interference analyses (March 2015) |
-| **ITU-R M.2374** | Coexistence of two TDD networks in the 2300-2400 MHz band (July 2015) |
+| **[ITU-R M.1036-5](/docs/R-REC-M.1036-5-201510.pdf)** | Frequency arrangements for implementation of the terrestrial component of International Mobile Telecommunications (IMT) in the bands identified for IMT in the Radio Regulations (RR) (October 2015) |
+| **[ITU-R M.2292](/docs/R-REP-M.2292-2014.pdf)** | Characteristics of terrestrial IMT-Advanced systems for frequency sharing/interference analyses (March 2014) |
+| **[ITU-R M.2039-3](/docs/R-REP-M.2039-3-2014.pdf)** | Characteristics of terrestrial IMT-2000 systems for frequency sharing/interference analyses (March 2015) |
+| **[ITU-R M.2374](/docs/R-REP-M.2374-2015.pdf)** | Coexistence of two TDD networks in the 2300-2400 MHz band (July 2015) |
 
 <p/>
 
@@ -175,13 +207,13 @@ According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/s
 
 | Recommends | Title |
 | :--------- | :---- |
-| **ITU-R M.1457-12** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) (March 2015) |
-| **ITU-R M.2012-2** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications Advanced (IMT-Advanced) (September 2015) |
-| **ITU-R M.1579-2** | Global circulation of IMT-2000 terrestrial terminals (March 2015) |
-| **ITU-R M.2070** | Generic unwanted emission characteristics of base stations using the terrestrial radio interfaces of IMT-Advanced (February 2015) |
-| **ITU-R M.2071** | Generic unwanted emission characteristics of mobile stations using the terrestrial radio interfaces of IMT-Advanced (January 2015) |
-| **ITU-R M.2334** | Passive and active antenna systems for base stations of IMT systems (March 2015) |
-| **ITU-R M.2375** | Architecture and topology of IMT networks (July 2015) |
+| **[ITU-R M.1457-13](/docs/R-REC-M.1457-12-201502.pdf)** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications-2000 (IMT-2000) (March 2015) |
+| **[ITU-R M.2012-2](/docs/R-REC-M.2012-2-201509.pdf)** | Detailed specifications of the terrestrial radio interfaces of International Mobile Telecommunications Advanced (IMT-Advanced) (September 2015) |
+| **[ITU-R M.1579-2](/docs/R-REC-M.1579-2-201501.pdf)** | Global circulation of IMT-2000 terrestrial terminals (March 2015) |
+| **[ITU-R M.2070-1](/docs/R-REC-M.2070-0-201501.pdf)** | Generic unwanted emission characteristics of base stations using the terrestrial radio interfaces of IMT-Advanced (February 2015) |
+| **[ITU-R M.2071-1](/docs/R-REC-M.2071-0-201501.pdf)** | Generic unwanted emission characteristics of mobile stations using the terrestrial radio interfaces of IMT-Advanced (January 2015) |
+| **[ITU-R M.2334-0](/docs/R-REP-M.2334-2014.pdf)** | Passive and active antenna systems for base stations of IMT systems (March 2015) |
+| **[ITU-R M.2375-0](/docs/R-REP-M.2375-2015.pdf)** | Architecture and topology of IMT networks (July 2015) |
 
 <p/>
 
@@ -189,8 +221,8 @@ According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/s
 
 | Recommends | Title |
 | :--------- | :---- |
-| **ITU-R M.2291** | The use of International Mobile Telecommunications (IMT) for broadband public protection and disaster relief (PPDR) applications (March 2014) |
-| **ITU-R Handbook** | ITU-R Handbook on "Global trends in IMT" (May 2015) |
+| **[ITU-R M.2291-1](/docs/R-REP-M.2291-2013.pdf)** | The use of International Mobile Telecommunications (IMT) for broadband public protection and disaster relief (PPDR) applications (March 2014) |
+| **[ITU-R Handbook](http://www.itu.int/pub/R-HDB-62)** | ITU-R Handbook on "Global trends in IMT" (May 2015) |
 
 <p/>
 
@@ -198,12 +230,12 @@ According to [ITU towards IMT for 2020 and beyond](http://www.itu.int/en/ITU-R/s
 
 | Title |
 | :---- |
-| Regional Workshops – "IMT for the Next Decade" (2011) |
+| [Regional Workshops – "IMT for the Next Decade" (2011)](http://www.itu.int/oth/R0A06000070) |
 | WP5A-WP5B-WP5C workshop on the preparations for WRC-15 (May 2012) |
 | Working Party 5D Workshop - Research Views on IMT Technology Evolution (July 2012) |
 | ITU Telecom World – IMT Vision Panel (November 2013) |
-| ITU Seminar on IMT Towards 2020 and Beyond (in conjunction with ITU-D) (February 2014) |
-| Working Party 5D Workshop - Research views on IMT beyond 2020 (February 2014) |
+| [ITU Seminar on IMT Towards 2020 and Beyond (in conjunction with ITU-D) (February 2014)](http://www.itu.int/en/ITU-D/Regional-Presence/AsiaPacific/Pages/Events/2014/Feb_Vietnam/IMT2020.aspx) |
+| [Working Party 5D Workshop - Research views on IMT beyond 2020 (February 2014)](http://www.itu.int/ITU-R/go/workshop-wp5d-0712) |
 
 <p/>
 

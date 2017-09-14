@@ -157,9 +157,13 @@ Refer to the following documents for more details:
 
 The following figure shows three 5G usage scenarios defined by ITU-R:
 
+* **eMBB** (enhanced Mobile BroadBand)
+* **uLLC** (ultra-reliable and Low Latency Communications)
+* **mMTC** (massive Machine Type Communications)
+
 ![5G_Usage_Scenarios](/assets/5G_Usage_Scenarios.png)
 
-Refer to following documents for details:
+Refer to the following documents for details:
 
 * [Emerging Trends in 5G-IMT2020](/docs/Emerging_Trends_in_5G-IMT2020_20160928.pdf)
 * [Overview of ITU-T Activities on 5G/IMT-2020](/docs/Overview_of_ITU-T_Activities_on_5G_IMT-2020.pdf)

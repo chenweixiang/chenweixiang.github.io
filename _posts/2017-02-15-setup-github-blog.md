@@ -13,7 +13,7 @@ This article introduces how to setup Github blogs on Linux and Markdown syntax.
 
 ## Install Jekyll on Linux
 
-1) Install RVM
+**Install RVM**
 
 Ruby Version Manager (RVM) is a command-line tool which allows you to easily install, manage, and work with multiple ruby environments from interpreters to sets of gems. Refer to [RVM](https://rvm.io/) and [Quick Guide of installing RVM](https://rvm.io/rvm/install).
 
@@ -22,7 +22,7 @@ $ gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804B
 $ curl -sL https://deb.nodesource.com/setup | sudo bash -
 ```
 
-2) Install ruby-dev
+**Install ruby-dev**
 
 Ruby is a dynamic, open source programming language with a focus on simplicity and productivity. It has an elegant syntax that is natural to read and easy to write. Refer to [Ruby](https://www.ruby-lang.org/en/).
 
@@ -30,7 +30,7 @@ Ruby is a dynamic, open source programming language with a focus on simplicity a
 ~ $ sudo apt-get install ruby-dev
 ```
 
-3) Install Node.js
+**Install Node.js**
 
 Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world. Refer to [Node.js](https://nodejs.org/).
 
@@ -39,7 +39,7 @@ Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. Node.js 
 ~ $ sudo apt-get install -y nodejs
 ```
 
-4) Install Jekyll
+**Install Jekyll**
 
 Jekyll is a simple, blog-aware, static site generator. It takes a template directory containing raw text files in various formats, runs it through a converter (like Markdown) and our Liquid renderer, and spits out a complete, ready-to-publish static website suitable for serving with your favorite web server. Jekyll also happens to be the engine behind GitHub Pages, which means you can use Jekyll to host your project’s page, blog, or website from GitHub’s servers for free. Refer to [Jekyll](http://jekyllrb.com/).
 
@@ -47,12 +47,23 @@ Jekyll is a simple, blog-aware, static site generator. It takes a template direc
 ~ $ sudo gem install jekyll
 ```
 
-5) Upgrade Jekyll
+**Upgrade Jekyll**
 
 ```
+# check current version of jekyll
 chenwx@chenwx ~/work/blog $ jekyll -v
 jekyll 3.0.1
 
+# display local gems with version
+chenwx@chenwx ~/work/blog $ gem list
+
+# upgrade to the latest RubyGems
+chenwx@chenwx ~/work/blog $ gem update --system
+
+# display local gems with version after upgrade
+chenwx@chenwx ~/work/blog $ gem list
+
+# upgrade to the latest jekyll
 chenwx@chenwx ~/work/blog $ gem update jekyll
 Updating installed gems
 Updating jekyll

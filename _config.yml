@@ -13,7 +13,7 @@ twitter_username: Weixiang_Chen
 github_username: chenweixiang
 
 # Include Gems
-gems: [jekyll-paginate]
+plugins: [jekyll-paginate]
 
 # Build settings
 markdown: kramdown

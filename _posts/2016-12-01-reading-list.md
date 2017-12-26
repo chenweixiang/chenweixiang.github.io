@@ -25,10 +25,11 @@ This article records the books I'm reading.
 | 2017-07-11 | 2017-07-18  | 《编码：隐藏在计算机软硬件背后的语言》 | 仅读完前5章 |
 | 2017-07-18 | 2017-08-12  | 《习惯的力量：我们为什么会这样生活，那样工作？》 | Good |
 | 2017-08-13 | 2017-08-14  | 《不省心》冯小刚著 | 真实朴素 |
-| 2017-08-15 |             | 《非暴力沟通》 | Good |
+| 2017-08-15 | 2017-12-26  | 《非暴力沟通》原书第2版<br>(Nonviolent Communication: A Language of Life, 2nd Edition)<br>[美]马歇尔.卢森堡著，阮胤华译 | <a href="{{ site.base-url }}/2017/12/26/nonviolent-communication.html"> >> </a> |
 
 <p/>
 
 # References
 
-* [Kindle伴侣](https://kindlefere.com/)
+* [Kindle书伴](https://bookfere.com/)
+

@@ -30,3 +30,5 @@ Please refer to following articles for detail information about layers of Linux 
 # References
 
 * [The Linux Information Project](http://www.linfo.org/index.html)
+* [The Linux Kernel documentation](https://www.kernel.org/doc/html/latest/)
+

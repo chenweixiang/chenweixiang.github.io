@@ -17,7 +17,8 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
 
     The [Alpha processor](https://en.wikipedia.org/wiki/DEC_Alpha) was developed by Digital Equipment Corporation (DEC). The  DEC was later bought by Compaq, which then merged with HP. Alpha always had a reputation for excellent performance and could run many different operating systems. Alpha is of great historical importance to Linux as the [first non-PC port incorporated into Linus's tree](http://www.oreilly.com/catalog/opensources/book/linus.html), as well as the first 64-bit port. [This website](http://www.alphalinux.org/wiki/index.php/Main_Page) is about the port of GNU/Linux to the Alpha architecture.
 
-    [Alpha: The History in Facts and Comments](http://alasir.com/articles/alpha_history/index.html).
+	* [Alpha: The History in Facts and Comments](http://alasir.com/articles/alpha_history/index.html)
+	<p/>
 
 * **```arc/```**
 
@@ -25,9 +26,10 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
 
     The [ARM processor](http://www.arm.com/) is the most popular embedded processor, powering 80-90% of the cell phone market and most battery powered handheld devices.
 
-    [The ARM instruction set architecture](http://www.arm.com/products/processors/)
-    [List of ARM processors](http://www.elinux.org/ARM_Processor)
-    [The ARM Linux Project](http://www.arm.linux.org.uk/)
+	* [The ARM instruction set architecture](http://www.arm.com/products/processors/)
+	* [List of ARM processors](http://www.elinux.org/ARM_Processor)
+	* [The ARM Linux Project](http://www.arm.linux.org.uk/)
+	<p/>
 
 * **```avr32/```**
 
@@ -73,19 +75,20 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
 
     The **PA-RISC** is an instruction set architecture (ISA) developed by **Hewlett-Packard (HP)**. As the name implies, it is a reduced instruction set computer (RISC) architecture, where the **PA** stands for **Precision Architecture**. The design is also referred to as **HP/PA** for **Hewlett Packard Precision Architecture**. It was scheduled to be discontinued in favor of the **Itanium**, but the failure of ia64 led to a restart of PA-RISC development.
 
-    [PA-RISC on Wikipedia](https://en.wikipedia.org/wiki/PA-RISC)
-    [PA-RISC Linux Project History](https://parisc.wiki.kernel.org/index.php/PA-RISC_Linux_Project_History)
-    [Introduction to Linux on PA-RISC](https://parisc.wiki.kernel.org/index.php/Main_Page)
+	* [PA-RISC on Wikipedia](https://en.wikipedia.org/wiki/PA-RISC)
+	* [PA-RISC Linux Project History](https://parisc.wiki.kernel.org/index.php/PA-RISC_Linux_Project_History)
+	* [Introduction to Linux on PA-RISC](https://parisc.wiki.kernel.org/index.php/Main_Page)
+	<p/>
 
 * **```powerpc/```**
 
     **PowerPC** (an acronym for **Performance Optimization With Enhanced RISC – Performance Computing**, sometimes abbreviated as **PPC**) is a RISC instruction set architecture created by the 1991 **Apple–IBM–Motorola alliance**, known as **AIM**. Apple switched to x86-64 in 2005 and Motorola spun off its processor division as Freescale. But IBM is still strongly behind PowerPC, and the various users of PowerPC formed a consortium to promote and develop it.
 
-    [PowerPC on Wikipedia](https://en.wikipedia.org/wiki/PowerPC)
-    [List of PowerPC Processors](https://en.wikipedia.org/wiki/List_of_PowerPC_processors)
-    [The Linux Kernel on iSeries](https://www.kernel.org/doc/ols/2001/iseries.pdf) (OLS 2001)
-    [PowerPC 64-bit Kernel Internals](https://www.kernel.org/doc/ols/2001/ppc64.pdf) (OLS 2001)
-
+	* [PowerPC on Wikipedia](https://en.wikipedia.org/wiki/PowerPC)
+	* [List of PowerPC Processors](https://en.wikipedia.org/wiki/List_of_PowerPC_processors)
+	* [The Linux Kernel on iSeries](https://www.kernel.org/doc/ols/2001/iseries.pdf) (OLS 2001)
+	* [PowerPC 64-bit Kernel Internals](https://www.kernel.org/doc/ols/2001/ppc64.pdf) (OLS 2001)
+	<p/>
 * **```s390/```**
 
 * **```score/```**
@@ -100,17 +103,19 @@ According to directory ```arch/``` in Linux kernel source tree, Linux kernel sup
 
     **User Mode Linux (UML)** is a port of Linux to run as a userspace program. Instead of talking to the hardware, it makes system calls to the C library. Instead of using a memory management unit it makes clever use of mmap.
 
-    [User-Mode Linux on Wikipedia](https://en.wikipedia.org/wiki/User-mode_Linux)
-    [User-Mode Linux](https://www.kernel.org/doc/ols/2001/uml.pdf) (OLS 2001)
-    [Making Linux Safe for Virtual Machines](https://www.kernel.org/doc/ols/2002/ols2002-pages-107-116.pdf) (OLS 2002)
-    [User Mode Linux HOWTO](http://landley.net/writing/docs/UML.html)
-    [The User-mode Linux Kernel Home Page](http://user-mode-linux.sourceforge.net/)
+	* [User-Mode Linux on Wikipedia](https://en.wikipedia.org/wiki/User-mode_Linux)
+	* [User-Mode Linux](https://www.kernel.org/doc/ols/2001/uml.pdf) (OLS 2001)
+	* [Making Linux Safe for Virtual Machines](https://www.kernel.org/doc/ols/2002/ols2002-pages-107-116.pdf) (OLS 2002)
+	* [User Mode Linux HOWTO](http://landley.net/writing/docs/UML.html)
+	* [The User-mode Linux Kernel Home Page](http://user-mode-linux.sourceforge.net/)
+	<p/>
 
 * **```unicore32/```**
 
 * **```x86/```**
 
-    [Porting Linux to x86-64](https://www.kernel.org/doc/ols/2001/x86-64.pdf) (OLS 2001)
+	* [Porting Linux to x86-64](https://www.kernel.org/doc/ols/2001/x86-64.pdf) (OLS 2001)
+	<p/>
 
 * **```xtensa/```**
 

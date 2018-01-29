@@ -28,7 +28,7 @@ FHS releases the following versions, which can be downloaded from [here](http://
 | **2.3** | 2004-01-29   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 | **3.0** | 2015-05-18   | FHS (**F**ilesystem **H**ierarchy **S**tandard) |
 
-## Directory Structure defined in FHS 3.0
+## Directory Structure defined in FHS 3
 
 The following table contains the directory structures defined in FHS 3.0. For more detail explanations and the files contained in the directories, refer to [FHS 3.0](http://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html).
 
@@ -306,7 +306,7 @@ An **LSB conforming implementation** shall provide the mandatory portions of the
 | ```/etc/init.d``` | **Required** | A directory containing system initialization scripts. |
 | ```/etc/profile.d``` | **Required** | A directory containing shell scripts. Script names should follow the same conventions as specified for cron jobs, but should have the suffix ```.sh```. The behavior is unspecified if a script is installed in this directory that does not have the suffix ```.sh```. |
 
-# Content of LSB 5.0
+# Content of LSB 5
 
 ## Commands and Utilities
 

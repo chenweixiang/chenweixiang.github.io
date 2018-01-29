@@ -11,15 +11,15 @@ This article introduces the standards and history of Unix system briefly.
 
 # Portable Operating System Interface (POSIX)
 
-The [Portable Operating System Interface (POSIX)](http://standards.ieee.org/develop/wg/POSIX.html) is a family of standards specified by the **IEEE Computer Society** for maintaining compatibility between operating systems. **POSIX** defines the application programming interface (API), along with command line shells and utility interfaces, for software compatibility with variants of Unix and other operating systems.
+The [Portable Operating System Interface (POSIX)](http://standards.ieee.org/develop/wg/POSIX.html) is a family of standards specified by the [IEEE Computer Society](https://www.computer.org/) for maintaining compatibility between operating systems. **POSIX** defines the **application programming interface (API)**, along with **command line shells and utility interfaces**, for software compatibility with variants of Unix and other operating systems.
 
-Originally, the name **POSIX** referred to **IEEE Std 1003.1-1988**, released in 1988. The family of **POSIX** standards is formally designated as **IEEE 1003** and the international standard name is **ISO/IEC 9945**.
+Originally, the name **POSIX** referred to **IEEE Std 1003.1-1988**, released in 1988. The family of **POSIX** standards is formally designated as **IEEE 1003** and the international standard name is [**ISO/IEC 9945**](http://www.unix.org/version3/iso_std.html).
 
 ## POSIX Standards
 
 Before 1997, POSIX comprised several standards:
 
-| POSIX_standards | IEEE_standards | Note |
+| POSIX standards | IEEE standards | Note |
 | :-------------- | :------------- | :--- |
 | **POSIX.1**     | **IEEE Std 1003.1-1988**  | Core Services (incorporates standard ANSI C) |
 | **POSIX.1b**    | **IEEE Std 1003.1b-1993** | Real-time extensions |
@@ -30,12 +30,12 @@ Before 1997, POSIX comprised several standards:
 
 After 1997, the [Austin Group](http://www.opengroup.org/austin/) developed the POSIX revisions. The specifications are known under the name **Single UNIX Specification (SUS)**, before they become a POSIX standard when formally approved by the ISO.
 
-| POSIX_standards | IEEE_standards | ISO/IEC_standards | POSIX_Note |
-| :-------------- | :------------- | :---------------- | :--------- |
-| **POSIX.1-2001** | **IEEE Std 1003.1-2001** | **ISO/IEC 9945-2003** | The **POSIX.1-2001** equates to the **Single UNIX Specification, version 3** (**SUSv3**), see [The Open Group announces completion of the joint revision to POSIX® and the Single UNIX® Specification](http://www.unix.org/version3/pr.html). |
-| **POSIX.1-2004** | **IEEE Std 1003.1-2004** | | The **POSIX.1-2004** involves a minor update of **POSIX.1-2001** (**IEEE Std 1003.1-2001**). It incorporated two TCs (Technical Corrigenda):<br>- **IEEE Std 1003.1-2001/Cor 1-2002**<br>- **IEEE Std 1003.1-2001/Cor 2-2004**<br>Here is the online [IEEE Std 1003.1-2004 specification](http://pubs.opengroup.org/onlinepubs/000095399/). |
-| **POSIX.1-2008** | **IEEE Std 1003.1-2008** | **ISO/IEC 9945-2009** | Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008.html). The **POSIX.1-2008** is the core of the **Single UNIX Specification, version 4** (**SUSv4**). |
-| **POSIX.1-2008/TC1** | **IEEE Std 1003.1-2008 /Cor 1-2013** | | Current active version, see [here](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html). Here is the online [IEEE Std 1003.1-2008 specification](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html). |
+| POSIX standards  | IEEE standards           | Note       |
+| :--------------- | :----------------------- | :--------- |
+| **POSIX.1-2001** | **IEEE Std 1003.1-2001** | The **POSIX.1-2001** equates to the [**Single UNIX Specification, version 3** (**SUSv3**)](http://www.unix.org/version3/online.html), which is also **ISO/IEC 9945:2003**, see [The Open Group announces completion of the joint revision to POSIX® and the Single UNIX® Specification](http://www.unix.org/version3/pr.html).<br><br>This standard consisted of:<br>- the Base Definitions, Issue 6<br>- the System Interfaces and Headers, Issue 6<br> - the Commands and Utilities, Issue 6<br><br>Refer to:<br>- IEEE Std 1003.1-2001 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2001.html))<br>- IEEE Std 1003.1-2001/Cor 1-2002 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2001-Cor_1-2002.html))<br>- IEEE Std 1003.1-2001/Cor 2-2004 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2001-Cor_2-2004.html)) |
+| **POSIX.1-2004** | **IEEE Std 1003.1-2004** | The **POSIX.1-2004** involves a minor update of **POSIX.1-2001** (**IEEE Std 1003.1-2001**). It incorporated two TCs (TC1: IEEE Std 1003.1-2001/Cor 1-2002, TC2: IEEE Std 1003.1-2001/Cor 2-2004) addressing problems discovered since the approval of the 2001 edition.<br><br>Refer to:<br>- IEEE Std 1003.1-2001/Cor 1-2002 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2001-Cor_1-2002.html))<br>- IEEE Std 1003.1-2001/Cor 2-2004 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2001-Cor_2-2004.html))<br>- **IEEE Std 1003.1-2004 with TC1 and TC2** ([online](http://pubs.opengroup.org/onlinepubs/000095399/)) |
+| **POSIX.1-2008** | **IEEE Std 1003.1-2008** | The **POSIX.1-2008** is the core of the [**Single UNIX Specification, version 4** (**SUSv4**)](http://www.unix.org/version4/).<br><br>This standard consists of:<br>- the Base Definitions, Issue 7<br>- the System Interfaces and Headers, Issue 7<br>- the Commands and Utilities, Issue 7<br>- the Rationale volume<br><br>Refer to:<br>- IEEE Std 1003.1-2008 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2008edition/))<br>- IEEE Std 1003.1-2008/Cor 1-2013 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2013edition/))<br>- **IEEE Std 1003.1-2008/Cor 2-2016** ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_2-2016.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2016edition/)) |
+|                  | **IEEE Std 1003.1-2017** | The purpose of this revision is to rollup the two TCs (TC1: IEEE Std 1003.1-2008/Cor 1-2013, TC2: IEEE Std 1003.1-2008/Cor 2-2016) with no new technical change.<br><br>Refer to:<br>- IEEE Std 1003.1-2008/Cor 1-2013 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2013edition/))<br>- **IEEE Std 1003.1-2008/Cor 2-2016** ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_2-2016.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2016edition/))<br>- IEEE Std 1003.1-2017 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2017.html)) |
 
 # Single UNIX Specification (SUS)
 
@@ -49,19 +49,23 @@ The [Single UNIX Specification (SUS)](http://www.unix.org/version4/) is the coll
 | :---------------------------------------- | :--- |
 | **Single UNIX Specification, version 1** (**SUSv1**) | Known as **Spec 1170**. It's the core of the **UNIX 95 brand**. |
 | **Single UNIX Specification, version 2** (**SUSv2**) | Released in 1997. It's the core of the **UNIX 98 brand**. |
-| **Single UNIX Specification, version 3** (**SUSv3**) | Released on January 30, 2002. It's the core of the **UNIX 03 brand** and equates to the **POSIX.1-2001 (IEEE Std 1003.1-2001)**. |
-| **Single UNIX Specification, version 4** (**SUSv4**) | Released in 2008. It equates to the **POSIX.1-2008** (**IEEE Std 1003.1-2008**). Here is the online [IEEE Std 1003.1-2008 specification](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html). |
+| [**Single UNIX Specification, version 3** (**SUSv3**)](http://www.unix.org/version3/) | Released on January 30, 2002. It's the core of the **UNIX 03 brand** and equates to the **POSIX.1-2001 (IEEE Std 1003.1-2001)**. |
+| [**Single UNIX Specification, version 4** (**SUSv4**)](http://www.unix.org/version4/) | Released in 2008. It equates to the **POSIX.1-2008** (**IEEE Std 1003.1-2008**).<br><br>Refer to:<br>- IEEE Std 1003.1-2008 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2008edition/))<br>- IEEE Std 1003.1-2008/Cor 1-2013 ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_1-2013.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2013edition/))<br>- **IEEE Std 1003.1-2008/Cor 2-2016** ([brief](http://standards.ieee.org/findstds/standard/1003.1-2008-Cor_2-2016.html), [online](http://pubs.opengroup.org/onlinepubs/9699919799.2016edition/)) |
 
 ## Content of SUSv4
 
 ### Composition of SUSv4
 
-The **Single UNIX Specification, Version 4 (SUSv4)** is made up of two documents: the **Base Specifications, Issue 7** and **X/Open Curses, Issue 7 (XCURSES)**. And the **Base Specifications, Issue 7** comprise four volumes:
+The **Single UNIX Specification Version 4 (SUSv4)** is incorporating **IEEE Std 1003.1** and **ISO/IEC 9945** and integrating the industry's **Open Systems** standards.
 
-* **Base Definitions, Issue 7** (**XBD7**)
-* **System Interfaces, Issue 7** (**XSH7**)
-* **Shell and Utilities, Issue 7** (**XCU7**)
-* **Rationale, Issue 7** (**XRAT7**) (Informative)
+The **Single UNIX Specification, Version 4 (SUSv4)** is made up of two documents:
+
+* **Base Specifications, Issue 7**, which comprise four volumes:
+	* **Base Definitions, Issue 7** (**XBD7**)
+	* **System Interfaces, Issue 7** (**XSH7**)
+	* **Shell and Utilities, Issue 7** (**XCU7**)
+	* **Rationale, Issue 7** (**XRAT7**) (Informative)
+* **X/Open Curses, Issue 7 (XCURSES)**
 
 ### Interfaces of SUSv4
 
@@ -192,5 +196,6 @@ The [OpenBSD project](https://www.openbsd.org/) produces a FREE, multi-platform 
 
 # References
 
+* [POSIX on Wikipedia](https://en.wikipedia.org/wiki/POSIX)
 * [Unix, Linux, and variant history](http://www.computerhope.com/history/unix.htm)
 * [Unix Tree](http://minnie.tuhs.org/cgi-bin/utree.pl)

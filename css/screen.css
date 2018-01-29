@@ -3,13 +3,13 @@
 }
 
 .container {
-    width: 90%;
+    width: 100%;
     padding-top: 20px;
     padding-bottom: 20px;
 }
 
 .container-fluid {
-    width: 90%;
+    width: 100%;
     padding-top: 20px;
     padding-bottom: 20px;
 }
@@ -72,7 +72,7 @@ footer {
 /* large screens */
 @media (min-width: 768px) {
     .container-fluid {
-        width: 1170px;
+        /* width: 1170px; */
     }
     h1:first-child {
         margin-top: 0;

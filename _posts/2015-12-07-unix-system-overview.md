@@ -63,7 +63,7 @@ The **Single UNIX Specification, Version 4 (SUSv4)** is made up of two documents
 * **Base Specifications, Issue 7**, which comprise four volumes:
 	* **Base Definitions, Issue 7** (**XBD7**)
 	* **System Interfaces, Issue 7** (**XSH7**)
-	* **Shell and Utilities, Issue 7** (**XCU7**)
+	* [**Shell and Utilities, Issue 7** (**XCU7**)](#shell-and-utilities-issue-7-xcu7-)
 	* **Rationale, Issue 7** (**XRAT7**) (Informative)
 * **X/Open Curses, Issue 7 (XCURSES)**
 

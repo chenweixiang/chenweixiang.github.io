@@ -246,9 +246,13 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 
 # 3GPP Specs Reading
 
-* R8  - LTE
-* R10 - LTE-Advanced
-* R15 - 5G New Radio (5GNR)
+| Releases | Technology |
+| :------: | :--------- |
+| R8       | LTE        |
+| R10      | LTE-Advanced |
+| R15      | 5G New Radio (5GNR) |
+
+<p/>
 
 # References
 

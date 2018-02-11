@@ -9,7 +9,7 @@ This article introduce the 3GPP and its specifications related to Telecommunicat
 
 <!--more-->
 
-# 3GPP Brief
+# 3GPP Overview
 
 The [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/) is a collaboration between groups of telecommunications associations, known as the Organizational Partners. The initial scope of 3GPP was to make a globally applicable third-generation (3G) mobile phone system specification based on evolved Global System for Mobile Communications (GSM) specifications within the scope of the International Mobile Telecommunications-2000 (IMT-2000) project of the International Telecommunication Union (ITU). The scope was later enlarged to include the development and maintenance of:
 
@@ -79,7 +79,7 @@ The 3GPP specification work is done in Technical Specification Groups (**TSGs**)
 
 ### GERAN (GSM/EDGE Radio Access Network)
 
-GERAN specifies the **GSM radio technology**, including **GPRS** and **EDGE**. It is composed of three working groups.
+GERAN specifies the **GSM radio technology**, including **GPRS** and **EDGE**. It is composed of the following working groups, refer to [TSG GERAN](http://www.3gpp.org/specifications-groups/tsg-geran):
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
@@ -91,7 +91,7 @@ GERAN specifies the **GSM radio technology**, including **GPRS** and **EDGE**. I
 
 ### RAN (Radio Access Network)
 
-RAN specifies the **UTRAN and the E-UTRAN**. It is composed of five working groups.
+RAN specifies the **UTRAN and the E-UTRAN**. It is composed of the following working groups, refer to [TSG RAN](http://www.3gpp.org/specifications-groups/ran-plenary):
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
@@ -100,12 +100,13 @@ RAN specifies the **UTRAN and the E-UTRAN**. It is composed of five working grou
 | RAN WG3 | RAN3 | Iub Iur and Iu specification - UTRAN O&M requirements | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R3.htm) |
 | RAN WG4 | RAN4 | Radio performance and protocol aspects (system) - RF parameters and BS conformance | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R4.htm) |
 | RAN WG5 | RAN5 | Mobile terminal conformance testing | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R5.htm) |
+| RAN WG6 | RAN6 | Legacy RAN radio and protocol | [List of specs](http://www.3gpp.org/DynaReport/TSG-WG--R6.htm) |
 
 <p/>
 
 ### SA (Service and System Aspects)
 
-SA specifies the service requirements and the overall architecture of the 3GPP system. It is also responsible for the coordination of the project. SA is composed of six working groups.
+SA specifies the service requirements and the overall architecture of the 3GPP system. It is also responsible for the coordination of the project. SA is composed of the following working groups, refer to [TSG SA](http://www.3gpp.org/specifications-groups/sa-plenary):
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
@@ -120,7 +121,7 @@ SA specifies the service requirements and the overall architecture of the 3GPP s
 
 ### CT (Core Network and Terminals)
 
-CT specifies the core network and terminal parts of 3GPP. It includes the core network - terminal layer 3 protocols. It is composed of five working groups.
+CT specifies the core network and terminal parts of 3GPP. It includes the core network - terminal layer 3 protocols. It is composed of the following working groups, refer to [TSG CT](http://www.3gpp.org/specifications-groups/ct):
 
 |  Working_Groups | Shorthand | Scope | Specifications |
 | :-------------: | :-------: | :---- | :------------: |
@@ -230,7 +231,7 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 | Security algorithms (3) | [35 series](http://www.3gpp.org/ftp/Specs/html-info/35-series.htm) | [55 series](http://www.3gpp.org/ftp/Specs/html-info/55-series.htm) | (4) |
 | LTE (Evolved UTRA), LTE-Advanced, LTE-Advanced Pro radio technology | [**36 series**](http://www.3gpp.org/ftp/Specs/html-info/36-series.htm) | - | - |
 | Multiple radio access technology aspects | [37 series](http://www.3gpp.org/ftp/Specs/html-info/37-series.htm) | - | - |
-| Radio technology beyond LTE | [**38 series**](http://www.3gpp.org/ftp/Specs/html-info/38-series.htm) | - | - |
+| **Radio technology beyond LTE** | [**38 series**](http://www.3gpp.org/ftp/Specs/html-info/38-series.htm) | - | - |
 
 <p/>
 
@@ -257,3 +258,7 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 # References
 
 * [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)
+* [Demystifying 3GPP](/docs/Demystifying_3GPP.pdf)
+* [Understanding 3GPP - starting with the basics](https://www.qualcomm.com/news/onq/2017/08/02/understanding-3gpp-starting-basics) ([local pdf](/docs/Understanding_3GPP.pdf))
+* [Top 5 drawbacks of "contribution counting" in 3GPP](https://www.qualcomm.com/news/onq/2017/08/02/top-5-drawbacks-contribution-counting-3gpp-dont-count-it) ([local pdf](/docs/Top_5_drawbacks_of_contribution_counting_in_3GPP.pdf))
+* [How to lead the evolution and expansion of the 3GPP ecosystem](https://www.qualcomm.com/news/onq/2017/08/02/how-lead-evolution-and-expansion-3gpp-ecosystem) ([local pdf](/docs/How_to_lead_the_evolution_and_expansion_of_the_3GPP_ecosystem.pdf))

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Telecom: ITU Recommendations"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

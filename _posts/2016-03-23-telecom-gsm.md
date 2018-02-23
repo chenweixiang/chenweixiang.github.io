@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Telecom: GSM"
-tags: [Telecommunication]
+tag: Telecom
 toc: true
 ---
 

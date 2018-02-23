@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Telecom: LTE/LTE-Advanced"
-tags: [Telecommunication]
+tag: Telecom
 toc: true
 ---
 

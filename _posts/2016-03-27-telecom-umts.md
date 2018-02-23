@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Telecom: UMTS"
-tags: [Telecommunication]
+tag: Telecom
 toc: true
 ---
 

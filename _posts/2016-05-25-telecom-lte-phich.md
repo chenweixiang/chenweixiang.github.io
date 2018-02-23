@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "LTE: Physical Hybrid ARQ Indicator CHannel (PHICH)"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

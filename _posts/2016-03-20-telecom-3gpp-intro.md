@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Telecom: 3GPP Introduction"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

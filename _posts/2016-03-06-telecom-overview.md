@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Telecom: Overview"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "LTE: Physical Downlink Control CHannel (PDCCH)"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

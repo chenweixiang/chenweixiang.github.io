@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "LTE: Physical Control Format Indicator CHannel (PCFICH)"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

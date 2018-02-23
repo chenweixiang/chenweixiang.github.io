@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "LTE: Downlink Reference Signals"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

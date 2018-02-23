@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "LTE: PSS, SSS and PBCH"
-tag: Telecommunication
+tag: Telecom
 toc: true
 ---
 

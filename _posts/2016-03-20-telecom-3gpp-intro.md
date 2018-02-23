@@ -104,6 +104,10 @@ RAN specifies the **UTRAN and the E-UTRAN**. It is composed of the following wor
 
 <p/>
 
+RAN protocol stacks vs Working groups:
+
+![3GPP_TSG_RAN_WGs_vs_Protocol_Stacks](/assets/3GPP_TSG_RAN_WGs_vs_Protocol_Stacks.png)
+
 ### SA (Service and System Aspects)
 
 SA specifies the service requirements and the overall architecture of the 3GPP system. It is also responsible for the coordination of the project. SA is composed of the following working groups, refer to [TSG SA](http://www.3gpp.org/specifications-groups/sa-plenary):

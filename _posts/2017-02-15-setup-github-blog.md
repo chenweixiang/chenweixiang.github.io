@@ -132,6 +132,63 @@ Refer to the following sites for Markdown syntex:
 
 ![Mindmap of Markdown Syntax](/assets/Markdown_Syntax.png)
 
+# Github Post Structure
+
+The ABOUT page has the following structure:
+
+```
+about.md
++-  layout: page
+    +-  _layouts/page.html
+        +-  layout: default
+            +-  _layouts/default.html
+```
+
+The Main page has the following structure:
+
+```
+index.html
++-  layout: post_by_tag
+    +-  _layouts/post_by_tag.html
+        +-  layout: default
+            +-  _layouts/default.html
+```
+
+Each post page has the following structure:
+
+```
+_posts/*.md
++-  layout: post
+    +-  _layouts/post.html
+        +-  layout: default
+            +-  _layouts/default.html
+        +-  include disqus_comment.html
+            +-  _include/disqus_comment.html
+```
+
+And the layout has the following structure:
+
+```
+_layouts/default.html
++-  include head.html
+    +-  <link rel="stylesheet" href="/css/gh-fork-ribbon.min.css">
+        ...
+    +-  <script src="/js/jquery-2.1.4.min.js"></script>
+        ...
++-  include header.html
+```
+
+There are three types of CSS configurations:
+
+```
+css/main.css
++-  @import
+        "base",                 // _sass/_base.scss
+        "layout",               // _sass/_layout.scss
+        "syntax-highlighting"   // _sass/_syntax-highlighting.scss
+    ;
+```
+
 # References
 
 * [RVM](https://rvm.io/)

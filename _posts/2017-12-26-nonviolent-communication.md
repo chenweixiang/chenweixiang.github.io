@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Nonviolent Communication"
-tag: Reading
+tag: Methodology
 toc: true
 ---
 

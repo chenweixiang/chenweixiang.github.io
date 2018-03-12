@@ -28,7 +28,7 @@ This article records the books I'm reading.
 | 2017-08-15 | 2017-12-26  | 《非暴力沟通》原书第2版<br>(Nonviolent Communication: A Language of Life, 2nd Edition)<br>[美]马歇尔.卢森堡著，阮胤华译 | <a href="{{ site.base-url }}/2017/12/26/nonviolent-communication.html"> >> </a> |
 | 2017-12-27 | 2018-02-20  | 《简单的逻辑学》 | Good |
 | 2018-02-20 | 2018-02-27  | 《切尔诺贝利的悲鸣》 | Good |
-| 2018-02-27 |             | 《改变心理学的40项研究》 | |
+| 2018-02-27 | 2018-03-12  | 《改变心理学的40项研究》 | Good |
 
 <p/>
 

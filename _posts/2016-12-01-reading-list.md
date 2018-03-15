@@ -29,7 +29,8 @@ This article records the books I'm reading.
 | 2017-12-27 | 2018-02-20  | 《简单的逻辑学》 | Good |
 | 2018-02-20 | 2018-02-27  | 《切尔诺贝利的悲鸣》 | Good |
 | 2018-02-27 | 2018-03-12  | 《改变心理学的40项研究》 [美] 罗杰·R·霍克 著，白学军 等 译<br>*Forty Studies that Changed Psychology* | Good |
-| 2018-03-13 |             | 《美国最高法院通识读本》 [美] 琳达·格林豪斯 著，何帆 译<br>*The U.S. Supreme Count: A Very Short Introduction* | |
+| 2018-03-13 | 2018-03-14  | 《美国最高法院通识读本》 [美] 琳达·格林豪斯 著，何帆 译<br>*The U.S. Supreme Count: A Very Short Introduction* | Good |
+| 2018-03-15 |             | 《最好的辩护》 [美] 德肖维茨 著，唐交东 译<br>*The Best Defense* | |
 
 <p/>
 

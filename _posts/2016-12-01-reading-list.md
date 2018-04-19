@@ -31,6 +31,7 @@ This article records the books I'm reading.
 | 2018-02-27 | 2018-03-12  | 《改变心理学的40项研究》 [美] 罗杰·R·霍克 著，白学军 等 译<br>*Forty Studies that Changed Psychology* | Good |
 | 2018-03-13 | 2018-03-14  | 《美国最高法院通识读本》 [美] 琳达·格林豪斯 著，何帆 译<br>*The U.S. Supreme Count: A Very Short Introduction* | Good |
 | 2018-03-15 | 2018-04-15  | 《最好的辩护》 [美] 德肖维茨 著，唐交东 译<br>*The Best Defense* | Good |
+| 2018-04-15 | 2018-04-19  | 《八九天安门大事记》 吴仁华 著 |  |
 
 <p/>
 

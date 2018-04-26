@@ -137,7 +137,10 @@ Enclosing characters in double quotes (```"```) preserves the literal value of a
 #### ANSI-C Quoting
 
 ***Format:***
-```$'string'```
+
+```
+$'string'
+```
 
 Words of the form ```$'string'``` are treated specially. The word expands to *string*, with backslash-escaped characters replaced as specified by the **ANSI C standard**. Backslash escape sequences, if present, are decoded as following table. The expanded result is ***single-quoted***, as if the dollar sign had not been present.
 
@@ -230,7 +233,10 @@ abc#def
 #### Locale-Specific Translation
 
 ***Format:***
-```$"string"```
+
+```
+$"string"
+```
 
 A **double-quoted** *string* preceded by a dollar sign (```$```) will cause the *string* to be translated according to the current locale. If the current locale is **C** or **POSIX**, the dollar sign is ignored. If the *string* is translated and replaced, the replacement is ***double-quoted***.
 
@@ -264,9 +270,12 @@ abc #print first three characters
 ### Simple Commands
 
 ***Formats:***
-```command```
-```command ;```
-```command &```
+
+```
+command
+command ;
+command &
+```
 
 A simple command is just a sequence of words separated by *blanks*, terminated by one of the shell's [control operators](#control-operator). The first word generally specifies a command to be executed, with the rest of the words being that command's arguments.
 
@@ -275,11 +284,17 @@ A simple command is just a sequence of words separated by *blanks*, terminated b
 A **pipeline** is a sequence of **simple commands** separated by one of the control operators ```|``` or ```|&```. The output of each command in the pipeline is connected via a pipe to the input of the next command.
 
 ***Format #1:***
-```[time [-p]] [!] command1 [ | command2 ] ...```
+
+```
+[time [-p]] [!] command1 [ | command2 ] ...
+```
 
 ***Format #2:***
-```[time [-p]] [!] command1 [ |& command2 ] ...```
-```[time [-p]] [!] command1 [ 2>&1 | command2 ] ...```
+
+```
+[time [-p]] [!] command1 [ |& command2 ] ...
+[time [-p]] [!] command1 [ 2>&1 | command2 ] ...
+```
 
 If ```|&``` is used, *command1*'s standard error, in addition to its standard output, is connected to *command2*'s standard input through the pipe; it is shorthand for ```2>&1 |```.
 
@@ -290,28 +305,43 @@ If the reserved word ```!``` precedes the pipeline, the exit status is the logic
 A **list** is a sequence of one or more **pipelines** separated by one of the operators ```&&``` ```||``` ```;``` ```&```, and optionally terminated by one of ```;``` ```&``` or a ***newline***. Of these list operators, ```&&``` and ```||``` have equal precedence, followed by ```;``` and ```&```, which have equal precedence. A sequence of one or more ***newlines*** may appear in a list to delimit commands, equivalent to a semicolon.
 
 ***Format #1:***
-```pipeline-command1 ; pipeline-command2```
-```pipeline-command1 ; pipeline-command2 ;```
-```pipeline-command1 ; pipeline-command2 &```
+
+```
+pipeline-command1 ; pipeline-command2
+pipeline-command1 ; pipeline-command2 ;
+pipeline-command1 ; pipeline-command2 &
+```
 
 ***Format #2:***
-```pipeline-command1 & pipeline-command2```
-```pipeline-command1 & pipeline-command2 ;```
-```pipeline-command1 & pipeline-command2 &```
+
+```
+pipeline-command1 & pipeline-command2
+pipeline-command1 & pipeline-command2 ;
+pipeline-command1 & pipeline-command2 &
+```
 
 ***Format #3:***
-```pipeline-command1 && pipeline-command2```
-```pipeline-command1 && pipeline-command2 ;```
-```pipeline-command1 && pipeline-command2 &```
+
+```
+pipeline-command1 && pipeline-command2
+pipeline-command1 && pipeline-command2 ;
+pipeline-command1 && pipeline-command2 &
+```
 
 ***Format #4:***
-```pipeline-command1 || pipeline-command2```
-```pipeline-command1 || pipeline-command2 ;```
-```pipeline-command1 || pipeline-command2 &```
+
+```
+pipeline-command1 || pipeline-command2
+pipeline-command1 || pipeline-command2 ;
+pipeline-command1 || pipeline-command2 &
+```
 
 ***Format #5:***
-```pipeline-command1 && pipeline-command2 ; pipeline-command3 || pipeline-command4 ```
-```pipeline-command1 && pipeline-command2 ; pipeline-command3 || pipeline-command4 & ```
+
+```
+pipeline-command1 && pipeline-command2 ; pipeline-command3 || pipeline-command4
+pipeline-command1 && pipeline-command2 ; pipeline-command3 || pipeline-command4 &
+```
 
 Commands separated by a ```;``` are executed sequentially; the shell waits for each command to terminate in turn. The return status is the exit status of the last command executed.
 
@@ -937,7 +967,9 @@ $REPLY is 2, $name is b, break now!
 
 ***Format:***
 
-```(( expression ))```
+```
+(( expression ))
+```
 
 The **arithmetic expression** *expression* is evaluated. If the value of the *expression* is **non-zero**, the return status is **0**; otherwise the return status is **1**. This is exactly equivalent to ```let "expression"``` for a full description of the ```let``` builtin, refer to [Bash Builtin Commands](#bash-builtin-commands).
 
@@ -966,7 +998,9 @@ else statement
 
 ***Format:***
 
-```[[ expression ]]```
+```
+[[ expression ]]
+```
 
 Return a status of **0** or **1** depending on the evaluation of the **conditional expression** *expression*. Expressions are composed of the primaries described in [Bash Conditional Expressions](#bash-conditional-expressions).
 
@@ -1029,7 +1063,9 @@ Bash provides two ways to group a list of commands to be executed as a unit. Whe
 
 ***Format:***
 
-```( list )```
+```
+( list )
+```
 
 Placing a list of commands between parentheses causes a ***subshell*** environment to be created (see [Command Execution Environment](#command-execution-environment)), and each of the commands in *list* to be executed in that ***subshell***. Since the *list* is executed in a subshell, variable assignments do not remain in effect after the subshell completes.
 
@@ -1037,7 +1073,9 @@ Placing a list of commands between parentheses causes a ***subshell*** environme
 
 ***Format:***
 
-```{ list; }```
+```
+{ list; }
+```
 
 Placing a list of commands between curly braces causes the list to be executed in the ***current shell context***. **No subshell is created**. The semicolon (or *newline*) following list is required.
 
@@ -1054,7 +1092,10 @@ The exit status of both of these constructs is the exit status of *list*.
 A **coprocess** is a shell command preceded by the **coproc** reserved word. **A coprocess is executed asynchronously in a subshell**, as if the command had been terminated with the ```&``` [control operator](#control-operator), with a two-way pipe established between the executing shell and the coprocess.
 
 ***Format:***
-```coproc [NAME] command [redirections]```
+
+```
+coproc [NAME] command [redirections]
+```
 
 This creates a coprocess named *NAME*. If *NAME* is not supplied, the default name is *COPROC*. *NAME* must not be supplied if *command* is a [simple command](#simple-commands); otherwise, it is interpreted as the first word of the simple command.
 
@@ -1074,23 +1115,31 @@ For a complete description, refer to the *GNU Parallel documentation*. A few exa
 
 For example, it is easy to replace **xargs** to gzip all html files in the current directory and its subdirectories:
 
-```find . -type f -name '*.html' -print | parallel gzip```
+```
+find . -type f -name '*.html' -print | parallel gzip
+```
 
 If you need to protect special characters such as *newlines* in file names, use **find**'s ```-print0``` option and **parallel**'s ```-0``` option.
 
 You can use Parallel to move files from the current directory when the number of files is too large to process with one **mv** invocation:
 
-```ls | parallel mv {} destdir```
+```
+ls | parallel mv {} destdir
+```
 
 As you can see, the ```{}``` is replaced with each line read from standard input. While using **ls** will work in most instances, it is not sufficient to deal with all filenames. If you need to accommodate special characters in filenames, you can use:
 
-```find . -depth 1 \! -name '.*' -print0 | parallel -0 mv {} destdir```
+```
+find . -depth 1 \! -name '.*' -print0 | parallel -0 mv {} destdir
+```
 
 as alluded to above.
 
 This will run as many **mv** commands as there are files in the current directory. You can emulate a parallel **xargs** by adding the ```-X``` option:
 
-```find . -depth 1 \! -name '.*' -print0 | parallel -0 -X mv {} destdir```
+```
+find . -depth 1 \! -name '.*' -print0 | parallel -0 -X mv {} destdir
+```
 
 GNU Parallel can replace certain common idioms that operate on lines read from a file (in this case, filenames listed one per line):
 
@@ -1103,29 +1152,41 @@ done < file | process-output
 
 with a more compact syntax reminiscent of lambdas:
 
-```cat list | parallel "do-something1 {} config-{} ; do-something2 < {}" | process-output```
+```
+cat list | parallel "do-something1 {} config-{} ; do-something2 < {}" | process-output
+```
 
 Parallel provides a built-in mechanism to remove filename extensions, which lends itself to batch file transformations or renaming:
 
-```ls *.gz | parallel -j+0 "zcat {} | bzip2 >{.}.bz2 && rm {}"```
+```
+ls *.gz | parallel -j+0 "zcat {} | bzip2 >{.}.bz2 && rm {}"
+```
 
 This will recompress all files in the current directory with names ending in .gz using bzip2, running one job per CPU (-j+0) in parallel. (We use **ls** for brevity here; using **find** as above is more robust in the face of filenames containing unexpected characters.) Parallel can take arguments from the command line; the above can also be written as
 
-```parallel "zcat {} | bzip2 >{.}.bz2 && rm {}" ::: *.gz```
+```
+parallel "zcat {} | bzip2 >{.}.bz2 && rm {}" ::: *.gz
+```
 
 If a command generates output, you may want to preserve the input order in the output. For instance, the following command
 
-```{ echo foss.org.my ; echo debian.org; echo freenetproject.org; } | parallel traceroute```
+```
+{ echo foss.org.my ; echo debian.org; echo freenetproject.org; } | parallel traceroute
+```
 
 will display as output the traceroute invocation that finishes first. Adding the ```-k``` option
 
-```{ echo foss.org.my ; echo debian.org; echo freenetproject.org; } | parallel -k traceroute```
+```
+{ echo foss.org.my ; echo debian.org; echo freenetproject.org; } | parallel -k traceroute
+```
 
 will ensure that the output of **traceroute foss.org.my** is displayed first.
 
 Finally, Parallel can be used to run a sequence of shell commands in parallel, similar to ```cat file | bash```. It is not uncommon to take a list of filenames, create a series of shell commands to operate on them, and feed that list of commnds to a shell. Parallel can speed this up. Assuming that **file** contains a list of shell commands, one per line,
 
-```parallel -j 10 < file```
+```
+parallel -j 10 < file
+```
 
 will evaluate the commands using the shell (since no explicit command is supplied as an argument), in blocks of ten shell jobs at a time.
 
@@ -1447,7 +1508,9 @@ When braces are used, the matching ending brace is the first ```}``` not escaped
 
 #### Format #1
 
-* ```${parameter}```
+```
+${parameter}
+```
 
 The value of *parameter* is substituted. The *parameter* is a shell parameter as described in [Shell Parameters](#shell-parameters) or an array reference (see [Arrays](#arrays)). The braces are required when *parameter* is a **positional parameter** with more than one digit, or when *parameter* is followed by a character that is not to be interpreted as part of its name.
 
@@ -1458,7 +1521,10 @@ In each of the cases below, *word* is subject to **tilde expansion**, **paramete
 When not performing substring expansion, using the form described below (e.g., ```:-```), Bash tests for a parameter that is unset or null. Omitting the colon results in a test only for a parameter that is unset. Put another way, if the colon is included, the operator tests for both parameter's existence and that its value is not null; if the colon is omitted, the operator tests only for existence.
 
 ***Examples:***
-* ```$ p1=10```
+
+```
+$ p1=10
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1468,13 +1534,18 @@ When not performing substring expansion, using the form described below (e.g., `
 
 #### Format #2
 
-* ```${parameter:-word}```
+```
+${parameter:-word}
+```
 
 If *parameter* is unset or null, the expansion of *word* is substituted. Otherwise, the value of *parameter* is substituted.
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1486,8 +1557,11 @@ If *parameter* is unset or null, the expansion of *word* is substituted. Otherwi
 <p/>
 
 ***Examples:***
-```$ p1=10```
-```$ p2=20```
+
+```
+$ p1=10
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1499,13 +1573,18 @@ If *parameter* is unset or null, the expansion of *word* is substituted. Otherwi
 
 #### Format #3
 
-* ```${parameter:=word}```
+```
+${parameter:=word}
+```
 
 If *parameter* is unset or null, the expansion of *word* is assigned to *parameter*. The value of *parameter* is then substituted. [Positional parameters](#positional-parameters) and [special parameters](#special-parameters) may not be assigned to in this way.
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1515,8 +1594,11 @@ If *parameter* is unset or null, the expansion of *word* is assigned to *paramet
 <p/>
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1526,8 +1608,11 @@ If *parameter* is unset or null, the expansion of *word* is assigned to *paramet
 <p/>
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1538,13 +1623,18 @@ If *parameter* is unset or null, the expansion of *word* is assigned to *paramet
 
 #### Format #4
 
-* ```${parameter:?word}```
+```
+${parameter:?word}
+```
 
 If *parameter* is null or unset, the expansion of *word* is written to the standard error and the shell, if it is not interactive, exits. Otherwise, the value of *parameter* is substituted.
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1554,8 +1644,11 @@ If *parameter* is null or unset, the expansion of *word* is written to the stand
 <p/>
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1565,8 +1658,11 @@ If *parameter* is null or unset, the expansion of *word* is written to the stand
 <p/>
 
 ***Examples:***
-```$ p1=10```
-```$ p2=20```
+
+```
+$ p1=10
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1577,13 +1673,18 @@ If *parameter* is null or unset, the expansion of *word* is written to the stand
 
 #### Format #5
 
-* ```${parameter:+word}```
+```
+${parameter:+word}
+```
 
 If *parameter* is null or unset, nothing is substituted. Otherwise, the expansion of *word* is substituted.
 
 ***Examples:***
-```$ unset p1```
-```$ p2=20```
+
+```
+$ unset p1
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1593,8 +1694,11 @@ If *parameter* is null or unset, nothing is substituted. Otherwise, the expansio
 <p/>
 
 ***Examples:***
-```$ p1=10```
-```$ p2=20```
+
+```
+$ p1=10
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1604,8 +1708,11 @@ If *parameter* is null or unset, nothing is substituted. Otherwise, the expansio
 <p/>
 
 ***Examples:***
-```$ p1=10```
-```$ p2=20```
+
+```
+$ p1=10
+$ p2=20
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1616,15 +1723,20 @@ If *parameter* is null or unset, nothing is substituted. Otherwise, the expansio
 
 #### Format #6
 
-* ```${parameter:offset}```
-* ```${parameter:offset:length}```
+```
+${parameter:offset}
+${parameter:offset:length}
+```
 
 This is referred to as **Substring Expansion**. It expands to up to *length* characters of the value of *parameter* starting at the character specified by *offset*. If *length* is omitted, it expands to the substring of the value of *parameter* starting at the character specified by *offset* and extending to the end of the value. *length* and *offset* are arithmetic expressions.
 
 If *offset* evaluates to a number **less than zero**, the value is used as an *offset* in characters from the end of the value of *parameter*. If *length* evaluates to a number **less than zero**, it is interpreted as an *offset* in characters from the end of the value of *parameter* rather than a number of characters, and the expansion is the characters between *offset* and that result. Note that a negative *offset* must be separated from the colon by at least one space to avoid being confused with the ```:-``` expansion.
 
 ***Examples:***
-```$ string=01234567890abcdefgh```
+
+```
+$ string=01234567890abcdefgh
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1638,7 +1750,10 @@ If *offset* evaluates to a number **less than zero**, the value is used as an *o
 <p/>
 
 ***Examples:***
-```$ set -- 01234567890abcdefgh```
+
+```
+$ set -- 01234567890abcdefgh
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1654,7 +1769,10 @@ If *offset* evaluates to a number **less than zero**, the value is used as an *o
 If *parameter* is ```@```, the result is length **positional parameters** beginning at *offset*. A negative *offset* is taken relative to one greater than the greatest positional parameter, so an offset of **-1** evaluates to the last positional parameter. It is an expansion error if *length* evaluates to a number less than zero.
 
 ***Examples:***
-```$ set -- 1 2 3 4 5 6 7 8 9 0 a b c d e f g h```
+
+```
+$ set -- 1 2 3 4 5 6 7 8 9 0 a b c d e f g h
+```
 
 | Formats | Expansions |
 | :-------| :--------- |
@@ -1672,7 +1790,10 @@ If *parameter* is ```@```, the result is length **positional parameters** beginn
 If *parameter* is an indexed array name subscripted by ```@``` or ```*```, the result is the *length* members of the array beginning with **${parameter[offset]}**. A negative *offset* is taken relative to one greater than the maximum index of the specified array. It is an expansion error if length evaluates to a number less than zero.
 
 ***Examples:***
-```$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)```
+
+```
+$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1690,14 +1811,19 @@ Substring indexing is zero-based unless the positional parameters are used, in w
 
 #### Format #7
 
-* ```${!prefix@}```
-* ```${!prefix*}```
+```
+${!prefix@}
+${!prefix*}
+```
 
 Expands to the names of variables whose names begin with *prefix*, separated by the first character of the **IFS** special variable. When ```@``` is used and the expansion appears within double quotes, each variable name expands to a separate word.
 
 ***Examples:***
-```$ string1=01234567890abcdefgh```
-```$ string2=abcdefghijk01234567```
+
+```
+$ string1=01234567890abcdefgh
+$ string2=abcdefghijk01234567
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1708,13 +1834,18 @@ Expands to the names of variables whose names begin with *prefix*, separated by 
 
 #### Format #8
 
-* ```${!name[@]}```
-* ```${!name[*]}```
+```
+${!name[@]}
+${!name[*]}
+```
 
 If *name* is an array variable, expands to the list of array indices (keys) assigned in *name*. If *name* is not an array, expands to **0** if *name* is set and null otherwise. When ```@``` is used and the expansion appears within double quotes, each key expands to a separate word.
 
 ***Examples:***
-```$ array1=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)```
+
+```
+$ array1=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1725,7 +1856,9 @@ If *name* is an array variable, expands to the list of array indices (keys) assi
 
 #### Format #9
 
-* ```${#parameter}```
+```
+${#parameter}
+```
 
 The length in characters of the expanded value of *parameter* is substituted.
 
@@ -1737,9 +1870,12 @@ The length in characters of the expanded value of *parameter* is substituted.
 last element.
 
 ***Examples:***
-```$ string=01234567890abcdefgh```
-```$ set -- 0 1 2 3 4 5 6 7 8 9```
-```$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)```
+
+```
+$ string=01234567890abcdefgh
+$ set -- 0 1 2 3 4 5 6 7 8 9
+$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1754,8 +1890,10 @@ last element.
 
 #### Format #10
 
-* ```${parameter#word}```
-* ```${parameter##word}```
+```
+${parameter#word}
+${parameter##word}
+```
 
 The *word* is expanded to produce a pattern just as in filename expansion. If the pattern matches the **beginning** of the expanded value of *parameter*, then the result of the expansion is the expanded value of *parameter* with the shortest matching pattern (the ```#``` case) or the longest matching pattern (the ```##``` case) deleted.
 
@@ -1764,9 +1902,12 @@ The *word* is expanded to produce a pattern just as in filename expansion. If th
 * If *parameter* is an array variable subscripted with ```@``` or ```*```, the pattern removal operation is applied to each member of the array in turn, and the expansion is the resultant list.
 
 ***Examples:***
-```$ string=012345012345abcdeabcde```
-```$ set -- 0 1 2 3 4 5 6 7 8 9```
-```$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)```
+
+```
+$ string=012345012345abcdeabcde
+$ set -- 0 1 2 3 4 5 6 7 8 9
+$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1783,8 +1924,10 @@ The *word* is expanded to produce a pattern just as in filename expansion. If th
 
 #### Format #11
 
-* ```${parameter%word}```
-* ```${parameter%%word}```
+```
+${parameter%word}
+${parameter%%word}
+```
 
 The *word* is expanded to produce a pattern just as in filename expansion. If the pattern matches a **trailing** portion of the expanded value of *parameter*, then the result of the expansion is the value of *parameter* with the shortest matching pattern (the ```%``` case) or the longest matching pattern (the ```%%``` case) deleted.
 
@@ -1793,9 +1936,12 @@ The *word* is expanded to produce a pattern just as in filename expansion. If th
 * If *parameter* is an array variable subscripted with ```@``` or ```*```, the pattern removal operation is applied to each member of the array in turn, and the expansion is the resultant list.
 
 ***Examples:***
-```$ string=012345012345abcdeabcde```
-```$ set -- 0 1 2 3 4 5 6 7 8 9```
-```$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)```
+
+```
+$ string=012345012345abcdeabcde
+$ set -- 0 1 2 3 4 5 6 7 8 9
+$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1811,7 +1957,9 @@ The *word* is expanded to produce a pattern just as in filename expansion. If th
 
 #### Format #12
 
-* ```${parameter/pattern/string}```
+```
+${parameter/pattern/string}
+```
 
 The *pattern* is expanded to produce a pattern just as in filename expansion. *parameter* is expanded and the longest match of *pattern* against its value is replaced with *string*.
 
@@ -1828,9 +1976,12 @@ The *pattern* is expanded to produce a pattern just as in filename expansion. *p
 * If *parameter* is an array variable subscripted with ```@``` or ```*```, the substitution operation is applied to each member of the array in turn, and the expansion is the resultant list.
 
 ***Examples:***
-```$ string=012345012345abcdeabcde```
-```$ set -- 0 1 2 3 4 5 6 7 8 9```
-```$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)```
+
+```
+$ string=012345012345abcdeabcde
+$ set -- 0 1 2 3 4 5 6 7 8 9
+$ array=(0 1 2 3 4 5 6 7 8 9 0 a b c d e f g h)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1852,10 +2003,12 @@ The *pattern* is expanded to produce a pattern just as in filename expansion. *p
 
 #### Format #13
 
-* ```${parameter^pattern}```
-* ```${parameter^^pattern}```
-* ```${parameter,pattern}```
-* ```${parameter,,pattern}```
+```
+${parameter^pattern}
+${parameter^^pattern}
+${parameter,pattern}
+${parameter,,pattern}
+```
 
 This expansion modifies the case of alphabetic characters in *parameter*. The *pattern* is expanded to produce a *pattern* just as in filename expansion. Each character in the expanded value of *parameter* is tested against *pattern*, and, if it matches the *pattern*, its case is converted.
 
@@ -1870,9 +2023,12 @@ This expansion modifies the case of alphabetic characters in *parameter*. The *p
 * If *parameter* is an array variable subscripted with ```@``` or ```*```, the case modification operation is applied to each member of the array in turn, and the expansion is the resultant list.
 
 ***Examples:***
-```$ string=abcdeABCDEabcdeABCDE```
-```$ set -- ABCDEabcdeABCDEabcde```
-```$ array=(A B C D E a b c d e A B C D E a b c d e)```
+
+```
+$ string=abcdeABCDEabcdeABCDE
+$ set -- ABCDEabcdeABCDEabcde
+$ array=(A B C D E a b c d e A B C D E a b c d e)
+```
 
 | Formats | Expansions | Note |
 | :-------| :--------- | :--- |
@@ -1903,7 +2059,9 @@ This expansion modifies the case of alphabetic characters in *parameter*. The *p
 
 ***Format:***
 
-* ```$(( expression ))```
+```
+$(( expression ))
+```
 
 Arithmetic expansion allows the evaluation of an arithmetic expression and the substitution of the result.
 
@@ -1922,8 +2080,10 @@ The evaluation is performed according to the rules listed in [Shell Arithmetic](
 
 ***Formats:***
 
-* ```$(command)```
-* ``` `command` ```
+```
+$(command)
+`command`
+```
 
 Command substitution allows the output of a command to replace the command itself.
 
@@ -1948,8 +2108,10 @@ If the substitution appears within double quotes, **word splitting** and **filen
 
 ***Formats:***
 
-* ```<(list)```
-* ```>(list)```
+```
+<(list)
+>(list)
+```
 
 Process substitution is supported on systems that support **named pipes** (**FIFO**s) or the **/dev/fd** method of naming open files.
 
@@ -2309,8 +2471,11 @@ This section describes builtin commands which are unique to or have been extende
 The shell builtin **set** allows you to change the values of shell options and set the **positional parameters**, or to display the names and values of shell variables.
 
 ***Formats:***
-```set [--abefhkmnptuvxBCEHPT] [-o option-name] [argument ...]```
-```set [+abefhkmnptuvxBCEHPT] [+o option-name] [argument ...]```
+
+```
+set [--abefhkmnptuvxBCEHPT] [-o option-name] [argument ...]
+set [+abefhkmnptuvxBCEHPT] [+o option-name] [argument ...]
+```
 
 If no options or arguments are supplied, **set** displays the names and values of all shell variables and functions, sorted according to the current locale, in a format that may be reused as input for setting or resetting the currently-set variables. Read-only variables cannot be reset. In POSIX mode, only shell variables are listed.
 
@@ -2342,7 +2507,7 @@ When options are supplied, they set or unset shell attributes. Options, if speci
 
 <p/>
 
-```-o option-name``` sets the option corresponding to *option-name*:
+The ```-o option-name``` sets the option corresponding to *option-name*:
 
 | *option-name* | Description |
 | :---------- | :---------- |
@@ -2408,7 +2573,10 @@ bhimBH
 ### The *shopt* Builtin
 
 ***Format:***
-```shopt [-pqsu] [-o] [optname ...]```
+
+```
+shopt [-pqsu] [-o] [optname ...]
+```
 
 The shell builtin **shopt** allows you to change additional shell optional behavior. Toggle the values of settings controlling optional shell behavior. The settings can be either those listed below, or, if the ```-o``` option is used, those available with the ```-o``` option to the **set** builtin command (see [The *set* Builtin](#the-set-builtin)).
 
@@ -2567,7 +2735,10 @@ For historical reasons, the POSIX standard has classified several builtin comman
 When Bash is not executing in POSIX mode, these builtins behave no differently than the rest of the Bash builtin commands.
 
 These are the POSIX special builtins:
-```break : . continue eval exec exit export readonly return set shift trap unset```
+
+```
+break : . continue eval exec exit export readonly return set shift trap unset
+```
 
 # Shell Variables
 
@@ -2694,13 +2865,22 @@ A few variables used by Bash are described in different chapters: variables for 
 ## Invoking Bash
 
 ***Format #1:***
-```bash [long-opt] [-ir] [-abefhkmnptuvxdBCDHP] [-o option] [-O shopt_option] [argument ...]```
+
+```
+bash [long-opt] [-ir] [-abefhkmnptuvxdBCDHP] [-o option] [-O shopt_option] [argument ...]
+```
 
 ***Format #2:***
-```bash [long-opt] -s [-abefhkmnptuvxdBCDHP] [-o option] [-O shopt_option] [argument ...]```
+
+```
+bash [long-opt] -s [-abefhkmnptuvxdBCDHP] [-o option] [-O shopt_option] [argument ...]
+```
 
 ***Format #3:***
-```bash [long-opt] [-abefhkmnptuvxdBCDHP] [-o option] [-O shopt_option] -c string [argument ...]```
+
+```
+bash [long-opt] [-abefhkmnptuvxdBCDHP] [-o option] [-O shopt_option] -c string [argument ...]
+```
 
 All of the single-character options used with the **set** builtin can be used as options when the shell is invoked.
 
@@ -2969,7 +3149,10 @@ Operators are evaluated in order of precedence. Sub-expressions in parentheses a
 * If the **last character of the alias value** is a *blank*, then the next command word following the alias is also checked for alias expansion.
 
 * Aliases are not expanded when the shell is not interactive, unless the shell option ```expand_aliases``` is set using ```shopt```,  refer to [The *shopt* Builtin](#the-shopt-builtin):
-```$ shopt -s expand_aliases```
+
+```
+$ shopt -s expand_aliases
+```
 
 Bash always reads at least one complete line of input before executing any of the commands on that line. **Aliases are expanded when a command is read, not when it is executed**.
 
@@ -3432,7 +3615,9 @@ Job control refers to the ability to selectively **stop** (**suspend**) the exec
 
 The shell associates a *job* with each pipeline. It keeps a table of currently executing jobs, which may be listed with the **jobs** command. When Bash starts a job asynchronously, it prints a line that looks like:
 
-```[1] 25647```
+```
+[1] 25647
+```
 
 indicating that this job is job number 1 and that the process ID of the last process in the pipeline associated with this job is 25647. **All of the processes in a single pipeline are members of the same job**. Bash uses the *job* abstraction as the basis for job control.
 
@@ -6910,7 +7095,10 @@ Several shell options settable with the *shopt* builtin may be used to tailor th
 * The shell allows control of the various characters used by the history expansion mechanism with the ```histchars``` variable. The shell uses the history comment character to mark history timestamps when writing the history file.
 
 ***Format:***
-```<event-designator>[:<word-designator>][:<modifier1>[:<modifier2>...]]```
+
+```
+<event-designator>[:<word-designator>][:<modifier1>[:<modifier2>...]]
+```
 
 ### Event Designators
 

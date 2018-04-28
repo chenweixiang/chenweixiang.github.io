@@ -9,7 +9,7 @@ This article introduces some useful configurations of Source Insight.
 
 <!--more-->
 
-# Source Insight Configuration
+# Source Insight 3.5 Configuration
 
 ## Basic Configure
 
@@ -41,7 +41,7 @@ In Source Insight main window, select **View** > **Relation Window** to open Rel
 
 ![source-insight-config-05](/assets/source-insight-config-05.png)
 
-# Source Insight for Python
+## Source Insight 3.5 for Python
 
 Download source insight plugin file [Python.CLF](/assets/Python.CLF), and configure source insight like the following figures:
 
@@ -56,6 +56,32 @@ Download source insight plugin file [Python.CLF](/assets/Python.CLF), and config
 ![source_insight_python_5](/assets/source_insight_python_5.png)
 
 ![source_insight_python_6](/assets/source_insight_python_6.png)
+
+# Source Insight 4.0 Configuration
+
+## Basic Configure
+
+In Source Insight main window, open **Options** > **File Type Options... Alt+Y**, then select the following items:
+
+![source-insight-4.0-config-01](/assets/source-insight-4.0-config-01.png)
+
+## Show Filename on Title Bar and Close Overviews
+
+In Source Insight main window, open **Options** > **Preferences...**, then select the following items:
+
+![source-insight-4.0-config-02](/assets/source-insight-4.0-config-02.png)
+
+## Always appends to Old Search Results
+
+In Source Insight main window, open **Options** > **Preferences...**, then select the following items:
+
+![source-insight-4.0-config-03](/assets/source-insight-4.0-config-03.png)
+
+## Show Line Numbers
+
+In Source Insight main window, select **View** > **Line Numbers**:
+
+![source-insight-4.0-config-04](/assets/source-insight-4.0-config-04.png)
 
 # References
 

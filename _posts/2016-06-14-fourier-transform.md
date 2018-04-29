@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Fourier Transform"
-tag: Algorithm
+title: "Algorithm: Fourier Transform"
+tag: Telecom
 toc: true
 ---
 

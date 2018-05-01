@@ -298,4 +298,4 @@ linux-3.2/Kconfig
 
 # References
 
-* [https://www.kernel.org/](https://www.kernel.org/)
+* [The Linux Kernel Archives](https://www.kernel.org/)

@@ -71,6 +71,8 @@ In Source Insight main window, open **Options** > **Preferences...**, then selec
 
 ![source-insight-4.0-config-02](/assets/source-insight-4.0-config-02.png)
 
+![source-insight-4.0-config-05](/assets/source-insight-4.0-config-05.png)
+
 ## Always appends to Old Search Results
 
 In Source Insight main window, open **Options** > **Preferences...**, then select the following items:

@@ -1,3 +1,3 @@
 # chenweixiang.github.io
 
-This repository records my understanding of Linux kernel and software development.
+This repository records my understandings of software development and Linux kernel. The corresponding blog can be access by http://chenweixiang.github.io/.

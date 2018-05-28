@@ -26,11 +26,11 @@ The Devicetree specification is currently managed by a community named [devicetr
 
 # Device Tree Formats
 
-A device tree can hold any kind of data as internally it is a **tree** of named **nodes** and **properties**. Nodes contain properties and child nodes, while properties are name–value pairs.
+A device tree can hold any kind of data as internally it is a **tree** of named **nodes** and **properties**. Nodes contain properties and child nodes, while properties are *name-value* pairs.
 
-Device trees have both a **binary format** for operating systems to use and a **textual format** for convenient editing and management.
+Device trees have both a **binary format** (DTC) for operating systems to use and a **textual format** (DTS) for convenient editing and management.
 
-* [About_The_Device_Tree](/docs/About_The_Device_Tree.pdf)
+* [About The Device Tree](/docs/About_The_Device_Tree.pdf)
 * [Device Tree Usage](http://www.devicetree.org/Device_Tree_Usage)
 
 # References

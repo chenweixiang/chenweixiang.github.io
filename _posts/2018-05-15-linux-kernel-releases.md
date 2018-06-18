@@ -90,6 +90,7 @@ The Linux kernel release notes are collected on website [Linux Kernel Newbies](h
 * [Linux v4.14](https://kernelnewbies.org/Linux_4.14)
 * [Linux v4.15](https://kernelnewbies.org/Linux_4.15)
 * [Linux v4.16](https://kernelnewbies.org/Linux_4.16)
+* [Linux v4.17](https://kernelnewbies.org/Linux_4.17)
 
 # References
 

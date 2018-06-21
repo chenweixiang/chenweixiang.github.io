@@ -175,7 +175,7 @@ The 3GPP specifications are transposed into deliverables by the Organizational P
 
 ## Releases
 
-The following table is from [3GPP wikipedia page](https://en.wikipedia.org/wiki/3GPP). For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications.
+The following table is from [3GPP wikipedia page](https://en.wikipedia.org/wiki/3GPP). For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications. The [3GPP Work Plan](http://www.3gpp.org/specifications/work-plan) and [3GPP Work Programme](http://www.3gpp.org/DynaReport/GanttChart-Level-2.htm) shows the 3GPP work plan.
 
 | [Releases](http://www.3gpp.org/specifications/67-releases) | Released | Description |
 | :------- | :------- | :---------- |
@@ -196,7 +196,7 @@ The following table is from [3GPP wikipedia page](https://en.wikipedia.org/wiki/
 | [Release 12](http://www.3gpp.org/release-12) | 2015 Q1 | **Enhanced Small Cells** (higher order modulation, dual connectivity, cell discovery, self configuration), **Carrier Aggregation** (2 uplink carriers, 3 downlink carriers, FDD/TDD carrier aggregation), **MIMO** (3D channel modeling, elevation beamforming, massive MIMO), **New and Enhanced Services** (cost and range of MTC, D2D communication, eMBMS enhancements). |
 | [Release 13](http://www.3gpp.org/release-13) | 2016 Q1 | LTE in unlicensed, LTE enhancements for Machine-Type Communication. Elevation Beamforming / Full-Dimension MIMO, Indoor positioning. |
 | [Release 14](http://www.3gpp.org/release-14) | Planned for June 2017 | Energy Efficiency, Location Services (LCS), Mission Critical Data over LTE, Mission Critical Video over LTE, Flexible Mobile Service Steering (FMSS), Multimedia Broadcast Supplement for Public Warning System (MBSP), enhancement for TV service, massive Internet of Things, Cell Broadcast Service (CBS) |
-| [Release 15](http://www.3gpp.org/release-15) | Planned for Sept 2018 | Support for 5G Vehicle-to-x service,IP Multimedia Core Network Subsystem (IMS), Future Railway Mobile Communication System |
+| [Release 15](http://www.3gpp.org/release-15) | 2018 Q3 | Support for 5G Vehicle-to-x service,IP Multimedia Core Network Subsystem (IMS), Future Railway Mobile Communication System |
 
 <p/>
 

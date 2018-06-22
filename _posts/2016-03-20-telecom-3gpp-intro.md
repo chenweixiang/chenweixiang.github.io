@@ -173,6 +173,8 @@ The 3GPP specifications are transposed into deliverables by the Organizational P
 
 ![3GPP_ongoing_releases](/assets/3GPP_ongoing_releases.JPG)
 
+![Rel15_5G_NR_timeline](/assets/Rel15_5G_NR_timeline.jpg)
+
 ## Releases
 
 The following table is from [3GPP wikipedia page](https://en.wikipedia.org/wiki/3GPP). For detail features of each release, refer to [Release Description](http://www.3gpp.org/ftp/Information/WORK_PLAN/Description_Releases/). The table [3GPP Specification Release Version Matrix](http://www.3gpp.org/DynaReport/SpecReleaseMatrix.htm) shows the versions which exist in each Release of the 3GPP specifications. The [3GPP Work Plan](http://www.3gpp.org/specifications/work-plan) and [3GPP Work Programme](http://www.3gpp.org/DynaReport/GanttChart-Level-2.htm) shows the 3GPP work plan.

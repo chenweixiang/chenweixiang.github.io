@@ -33,7 +33,7 @@ This article records the books I'm reading.
 | 2018-03-15 | 2018-04-15  | 《最好的辩护》 [美] 德肖维茨 著，唐交东 译<br>*The Best Defense* | Good |
 | 2018-04-15 | 2018-04-19  | 《八九天安门大事记》 吴仁华 著 | 民主是人心所向 |
 | 2018-04-20 | 2018-05-28  | 《金瓶梅》 兰陵笑笑生 著 | 第60回后情节加快 |
-| 2018-05-29 | 2018-06-23  | 《关键对话：如何高效能沟通》(原书第2版)<br>*Crucial Conversations: Tools for Talking When Stakes Are Hight, 2nd Edition* | <a href="{{ site.base-url }}/2018/06/23/crucial-conversations.html"> link </a> |
+| 2018-05-29 | 2018-06-27  | 《关键对话：如何高效能沟通》(原书第2版)<br>*Crucial Conversations: Tools for Talking When Stakes Are Hight, 2nd Edition* | <a href="{{ site.base-url }}/2018/06/23/crucial-conversations.html"> link </a> |
 
 <p/>
 

@@ -1085,3 +1085,4 @@ According to R1-110564 in 3GPP, CoMP techniques can be applied in three differen
 * [LTE Network Architecture](/docs/LTE_Network_Architecture_StraWhitePaper.pdf)
 * [GSM, LTE, UMTS and IMS Call Flows](http://www.eventhelix.com/realtimemantra/Telecom/#.WQG3JH21cTw)
 * [Digital Standard EUTRA/LTE from Rohde Schwarz](https://www.rohde-schwarz.com/webhelp/rs_smu_help_2/RS_SMU_Help.htm)
+* [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)

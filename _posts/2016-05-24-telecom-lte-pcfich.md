@@ -62,6 +62,8 @@ Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
 * LTE-TDD, DL, ECP, 2 AP, All BW
 * LTE-TDD, DL, ECP, 4 AP, All BW
 
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # References
 
 * TS 36.212 E-UTRA - Multiplexing and channel coding, section 5.3.4
@@ -71,3 +73,4 @@ Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
 * [PCFICH (Physical Control Format Indicator Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PCFICH.html)
 * [MatLab Toolbox for PCFICH on ShareTechnote](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PCFICH.html)
 * [3GLTEinfo](http://www.3glteinfo.com/)
+* [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)

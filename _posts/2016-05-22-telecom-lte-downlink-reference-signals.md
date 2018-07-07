@@ -60,6 +60,8 @@ Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
 * LTE-TDD, DL, ECP, 2 AP, All BW
 * LTE-TDD, DL, ECP, 4 AP, All BW
 
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # MBSFN Reference Signal
 
 MBSFN reference signals shall only be transmitted in subframes allocated for MBSFN transmissions. MBSFN reference signals are transmitted on **antenna port 4**.
@@ -109,3 +111,4 @@ Refer to **TS 36.211 E-UTRA - Physical Channels and Modulation, S6.10.3.2**.
 * [Cell Specific Reference Signal on ShareTechnote](http://www.sharetechnote.com/html/FrameStructure_DL.html#RS)
 * [MatLab Toolbox for Cell Specific Reference Signal on ShareTechnote](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_CellRS.html)
 * [3GLTEinfo](http://www.3glteinfo.com/)
+* [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)

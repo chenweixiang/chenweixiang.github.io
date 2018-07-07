@@ -62,6 +62,8 @@ The following figure shows the PSS mapped resource elements in time-domain and f
 
 Note that the PSS sequences in every radio frame are the same, so the UE just can determine the slot timing when synchronization to eNB.
 
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # Secondary Synchronization Signal (SSS)
 
 Refer to [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)
@@ -89,6 +91,8 @@ The following figure shows the SSS mapped resource elements in time-domain and f
 ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p3](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p3.png)
 
 Note that the SSS sequences in subframe #0 and #5 are different, so the UE can determine the frame timing when synchronization to eNB.
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
 
 # Physical Broadcast Channel (PBCH)
 
@@ -169,6 +173,8 @@ According to **TS 36.212 S5.3.1**, the following steps are processed in PHY abou
     ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1.png)
     ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p5](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p5.png)
 
+    Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # Synchronisation Procedure
 
 The following figure shows the synchronisation procedure when UE try to access to LTE:
@@ -208,3 +214,4 @@ The following figure shows the synchronisation procedure when UE try to access t
 * [SSS (Secondary Synchronization Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
 * [3GLTEinfo](http://www.3glteinfo.com/)
 * [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)
+* [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)

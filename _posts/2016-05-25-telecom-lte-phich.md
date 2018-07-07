@@ -59,6 +59,8 @@ Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
 * LTE-TDD, DL, ECP, 2 AP, All BW
 * LTE-TDD, DL, ECP, 4 AP, All BW
 
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # References
 
 * TS 36.213 E-UTRA - Physical layer procedures, section 9.1.2
@@ -69,3 +71,4 @@ Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
 * [PHICH/PHICH Group on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PHICH_PHICHGroup.html)
 * [MatLab Toolbox for PHICH on ShareTechnote](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PHICH.html)
 * [3GLTEinfo](http://www.3glteinfo.com/)
+* [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)

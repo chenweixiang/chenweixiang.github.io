@@ -189,6 +189,8 @@ Also refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**
 * LTE-TDD, DL, ECP, 2 AP, All BW
 * LTE-TDD, DL, ECP, 4 AP, All BW
 
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # References
 
 * TS 36.213 E-UTRA - Physical layer procedures, section 8.7 UE Transmit Antenna Selection
@@ -196,3 +198,4 @@ Also refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**
 * TS 36.211 E-UTRA - Physical Channels and Modulation, section 6.8 Physical downlink control channel
 * [ShareTechnote](http://www.sharetechnote.com/)
 * [3GLTEinfo](http://www.3glteinfo.com/)
+* [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)

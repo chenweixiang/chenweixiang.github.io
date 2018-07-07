@@ -298,4 +298,5 @@ linux-3.2/Kconfig
 
 # References
 
+* [The Linux Kernel Documentation](https://www.kernel.org/doc/html/latest/index.html)
 * [The Linux Kernel Archives](https://www.kernel.org/)

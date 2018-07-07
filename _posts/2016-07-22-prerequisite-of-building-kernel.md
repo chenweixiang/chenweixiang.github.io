@@ -126,4 +126,5 @@ chenwx@chenwx ~/linux $ git lhg Documentation/Changes
 
 # References
 
+* [The Linux Kernel Documentation](https://www.kernel.org/doc/html/latest/index.html)
 * [Documentation/Changes on mainline](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/Changes)

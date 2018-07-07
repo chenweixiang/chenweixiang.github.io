@@ -233,6 +233,7 @@ Each stable release has a corresponding branch on stable tree, such as *linux-3.
 
 # References
 
+* [The Linux Kernel Documentation](https://www.kernel.org/doc/html/latest/index.html)
 * [The Linux Kernel Archives](https://www.kernel.org/)
 * [Linux Kernel Master Branch Repository](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/)
 * [Linux Kernel Stable Branch Repository](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/)

@@ -125,3 +125,5 @@ If you want to
 # Initialize and Cleanup LKM
 
 # References
+
+* [The Linux Kernel Documentation](https://www.kernel.org/doc/html/latest/index.html)

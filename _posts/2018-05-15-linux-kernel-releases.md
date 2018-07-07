@@ -94,5 +94,6 @@ The Linux kernel release notes are collected on website [Linux Kernel Newbies](h
 
 # References
 
+* [The Linux Kernel Documentation](https://www.kernel.org/doc/html/latest/index.html)
 * [The Linux Kernel Archives](https://www.kernel.org/)
 * [Linux Kernel Newbies](https://kernelnewbies.org/)

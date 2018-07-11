@@ -1067,7 +1067,7 @@ According to R1-110564 in 3GPP, CoMP techniques can be applied in three differen
 
 # RF Performance
 
-Refer to <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html">RF Performance</a>.
+Refer to <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#rf-performance">RF Performance</a>.
 
 # References
 

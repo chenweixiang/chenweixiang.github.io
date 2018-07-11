@@ -261,6 +261,20 @@ The following table is got from [Specification Numbering](http://www.3gpp.org/sp
 
 <p/>
 
+## RF Performance
+
+3GPP TRs related to RF performance:
+
+* **TR 45.050** - Background for Radio Frequency (RF) requirements
+* **TR 25.942** - UTRA RF system scenario
+* **TR 36.942** - E-UTRA RF system scenario
+* **TR 37.802** - Multi-standard radio Base Station (BS) Radio Frequency (RF) requirements for non-contiguous spectrum deployments
+* **TR 37.812** - Radio Frequency (RF) requirements for Multi-band and Multi-standard radio (MB-MSR) Base Station (BS)
+* **TR 37.843** - Radio Frequency (RF) requirement background for Active Antenna System (AAS) Base Station (BS) radiated requirements
+* **TR 37.900** - Radio Frequency (RF) requirements for Multicarrier and Multiple Radio Access Technology (Multi-RAT) Base Station (BS)
+
+Also refer to document *RF_Performance/RF_Performance_PA2.pptx*.
+
 # References
 
 * [3rd Generation Partnership Project (3GPP)](http://www.3gpp.org/)

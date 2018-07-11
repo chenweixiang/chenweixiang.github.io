@@ -1065,6 +1065,10 @@ According to R1-110564 in 3GPP, CoMP techniques can be applied in three differen
 
 ![LTE-Advanced_CoMP_scenarios](/assets/LTE-Advanced_CoMP_scenarios.jpg)
 
+# RF Performance
+
+Refer to <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html">RF Performance</a>.
+
 # References
 
 * [ShareTechnote](http://www.sharetechnote.com/)

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Programming"
+title: "Programming Languages"
 tag: Programming
 toc: true
 ---
@@ -42,6 +42,9 @@ Here is a list of programming languages I'd like to learn:
 # References
 
 * [TIOBE Index](http://www.tiobe.com/tiobe-index/)
+* [IEEE Spectrum](https://spectrum.ieee.org/)
+* [The Top Programming Languages 2018](https://spectrum.ieee.org/static/interactive-the-top-programming-languages-2018)
+* [The Top Programming Languages 2018 (PDF)](/docs/The_Top_Programming_Languages_2018.pdf)
 * <a href="{{ site.base-url }}/2015/12/18/linux-series-05-libraries.html">Linux: C/C++ Libraries</a>
 * [Programming Language wikipedia](https://en.wikipedia.org/wiki/Programming_language)
 * [List of Programming Languages wikipedia](https://en.wikipedia.org/wiki/List_of_programming_languages)

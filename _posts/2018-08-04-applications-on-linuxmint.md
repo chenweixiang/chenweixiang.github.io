@@ -11,8 +11,8 @@ This article introduces the applications I used on LinuxMint system.
 
 # Chinese Input Methods
 
+* 搜狗输入法 for Linux
 * Google PinYin
-* 搜狗输入法 v1.2.0.0042
 
 # Web Browsers
 

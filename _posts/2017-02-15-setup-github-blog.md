@@ -129,6 +129,7 @@ Refer to the following sites for Markdown syntex:
 
 * [Markdown Syntax](http://www.markdown.cn)
 * [Markdown on DaringFireball](http://daringfireball.net/projects/markdown/)
+* [Markdown Cheat Sheet](/docs/Markdown_cheat_sheet.pdf)
 
 ![Mindmap of Markdown Syntax](/assets/Markdown_Syntax.png)
 

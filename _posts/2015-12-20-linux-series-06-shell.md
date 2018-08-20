@@ -144,6 +144,11 @@ NOTE:
 * ***n/login*** means a file is read if the shell is not a login shell.
 * ***int.*** means a file is read if the shell is interactive.
 
+# Shell Cheat Sheet
+
+* [Unix Commands Reference Card](/docs/Unix_Commands_Reference_Card.pdf)
+* [Unix/Linux Shell Cheat Sheet](/docs/Linux_Shell_Cheat_Sheet.pdf)
+
 # Miscellaneous
 
 Use the following command to show the valid shells in current system:

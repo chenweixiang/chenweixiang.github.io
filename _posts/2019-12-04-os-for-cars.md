@@ -5,7 +5,7 @@ tag: Linux
 toc: true
 ---
 
-This article introduces Linux for vehicle.
+This article introduces operating systems for cars.
 
 <!--more-->
 

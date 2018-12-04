@@ -144,7 +144,7 @@ NOTE:
 * ***n/login*** means a file is read if the shell is not a login shell.
 * ***int.*** means a file is read if the shell is interactive.
 
-# Shell Cheat Sheet
+## Shell Cheat Sheet
 
 * [Unix Commands Reference Card](/docs/Unix_Commands_Reference_Card.pdf)
 * [Unix/Linux Shell Cheat Sheet](/docs/Linux_Shell_Cheat_Sheet.pdf)
@@ -196,6 +196,42 @@ or, use just one command instead of above two:
     chenwx@chenwx ~ $ ps -f --pid `echo $$`
     UID        PID  PPID  C STIME TTY          TIME CMD
     chenwx   17826  2435  0 11:44 pts/9    00:00:00 bash
+
+# Tools
+
+## apropos
+
+[apropos](http://www.linfo.org/apropos.html) search the manual page names and descriptions. For instance:
+
+```
+chenwx@chenwx:~ $ apropos directory
+alphasort (3)        - scan a directory for matching entries
+basename (1)         - strip directory and suffix from filenames
+bindtextdomain (3)   - set directory containing message catalogs
+chacl (1)            - change the access control list of a file or directory
+chdir (2)            - change working directory
+chroot (2)           - change root directory
+chroot (8)           - run command or interactive shell with special root directory
+closedir (3)         - close a directory
+cups-files.conf (5)  - file and directory configuration file for cups
+dbus-cleanup-sockets (1) - clean up leftover sockets in a directory
+depmod.d (5)         - Configuration directory for depmod
+dir (1)              - list directory contents
+dirfd (3)            - get directory stream file descriptor
+dirsplit (1)         - splits directory into multiple with equal size
+execveat (2)         - execute program relative to a directory file descriptor
+FcCacheCreateTagFile (3) - Create CACHEDIR.TAG at cache directory.
+FcCacheDir (3)       - Return directory of cache
+FcCacheSubdir (3)    - Return the i'th subdirectory.
+FcConfigAppFontAddDir (3) - Add fonts from directory to font database
+...
+```
+
+## fish
+
+[fish](https://fishshell.com/docs/current/tutorial.html) is a fully-equipped command line shell (like **bash** or **zsh**) that is smart and user-friendly. fish supports powerful features like syntax highlighting, autosuggestions, and tab completions that just work, with nothing to learn or configure.
+
+If you want to make your command line more productive, more useful, and more fun, without learning a bunch of arcane syntax and configuration options, then fish might be just what you're looking for!
 
 # References
 

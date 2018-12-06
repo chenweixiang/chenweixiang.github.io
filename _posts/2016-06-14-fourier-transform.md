@@ -156,6 +156,8 @@ A **Fast Fourier transform (FFT)** algorithm computes the Discrete Fourier trans
 * [Discrete Fourier transform (DFT) Wikipedia](https://en.wikipedia.org/wiki/Discrete_Fourier_transform)
 * [Discrete-Time Fourier Transform (DTFT) Wikipedia](https://en.wikipedia.org/wiki/Discrete-time_Fourier_transform)
 * [Fast Fourier Transform (FFT) Wikipedia](https://en.wikipedia.org/wiki/Fast_Fourier_transform)
+* 不看任何数学公式来讲解傅里叶变换 [online](https://mp.weixin.qq.com/s/R_JEywGqz-wkl0g_kvik_w) [pdf](/docs/Introduce_Fourier_Transform_Simplely.pdf)
+* 傅里叶变换：MP3、JPEG和Siri背后的数学 [online](https://mp.weixin.qq.com/s/yGoSwWx9RLAuvKVMVOSmvg) [pdf](/docs/Fourier_Transform_behind_MP3_JPEG_Siri.pdf)
 
 * [MATLAB](http://cn.mathworks.com/products/matlab)
 * [SciLab](http://www.scilab.org/en/scilab)

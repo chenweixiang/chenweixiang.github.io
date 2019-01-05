@@ -190,6 +190,38 @@ css/main.css
     ;
 ```
 
+# Build GitHub Blogs Locally
+
+Execute the following command to build GitHub blogs locally. In this way, the port number in *Server addess* comes from configuration file ```_config.yml``` if exist, otherwise, use default port number ```4000``` according to [Default Configuration](https://jekyllrb.com/docs/configuration/default/):
+
+```
+chenwx@chenwx:~/repo/blog $ jekyll s            
+Configuration file: /media/chenwx/Work/repo/blog/_config.yml
+            Source: /media/chenwx/Work/repo/blog
+       Destination: /media/chenwx/Work/repo/blog/_site
+ Incremental build: disabled. Enable with --incremental
+      Generating...
+                    done in 76.824 seconds.
+ Auto-regeneration: enabled for '/media/chenwx/Work/repo/blog'
+    Server address: http://127.0.0.1:4004/
+  Server running... press ctrl-c to stop.
+```
+
+Or, specify the port number in command line by ```--port=<PortNumber>```:
+
+```
+henwx@chenwx:~/repo/blog $ jekyll s --port=4004
+Configuration file: /media/chenwx/Work/repo/blog/_config.yml
+            Source: /media/chenwx/Work/repo/blog
+       Destination: /media/chenwx/Work/repo/blog/_site
+ Incremental build: disabled. Enable with --incremental
+      Generating...
+                    done in 85.528 seconds.
+ Auto-regeneration: enabled for '/media/chenwx/Work/repo/blog'
+    Server address: http://127.0.0.1:4004/
+  Server running... press ctrl-c to stop.
+```
+
 # References
 
 * [RVM](https://rvm.io/)

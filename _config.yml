@@ -12,6 +12,11 @@ url: "http://chenweixiang.github.io" # the base hostname & protocol for your sit
 twitter_username: Weixiang_Chen
 github_username: chenweixiang
 
+# Change default port number from 4000 to 4004 in order to avoid FreeGate's impact
+# Refer to https://jekyllrb.com/docs/configuration/default/
+host : 127.0.0.1
+port : 4004
+
 # Include Gems
 plugins: [jekyll-paginate]
 
@@ -61,4 +66,3 @@ kramdown:
 #   http://rouge.jneen.net/
 rouge:
   linenos:        nil
-

@@ -9,6 +9,11 @@ This article introduces the applications I used on LinuxMint system.
 
 <!--more-->
 
+# Desktop Environment
+
+* Cinnamon (Recommended)
+* MATE (Second Choice)
+
 # Chinese Input Methods
 
 * 搜狗输入法 for Linux

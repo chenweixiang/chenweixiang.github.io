@@ -11,7 +11,25 @@ This article introduce the RF characteristic of a radio unit.
 
 # Signal-to-Noise Ratio (SNR)
 
-* [Signal-to-Noise Ratio (SNR)](https://en.wikipedia.org/wiki/Signal-to-noise_ratio)
+According to [Signal-to-Noise Ratio (SNR)](https://en.wikipedia.org/wiki/Signal-to-noise_ratio), SNR is a measure used in science and engineering that compares the level of a desired signal to the level of background noise. SNR is defined as the ratio of signal power to the noise power, often expressed in decibels. A ratio higher than 1:1 (greater than 0 dB) indicates more signal than noise.
+
+Signal-to-noise ratio is defined as the ratio of the power of a signal (meaningful information) to the power of background noise (unwanted signal):
+
+$$SNR = \frac {P_{signal}} {P_{noise}}$$
+
+where, **P** is average power. Both signal and noise power must be measured at the same or equivalent points in a system, and within the same system bandwidth.
+
+Because many signals have a very wide dynamic range, signals are often expressed using the <a href="{{ site.base-url }}/2018/12/14/decibel.html">logarithmic decibel scale</a>:
+
+$$SNR_{dB} = 10 ∙ log_{10} (\frac {P_{signal}} {P_{noise}}) = 10 ∙ log_{10} (P_{signal}) - 10 ∙ log_{10} (P_{noise})$$
+
+**Improving SNR in practice**
+
+All real measurements are disturbed by noise. This includes electronic noise, but can also include external events that affect the measured phenomenon — wind, vibrations, gravitational attraction of the moon, variations of temperature, variations of humidity, etc., depending on what is measured and of the sensitivity of the device. It is often possible to reduce the noise by controlling the environment. Otherwise, when the characteristics of the noise are known and are different from the signals, it is possible to filter it or to process the signal.
+
+For example, it is sometimes possible to use a lock-in amplifier to modulate and confine the signal within a very narrow bandwidth and then filter the detected signal to the narrow band where it resides, thereby eliminating most of the broadband noise. When the signal is constant or periodic and the noise is random, it is possible to enhance the SNR by averaging the measurement. In this case the noise goes down as the square root of the number of averaged samples.
+
+Additionally, internal noise of electronic systems can be reduced by low-noise amplifiers.
 
 # Error Vector Magnitude (EVM)
 

@@ -36,7 +36,8 @@ This article records the books I'm reading.
 | 2018-05-29 | 2018-06-27  | 《关键对话：如何高效能沟通》(原书第2版)<br>*Crucial Conversations: Tools for Talking When Stakes Are Hight, 2nd Edition* | <a href="{{ site.base-url }}/2018/06/23/crucial-conversations.html"> link </a> |
 | 2018-06-28 | 2018-07-31  | 《关键冲突：如何把人际关系危机转化为合作共赢》<br>*Crucial Confrontations: Tools for Resolving Broken Promises, Violated Expectations, and Bad Behavior* | <a href="{{ site.base-url }}/2018/07/31/crucial-confrontations.html"> link </a> |
 | 2018-08-12 | 2018-11-23  | 《特斯拉自传：世界上最后一个科学先知》<br>*Nikola Tesla's Autobiography* |  |
-| 2018-11-24 |             | 《为何家会伤人》 武志红 著 |  |
+| 2018-11-24 | 2019-01-14  | 《为何家会伤人》 武志红 著 | 好书，精辟的阐述了童年经历对成年后产生的影响，对为人父母者教育子女很有帮助，推荐！ |
+| 2019-01-15 |             | 《黑客与画家》 [美] Paul Graham 著，阮一峰 译 |  |
 
 <p/>
 

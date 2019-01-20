@@ -116,7 +116,7 @@ function factor(opts ,count,current) {
 			}
 		}
 	}
-	
+
 	/*
 	 * create table with head for anchor for example: <h2 id="#Linux基础">Linux基础</h2>
 	 * this method can get a headable anchor
@@ -124,8 +124,8 @@ function factor(opts ,count,current) {
 	 */
 	function _get_anchor_from_head(header_obj){
 		var name = header_obj.html();
-		var aname = name.split('.');
-		var anchor = aname.pop().trim();
+		var aname = name.replace(/\./g, "-");
+		var anchor = aname.trim();
 		/* only keep [a-z0-9] in anchor and remove other characters */
 		var anchor_format = anchor.toLowerCase().replace(/[^a-zA-Z0-9]+/g, "-");
 		return anchor_format;
@@ -143,7 +143,7 @@ function factor(opts ,count,current) {
 		if(opts.use_head_anchor == true){
 			anchor = _get_anchor_from_head(header_obj);
 		}
-		
+
 		// 设置锚点id
 		$(header_obj).attr('id',anchor);
 
@@ -250,7 +250,7 @@ function factor(opts ,count,current) {
 		 * 如果标题是唯一的，建议开启此选项，如果标题不唯一，还是使用数字吧
 		 * 此选项默认是false，不开启
 		 */
-		use_head_anchor: false,
+		use_head_anchor: true,
 		scroll_selector: 'window',
 		highlight_offset: 0,
 		highlight_on_scroll: true,

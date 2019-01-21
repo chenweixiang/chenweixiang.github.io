@@ -35,17 +35,17 @@ The following figure shows the UMTS network structure, which is got from [wikipe
 
 And refer to following sections for the UMTS network structure in each Release:
 
-* [UMTS Network Architecture in R99](#umts-network-architecture)
-* [UMTS Network Architecture in R4](#umts-network-architecture-1)
-* [UMTS Network Architecture in R5](#umts-network-architecture-2)
-* [UMTS Network Architecture in R6](#umts-network-architecture-3)
-* [UMTS Network Architecture in R7](#umts-network-architecture-4)
-* [UMTS Network Architecture in R8](#umts-network-architecture-5)
-* [UMTS Network Architecture in R9](#umts-network-architecture-6)
-* [UMTS Network Architecture in R10](#umts-network-architecture-7)
-* [UMTS Network Architecture in R11](#umts-network-architecture-8)
-* [UMTS Network Architecture in R12](#umts-network-architecture-9)
-* [UMTS Network Architecture in R13](#umts-network-architecture-10)
+* [UMTS Network Architecture in R99](#r99-network-structure)
+* [UMTS Network Architecture in R4](#r4-network-structure)
+* [UMTS Network Architecture in R5](#r5-network-structure)
+* [UMTS Network Architecture in R6](#r6-network-structure)
+* [UMTS Network Architecture in R7](#r7-network-structure)
+* [UMTS Network Architecture in R8](#r8-network-structure)
+* [UMTS Network Architecture in R9](#r9-network-structure)
+* [UMTS Network Architecture in R10](#r10-network-structure)
+* [UMTS Network Architecture in R11](#r11-network-structure)
+* [UMTS Network Architecture in R12](#r12-network-structure)
+* [UMTS Network Architecture in R13](#r13-network-structure)
 
 Refer to section [Interfaces](#interfaces) for details of interfaces in UMTS network. The following figures show the protocols used in different interfaces:
 
@@ -455,8 +455,8 @@ According to section **6 Mapping and association of physical channels** of **TS 
 | Paging Indicator Channel (**PICH**)                                      | FDD/TDD | DL    | [PICH](#pich) |
 | CPCH Status Indicator Channel (**CSICH**)                                | | | |
 | Collision-Detection/Channel-Assignment Indicator Channel (**CD/CA-ICH**) | | | |
-| Dedicated Physical Data Channel (**DPDCH**)                              | FDD/TDD | DL/UL | [DPDCH](#dpdch--dpcch) |
-| Dedicated Physical Control Channel (**DPCCH**)                           | FDD/TDD | DL/UL | [DPCCH](#dpdch--dpcch) |
+| Dedicated Physical Data Channel (**DPDCH**)                              | FDD/TDD | DL/UL | [DPDCH](#dpdch-dpcch) |
+| Dedicated Physical Control Channel (**DPCCH**)                           | FDD/TDD | DL/UL | [DPCCH](#dpdch-dpcch) |
 
 <p/>
 
@@ -870,13 +870,13 @@ In the above figure, the **Uu Stratum** (**UuS**) block includes the radio inter
 
 The radio interface is layered into three protocol layers:
 
-* [Physical Layer (L1)](#physical-layer-l1)
-* [Data Link Layer (L2)](#data-link-layer-l2), which is split into following sublayers:
-    * [Medium Access Control (MAC)](#medium-access-control-mac)
-    * [Radio Link Control (RLC)](#radio-link-control-rlc)
-    * [Packet Data Convergence Protocol (PDCP)](#packet-data-convergence-protocol-pdcp)
-    * [Broadcast/Multicast Control (BMC)](#broadcastmulticast-control-bmc)
-* [Network Layer (L3)](#network-layer-l3)
+* [Physical Layer (L1)](#physical-layer-l1-)
+* [Data Link Layer (L2)](#data-link-layer-l2-), which is split into following sublayers:
+    * [Medium Access Control (MAC)](#medium-access-control-mac-)
+    * [Radio Link Control (RLC)](#radio-link-control-rlc-)
+    * [Packet Data Convergence Protocol (PDCP)](#packet-data-convergence-protocol-pdcp-)
+    * [Broadcast/Multicast Control (BMC)](#broadcast-multicast-control-bmc-)
+* [Network Layer (L3)](#network-layer-l3-)
 
 The following figure is **Figure 10: Interactions between RRC and lower layers** from **TS 25.301-870 Radio Interface Protocol Architecture**. Also refer to section **10 Primitives of the physical layer** of **TS 25.302-870 Services provided by the physical layer** and section **5.5 Interactions between RRC and lower layers in the C plane** of **TS 25.301-870 Radio Interface Protocol Architecture**:
 
@@ -884,12 +884,12 @@ The following figure is **Figure 10: Interactions between RRC and lower layers**
 
 The following **Primitives** are used to layer-to-layer communication:
 
-* [Primitives between L1 and RRC/MAC](#primitives-between-l1-and-rrcmac)
-* [Primitives between MAC and RRC/RLC](#primitives-between-mac-and-rrcrlc)
-* [Primitives between RLC and RRC/PDCP/BMC](#primitives-between-rlc-and-rrcpdcpbmc)
-* [Primitives between PDCP and RRC/U-plane](#primitives-between-pdcp-and-rrcu-plane)
-* [Primitives between BMC and RRC/U-plane](#primitives-between-bmc-and-rrcu-plane)
-* [Primitives between RRC and PHY/MAC/RLC/PDCP/BMC/U-plane](#primitives-between-rrc-and-phymacrlcpdcpbmcu-plane)
+* [Primitives between L1 and RRC/MAC](#primitives-between-l1-and-rrc-mac)
+* [Primitives between MAC and RRC/RLC](#primitives-between-mac-and-rrc-rlc)
+* [Primitives between RLC and RRC/PDCP/BMC](#primitives-between-rlc-and-rrc-pdcp-bmc)
+* [Primitives between PDCP and RRC/U-plane](#primitives-between-pdcp-and-rrc-u-plane)
+* [Primitives between BMC and RRC/U-plane](#primitives-between-bmc-and-rrc-u-plane)
+* [Primitives between RRC and PHY/MAC/RLC/PDCP/BMC/U-plane](#primitives-between-rrc-and-phy-mac-rlc-pdcp-bmc-u-plane)
 
 The following **Protocol Data Units (PDU)** are used to peer-to-peer communication:
 
@@ -1021,7 +1021,7 @@ A transport channel is defined by ***how*** and with ***what*** characteristics 
 
 Refer to [Logical Channels](#logical-channels) for channel mapping between Logical Channel, Transport Channel and Physical Channel.
 
-Refer to [Transport Channel Multiplexing/Coding](#transport-channel-multiplexingcoding) for transport channel multiplexing structure.
+Refer to [Transport Channel Multiplexing/Coding](#transport-channel-multiplexing-coding) for transport channel multiplexing structure.
 
 #### Transport Channel Multiplexing/Coding
 
@@ -1039,7 +1039,7 @@ The following figure is **Figure 2: Transport channel multiplexing structure for
 
 ![R8_Transport_channel_multiplexing_structure_for_downlink](/assets/R8_Transport_channel_multiplexing_structure_for_downlink.png)
 
-The bit sequences output from **DCH**, **RACH**, **BCH**, **FACH** and **PCH** are mapped to [DPDCH](#dpdch--dpcch), [PRACH](#prach), [P-CCPCH](#p-ccpch) and [S-CCPCH](#s-ccpch).
+The bit sequences output from **DCH**, **RACH**, **BCH**, **FACH** and **PCH** are mapped to [DPDCH](#dpdch-dpcch), [PRACH](#prach), [P-CCPCH](#p-ccpch) and [S-CCPCH](#s-ccpch).
 
 ##### Channel Coding for HS-DSCH
 
@@ -1215,8 +1215,8 @@ The physical channels are:
 | High Speed Physical Downlink Shared Channel (**HS-PDSCH**)    | FDD/TDD | DL    | [HS-PDSCH](#hs-pdsch) |
 | Shared Control Channel for HS-DSCH (**HS-SCCH**)              | FDD/TDD | DL    | [HS-SCCH](#hs-scch) |
 | Dedicated Physical Control Channel for HS-DSCH (**HS-DPCCH**) | FDD/TDD | UL    | [HS-DPCCH](#hs-dpcch) |
-| Dedicated Physical Data Channel (**DPDCH**)                   | FDD/TDD | DL/UL | [DPDCH](#dpdch--dpcch) |
-| Dedicated Physical Control Channel (**DPCCH**)                | FDD/TDD | DL/UL | [DPCCH](#dpdch--dpcch) |
+| Dedicated Physical Data Channel (**DPDCH**)                   | FDD/TDD | DL/UL | [DPDCH](#dpdch-dpcch) |
+| Dedicated Physical Control Channel (**DPCCH**)                | FDD/TDD | DL/UL | [DPCCH](#dpdch-dpcch) |
 | Fractional Dedicated Physical Channel (**F-DPCH**)            | FDD/TDD | DL/UL | [F-DPCH](#f-dpch) |
 | E-DCH Dedicated Physical Data Channel (**E-DPDCH**)           | FDD/TDD | UL    | [E-DPDCH](#e-dpdch--e-dpcch) |
 | E-DCH Dedicated Physical Control Channel (**E-DPCCH**)        | FDD/TDD | UL    | [E-DPCCH](#e-dpdch--e-dpcch) |
@@ -1577,7 +1577,7 @@ The following figure is **Figure 12A: E-RGCH and E-HICH structure** from **TS 25
 
 The input sequence of E-RGCH comes from output of [Mapping for E-RGCH Relative Grant](#mapping-for-e-rgch-relative-grant).
 
-The input sequence of E-HICH comes from output of [Mapping for E-HICH ACK/NACK](#mapping-for-e-hich-acknack).
+The input sequence of E-HICH comes from output of [Mapping for E-HICH ACK/NACK](#mapping-for-e-hich-ack-nack).
 
 ***Configuration:***
 
@@ -1698,10 +1698,10 @@ The following figure is **Figure 39: E-AGCH timing** from **TS 25.211-870 Physic
 
 The Data Link Layer (L2) is split into following sublayers:
 
-* [Medium Access Control (MAC)](#medium-access-control-mac)
-* [Radio Link Control (RLC)](#radio-link-control-rlc)
-* [Packet Data Convergence Protocol (PDCP)](#packet-data-convergence-protocol-pdcp)
-* [Broadcast/Multicast Control (BMC)](#broadcastmulticast-control-bmc)
+* [Medium Access Control (MAC)](#medium-access-control-mac-)
+* [Radio Link Control (RLC)](#radio-link-control-rlc-)
+* [Packet Data Convergence Protocol (PDCP)](#packet-data-convergence-protocol-pdcp-)
+* [Broadcast/Multicast Control (BMC)](#broadcast-multicast-control-bmc-)
 
 #### Medium Access Control (MAC)
 
@@ -2050,11 +2050,11 @@ According to section **5.4.2 RRC functions** of **TS 25.301-870 Radio Interface 
 
 The primitives between RRC and PHY/MAC/RLC/PDCP/BMC are described in following sections:
 
-* [Primitives between L1 and RRC/MAC](#primitives-between-l1-and-rrcmac)
-* [Primitives between MAC and RRC/RLC](#primitives-between-mac-and-rrcrlc)
-* [Primitives between RLC and RRC/PDCP/BMC](#primitives-between-rlc-and-rrcpdcpbmc)
-* [Primitives between PDCP and RRC/U-plane](#primitives-between-pdcp-and-rrcu-plane)
-* [Primitives between BMC and RRC/U-plane](#primitives-between-bmc-and-rrcu-plane)
+* [Primitives between L1 and RRC/MAC](#primitives-between-l1-and-rrc-mac)
+* [Primitives between MAC and RRC/RLC](#primitives-between-mac-and-rrc-rlc)
+* [Primitives between RLC and RRC/PDCP/BMC](#primitives-between-rlc-and-rrc-pdcp-bmc)
+* [Primitives between PDCP and RRC/U-plane](#primitives-between-pdcp-and-rrc-u-plane)
+* [Primitives between BMC and RRC/U-plane](#primitives-between-bmc-and-rrc-u-plane)
 
 The primitives between RRC and the upper layers are described in section **6 Services provided by signalling layer 3 at the MS side** of **TS 24.007 - Mobile radio interface signalling layer 3; General aspects**:
 
@@ -2479,9 +2479,9 @@ Refer to following sections of **TS 25.331-8l0 Radio Resource Control (RRC) prot
 
 The system information includes following types:
 
-* [MIB (Master Information Block)](#mib-master-information-block)
-* [SB (Scheduling Block)](#sb-scheduling-block)
-* [SIB (System Information Block)](#sib-system-information-block)
+* [MIB (Master Information Block)](#mib-master-information-block-)
+* [SB (Scheduling Block)](#sb-scheduling-block-)
+* [SIB (System Information Block)](#sib-system-information-block-)
 
 ### MIB (Master Information Block)
 

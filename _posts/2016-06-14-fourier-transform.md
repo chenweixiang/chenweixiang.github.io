@@ -27,8 +27,8 @@ This article introduces the Fourier Transform (FT), Discrete Fourier Transform (
 
 * [连续傅里叶变换 / Fourier Transform](#fourier-transform)
 * [傅里叶级数 / Fourier Series](#fourier-series)
-* [离散时间傅里叶变换 / Discrete-Time Fourier Transform (DTFT)](#dtft)
-* [离散傅里叶变换 / Discrete Fourier Transform (DFT)](#dft)
+* [离散时间傅里叶变换 / Discrete-Time Fourier Transform (DTFT)](#discrete-time-fourier-transform-dtft-)
+* [离散傅里叶变换 / Discrete Fourier Transform (DFT)](#discrete-fourier-transform-dft-)
 
 # Fourier Transform
 

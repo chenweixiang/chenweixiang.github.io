@@ -458,22 +458,22 @@ According to section **6 Mapping and association of physical channels** of **TS 
 
 |              Physical Channels                                           | FDD/TDD | UL/DL | Reference |
 | :----------------------------------------------------------------------- | :-----: | :---: | :-------: |
-| Primary Common Control Physical Channel (**P-CCPCH**)                    | FDD/TDD | DL    | [P-CCPCH](#p-ccpch) |
-| Secondary Common Control Physical Channel (**S-CCPCH**)                  | FDD/TDD | DL    | [S-CCPCH](#s-ccpch) |
-| Primary Synchronisation Channel (**P-SCH**)                              | FDD/TDD | DL    | [SCH](#sch) |
-| Secondary Synchronisation Channel (**S-SCH**)                            | FDD/TDD | DL    | [SCH](#sch) |
-| Physical Random Access Channel (**PRACH**)                               | FDD/TDD | UL    | [PRACH](#prach) |
+| Primary Common Control Physical Channel (**P-CCPCH**)                    | FDD/TDD | DL    | P-CCPCH |
+| Secondary Common Control Physical Channel (**S-CCPCH**)                  | FDD/TDD | DL    | S-CCPCH |
+| Primary Synchronisation Channel (**P-SCH**)                              | FDD/TDD | DL    | SCH |
+| Secondary Synchronisation Channel (**S-SCH**)                            | FDD/TDD | DL    | SCH |
+| Physical Random Access Channel (**PRACH**)                               | FDD/TDD | UL    | PRACH |
 | Physical Common Packet Channel (**PCPCH**)                               | FDD     | UL    | |
-| Primary Common Pilot Channel (**P-CPICH**)                               | FDD/TDD | DL    | [CPICH](#cpich) |
-| Secondary Common Pilot Channel (**S-CPICH**)                             | FDD/TDD | DL    | [CPICH](#cpich) |
+| Primary Common Pilot Channel (**P-CPICH**)                               | FDD/TDD | DL    | CPICH |
+| Secondary Common Pilot Channel (**S-CPICH**)                             | FDD/TDD | DL    | CPICH |
 | Physical Downlink Shared Channel (**PDSCH**)                             | FDD/TDD | DL    | |
-| Acquisition Indicator Channel (**AICH**)                                 | FDD/TDD | DL    | [AICH](#aich) |
+| Acquisition Indicator Channel (**AICH**)                                 | FDD/TDD | DL    | AICH |
 | Access Preamble Acquisition Indicator Channel (**AP-AICH**)              | | | |
-| Paging Indicator Channel (**PICH**)                                      | FDD/TDD | DL    | [PICH](#pich) |
+| Paging Indicator Channel (**PICH**)                                      | FDD/TDD | DL    | PICH |
 | CPCH Status Indicator Channel (**CSICH**)                                | | | |
 | Collision-Detection/Channel-Assignment Indicator Channel (**CD/CA-ICH**) | | | |
-| Dedicated Physical Data Channel (**DPDCH**)                              | FDD/TDD | DL/UL | [DPDCH](#dpdch--dpcch) |
-| Dedicated Physical Control Channel (**DPCCH**)                           | FDD/TDD | DL/UL | [DPCCH](#dpdch--dpcch) |
+| Dedicated Physical Data Channel (**DPDCH**)                              | FDD/TDD | DL/UL | DPDCH |
+| Dedicated Physical Control Channel (**DPCCH**)                           | FDD/TDD | DL/UL | DPCCH |
 
 <p/>
 

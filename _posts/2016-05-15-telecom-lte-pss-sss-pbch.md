@@ -194,7 +194,7 @@ The following figure shows the synchronisation procedure when UE try to access t
     UE gets the following information when detection SSS:
 
     * Synchronisation to radio frame timing.
-    * Physical-layer cell-identity group $$N^{(1)}_{ID}$$. Then, UE gets the physical-layer cell identity by the formula in section [Physical-layer Cell Identity (PCI)](#physical-layer-cell-identity-pci).
+    * Physical-layer cell-identity group $$N^{(1)}_{ID}$$. Then, UE gets the physical-layer cell identity by the formula in section [Physical-layer Cell Identity (PCI)](#physical-layer-cell-identity-pci-).
     * Cyclic prefix length and system type FDD/TDD according to the position between PSS and SSS.
     <p/>
 

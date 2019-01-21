@@ -251,7 +251,7 @@ abcdef
 
 ### Comments
 
-In a non-interactive shell, or an interactive shell in which the ```interactive_comments``` option to the **shopt** builtin is enabled (see [The *shopt* Builtin](#the-shopt-builtin)), a word beginning with ```#``` causes that word and all remaining characters on that line to be ignored. An interactive shell without the ```interactive_comments``` option enabled does not allow comments. The ```interactive_comments``` option is **on** by default in **interactive shells**.
+In a non-interactive shell, or an interactive shell in which the ```interactive_comments``` option to the **shopt** builtin is enabled (see [The *shopt* Builtin](#the-em-shopt-em-builtin)), a word beginning with ```#``` causes that word and all remaining characters on that line to be ignored. An interactive shell without the ```interactive_comments``` option enabled does not allow comments. The ```interactive_comments``` option is **on** by default in **interactive shells**.
 
 ***Examples:***
 
@@ -842,7 +842,7 @@ case word in
 esac
 ```
 
-*case* will selectively execute the *command-list* corresponding to the first *pattern* that matches *word*. If the shell option ```nocasematch``` (see [The *shopt* Builtin](#the-shopt-builtin)) is enabled, the match is performed without regard to the case of alphabetic characters. The ```|``` is used to separate multiple patterns, and the ```)``` operator terminates a pattern list. A list of *patterns* and an associated *command-list* is known as a ***clause***.
+*case* will selectively execute the *command-list* corresponding to the first *pattern* that matches *word*. If the shell option ```nocasematch``` (see [The *shopt* Builtin](#the-em-shopt-em-builtin)) is enabled, the match is performed without regard to the case of alphabetic characters. The ```|``` is used to separate multiple patterns, and the ```)``` operator terminates a pattern list. A list of *patterns* and an associated *command-list* is known as a ***clause***.
 
 Each ***clause*** must be terminated with ```;;``` ```;&``` ```;;&```. The *word* undergoes [tilde expansion](#tilde-expansion), [parameter expansion](#parameter-and-variable-expansion), [command substitution](#command-substitution), [arithmetic expansion](#arithmetic-expansion), and [quote removal](#quote-removal) before matching is attempted. Each *pattern* undergoes [tilde expansion](#tilde-expansion), [parameter expansion](#parameter-and-variable-expansion), [command substitution](#command-substitution), and [arithmetic expansion](#arithmetic-expansion).
 
@@ -1008,9 +1008,9 @@ Return a status of **0** or **1** depending on the evaluation of the **condition
 
 When used with ```[[```, the ```<``` and ```>``` operators sort lexicographically using the current locale.
 
-When the ```==``` and ```!=``` operators are used, the string to the right of the operator is considered a pattern and matched according to the rules described in [Pattern Matching](#filename-expansion), as if the ```extglob``` shell option were enabled (see [The *shopt* Builtin](#the-shopt-builtin)). The ```=``` operator is identical to ```==```. If the shell option ```nocasematch``` is enabled (see [The *shopt* Builtin](#the-shopt-builtin)), the match is performed without regard to the case of alphabetic characters. The return value is **0** if the string matches (```==```) or does not match (```!=```)the pattern, and **1** otherwise. Any part of the pattern may be quoted to force the quoted portion to be matched as a string.
+When the ```==``` and ```!=``` operators are used, the string to the right of the operator is considered a pattern and matched according to the rules described in [Pattern Matching](#filename-expansion), as if the ```extglob``` shell option were enabled (see [The *shopt* Builtin](#the-em-shopt-em-builtin)). The ```=``` operator is identical to ```==```. If the shell option ```nocasematch``` is enabled (see [The *shopt* Builtin](#the-em-shopt-em-builtin)), the match is performed without regard to the case of alphabetic characters. The return value is **0** if the string matches (```==```) or does not match (```!=```)the pattern, and **1** otherwise. Any part of the pattern may be quoted to force the quoted portion to be matched as a string.
 
-An additional binary operator, ```=~```, is available, with the same precedence as ```==``` and ```!=```. When it is used, the string to the right of the operator is considered an extended regular expression and matched accordingly (as in *regex*3)). The return value is **0** if the string matches the pattern, and **1** otherwise. If the regular expression is syntactically incorrect, the conditional expression's return value is **2**. If the shell option ```nocasematch``` is enabled (see [The *shopt* Builtin](#the-shopt-builtin)), the match is performed without regard to the case of alphabetic characters. Any part of the pattern may be quoted to force the quoted portion to be matched as a string. Bracket expressions in regular expressions must be treated carefully, since normal quoting characters lose their meanings between brackets. If the pattern is stored in a shell variable, quoting the variable expansion forces the entire pattern to be matched as a string. Substrings matched by parenthesized subexpressions within the regular expression are saved in the array variable **BASH_REMATCH**. The element of **BASH_REMATCH** with index 0 is the portion of the string matching the entire regular expression. The element of **BASH_REMATCH** with index n is the portion of the string matching the nth parenthesized subexpression.
+An additional binary operator, ```=~```, is available, with the same precedence as ```==``` and ```!=```. When it is used, the string to the right of the operator is considered an extended regular expression and matched accordingly (as in *regex*3)). The return value is **0** if the string matches the pattern, and **1** otherwise. If the regular expression is syntactically incorrect, the conditional expression's return value is **2**. If the shell option ```nocasematch``` is enabled (see [The *shopt* Builtin](#the-em-shopt-em-builtin)), the match is performed without regard to the case of alphabetic characters. Any part of the pattern may be quoted to force the quoted portion to be matched as a string. Bracket expressions in regular expressions must be treated carefully, since normal quoting characters lose their meanings between brackets. If the pattern is stored in a shell variable, quoting the variable expansion forces the entire pattern to be matched as a string. Substrings matched by parenthesized subexpressions within the regular expression are saved in the array variable **BASH_REMATCH**. The element of **BASH_REMATCH** with index 0 is the portion of the string matching the entire regular expression. The element of **BASH_REMATCH** with index n is the portion of the string matching the nth parenthesized subexpression.
 
 For example, the following will match a line (stored in the shell variable line) if there is a sequence of characters in the value consisting of any number, including zero, of space characters, zero or one instances of ```a```, then a ```b```:
 
@@ -2152,7 +2152,7 @@ After word splitting, unless the ```-f``` option has been set, Bash scans each w
 
 When a pattern is used for filename expansion, the character ```.``` at the start of a filename or immediately following a slash must be matched explicitly, unless the shell option ```dotglob``` is set. When matching a filename, the slash character must always be matched explicitly. In other cases, the ```.``` character is not treated specially.
 
-See the description of **shopt** in [The *shopt* Builtin](#the-shopt-builtin) for a description of the ```nocaseglob```, ```nullglob```, ```failglob```, and ```dotglob``` options.
+See the description of **shopt** in [The *shopt* Builtin](#the-em-shopt-em-builtin) for a description of the ```nocaseglob```, ```nullglob```, ```failglob```, and ```dotglob``` options.
 
 The shell variable ```GLOBIGNORE``` may be used to restrict the set of filenames matching a pattern.
 
@@ -2279,7 +2279,7 @@ The shell has an *execution environment*, which consists of the following:
 
 * options enabled at invocation (either by default or with command-line arguments) or by **set**
 
-* options enabled by **shopt** (see [The *shopt* Builtin](#the-shopt-builtin))
+* options enabled by **shopt** (see [The *shopt* Builtin](#the-em-shopt-em-builtin))
 
 * shell aliases defined with **alias** (see [Aliases](#aliases))
 
@@ -2313,7 +2313,7 @@ Bash provides several ways to manipulate the environment. On invocation, the she
 
 The environment for any simple command or function may be augmented temporarily by prefixing it with parameter assignments, as described in [Shell Parameters](#shell-parameters). These assignment statements affect only the environment seen by that command.
 
-If the ```-k``` option is set (see [The *set* Builtin](#the-set-builtin)), then all parameter assignments are placed in the environment for a command, not just those that precede the command name.
+If the ```-k``` option is set (see [The *set* Builtin](#the-em-set-em-builtin)), then all parameter assignments are placed in the environment for a command, not just those that precede the command name.
 
 When Bash invokes an external command, the variable ```$_``` is set to the full pathname of the command and passed to that command in its environment, see [Special Parameters](#special-parameters).
 
@@ -2355,7 +2355,7 @@ Non-builtin commands started by Bash have signal handlers set to the values inhe
 
 The shell exits by default upon receipt of a **SIGHUP**. Before exiting, an interactive shell resends the **SIGHUP** to all jobs, running or stopped. Stopped jobs are sent **SIGCONT** to ensure that they receive the **SIGHUP**. To prevent the shell from sending the **SIGHUP** signal to a particular job, it should be removed from the jobs table with the disown builtin (see [Job Control Builtins](#job-control-builtins)) or marked to not receive **SIGHUP** using ```disown -h```.
 
-If the **huponexit** shell option has been set with **shopt** (see [The *shopt* Builtin](#the-shopt-builtin)), Bash sends a **SIGHUP** to all jobs when an interactive login shell exits.
+If the **huponexit** shell option has been set with **shopt** (see [The *shopt* Builtin](#the-em-shopt-em-builtin)), Bash sends a **SIGHUP** to all jobs when an interactive login shell exits.
 
 If Bash is waiting for a command to complete and receives a signal for which a trap has been set, the trap will not be executed until the command completes. When Bash is waiting for an asynchronous command via the **wait** builtin, the reception of a signal for which a trap has been set will cause the **wait** builtin to return immediately with an exit status greater than **128**, immediately after which the trap is executed.
 
@@ -2485,7 +2485,7 @@ When options are supplied, they set or unset shell attributes. Options, if speci
 | :-----: | :---------- |
 | ```-a``` | Mark variables and function which are modified or created for export to the environment of subsequent commands. |
 | ```-b``` | Cause the status of terminated background jobs to be reported immediately, rather than before printing the next primary prompt. |
-| ```-e``` | Exit immediately if a pipeline (see [Pipelines](#pipelines)), which may consist of a single simple command (see [Simple Commands](#simple-commands)), a list (see [Lists](#lists-of-commands)), or a compound command (see [Compound Commands](#compound-commands)) returns a non-zero status. The shell does not exit if the command that fails is part of the command list immediately following a **while** or **until** keyword, part of the test in an **if** statement, part of any command executed in a ```&&``` or ```||``` list except the command following the final ```&&``` or ```||```, any command in a pipeline but the last, or if the command's return status is being inverted with ```!```. If a compound command other than a subshell returns a non-zero status because a command failed while ```-e``` was being ignored, the shell does not exit. A trap on **ERR**, if set, is executed before the shell exits.<br><br>This option applies to the shell environment and each subshell environment separately (see [Command Execution Environment](#command-execution-cnvironment)), and may cause subshells to exit before executing all the commands in the subshell.<br><br>If a compound command or shell function executes in a context where ```-e``` is being ignored, none of the commands executed within the compound command or function body will be affected by the ```-e``` setting, even if ```-e``` is set and a command returns a failure status. If a compound command or shell function sets ```-e``` while executing in a context where ```-e``` is ignored, that setting will not have any effect until the compound command or the command containing the function call completes. |
+| ```-e``` | Exit immediately if a pipeline (see [Pipelines](#pipelines)), which may consist of a single simple command (see [Simple Commands](#simple-commands)), a list (see [Lists](#lists-of-commands)), or a compound command (see [Compound Commands](#compound-commands)) returns a non-zero status. The shell does not exit if the command that fails is part of the command list immediately following a **while** or **until** keyword, part of the test in an **if** statement, part of any command executed in a ```&&``` or ```||``` list except the command following the final ```&&``` or ```||```, any command in a pipeline but the last, or if the command's return status is being inverted with ```!```. If a compound command other than a subshell returns a non-zero status because a command failed while ```-e``` was being ignored, the shell does not exit. A trap on **ERR**, if set, is executed before the shell exits.<br><br>This option applies to the shell environment and each subshell environment separately (see [Command Execution Environment](#command-execution-environment)), and may cause subshells to exit before executing all the commands in the subshell.<br><br>If a compound command or shell function executes in a context where ```-e``` is being ignored, none of the commands executed within the compound command or function body will be affected by the ```-e``` setting, even if ```-e``` is set and a command returns a failure status. If a compound command or shell function sets ```-e``` while executing in a context where ```-e``` is ignored, that setting will not have any effect until the compound command or the command containing the function call completes. |
 | ```-f``` | Disable filename expansion (globbing). |
 | ```-h``` | Locate and remember (hash) commands as they are looked up for execution. This option is enabled by default. |
 | ```-k``` | All arguments in the form of assignment statements are placed in the environment for a command, not just those that precede the command name. |
@@ -2578,7 +2578,7 @@ bhimBH
 shopt [-pqsu] [-o] [optname ...]
 ```
 
-The shell builtin **shopt** allows you to change additional shell optional behavior. Toggle the values of settings controlling optional shell behavior. The settings can be either those listed below, or, if the ```-o``` option is used, those available with the ```-o``` option to the **set** builtin command (see [The *set* Builtin](#the-set-builtin)).
+The shell builtin **shopt** allows you to change additional shell optional behavior. Toggle the values of settings controlling optional shell behavior. The settings can be either those listed below, or, if the ```-o``` option is used, those available with the ```-o``` option to the **set** builtin command (see [The *set* Builtin](#the-em-set-em-builtin)).
 
 | Options | Description |
 | :------ | :---------- |
@@ -2586,7 +2586,7 @@ The shell builtin **shopt** allows you to change additional shell optional behav
 | ```-q``` | Suppresses normal output; the return status indicates whether the *optname* is set or unset. If multiple *optname* arguments are given with ```-q```, the return status is **zero** if all optnames are enabled; **nonzero** otherwise. |
 | ```-s``` | Enable (set) each *optname*. |
 | ```-u``` | Disable (unset) each *optname*. |
-| ```-o``` | Restricts the values of *optname* to be those defined for the ```-o``` option to the **set** builtin (see [The *set* Builtin](#the-set-builtin)). |
+| ```-o``` | Restricts the values of *optname* to be those defined for the ```-o``` option to the **set** builtin (see [The *set* Builtin](#the-em-set-em-builtin)). |
 
 <p/>
 
@@ -2779,7 +2779,7 @@ A few variables used by Bash are described in different chapters: variables for 
 | **BASH_ARGV** | No | An array variable containing all of the parameters in the current bash execution call stack. The final parameter of the last subroutine call is at the top of the stack; the first parameter of the initial call is at the bottom. When a subroutine is executed, the parameters supplied are pushed onto **BASH_ARGV**. The shell sets **BASH_ARGV** only when in extended debugging mode. |
 | **BASH_CMDS** | No | An associative array variable whose members correspond to the internal hash table of commands as maintained by the **hash** builtin. Elements added to this array appear in the hash table; unsetting array elements cause commands to be removed from the hash table. |
 | **BASH_COMMAND** | No | The command currently being executed or about to be executed, unless the shell is executing a command as the result of a trap, in which case it is the command executing at the time of the trap. |
-| **BASH_COMPAT** | No | The value is used to set the shell's compatibility level. The value may be a decimal number (e.g., 4.2) or an integer (e.g., 42) corresponding to the desired compatibility level. If **BASH_COMPAT** is unset or set to the empty string, the compatibility level is set to the default for the current version. If **BASH_COMPAT** is set to a value that is not one of the valid compatibility levels, the shell prints an error message and sets the compatibility level to the default for the current version. The valid compatibility levels correspond to the compatibility options accepted by the **shopt** builtin described in [The *shopt* Builtin](#the-shopt-builtin) (for example, compat42 means that 4.2 and 42 are valid values). The current version is also a valid value. |
+| **BASH_COMPAT** | No | The value is used to set the shell's compatibility level. The value may be a decimal number (e.g., 4.2) or an integer (e.g., 42) corresponding to the desired compatibility level. If **BASH_COMPAT** is unset or set to the empty string, the compatibility level is set to the default for the current version. If **BASH_COMPAT** is set to a value that is not one of the valid compatibility levels, the shell prints an error message and sets the compatibility level to the default for the current version. The valid compatibility levels correspond to the compatibility options accepted by the **shopt** builtin described in [The *shopt* Builtin](#the-em-shopt-em-builtin) (for example, compat42 means that 4.2 and 42 are valid values). The current version is also a valid value. |
 | **BASH_ENV** | No | If this variable is set when Bash is invoked to execute a shell script, its value is expanded and used as the name of a startup file to read before executing the script. |
 | **BASH_EXECUTION_STRING** | No | The command argument to the ```-c``` invocation option. |
 | **BASH_LINENO** | No | An array variable whose members are the line numbers in source files where each corresponding member of **FUNCNAME** was invoked. **${BASH_LINENO[$i]}** is the line number in the source file (**${BASH_SOURCE[$i+1]}**) where **${FUNCNAME[$i]}** was called (or **${BASH_LINENO[$i-1]}** if referenced within another shell function). Use **LINENO** to obtain the current line number. |
@@ -2888,7 +2888,7 @@ These options must appear on the command line before the single-character option
 
 | long_opt | Description |
 | :---------- | :---------- |
-| ```--debugger``` | Arrange for the debugger profile to be executed before the shell starts. Turns on extended debugging mode (see [The *shopt* Builtin](#the-shopt-builtin) for a description of the ```extdebug``` option). |
+| ```--debugger``` | Arrange for the debugger profile to be executed before the shell starts. Turns on extended debugging mode (see [The *shopt* Builtin](#the-em-shopt-em-builtin) for a description of the ```extdebug``` option). |
 | ```--dump-po-strings``` | A list of all double-quoted strings preceded by **$** is printed on the standard output in the GNU *gettext* PO (portable object) file format. Equivalent to ```-D``` except for the output format. |
 | ```--dump-strings``` | Equivalent to ```-D```. |
 | ```--init-file filename```<br>```--rcfile filename``` | Execute commands from *filename* (instead of ```~/.bashrc```) in an interactive shell. |
@@ -3022,7 +3022,7 @@ When the shell is running interactively, it changes its behavior in several ways
 
 5. Readline (see [Command Line Editing](#command-line-editing)) is used to read commands from the user's terminal.
 
-6. Bash inspects the value of the ```ignoreeof``` option to ```set -o``` instead of exiting immediately when it receives an **EOF** on its standard input when reading a command (see [The *set* Builtin](#the-set-builtin)).
+6. Bash inspects the value of the ```ignoreeof``` option to ```set -o``` instead of exiting immediately when it receives an **EOF** on its standard input when reading a command (see [The *set* Builtin](#the-em-set-em-builtin)).
 
 7. Command history (see [Bash History Facilities](#bash-history-facilities)) and history expansion (see [History Interaction](#history-interaction)) are enabled by default. Bash will save the command history to the file named by **$HISTFILE** when a shell with history enabled exits.
 
@@ -3034,11 +3034,11 @@ When the shell is running interactively, it changes its behavior in several ways
 
 11. An **interactive login shell** sends a **SIGHUP** to all jobs on exit if the ```huponexit``` shell option has been enabled (see [Signals](#signals)).
 
-12. The ```-n``` invocation option is ignored, and ```set -n``` has no effect (see [The *set* Builtin](#the-set-builtin)).
+12. The ```-n``` invocation option is ignored, and ```set -n``` has no effect (see [The *set* Builtin](#the-em-set-em-builtin)).
 
 13. Bash will check for mail periodically, depending on the values of the **MAIL**, **MAILPATH**, and **MAILCHECK** shell variables (see [Bash Variables](#bash-variables)).
 
-14. Expansion errors due to references to unbound shell variables after ```set -u``` has been enabled will not cause the shell to exit (see [The *set* Builtin](#the-set-builtin)).
+14. Expansion errors due to references to unbound shell variables after ```set -u``` has been enabled will not cause the shell to exit (see [The *set* Builtin](#the-em-set-em-builtin)).
 
 15. The shell will not exit on expansion errors caused by *var* being unset or null in **${var:?word}** expansions (see [Shell Parameter Expansion](#shell-parameter-expansion)).
 
@@ -3050,7 +3050,7 @@ When the shell is running interactively, it changes its behavior in several ways
 
 19. Parser syntax errors will not cause the shell to exit.
 
-20. Simple spelling correction for directory arguments to the **cd** builtin is enabled by default (see the description of the ```cdspell``` option to the **shopt** builtin in [The *shopt* Builtin](#the-shopt-builtin)).
+20. Simple spelling correction for directory arguments to the **cd** builtin is enabled by default (see the description of the ```cdspell``` option to the **shopt** builtin in [The *shopt* Builtin](#the-em-shopt-em-builtin)).
 
 21. The shell will check the value of the **TMOUT** variable and exit if a command is not read within the specified number of seconds after printing **$PS1** (see [Bash Variables](#bash-variables)).
 
@@ -3088,7 +3088,7 @@ Unless otherwise specified, primaries that operate on files follow symbolic link
 | ```file1 -ef file2``` | True if *file1* and *file2* refer to the same device and inode numbers. |
 | ```file1 -nt file2``` | True if *file1* is newer (according to modification date) than *file2*, or if *file1* exists and *file2* does not. |
 | ```file1 -ot file2``` | True if *file1* is older than *file2*, or if *file2* exists and *file1* does not. |
-| ```-o optname``` | True if the shell option ```optname``` is enabled. The list of options appears in the description of the ```-o``` option to the **set** builtin (see [The *set* Builtin](#the-set-builtin)). |
+| ```-o optname``` | True if the shell option ```optname``` is enabled. The list of options appears in the description of the ```-o``` option to the **set** builtin (see [The *set* Builtin](#the-em-set-em-builtin)). |
 | ```-v varname``` | True if the shell variable *varname* is set (has been assigned a value). |
 | ```-R varname``` | True if the shell variable *varname* is set and is a name reference. |
 | ```-z string``` | True if the length of *string* is zero. |
@@ -3148,7 +3148,7 @@ Operators are evaluated in order of precedence. Sub-expressions in parentheses a
 
 * If the **last character of the alias value** is a *blank*, then the next command word following the alias is also checked for alias expansion.
 
-* Aliases are not expanded when the shell is not interactive, unless the shell option ```expand_aliases``` is set using ```shopt```,  refer to [The *shopt* Builtin](#the-shopt-builtin):
+* Aliases are not expanded when the shell is not interactive, unless the shell option ```expand_aliases``` is set using ```shopt```,  refer to [The *shopt* Builtin](#the-em-shopt-em-builtin):
 
 ```
 $ shopt -s expand_aliases
@@ -3663,7 +3663,7 @@ When job control is not active, the **kill** and **wait** builtins do not accept
 
 # Command Line Editing
 
-Command line editing is provided by the **Readline** library, which is used by several different programs, including Bash. Command line editing is enabled by default when using an **interactive shell**, unless the ```--noediting``` option is supplied at shell invocation. Line editing is also used when using the ```-e``` option to the *read* builtin command. By default, the line editing commands are similar to those of **Emacs**. A **vi**-style line editing interface is also available. Line editing can be enabled at any time using the ```-o emacs``` or ```-o vi``` options to the *set* builtin command (see [The *set* Builtin](#the-set-builtin)), or disabled using the ```+o emacs``` or ```+o vi``` options to the *set* builtin.
+Command line editing is provided by the **Readline** library, which is used by several different programs, including Bash. Command line editing is enabled by default when using an **interactive shell**, unless the ```--noediting``` option is supplied at shell invocation. Line editing is also used when using the ```-e``` option to the *read* builtin command. By default, the line editing commands are similar to those of **Emacs**. A **vi**-style line editing interface is also available. Line editing can be enabled at any time using the ```-o emacs``` or ```-o vi``` options to the *set* builtin command (see [The *set* Builtin](#the-em-set-em-builtin)), or disabled using the ```+o emacs``` or ```+o vi``` options to the *set* builtin.
 
 ## Introduction to Line Editing
 
@@ -4459,7 +4459,7 @@ variable. |
 
 While the Readline library does not have a full set of **vi** editing functions, it does contain enough to allow simple editing of the line. The Readline **vi** mode behaves as specified in the POSIX standard.
 
-In order to switch interactively between **emacs** and **vi** editing modes, use the ```set -o emacs``` and ```set -o vi``` commands (see [The *set* Builtin](#the-set-builtin)). **The Readline default is emacs mode**.
+In order to switch interactively between **emacs** and **vi** editing modes, use the ```set -o emacs``` and ```set -o vi``` commands (see [The *set* Builtin](#the-em-set-em-builtin)). **The Readline default is emacs mode**.
 
 When you enter a line in **vi** mode, you are already placed in **insertion** mode, as if you had typed an ***i***. Pressing **ESC** switches you into **command** mode, where you can edit the text of the line with the standard **vi** movement keys, move to previous history lines with ```k``` and subsequent lines with ```j```, and so forth.
 
@@ -7023,13 +7023,13 @@ complete -F _command tsocks
 
 ## Bash History Facilities
 
-When the ```-o history``` option to the **set** builtin is enabled (see [The *set* Builtin](#the-set-builtin)), the shell provides access to the command history, the list of commands previously typed.
+When the ```-o history``` option to the **set** builtin is enabled (see [The *set* Builtin](#the-em-set-em-builtin)), the shell provides access to the command history, the list of commands previously typed.
 
 | Variables | Description |
 | :-------- | :---------- |
 | **HISTSIZE**  | The value of the **HISTSIZE** shell variable is used as the number of commands to save in a history list. The text of the last **$HISTSIZE** commands (default **500**) is saved. |
 | **HISTFILESIZE** | The maximum number of lines contained in the history file. Refer to variable **HISTFILE**. |
-| **HISTFILE**  | When the shell starts up, the history is initialized from the file named by the **HISTFILE** variable (default ***~/.bash_history***). The file named by the value of **HISTFILE** is truncated, if necessary, to contain no more than the number of lines specified by the value of the **HISTFILESIZE** variable.<br><br>When a shell with history enabled exits, the last **$HISTSIZE** lines are copied from the history list to the file named by **$HISTFILE**. If the ```histappend``` option to the **set** builtin is enabled (see [The *set* Builtin](#the-set-builtin)), the lines are appended to the history file, otherwise the history file is overwritten.<br><br>If **HISTFILE** is unset, or if the history file is unwritable, the history is not saved.<br><br>After saving the history, the history file is truncated to contain no more than **$HISTFILESIZE** lines. If **HISTFILESIZE** is unset, or set to null, a non-numeric value, or a numeric value less than zero, the history file is not truncated. |
+| **HISTFILE**  | When the shell starts up, the history is initialized from the file named by the **HISTFILE** variable (default ***~/.bash_history***). The file named by the value of **HISTFILE** is truncated, if necessary, to contain no more than the number of lines specified by the value of the **HISTFILESIZE** variable.<br><br>When a shell with history enabled exits, the last **$HISTSIZE** lines are copied from the history list to the file named by **$HISTFILE**. If the ```histappend``` option to the **set** builtin is enabled (see [The *set* Builtin](#the-em-set-em-builtin)), the lines are appended to the history file, otherwise the history file is overwritten.<br><br>If **HISTFILE** is unset, or if the history file is unwritable, the history is not saved.<br><br>After saving the history, the history file is truncated to contain no more than **$HISTFILESIZE** lines. If **HISTFILESIZE** is unset, or set to null, a non-numeric value, or a numeric value less than zero, the history file is not truncated. |
 | **HISTTIMEFORMAT** | If the **HISTTIMEFORMAT** is set, the time stamp information associated with each history entry is written to the history file, marked with the history comment character. When the history file is read, lines beginning with the history comment character followed immediately by a digit are interpreted as timestamps for the previous history line. |
 | **HISTCONTROL** | A colon-separated list of values controlling how commands are saved on the history list.<br><br>If the list of values includes ***ignorespace***, lines which begin with a space character are not saved in the history list.<br>A value of ***ignoredups*** causes lines which match the previous history entry to not be saved.<br>A value of ***ignoreboth*** is shorthand for ***ignorespace*** and ***ignoredups***.<br>A value of ***erasedups*** causes all previous lines matching the current line to be removed from the history list before that line is saved.<br>Any value not in the above list is ignored.<br><br>If **HISTCONTROL** is unset, or does not include a valid value, all lines read by the shell parser are saved on the history list, subject to the value of **HISTIGNORE**.<br><br>The second and subsequent lines of a multi-line compound command are not tested, and are added to the history regardless of the value of **HISTCONTROL**. |
 | **HISTIGNORE** | A colon-separated list of patterns used to decide which command lines should be saved on the history list. Each pattern is anchored at the beginning of the line and must match the complete line (no implicit ```*``` is appended). Each pattern is tested against the line after the checks specified by **HISTCONTROL** are applied. In addition to the normal shell pattern matching characters, ```&``` matches the previous history line. ```&``` may be escaped using a backslash; the backslash is removed before attempting a match.<br><br>The second and subsequent lines of a multi-line compound command are not tested, and are added to the history regardless of the value of **HISTIGNORE**.<br><br>**HISTIGNORE** subsumes the function of **HISTCONTROL**. A pattern of ```&``` is identical to ***ignoredups***, and a pattern of ```[ ]*``` is identical to ***ignorespace***. Combining these two patterns, separating them with a colon, provides the functionality of ***ignoreboth***. |
@@ -7082,7 +7082,7 @@ The line is broken into words in the same fashion that Bash does, so that severa
 
 History expansions are introduced by the appearance of the history expansion character, which is ```!``` by default. Only ```\``` and ```'``` may be used to escape the history expansion character.
 
-Several shell options settable with the *shopt* builtin may be used to tailor the behavior of history expansion. Refer to [The *shopt* Builtin](#the-shopt-builtin):
+Several shell options settable with the *shopt* builtin may be used to tailor the behavior of history expansion. Refer to [The *shopt* Builtin](#the-em-shopt-em-builtin):
 
 * If the ```histverify``` shell option is enabled, and **Readline** is being used, history substitutions are not immediately passed to the shell parser. Instead, the expanded line is reloaded into the Readline editing buffer for further modification.
 

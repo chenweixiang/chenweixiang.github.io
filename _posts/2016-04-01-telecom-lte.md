@@ -183,9 +183,9 @@ The LTE/LTE-Advanced requirements are defined in **TR 25.913-800 Requirements fo
 
 According to [LTE Network Architecture](http://www.tutorialspoint.com/lte/lte_network_architecture.htm) and in **TS 36.300 Figure 4.7.2-1**, the high-level network architecture of LTE is comprised of following three main components:
 
-* [User Equipment (UE)](#user-equipment-ue)
-* [Evolved UMTS Terrestrial Radio Access Network (E-UTRAN)](#evolved-umts-radio-access-network-e-utran)
-* [Evolved Packet Core (EPC)](#evolved-packet-core-epc)
+* [User Equipment (UE)](#user-equipment-ue-)
+* [Evolved UMTS Terrestrial Radio Access Network (E-UTRAN)](#evolved-umts-radio-access-network-e-utran-)
+* [Evolved Packet Core (EPC)](#evolved-packet-core-epc-)
 
 ![LTE Architecture](/assets/lte_architecture.jpg)
 

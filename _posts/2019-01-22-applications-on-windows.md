@@ -11,7 +11,6 @@ This article introduces the applications I used on Windows system.
 
 # Desktop Environment
 
-* Windows 7
 * Windows 10
 
 # Chinese Input Methods

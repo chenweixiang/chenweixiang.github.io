@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Configure Linux Kernel"
-tag: Linux kernel
+title: "[Kernel] Configure Linux Kernel"
+tag: Linux
 toc: true
 ---
 

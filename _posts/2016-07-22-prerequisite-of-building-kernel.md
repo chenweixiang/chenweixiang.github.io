@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Prerequisite of Building Kernel"
-tag: Linux kernel
+title: "[Kernel] Prerequisite of Building Kernel"
+tag: Linux
 toc: true
 ---
 

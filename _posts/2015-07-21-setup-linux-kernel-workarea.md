@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Setup Linux Kernel Workarea"
-tag: Linux kernel
+title: "[Kernel] Setup Linux Kernel Workarea"
+tag: Linux
 toc: true
 ---
 

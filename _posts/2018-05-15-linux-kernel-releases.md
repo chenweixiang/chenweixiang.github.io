@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Linux Kernel Releases"
-tag: Linux kernel
+title: "[Kernel] Linux Kernel Releases"
+tag: Linux
 toc: true
 ---
 

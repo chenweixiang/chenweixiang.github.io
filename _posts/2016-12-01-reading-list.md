@@ -9,6 +9,8 @@ This article records the books I'm reading.
 
 <!--more-->
 
+# Reading Record
+
 | Start Date | Finish Date | Books | Link  |
 | :--------: | :---------: | :---- | :---- |
 | 2016-10-01 | 2016-12-01  | 《蒋勋说红楼梦》 | |
@@ -40,6 +42,25 @@ This article records the books I'm reading.
 | 2019-01-15 |             | 《黑客与画家》 [美] Paul Graham 著，阮一峰 译 |  |
 
 <p/>
+
+# Book List
+
+* 关键责任
+* 影响者
+* 改变一切
+* 黑客与画家：来自计算机时代的高见
+* 人工智能简史
+* 图灵的秘密
+* 特斯拉：电气时代的开创者
+* 计算进化史
+* 进化：从孤胆极客到高效团队
+* 系统化思维导论
+* 咨询的奥秘
+* 咨询的奥秘(续)
+* 代码之外的功夫
+* 注意力：专注的科学与训练
+* 用户思维+
+* 金融炼金术
 
 # References
 

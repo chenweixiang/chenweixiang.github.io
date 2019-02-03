@@ -110,7 +110,7 @@ Fetching origin
 Fetching linux-stable
 Fetching linux-next
 
-chenwx@chenwx ~/linux $ git fetch -all
+chenwx@chenwx ~/linux $ git fetch --all
 Fetching origin
 Fetching linux-stable
 Fetching linux-next

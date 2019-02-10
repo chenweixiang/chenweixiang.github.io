@@ -9,20 +9,22 @@ This article introduces the applications I used on Windows system.
 
 <!--more-->
 
-# Desktop Environment
+# Applications
+
+## Desktop Environment
 
 * Windows 10
 
-# Chinese Input Methods
+## Chinese Input Methods
 
 * 搜狗输入法
 * Google PinYin
 
-# Web Browsers
+## Web Browsers
 
 * Chrome / FreeGate
 
-# Editor
+## Editor
 
 * [Notepad++](https://notepad-plus-plus.org/)
 * [Atom](https://atom.io/)
@@ -33,19 +35,19 @@ This article introduces the applications I used on Windows system.
 * Microsoft Office Online, access via outlook.com
 * Google Docs
 
-# Email Clients
+## Email Clients
 
 * Windows Outlook
 
-# Comparison
+## Comparison
 
 * [Beyond Compare](http://www.scootersoftware.com/)
 
-# IDE (Integrated Development Environment)
+## IDE (Integrated Development Environment)
 
 * [Source Insight](http://www.sourceinsight.com/)
 
-# Dictionary
+## Dictionary
 
 * [Lingoes 灵格斯词霸](http://www.lingoes.cn/zh/dictionary/index.html)
 

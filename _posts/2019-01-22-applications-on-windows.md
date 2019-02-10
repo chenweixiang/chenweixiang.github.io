@@ -13,11 +13,11 @@ This article introduces the applications I used on Windows system.
 
 ## Desktop Environment
 
-* Windows 10
+* [Windows 10 专业版](/docs/Win10_Compare_Table.pdf)
 
 ## Chinese Input Methods
 
-* 搜狗输入法
+* [搜狗输入法](https://pinyin.sogou.com/)
 * Google PinYin
 
 ## Web Browsers

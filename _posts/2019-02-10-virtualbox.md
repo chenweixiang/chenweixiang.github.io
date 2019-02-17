@@ -13,6 +13,53 @@ This article introduces the powerful x86 and AMD64/Intel64 virtualization produc
 
 [VirtualBox](https://www.virtualbox.org/) is a powerful x86 and AMD64/Intel64 virtualization product for enterprise as well as home use. Not only is VirtualBox an extremely feature rich, high performance product for enterprise customers, it is also the only professional solution that is freely available as Open Source Software under the terms of the GNU General Public License (GPL) version 2.
 
+# Setup LinuxMint in VirtualBox
+
+## VirtualBox Settings
+
+| VirtualBox Version | [VirtualBox v6.0.4 r128413](https://www.virtualbox.org/wiki/Downloads) |
+| Host Operating System | Windows 10 |
+| Guest Operating System | [Linux Mint 19.1 Tessa, Cinnamon Edition, 64-bit](https://www.linuxmint.com/download.php) |
+| Name | LinuxMint |
+| Type | Linux |
+| Version | Ubuntu (64-bit) |
+| Memory size | 4096 MB |
+| Hard disk | Create a virtual hard disk now |
+| Hard disk file type | VDI (VirtualBox Disk Image) |
+| Storage on physical hard disk | Dynamically allocated |
+| File location and size | LinuxMint, 60.00 GB |
+
+<p/>
+
+## LinuxMint Settings
+
+| Language of LinuxMint | English |
+| Keyboard layout | English (US) |
+| Your name | chenwx |
+| Your computer's name | chenwx |
+| Pick a username | chenwx |
+| Choose a password | chenwx |
+| Confirm your password | chenwx |
+
+<p/>
+
+## Snapshots
+
+Take the following snapshots:
+
+| Name of Snapshots | Description of the Snapshot | When to Take the Snapshot |
+| :---------------- | :-------------------------- | :------------------------ |
+| 01 Linux Mint 19.1 Tessa Installed | Output of commands "lsb_release -a", "uname -a", "df -h" | Take the snapshot after the following tasks are done:<br>1) Linux Mint 19.1 Tessa is installed.<br>2) Upgrade Linux Mint 19.1 with shell commands "sudo apt update" and "sudo apt upgrade".<br>3) Setup desktop and taskbar. |
+| 02 Basic Tools Installed | Installed tools' information | Take the snapshot after the following tasks are done:<br>1) Common tools are installed, including Sogou PinYin Input Method, LibreOffice, WPS Office, Atom, Firefox Plug-ins (such as, Proxy SwitchyOmega, uBlock Origin, 转换至简体), Meld, Shutter, Dia, ChmSee, Wine, Beyond Compare 3, FreeGate.<br>2) Development tools are installed, including Source Insight 3.5, Git, Jekyll. |
+| 03 Setup Repos | Repos' location | Take the snapshot after the following repos are cloned:<br>~/repo/blog<br>~/repo/scripts<br>~/repo/linux-kernel-test<br>~/repo/git<br>~/repo/linux<br>~/repo/linux-kernel-history<br>~/repo/linux-kernel-send-mail |
+| 04 Linux Mint ... Installed | Target Version of Linux Mint | Take the snapshot after Linux Mint is upgraded to target version. |
+
+<p/>
+
+## Export LinuxMint
+
+Export Linux Mint in **OVA** format (**Open Virtualization Format 1.0**), see [How to Import and Export OVA Files in VirtualBox](#how-to-import-and-export-ova-files-in-virtualbox). Or, move Linux Mint snapshots within different hosts, see [Moving A VirtualBox VM With Snapshots](#moving-a-virtualbox-vm-with-snapshots).
+
 # Usage of VirtualBox
 
 ## Convert VirtualBox .vmdk to .vdi format
@@ -65,7 +112,15 @@ C:\Program Files\Oracle VM VirtualBox> VboxManage modifyhd "C:\Users\chenwx\Virt
 
 ## Fixing LinuxMint "Running in software rendering mode" on VirtualBox
 
-[LinuxMint Running in software rendering mode on VirtualBox](/docs/LinuxMint_Running_in_software_rendering_mode_on_VirtualBox.pdf)
+* [LinuxMint Running in software rendering mode on VirtualBox](/docs/LinuxMint_Running_in_software_rendering_mode_on_VirtualBox.pdf)
+
+## How to Import and Export OVA Files in VirtualBox
+
+* [How to Import and Export OVA Files in VirtualBox](/docs/How_to_Import_and_Export_OVA_Files_in_VirtualBox.pdf)
+
+## Moving A VirtualBox VM With Snapshots
+
+* [Moving A VirtualBox VM With Snapshots](https://ehikioya.com/moving-virtualbox-vm-snapshots/)
 
 # References
 

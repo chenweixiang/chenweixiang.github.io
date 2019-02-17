@@ -63,8 +63,8 @@ See [Upgrade Thinkpad R61i](/docs/Upgrade_Thinkpad_R61i.pdf).
 
 ## Desktop Environment
 
-* Cinnamon (Recommended)
-* MATE (Second Choice)
+* LinuxMint Cinnamon Edition (Recommended)
+* LinuxMint MATE Edition (Second Choice)
 
 See the following documentations:
 

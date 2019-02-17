@@ -63,6 +63,10 @@ C:\Program Files\Oracle VM VirtualBox> VboxManage modifyhd "C:\Users\chenwx\Virt
 
 * [Fixing the "No Space left on disk" Error](/docs/Fixing_the_No_Space_left_on_disk_Error.pdf)
 
+## Fixing LinuxMint "Running in software rendering mode" on VirtualBox
+
+[LinuxMint Running in software rendering mode on VirtualBox](/docs/LinuxMint_Running_in_software_rendering_mode_on_VirtualBox.pdf)
+
 # References
 
 * [VirtualBox](https://www.virtualbox.org/)

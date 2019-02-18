@@ -27,7 +27,7 @@ This article introduces the powerful x86 and AMD64/Intel64 virtualization produc
 | Hard disk | Create a virtual hard disk now |
 | Hard disk file type | VDI (VirtualBox Disk Image) |
 | Storage on physical hard disk | Dynamically allocated |
-| File location and size | LinuxMint, 60.00 GB |
+| File location and size | LinuxMint, 50.00 GB |
 
 <p/>
 
@@ -61,6 +61,12 @@ Take the following snapshots:
 If the [snapshots](#snapshots) are not needed within different hosts, then share the Linux Mint virtual machine by exporting it in **OVA** format (**Open Virtualization Format 1.0**), see [How to Import and Export OVA Files in VirtualBox](#how-to-import-and-export-ova-files-in-virtualbox).
 
 If all [snapshots](#snapshots) are needed within different hosts, then share the Linux Mint virtual machine by [Moving A VirtualBox VM With Snapshots](#moving-a-virtualbox-vm-with-snapshots).
+
+| Name of Exported VM | Name of Cloned VM |
+| :-----------------: | :---------------: |
+| LinuxMintExport     | LinuxMintClone    |
+
+<p/>
 
 # Usage of VirtualBox
 

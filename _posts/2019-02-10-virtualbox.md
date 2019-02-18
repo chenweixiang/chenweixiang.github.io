@@ -58,7 +58,9 @@ Take the following snapshots:
 
 ## Export LinuxMint
 
-Export Linux Mint in **OVA** format (**Open Virtualization Format 1.0**), see [How to Import and Export OVA Files in VirtualBox](#how-to-import-and-export-ova-files-in-virtualbox). Or, move Linux Mint snapshots within different hosts, see [Moving A VirtualBox VM With Snapshots](#moving-a-virtualbox-vm-with-snapshots).
+If the [snapshots](#snapshots) are not needed within different hosts, then share the Linux Mint virtual machine by exporting it in **OVA** format (**Open Virtualization Format 1.0**), see [How to Import and Export OVA Files in VirtualBox](#how-to-import-and-export-ova-files-in-virtualbox).
+
+If all [snapshots](#snapshots) are needed within different hosts, then share the Linux Mint virtual machine by [Moving A VirtualBox VM With Snapshots](#moving-a-virtualbox-vm-with-snapshots).
 
 # Usage of VirtualBox
 
@@ -120,7 +122,8 @@ C:\Program Files\Oracle VM VirtualBox> VboxManage modifyhd "C:\Users\chenwx\Virt
 
 ## Moving A VirtualBox VM With Snapshots
 
-* [Moving A VirtualBox VM With Snapshots](https://ehikioya.com/moving-virtualbox-vm-snapshots/)
+* [Moving a VirtualBox VM with Snapshots](/docs/Moving_a_VirutalBox_VM_with_Snapshots.pdf)
+* [Resolve Attached Media Conflicts in VirtualBox](/docs/Resolve_Attached_Media_Conflicts_in_VirtualBox.pdf)
 
 # References
 

@@ -50,8 +50,8 @@ Take the following snapshots:
 | Name of Snapshots | Description of the Snapshot | When to Take the Snapshot |
 | :---------------- | :-------------------------- | :------------------------ |
 | 01 Linux Mint 19.1 Tessa Installed | Output of commands "lsb_release -a", "uname -a", "df -h" | Take the snapshot after the following tasks are done:<br>1) Linux Mint 19.1 Tessa is installed.<br>2) Upgrade Linux Mint 19.1 with shell commands "sudo apt update" and "sudo apt upgrade".<br>3) Setup desktop and taskbar. |
-| 02 Basic Tools Installed | Installed tools' information | Take the snapshot after the following tasks are done:<br>1) Common tools are installed, including Sogou PinYin Input Method, LibreOffice, WPS Office, Atom, Firefox Plug-ins (such as, Proxy SwitchyOmega, uBlock Origin, 转换至简体), Meld, Shutter, Dia, Wine.<br>2) Development tools are installed, including Git, Jekyll, Beyond Compare 3, Source Insight 3.5. |
-| 03 Setup Repos | Repos' location | Take the snapshot after the following repos are cloned:<br>~/repo/blog<br>~/repo/scripts<br>~/repo/linux-kernel-test<br>~/repo/git<br>~/repo/linux<br>~/repo/linux-kernel-history<br>~/repo/linux-kernel-send-mail |
+| 02 Basic Tools Installed | Installed tools' information | Take the snapshot after the following tasks are done:<br>1) Common tools are installed, including Sogou PinYin Input Method, LibreOffice, WPS Office, Atom, Firefox Plug-ins (such as, Proxy SwitchyOmega, uBlock Origin, 转换至简体), Meld, Shutter, Dia, Wine.<br>2) Development tools are installed, including Git, Jekyll, Source Insight 3.5. |
+| 03 Setup Repos | Repos' location | Take the snapshot after the following tasks are done:<br>1) The following repos are cloned:<br>~/repo/blog<br>~/repo/scripts<br>~/repo/linux-kernel-test<br>~/repo/git<br>~/repo/linux<br>~/repo/linux-kernel-history<br>~/repo/linux-kernel-send-mail<br>2) The Bash environment is setup.|
 | 04 Linux Mint ... Installed | Target Version of Linux Mint | Take the snapshot after Linux Mint is upgraded to target version. |
 
 <p/>

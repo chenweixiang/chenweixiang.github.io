@@ -1440,6 +1440,21 @@ scripts/kconfig/conf --silentoldconfig Kconfig
 3.2.1-chenwx
 ```
 
+### 3.3.0 Create Output Directory
+
+It's better to build Linux kernel on a directory outside of local kernel repository, such as *~/linux-build*. In order to use another directory to build Linux kernel, the repository should be clean up:
+
+```
+chenwx@chenwx ~/linux $ make distclean
+chenwx@chenwx ~/linux $ mkdir ../linux-build
+```
+
+And then, use parameter ```O=../linux-build/``` in each make command later, such as configure Linux kernel:
+
+```
+chenwx@chenwx ~/linux $ make O=../linux-build/ menuconfig
+```
+
 ### 3.3.1 make config
 
 执行make config的流程：
@@ -1968,7 +1983,7 @@ endif
 	$(Q)$< --defconfig=arch/$(SRCARCH)/configs/$@ $(Kconfig)
 ```
 
-\*config的具体编译链接过程与[3.3.1 make config](#3-3-1-make-config)节类似。
+make \*config的具体编译链接过程与[3.3.1 make config](#3-3-1-make-config)节类似。
 
 [**NOTE1**] It's entirely possible that that existing .config you used as the basis for your configuration isn't quite up to date; that is, it may have no entries representing extremely new features that have been added to the kernel. If that's the case, the "make oldconfig" will stop at each one of those choices and ask you what to do. And if you're new to building a kernel, you may not know the right answer. One solution is to just keep hitting ENTER and take the default, but that can get tedious. A faster solution is:
 
@@ -1982,6 +1997,34 @@ chenwx ~/linux # yes '' | make oldconfig
 ```
 chenwx ~/linux # find arch -name "*defconfig"
 ```
+
+#### 3.3.2.1 Use Old Existed Configure
+
+In order to build Linux kernel, build it based on the old existed configure */boot/config-4.4.0-15-generic*:
+
+```
+chenwx@chenwx ~/linux $ cp /boot/config-4.4.0-15-generic ../linux-build/.config
+
+chenwx@chenwx ~/linux $ make O=../linux-build/ olddefconfig
+make[1]: Entering directory '/home/chenwx/linux-build'
+  HOSTCC  scripts/basic/fixdep
+  GEN     ./Makefile
+  HOSTCC  scripts/kconfig/conf.o
+  SHIPPED scripts/kconfig/zconf.tab.c
+  SHIPPED scripts/kconfig/zconf.lex.c
+  SHIPPED scripts/kconfig/zconf.hash.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+scripts/kconfig/conf  --olddefconfig Kconfig
+.config:1631:warning: symbol value 'm' invalid for RXKAD
+.config:3586:warning: symbol value 'm' invalid for SERIAL_8250_FINTEK
+#
+# configuration written to .config
+#
+make[1]: Leaving directory '/home/chenwx/linux-build'
+```
+
+I like to use the command ```make menuconfig``` to configure linux kernel because it much more easier to use it.
 
 ### 3.3.3 Kconfig/内核配置选项文件
 

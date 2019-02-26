@@ -1009,6 +1009,138 @@ chenwx@chenwx ~/linux $ find . -name Kbuild | wc -l
 * 首先，编译系统会读取Linux内核顶层的Makefile (通过在linux的顶层目录执行make命令来读取Makefiles);
 * 然后，根据读到的内容第二次读取Kbuild的Makefile来编译Linux内核 (参见[3.2.0 Kbuild和Makefile的关系](#3-2-0-kbuild-makefile-)节)。
 
+### 3.2.1A Components of Kbuild System
+
+The documents related to kbuild system of Linux kernel are located in directory *~/Documentation/kbuild/*:
+
+```
+chenwx@chenwx ~/linux $ ll Documentation/kbuild/
+-rw-rw-r-- 1 chenwx chenwx  427 Jul 22 20:39 00-INDEX
+-rw-rw-r-- 1 chenwx chenwx 2.3K Aug  2 22:12 Kconfig.recursion-issue-01
+-rw-rw-r-- 1 chenwx chenwx 2.8K Aug  2 22:12 Kconfig.recursion-issue-02
+-rw-rw-r-- 1 chenwx chenwx 1.1K Aug  2 22:12 Kconfig.select-break
+-rw-rw-r-- 1 chenwx chenwx 2.4K Aug  2 22:12 headers_install.txt
+-rw-rw-r-- 1 chenwx chenwx 8.3K Aug  2 22:12 kbuild.txt
+-rw-rw-r-- 1 chenwx chenwx  22K Aug  2 22:12 kconfig-language.txt
+-rw-rw-r-- 1 chenwx chenwx 8.7K Jul 22 20:39 kconfig.txt
+-rw-rw-r-- 1 chenwx chenwx  47K Aug  2 22:12 makefiles.txt
+-rw-rw-r-- 1 chenwx chenwx  17K Jul 22 20:39 modules.txt
+```
+
+The kbuild system of Linux kernel includes the following items:
+
+#### 3.2.1A.1 Top Makefile
+
+The top Makefile is included in the root directory of Linux kernel repository:
+
+```
+chenwx@chenwx ~/linux $ ll Makefile
+-rw-rw-r-- 1 chenwx chenwx 57K Jul 22 20:40 Makefile
+```
+
+We alway input make commands in the root directory of Linux kernel repository, that's the top Makefile is the main entry point of kbuild system.
+
+##### 3.2.1A.1.1 Makefile Tree
+
+The top Makefile includes the following Makefiles:
+
+```
+linux-3.2/Makefile
++- include scripts/Kbuild.include
+|  +- build := -f $(srctree)/scripts/Makefile.build obj
++- include arch/$(SRCARCH)/Makefile
+|  |  >> for x86, includes linux-3.2/arch/x86/Makefile
+|  +- include $(srctree)/arch/x86/Makefile_32.cpu
+```
+
+and where, the ```linux-3.2/scripts/Makefile.build``` includes the following scripts:
+
+```
+linux-3.2/scripts/Makefile.build
++- -include include/config/auto.conf
++- include scripts/Kbuild.include
++- include $(kbuild-file)
+|  >> 包含指定目录下的Kbuild，或者Makefile(若不存在Kbuild的话)
++- include scripts/Makefile.lib
++- include scripts/Makefile.host
++- include $(cmd_files)
+```
+
+Run the following commands to check the relationships between Makefile and Kbuild:
+
+```
+chenwx@chenwx ~/linux $ make -d O=../linux-build bzImage > ../linux-build/build.log
+
+chenwx@chenwx ~/linux $ grep "Reading makefile" ../linux-build/build.log
+Reading makefiles...
+Reading makefile 'Makefile'...
+Reading makefiles...
+Reading makefile '/home/chenwx/linux/Makefile'...
+Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
+Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
+Reading makefile 'include/config/auto.conf.cmd' (search path) (don't care) (no ~ expansion)...
+Reading makefile 'arch/x86/Makefile' (search path) (no ~ expansion)...
+Reading makefile 'arch/x86/Makefile_32.cpu' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.gcc-plugins' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.kasan' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.extrawarn' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.ubsan' (search path) (no ~ expansion)...
+Reading makefile '.vmlinux.cmd' (search path) (no ~ expansion)...
+Reading makefiles...
+Reading makefile '/home/chenwx/linux/scripts/Makefile.build'...
+Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
+Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
+Reading makefile '/home/chenwx/linux/arch/x86/entry/syscalls/Makefile' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.lib' (search path) (no ~ expansion)...
+...
+```
+
+#### 3.2.1A.2 Sub-Makefile
+
+There is one Makefile in each sub-directory of *~/linux*. Currently, the number is 2211 in kernel v4.7.2:
+
+```
+chenwx@chenwx ~/linux $ find . -name Makefile | wc -l
+2211
+```
+
+And there maybe one Kbuild file in some sub-directories:
+
+```
+chenwx@chenwx ~/linux $ find . -name Kbuild | wc -l
+173
+```
+
+#### 3.2.1A.3 Makefile Scripts
+
+Some support scripts of kbuild system are located in directory *scripts/*:
+
+```
+chenwx@chenwx ~/linux $ ll scripts/Kbuild.include
+-rw-rw-r-- 1 chenwx chenwx 15K Aug 14 09:20 scripts/Kbuild.include
+
+chenwx@chenwx ~/linux $ ll scripts/Makefile*
+-rw-rw-r-- 1 chenwx chenwx 1.8K Jul 22 20:39 scripts/Makefile
+-rw-rw-r-- 1 chenwx chenwx  683 Jul 22 20:39 scripts/Makefile.asm-generic
+-rw-rw-r-- 1 chenwx chenwx  15K Jul 22 20:40 scripts/Makefile.build
+-rw-rw-r-- 1 chenwx chenwx 2.9K Jul 22 20:39 scripts/Makefile.clean
+-rw-rw-r-- 1 chenwx chenwx 1.3K Jul 22 20:39 scripts/Makefile.dtbinst
+-rw-rw-r-- 1 chenwx chenwx 2.6K Jul 22 20:39 scripts/Makefile.extrawarn
+-rw-rw-r-- 1 chenwx chenwx 2.1K Jul 22 20:39 scripts/Makefile.fwinst
+-rw-rw-r-- 1 chenwx chenwx 4.7K Jul 22 20:39 scripts/Makefile.headersinst
+-rwxrwxrwx 1 chenwx chenwx   68 Jul 22 04:32 scripts/Makefile.help
+-rw-rw-r-- 1 chenwx chenwx 4.6K Jul 22 20:39 scripts/Makefile.host
+-rw-rw-r-- 1 chenwx chenwx  934 Jul 22 20:39 scripts/Makefile.kasan
+-rw-rw-r-- 1 chenwx chenwx  15K Jul 22 20:40 scripts/Makefile.lib
+-rwxrwxrwx 1 chenwx chenwx 1.8K Jul 22 04:32 scripts/Makefile.modbuiltin
+-rw-rw-r-- 1 chenwx chenwx 1.3K Jul 22 20:39 scripts/Makefile.modinst
+-rw-rw-r-- 1 chenwx chenwx 5.3K Jul 22 20:39 scripts/Makefile.modpost
+-rw-rw-r-- 1 chenwx chenwx 1005 Jul 22 20:39 scripts/Makefile.modsign
+-rw-rw-r-- 1 chenwx chenwx 1.1K Jul 22 20:39 scripts/Makefile.ubsan
+```
+
+Those Makefile scripts are included in the top Makefile, and come into being a tree with Makefile, refer to [3.2.1A.1.1 Makefile Tree](#3-2-1a-1-1-makefile-tree).
+
 ### 3.2.2 Kbuild编译系统概述
 
 #### 3.2.2.1 编译进内核/$(obj-y)

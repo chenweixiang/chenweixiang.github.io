@@ -7428,7 +7428,7 @@ Uncompress the patch:
 
 ```
 # gunzip patch-x.y.z.gz		// 解压后的patch为patch-x.y.z
-# bunzip2 patch-x.y.z.bz2		// 解压后的patch为patch-x.y.z
+# bunzip2 patch-x.y.z.bz2	// 解压后的patch为patch-x.y.z
 # unxz patch-x.y.z.xz		// 解压后的patch为patch-x.y.z
 ```
 
@@ -12267,6 +12267,676 @@ lrwxrwxrwx 1 root root 20 Jul 13 00:28 /sbin/init -> /lib/systemd/systemd
 chenwx@chenwx ~ $ systemd --version
 systemd 229
 +PAM +AUDIT +SELINUX +IMA +APPARMOR +SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT +GNUTLS +ACL +XZ -LZ4 +SECCOMP +BLKID +ELFUTILS +KMOD -IDN
+```
+
+# 5 系统调用接口 (System Call Interface)
+
+* [Linux System Call Interface](http://syscalls.kernelgrok.com/)
+
+系统调用帮助：
+
+```
+# man 2 system_call_name
+# man 2 syscalls
+```
+
+系统调用在内核源代码中的声明：
+
+```
+- include/linux/syscalls.h			- 与体系架构无关
+- include/asm-generic/syscalls.h		- 与体系架构无关
+- arch/x86/include/asm/syscalls.h		- 与体系架构有关
+- include/asm-generic/unistd.h			- 与体系架构无关
+- include/linux/unistd.h			- 与体系架构有关
+  - arch/x86/include/asm/unistd.h
+- arch/x86/include/asm/unistd_32.h		- 定义系统调用号__NR_xxxx
+```
+
+* [API changes in the 2.6 kernel series](http://lwn.net/Articles/2.6-kernel-api/)
+
+## 5.1 系统调用简介
+
+Linux内核中设置了一组用于实现各种系统功能的子程序，称为系统调用。用户可以在应用程序中调用系统调用。从某种角度来看，系统调用和普通函数非常相似，区别仅在于：系统调用由操作系统内核提供，运行于核心态；而普通函数由函数库或者用户提供，运行于用户态。
+
+随Linux核心还提供了一些C语言函数库，这些库对系统调用进行了包装和扩展。因为这些库函数与系统调用的关系非常紧密，所以习惯上也把这些函数称为系统调用。
+
+The POSIX standard refers to APIs and not to system calls. A system can be certified as POSIX-compliant if it offers the proper set of APIs to the application programs, no matter how the corresponding functions are implemented. As a matter of fact, several non-Unix systems have been certified as POSIX-compliant, because they offer all traditional Unix services in User Mode libraries.
+
+Linux system architecture:
+
+![assets/Linux_System_Architecture](/assets/Linux_System_Architecture.jpg)
+
+## 5.2 系统调用的执行过程
+
+系统调用的执行过程:
+
+![System_Call_Procedure](/assets/System_Call_Procedure.jpg)
+
+其中，系统调用处理程序为arch/x86/kernel/entry_32.S中的system_call，参见[5.4 系统调用的处理程序/system_call](#5-4-system-call)节。sys_call_table为arch/x86/kernel/syscall_table_32.S中的sys_call_table，参见[5.5.3 系统调用表/sys_call_table](#5-5-3-sys-call-table)节。
+
+## 5.3 系统调用的初始化
+
+对系统调用的初始化，也就是对INT 0x80软中断的初始化。在系统启动时，下列函数将0x80软中断的处理程序设置为system_call:
+
+```
+start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
+-> trap_init()							// 参见4.3.4.1.4.3.5 trap_init()节
+   -> set_system_trap_gate(SYSCALL_VECTOR, &system_call)	// 设置0x80软中断的处理程序为system_call
+```
+
+因而，system_call就是所有系统调用的入口点，参见[5.4 系统调用的处理程序/system_call](#5-4-system-call)节。
+
+## 5.4 系统调用的处理程序/system_call
+
+系统调用的处理程序为system_call，其定义于arch/x86/kernel/entry_32.S:
+
+```
+// 该宏表示sys_call_table中系统调用的个数
+#define nr_syscalls ((syscall_table_size)/4)
+
+/*
+ * syscall stub including irq exit should be protected against kprobes
+ */
+	.pushsection .kprobes.text, "ax"
+	# system call handler stub
+// 系统调用处理程序，由trap_init()设置，参见5.3 系统调用的初始化节
+ENTRY(system_call)
+	RING0_INT_FRAME					# can't unwind into user space anyway
+	pushl_cfi %eax					# save orig_eax
+	SAVE_ALL
+	GET_THREAD_INFO(%ebp)				# system call tracing in operation / emulation
+	testl $_TIF_WORK_SYSCALL_ENTRY,TI_flags(%ebp)
+	jnz syscall_trace_entry
+	cmpl $(nr_syscalls), %eax
+	jae syscall_badsys
+syscall_call:
+	/*
+	 * 根据eax寄存器中的系统调用号(参见5.5.2 系统调用号/__NR_xxx节)，
+	 * 调用sys_call_table中对应的系统调用，其等价于： call near [eax*4+sys_call_table]
+	 * 参见Subjects/Chapter05_System_Call_Interface/Figures/系统调用过程.jpg中的①
+	 */
+	call *sys_call_table(,%eax,4)
+	movl %eax,PT_EAX(%esp)				# store the return value
+syscall_exit:
+	LOCKDEP_SYS_EXIT
+	DISABLE_INTERRUPTS(CLBR_ANY)			# make sure we don't miss an interrupt
+							# setting need_resched or sigpending
+							# between sampling and the iret
+	TRACE_IRQS_OFF
+	movl TI_flags(%ebp), %ecx
+	testl $_TIF_ALLWORK_MASK, %ecx			# current->work
+	jne syscall_exit_work				// 从系统调用返回
+...
+ENDPROC(system_call)
+
+...
+	# perform syscall exit tracing
+	ALIGN
+syscall_exit_work:
+	testl $_TIF_WORK_SYSCALL_EXIT, %ecx
+	jz work_pending
+	TRACE_IRQS_ON
+	ENABLE_INTERRUPTS(CLBR_ANY)			# could let syscall_trace_leave() call schedule() instead
+	movl %esp, %eax
+	call syscall_trace_leave
+	jmp resume_userspace				// 从内核空间返回到用户空间
+END(syscall_exit_work)
+
+...
+.section .rodata,"a"
+/*
+ * arch/x86/kernel/syscall_table_32.S定义了sys_call_table，
+ * 其中包含系统调用号与系统调用函数的对应关系；
+ * 而系统调用函数的声明包含在include/linux/syscalls.h，
+ * 参见5.5.1 系统调用的声明与定义节
+ */
+#include "syscall_table_32.S"
+
+// 获得sys_call_table的大小，即字节数
+syscall_table_size=(.-sys_call_table)
+```
+
+## 5.5 系统调用
+
+### 5.5.1 系统调用的声明与定义
+
+系统调用的格式为：asmlinkage long sys_XXX(...)，由如下宏来定义系统调用：
+
+```
+- SYSCALL_DEFINE0(name)			// 没有入参
+- SYSCALL_DEFINE1(name, ...)		// 1个入参
+- SYSCALL_DEFINE2(name, ...) 		// 2个入参
+- SYSCALL_DEFINE3(name, ...) 		// 3个入参
+- SYSCALL_DEFINE4(name, ...) 		// 4个入参
+- SYSCALL_DEFINE5(name, ...) 		// 5个入参
+- SYSCALL_DEFINE6(name, ...) 		// 6个入参
+```
+
+该宏定义于include/linux/syscalls.h:
+
+```
+/*
+ * 1) 定义系统调用的宏
+ */
+
+#define __SC_DECL1(t1, a1)		t1 a1
+#define __SC_DECL2(t2, a2, ...)		t2 a2, __SC_DECL1(__VA_ARGS__)
+#define __SC_DECL3(t3, a3, ...)		t3 a3, __SC_DECL2(__VA_ARGS__)
+#define __SC_DECL4(t4, a4, ...)		t4 a4, __SC_DECL3(__VA_ARGS__)
+#define __SC_DECL5(t5, a5, ...)		t5 a5, __SC_DECL4(__VA_ARGS__)
+#define __SC_DECL6(t6, a6, ...)		t6 a6, __SC_DECL5(__VA_ARGS__)
+
+#ifdef CONFIG_FTRACE_SYSCALLS
+#define SYSCALL_DEFINE0(sname)						\
+	SYSCALL_TRACE_ENTER_EVENT(_##sname);				\
+	SYSCALL_TRACE_EXIT_EVENT(_##sname);				\
+	static struct syscall_metadata __used				\
+	  __syscall_meta__##sname = {					\
+		.name 		= "sys_"#sname,				\
+		.syscall_nr	= -1,	/* Filled in at boot */		\
+		.nb_args 		= 0,				\
+		.enter_event	= &event_enter__##sname,		\
+		.exit_event	= &event_exit__##sname,			\
+		.enter_fields	= LIST_HEAD_INIT(__syscall_meta__##sname.enter_fields),	\
+	};								\
+	static struct syscall_metadata __used				\
+	  __attribute__((section("__syscalls_metadata")))	        \
+	 *__p_syscall_meta_##sname = &__syscall_meta__##sname;		\
+	asmlinkage long sys_##sname(void)
+#else
+#define SYSCALL_DEFINE0(name)		asmlinkage long sys_##name(void)
+#endif
+
+#define SYSCALL_DEFINE1(name, ...) 	SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
+#define SYSCALL_DEFINE2(name, ...) 	SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
+#define SYSCALL_DEFINE3(name, ...) 	SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
+#define SYSCALL_DEFINE4(name, ...) 	SYSCALL_DEFINEx(4, _##name, __VA_ARGS__)
+#define SYSCALL_DEFINE5(name, ...) 	SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
+#define SYSCALL_DEFINE6(name, ...) 	SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
+
+#ifdef CONFIG_FTRACE_SYSCALLS
+#define SYSCALL_DEFINEx(x, sname, ...)					\
+	static const char *types_##sname[] = {				\
+		__SC_STR_TDECL##x(__VA_ARGS__)				\
+	};								\
+	static const char *args_##sname[] = {				\
+		__SC_STR_ADECL##x(__VA_ARGS__)				\
+	};								\
+	SYSCALL_METADATA(sname, x);					\
+	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+#else
+#define SYSCALL_DEFINEx(x, sname, ...)					\
+	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+#endif
+
+#ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
+#define SYSCALL_DEFINE(name) static inline long SYSC_##name
+#define __SYSCALL_DEFINEx(x, name, ...)					\
+	asmlinkage long sys##name(__SC_DECL##x(__VA_ARGS__));		\
+	static inline long SYSC##name(__SC_DECL##x(__VA_ARGS__));	\
+	asmlinkage long SyS##name(__SC_LONG##x(__VA_ARGS__))		\
+	{								\
+		__SC_TEST##x(__VA_ARGS__);				\
+		return (long) SYSC##name(__SC_CAST##x(__VA_ARGS__));	\
+	}								\
+	SYSCALL_ALIAS(sys##name, SyS##name);				\
+	static inline long SYSC##name(__SC_DECL##x(__VA_ARGS__))
+#else /* CONFIG_HAVE_SYSCALL_WRAPPERS */
+#define SYSCALL_DEFINE(name) asmlinkage long sys_##name
+#define __SYSCALL_DEFINEx(x, name, ...)					\
+	asmlinkage long sys##name(__SC_DECL##x(__VA_ARGS__))
+#endif /* CONFIG_HAVE_SYSCALL_WRAPPERS */
+
+/*
+ * 1) 所有系统调用的声明
+ */
+
+asmlinkage long sys_restart_syscall(void);
+...
+asmlinkage long sys_exit(int error_code);
+...
+```
+
+系统调用的定义分布于内核源代码多个源文件中，参见[http://syscalls.kernelgrok.com/](http://syscalls.kernelgrok.com/).
+
+**关键字asmlinkage的意义**
+
+This is a directive to tell the compiler to look only on the stack for this function’s arguments. This is a required modifier for all system calls.
+
+**为什么返回值为long**
+
+For compatibility between 32- and 64-bit systems, system calls defined to return an int in user-space return a long in the kernel.
+
+### 5.5.2 系统调用号/\_\_NR_xxx
+
+系统调用的声明节中的每个系统调用xxx都对应着一个系统调用号__NR_xxx。当应用程序调用某系统调用时，寄存器eax中保存该系统调用对应的系统调用号。系统调用号定义于如下头文件中：
+
+```
+include/linux/unistd.h
++-  arch/x86/include/asm/unistd.h
+    +-  arch/x86/include/asm/unistd_32.h
+    |   +-  ...
+    |   +-  #define __NR_process_vm_writev  348
+    |   +-  #define NR_syscalls             349
+    +-  arch/x86/include/asm/unistd_64.h
+        +-  ...
+        +-  #define __NR_process_vm_writev  311
+        +-  __SYSCALL(__NR_process_vm_writev, sys_process_vm_writev)
+```
+
+在应用程序中仅需包含如下头文件即可：
+
+```
+#include <unistd.h>
+```
+
+include/linux/unistd.h:
+
+```
+#ifndef _LINUX_UNISTD_H_
+#define _LINUX_UNISTD_H_
+
+/*
+ * Include machine specific syscall numbers
+ */
+#include <asm/unistd.h>
+
+#endif /* _LINUX_UNISTD_H_ */
+```
+
+对于x86而言，asm/unistd.h即为arch/x86/include/asm/unistd.h:
+
+```
+#ifdef __KERNEL__
+#  ifdef CONFIG_X86_32
+#    include "unistd_32.h"
+#  else
+#    include "unistd_64.h"
+#  endif
+#else
+#  ifdef __i386__
+#    include "unistd_32.h"
+#  else
+#    include "unistd_64.h"
+#  endif
+#endif
+
+对于x86 32-bit而言，unistd_32.h即为arch/x86/include/asm/unistd_32.h:
+#define __NR_restart_syscall		0
+#define __NR_exit			1
+#define __NR_fork			2
+#define __NR_read			3
+#define __NR_write			4
+#define __NR_open			5
+#define __NR_close			6
+...
+#define __NR_process_vm_readv		347
+#define __NR_process_vm_writev		348
+
+#ifdef __KERNEL__
+#define NR_syscalls			349
+#endif
+```
+
+对于x86 64-bit而言，unistd_64.h即为arch/x86/include/asm/unistd_64.h:
+
+```
+#define __NR_read				0
+__SYSCALL(__NR_read, sys_read)
+#define __NR_write				1
+__SYSCALL(__NR_write, sys_write)
+#define __NR_open				2
+__SYSCALL(__NR_open, sys_open)
+#define __NR_close				3
+__SYSCALL(__NR_close, sys_close)
+...
+#define __NR_process_vm_readv			310
+__SYSCALL(__NR_process_vm_readv, sys_process_vm_readv)
+#define __NR_process_vm_writev			311
+__SYSCALL(__NR_process_vm_writev, sys_process_vm_writev)
+
+#ifdef __KERNEL__
+
+#ifndef COMPILE_OFFSETS
+#include <asm/asm-offsets.h>
+#define NR_syscalls		(__NR_syscall_max + 1)
+#endif
+
+#endif
+```
+
+### 5.5.3 系统调用表/sys_call_table
+
+通过[5.5.2 系统调用号/\_\_NR_xxx](#5-5-2-nr-xxx)节的系统调用号，在系统调用表sys_call_table中查找所对应的处理函数。
+
+对于x86 32-bit而言，系统调用表sys_call_table定义于arch/x86/kernel/syscall_table_32.S:
+
+```
+ENTRY(sys_call_table)
+	.long sys_restart_syscall		/* 0 - old "setup()" system call, used for restarting */
+	.long sys_exit
+	.long ptregs_fork
+	.long sys_read
+	.long sys_write
+	.long sys_open				/* 5 */
+	.long sys_close
+
+	...
+	.long sys_sendmmsg			/* 345 */
+	.long sys_setns
+	.long sys_process_vm_readv
+	.long sys_process_vm_writev
+```
+
+对于x86 64-bit而言，系统调用表sys_call_table定义于arch/x86/kernel/syscall_64.c:
+
+```
+typedef void (*sys_call_ptr_t)(void);
+
+extern void sys_ni_syscall(void);
+
+const sys_call_ptr_t sys_call_table[__NR_syscall_max+1] = {
+	/*
+	 * Smells like a like a compiler bug -- it doesn't work
+	 * when the & below is removed.
+	 */
+	[0 ... __NR_syscall_max] = &sys_ni_syscall,
+
+// 参见5.5.2 系统调用号/__NR_xxx节
+#include <asm/unistd_64.h>
+};
+```
+
+### 5.5.4 系统调用的参数传递
+
+#### 5.5.4.1 系统调用的入参
+
+参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第5. System Calls章第System Call Handler节:
+
+Simply entering kernel-space alone is not sufficient because multiple system calls exist, all of which enter the kernel in the same manner. Thus, the system call number must be passed into the kernel. On x86, the syscall number is fed to the kernel via the eax register.
+
+In addition to the system call number, most syscalls require that one or more parameters be passed to them. Somehow, user-space must relay the parameters to the kernel during the trap. The easiest way to do this is via the same means that the syscall number is passed: The parameters are stored in registers. On x86-32, the registers ebx, ecx, edx, esi, and edi contain, in order, the first five arguments. In the unlikely case of six or more arguments, a single register is used to hold a pointer to user-space where all the parameters are stored.
+
+#### 5.5.4.2 系统调用的返回值
+
+参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第5. System Calls章第System Call Handler节:
+
+The return value is sent to user-space also via register. On x86, it is written into the **eax** register.
+
+如果系统调用执行失败，系统调用并不直接返回错误码，而是将错误码保存到全局变量errno中，因而可根据errno的值来确定错误类型。错误码定义于如下头文件中：
+
+```
+include/linux/errno.h				// 错误码512-530
+- arch/x86/include/asm/errno.h			// 仅包含asm-generic/errno.h，未新增错误码
+  - include/asm-generic/errno.h			// 错误码35-133
+    - include/asm-generic/errno-base.h		// 错误码1-34
+```
+
+也可以执行下列命令获得errno的帮助：
+
+```
+# man errno
+```
+
+注意：只有当系统调用执行失败时才会设置全局变量errno；如果系统调用执行成功，则errno的值无定义，并不会被置为0。
+
+#### 5.5.4.3 用户空间和内核空间之间的参数传递
+
+参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第5. System Calls章第System Call Implementation节:
+
+For writing into user-space, the method copy_to_user() is provided. It takes three parameters. The first is the destination memory address in the process’s address space. The second is the source pointer in kernel-space. Finally, the third argument is the size in bytes of the data to copy.
+
+For reading from user-space, the method copy_from_user() is analogous to copy_to_user(). The function reads from the second parameter into the first parameter the number of bytes specified in the third parameter.
+
+Both of these functions return the number of bytes they failed to copy on error. On success, they return zero. It is standard for the syscall to return -EFAULT in the case of such an error. The EFAULT is defined in include/asm-generic/errno-base.h. 参见[5.5.4.2 系统调用的返回值](#5-5-4-2-)节:
+
+```
+#define EFAULT	14		/* Bad address */
+```
+
+##### 5.5.4.3.1 copy_from_user()
+
+要使用函数copy_from_user()，需要包含头文件uaccess.h。内核目录中存在如下两个头文件，其访问顺序参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件](#3-4-2-1-3-1-1-1-1-obj-)节。
+
+* arch/x86/include/asm/uaccess.h
+* include/asm-generic/uaccess.h
+
+1) 在arch/x86/include/asm/uaccess.h中，存在如下包含关系：
+
+```
+...
+#ifdef CONFIG_X86_32
+# include "uaccess_32.h"
+#else
+# include "uaccess_64.h"
+#endif
+```
+
+arch/x86/include/asm/uaccess_32.h:
+
+```
+static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
+{
+	// 获取to指向内存区的大小，参见5.5.4.3.1.1 __compiletime_object_size()节
+	int sz = __compiletime_object_size(to);
+
+	if (likely(sz == -1 || sz >= n))
+		n = _copy_from_user(to, from, n);	// 验证from指向内存区的可读性，并进行拷贝
+	else
+		copy_from_user_overflow();		// 打印错误信息：Buffer overflow detected!
+
+	return n;
+}
+```
+
+arch/x86/include/asm/uaccess_64.h:
+
+```
+static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
+{
+	int sz = __compiletime_object_size(to);
+
+	might_fault();					// 调用might_sleep()
+	if (likely(sz == -1 || sz >= n))
+		n = _copy_from_user(to, from, n);	// 验证from指向内存区的可读性，并进行拷贝
+#ifdef CONFIG_DEBUG_VM
+	else
+		WARN(1, "Buffer overflow detected!\n");
+#endif
+	return n;
+}
+```
+
+2) include/asm-generic/uaccess.h:
+
+```
+static inline long copy_from_user(void *to, const void __user * from, unsigned long n)
+{
+	might_sleep();
+	if (access_ok(VERIFY_READ, from, n))
+		return __copy_from_user(to, from, n);
+	else
+		return n;
+}
+```
+
+###### 5.5.4.3.1.1 \_\_compiletime_object_size()
+
+该宏定义于include/linux/compiler-gcc4.h:
+
+```
+#if __GNUC_MINOR__ > 0
+#define __compiletime_object_size(obj)		__builtin_object_size(obj, 0)
+#endif
+```
+
+其中，```__builtin_object_size()```为GCC的内置函数，参见《Using the GNU Compiler Collection (GCC) v4.1.2》第5 Extensions to the C Language Family章第5.45 Object Size Checking Builtins节：
+
+```
+size_t __builtin_object_size(void * ptr, int type)
+is a built-in construct that returns a constant number of bytes from ptr to the end of the object ptr pointer points to (if known at compile time). __builtin_object_size never evaluates its arguments for side-effects.
+```
+
+##### 5.5.4.3.2 copy_to_user()
+
+要使用函数copy_to_user()，需要包含头文件uaccess.h。内核目录中存在如下两个头文件，其访问顺序参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件](#3-4-2-1-3-1-1-1-1-obj-)节。
+
+* arch/x86/include/asm/uaccess.h
+* include/asm-generic/uaccess.h
+
+在arch/x86/include/asm/uaccess.h中，存在如下包含关系：
+
+1) arch/x86/include/asm/uaccess_32.h:
+
+```
+// 此处为声明，其定义于arch/x86/lib/usercopy_32.c
+unsigned long __must_check copy_to_user(void __user *to, const void *from, unsigned long n);
+```
+
+arch/x86/lib/usercopy_32.c:
+
+```
+/**
+ * copy_to_user: - Copy a block of data into user space.
+ * @to:   Destination address, in user space.
+ * @from: Source address, in kernel space.
+ * @n:    Number of bytes to copy.
+ *
+ * Context: User context only.  This function may sleep.
+ *
+ * Copy data from kernel space to user space.
+ *
+ * Returns number of bytes that could not be copied.
+ * On success, this will be zero.
+ */
+unsigned long copy_to_user(void __user *to, const void *from, unsigned long n)
+{
+	if (access_ok(VERIFY_WRITE, to, n))
+		n = __copy_to_user(to, from, n);
+	return n;
+}
+```
+
+arch/x86/include/asm/uaccess_64.h:
+
+```
+static __always_inline __must_check int copy_to_user(void __user *dst, const void *src, unsigned size)
+{
+	might_fault();
+	return _copy_to_user(dst, src, size);
+}
+```
+
+2) include/asm-generic/uaccess.h:
+
+```
+static inline long copy_to_user(void __user *to, const void *from, unsigned long n)
+{
+	// 若to指向的区域(或磁盘区)为调入内存，则进程休眠，并调度其他进程运行
+	might_sleep();
+	// 验证to指向内存区的可写性，并进行拷贝
+	if (access_ok(VERIFY_WRITE, to, n))
+		return __copy_to_user(to, from, n);
+	else
+		return n;
+}
+```
+
+##### 5.5.4.3.3 simple_write_to_buffer()
+
+该函数声明于include/linux/fs.h:
+
+```
+extern ssize_t simple_write_to_buffer(void *to, size_t available, loff_t *ppos,
+				      const void __user *from, size_t count);
+```
+
+该函数定义于fs/libfs.c:
+
+```
+/**
+ * simple_write_to_buffer - copy data from user space to the buffer
+ * @to: the buffer to write to
+ * @available: the size of the buffer
+ * @ppos: the current position in the buffer
+ * @from: the user space buffer to read from
+ * @count: the maximum number of bytes to read
+ *
+ * The simple_write_to_buffer() function reads up to @count bytes from the user
+ * space address starting at @from into the buffer @to at offset @ppos.
+ *
+ * On success, the number of bytes written is returned and the offset @ppos is
+ * advanced by this number, or negative value is returned on error.
+ **/
+ssize_t simple_write_to_buffer(void *to, size_t available, loff_t *ppos,
+			       const void __user *from, size_t count)
+{
+	loff_t pos = *ppos;
+	size_t res;
+
+	if (pos < 0)
+		return -EINVAL;
+	if (pos >= available || !count)
+		return 0;
+	if (count > available - pos)
+		count = available – pos;
+	// 参见5.5.4.3.2 copy_from_user()节，该函数返回未成功拷贝的字节数
+	res = copy_from_user(to + pos, from, count);
+	if (res == count)
+		return -EFAULT;
+	count -= res;
+	*ppos = pos + count;
+	return count;
+}
+```
+
+##### 5.5.4.3.4 simple_read_from_buffer()
+
+该函数声明于include/linux/fs.h:
+
+```
+extern ssize_t simple_read_from_buffer(void __user *to, size_t count,
+				       loff_t *ppos, const void *from,
+				       size_t available);
+```
+
+该函数定义于fs/libfs.c:
+
+```
+/**
+ * simple_read_from_buffer - copy data from the buffer to user space
+ * @to: the user space buffer to read to
+ * @count: the maximum number of bytes to read
+ * @ppos: the current position in the buffer
+ * @from: the buffer to read from
+ * @available: the size of the buffer
+ *
+ * The simple_read_from_buffer() function reads up to @count bytes from the
+ * buffer @from at offset @ppos into the user space address starting at @to.
+ *
+ * On success, the number of bytes read is returned and the offset @ppos is
+ * advanced by this number, or negative value is returned on error.
+ **/
+ssize_t simple_read_from_buffer(void __user *to, size_t count, loff_t *ppos,
+				const void *from, size_t available)
+{
+	loff_t pos = *ppos;
+	size_t ret;
+
+	if (pos < 0)
+		return -EINVAL;
+	if (pos >= available || !count)
+		return 0;
+	if (count > available - pos)
+		count = available – pos;
+	// 参见5.5.4.3.2 copy_to_user()节，该函数返回未成功拷贝的字节数
+	ret = copy_to_user(to, from + pos, count);
+	if (ret == count)
+		return -EFAULT;
+	count -= ret;
+	*ppos = pos + count;
+	return count;
+}
 ```
 
 # Appendixes

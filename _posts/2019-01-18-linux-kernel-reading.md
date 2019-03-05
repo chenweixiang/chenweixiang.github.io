@@ -12939,6 +12939,445 @@ ssize_t simple_read_from_buffer(void __user *to, size_t count, loff_t *ppos,
 }
 ```
 
+## 5.6 如何新增系统调用/v3.2
+
+可以通过如下两种方法为Linux Kernel新增系统调用：
+
+* 通过修改内核源代码新增系统调用；
+* 通过内核模块新增系统调用。
+
+相比而言，采用内核模块新增系统调用的方法较好，因为它不需要重新编译内核。
+
+下面以新增系统调用long sys_testsyscall()为例，分别介绍这两种方法。
+
+### 5.6.1 通过修改内核源代码新增系统调用
+
+**1) 确定新增的系统调用号**
+
+修改如下文件来确定新增系统调用的系统调用号，并将其加入系统调用表中：
+
+* 修改arch/x86/include/asm/unistd_32.h，为新增的系统调用定义的系统调用号：
+
+```
+#define _NR_testsyscall 350
+```
+
+* 修改arch/x86/kernel/syscall_table_32.S，将新增的系统调用加入到系统调用表，即数组sys_call_table中：
+
+```
+long sys_testsyscall  /* 350 */
+```
+
+**2) 编写新增的系统调用**
+
+编写一个系统调用意味着要给内核增加一个函数，将该函数写入文件kernel/sys.c中，代码如下：
+
+```
+SYSCALL_DEFINE0(testsyscall)
+{
+	console_print("hello world\n");
+	return 0;
+}
+```
+
+**3) 使用新增的系统调用**
+
+因为C库中没有新增的系统调用的程序段，必须自己建立其代码，如下：
+
+```
+#inculde <syscalls.h>
+
+SYSCALL_DEFINE0(testsyscall)
+
+void main()
+{
+    tsetsyscall();
+}
+```
+
+### 5.6.2 通过内核模块新增系统调用
+
+模块是内核的一部分，但是并没有被编译到内核中。它们被分别编译并连接成一组目标文件，这些文件能被插入到正在运行的内核，或者从正在运行的内核中移走。内核模块至少必须有2个函数：int_module和cleanup_module。第一个函数是在把模块插入内核时调用的； 第二个函数则在删除该模块时调用。
+
+由于内核模块是内核的一部分，所以能访问所有内核资源。根据对linux系统调用机制的分析，如果要新增系统调用，可以编写自己的函数来实现，然后在sys_call_table表中增加一项，使该项中的指针指向自己编写的函数，就可以实现系统调用。
+
+**1) 编写系统调用内核模块**
+
+```
+#inculde <linux/kernel.h>
+#inculde <linux/module.h>
+#inculde <linux/modversions.h>
+#inculde <linux/sched.h>
+#inculde <asm/uaccess.h>
+
+#define _NR_testsyscall 350
+
+extern void *sys_call_table[];
+
+asmlinkage long testsyscall()
+{
+    printf("hello world\n");
+    return 0;
+}
+
+int init_module()
+{
+    sys_call_table[_NR_tsetsyscall] = testsyscall;
+    printf("system call testsyscall() loaded success\n");
+    return 0;
+}
+
+void cleanup_module()
+{
+}
+```
+
+**2) 使用新增的系统调用**
+
+```
+#define <linux/unistd.h>
+#define _NR_testsyscall 350
+
+SYSCALL_DEFINE0(testsyscall)
+
+main()
+{
+    testsyscall();
+}
+```
+
+**3) 编译内核模块并插入内核**
+
+编译内核的命令为：
+
+```
+# gcc -Wall -02 -DMODULE -D_KERNEL_-C syscall.c
+```
+
+-Wall通知编译程序显示警告信息；参数-O2是关于代码优化的设置，内核模块必须优化；参数-D_LERNEL通知头文件向内核模块提供正确的定义；参数-D_KERNEL_通知头文件， 这个程序代码将在内核模式下运行。编译成功后将生成syscall.o文件。最后使用命令：
+
+```
+# insmod syscall.o
+```
+
+命令将模块插入内核后，即可使用新增的系统调用。
+
+## 5.7 如何使用系统调用
+
+程序员使用系统调用的方式：
+
+* 直接调用系统调用
+* 通过库函数(如glibc)间接调用系统调用
+
+系统管理员使用系统调用的方式：
+
+* 通过系统命令调用系统调用
+
+### 5.7.1 程序员使用系统调用
+
+程序员可以直接调用系统调用，也可以通过库函数间接地调用系统调用，参见：
+
+![syscall_1](/assets/syscall_1.jpg)
+
+![syscall_2](/assets/syscall_2.jpg)
+
+#### 5.7.1.1 直接调用系统调用
+
+直接调用系统调用示例如下：
+
+```
+#include <sys/syscall.h>	// 定义系统调用号SYS_xxx，此处为：#define SYS_getpid  __NR_getpid
+#include <unistd.h>		// 定义系统调用号__NR_xxx，此处__NR_getpid取值为20
+#include <sys/types.h>		// 定义基本类型，此处用pid_t
+
+int main(int argc, char *argv[])
+{
+    // syscall()参见帮助 # man 2 syscall，此处实际调用sys_getpid()
+    pid_t pid = syscall(SYS_getpid);
+    return 0;
+}
+```
+
+在命令行中执行下列命令查看帮助：
+
+```
+# man 2 syscall
+SYSCALL(2)                  BSD System Calls Manual                 SYSCALL(2)
+
+NAME
+     syscall - indirect system call
+
+SYNOPSIS
+     #include <sys/syscall.h>
+     #include <unistd.h>
+
+     int syscall(int number, ...);
+
+DESCRIPTION
+     Syscall() performs the system call whose assembly language interface has the specified
+     number with the specified arguments. Symbolic constants for system calls can be found
+     in the header file <sys/syscall.h>.
+
+RETURN VALUES
+     The return value is defined by the system call being invoked. In general, a 0 return value
+     indicates success.  A -1 return value indicates an error, and an error code is stored in errno.
+
+HISTORY
+     The syscall() function call appeared in 4.0BSD.
+
+4BSD                             June 16, 1993                            4BSD
+```
+
+#### 5.7.1.2 通过库函数间接调用系统调用
+
+可以通过库函数(如glibc)间接调用系统调用，示例如下：
+
+```
+#include <sys/types.h>	// 定义基本类型，此处用pid_t
+
+int main(int argc, char *argv[])
+{
+   /*
+    * 调用库函数getpid()，参见《The GNU C Library Reference Manual》
+    * 中第26.3 Process Identification节
+    */
+    pid_t pid = getpid();
+    return 0;
+}
+```
+
+### 5.7.2 系统管理员使用系统调用
+
+系统命令相对编程接口(API)更高一层，它是内部引用API的可执行程序，如系统命令ls、hostname等。Linux的系统命令格式遵循System V的传统，多数放在/bin和/sbin目录下。
+
+Linux kernel提供了一种非常有用的方法来跟踪某个进程所调用的系统调用，以及该进程所接收到的信号：strace，它可以在命令行中执行，参数为希望跟踪的应用程序。
+
+[举例] 执行strace hostname以查看hostname使用的系统调用，由此可知hostname使用了诸如open、brk、fstat等系统调用：
+
+```
+chenwx@chenwx ~/alex $ strace hostname
+execve("/bin/hostname", ["hostname"], [/* 36 vars */]) = 0
+brk(0)                                  = 0x995c000
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+mmap2(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb76ee000
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat64(3, {st_mode=S_IFREG|0644, st_size=83840, ...}) = 0
+mmap2(NULL, 83840, PROT_READ, MAP_PRIVATE, 3, 0) = 0xb76d9000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+open("/lib/i386-linux-gnu/libnsl.so.1", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0\3\0\1\0\0\0`1\0\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0644, st_size=92028, ...}) = 0
+mmap2(NULL, 104424, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xb76bf000
+mmap2(0xb76d5000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x15) = 0xb76d5000
+mmap2(0xb76d7000, 6120, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0xb76d7000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+open("/lib/i386-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0\3\0\1\0\0\0000\226\1\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=1730024, ...}) = 0
+mmap2(NULL, 1743580, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xb7515000
+mprotect(0xb76b8000, 4096, PROT_NONE)   = 0
+mmap2(0xb76b9000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1a3) = 0xb76b9000
+mmap2(0xb76bc000, 10972, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0xb76bc000
+close(3)                                = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb7514000
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb7513000
+set_thread_area({entry_number:-1 -> 6, base_addr:0xb75136c0, limit:1048575, seg_32bit:1, contents:0, read_exec_only:0, limit_in_pages:1, seg_not_present:0, useable:1}) = 0
+mprotect(0xb76b9000, 8192, PROT_READ)   = 0
+mprotect(0xb76d5000, 4096, PROT_READ)   = 0
+mprotect(0x804b000, 4096, PROT_READ)    = 0
+mprotect(0xb7711000, 4096, PROT_READ)   = 0
+munmap(0xb76d9000, 83840)               = 0
+brk(0)                                  = 0x995c000
+brk(0x997d000)                          = 0x997d000
+uname({sys="Linux", node="chenwx", ...}) = 0
+fstat64(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 0), ...}) = 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb76ed000
+write(1, "chenwx\n", 7chenwx
+)                 = 7
+exit_group(0)                           = ?
+```
+
+## 5.8 系统命令、用户编程接口API、系统调用、内核函数之间的关系
+
+不要把内核函数想像的过于复杂，其实它和普通函数很像，只不过在内核实现，因此要满足一些内核编程的要求。系统调用是一层用户进入内核的接口，它本身并非内核函数，进入内核后，不同的系统调用会找到对应到各自的内核函数：系统调用服务例程。实际上针对请求提供服务的是内核函数而非调用接口。
+
+Linux系统中存在许多内核函数，有些是内核文件中自己使用的，有些则是可以export出来供内核其他部分共同使用的。内核公开的(export出来的)内核函数可执行下列命令查看：
+
+```
+# cat /proc/kallsyms
+```
+
+从用户角度向内核看，依次是系统命令、编程接口、系统调用和内核函数。
+
+## 5.9 特殊的系统调用
+
+### 5.9.1 sys_ni_syscall()
+
+参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第5. System Calls章第System Call Numbers节:
+
+> Linux provides a "not implemented" system call, sys_ni_syscall(), which does nothing except return -ENOSYS, the error corresponding to an invalid system call. This function is used to "plug the hole" in the rare event that a syscall is removed or otherwise made unavailable.
+
+## 5.10 应用程序调用系统调用的过程
+
+对于不同的内核版本，应用程序调用系统调用的过程也不同：
+
+*  对于Linux kernel 2.5及之前版本的内核，x86处理器使用int 0x80中断方式；
+* 对于Linux kernel 2.6及之后版本的内核，IA-32处理器使用sysenter和sysexit指令方式。
+
+### 5.10.1 x86处理器/int 0x80中断方式
+
+Linux used to implement system calls on all x86 platforms using software interrupts. To execute a system call, user process will copy desired system call number to %eax and will execute 'int 0x80'. This will generate interrupt 0x80 and an interrupt service routine will be called (which results in execution of the system_call function).
+
+系统调用的入口点参见[系统调用](#)节。
+
+### 5.10.2 IA-32处理器/sysenter和sysexit指令方式
+
+Userland processes (or C library on their behalf) call ```__kernel_vsyscall``` to execute system calls. Address of ```__kernel_vsyscall``` is not fixed. Kernel passes this address to userland processes using AT_SYSINFO elf parameter. AT_ elf parameters, a.k.a. elf auxiliary vectors, are loaded on the process stack at the time of startup, alongwith the process arguments and the environment variables.
+
+arch/x86/include/asm/elf.h
+
+```
+#define AT_SYSINFO              32
+```
+
+arch/x86/vdso/vdso32/vdso32.lds.S
+
+```
+#define VDSO_PRELINK 0
+#include "../vdso-layout.lds.S"
+
+/* The ELF entry point can be used to set the AT_SYSINFO value.  */
+ENTRY(__kernel_vsyscall);			// 定义于arch/x86/vdso/vdso32/sysenter.S
+
+/*
+ * This controls what userland symbols we export from the vDSO.
+ */
+VERSION
+{
+	LINUX_2.5 {
+	global:
+		__kernel_vsyscall;		// 定义于arch/x86/vdso/vdso32/syscall.S
+		__kernel_sigreturn;		// 定义于arch/x86/vdso/vdso32/sigreturn.S
+		__kernel_rt_sigreturn;	// 定义于arch/x86/vdso/vdso32/sigreturn.S
+	local: *;
+	};
+}
+
+/*
+ * Symbols we define here called VDSO* get their values into vdso32-syms.h.
+ */
+VDSO32_PRELINK		= VDSO_PRELINK;
+VDSO32_vsyscall		= __kernel_vsyscall;
+VDSO32_sigreturn		= __kernel_sigreturn;
+VDSO32_rt_sigreturn	= __kernel_rt_sigreturn;
+```
+
+#### 5.10.2.1 vsyscall page
+
+内核中有一个永久固定映射页面(位于0xFFFFE000-0xFFFFEFFF)，名为vsyscall page。这个区域存放了系统调用入口__kernel_vsyscall的代码，以及信号处理程序的返回代码__kernel_sigreturn。当系统初始化时，调用sysenter_setup()函数分配一个空页面，根据系统是否支持syscall、sysenter指令，将vdso32_sysenter_start/ vdso32_sysenter_end，vdso32_sysenter_start/vdso32_sysenter_end，或者vdso32_int80_start/ vdso32_int80_end的代码拷贝过去。页的权限是用户级、只读、可执行，所以用户进程可以直接访问该页代码。
+
+##### 5.10.2.1.1 vsyscall page的创建
+
+在arch/x86/vdso/vdso32-setup.c中，包含如下有关sysenter_setup()的代码：
+
+```
+/*
+ * X86_FEATURE_SYSENTER32定义于arch/x86/include/asm/cpufeature.h：
+ * #define X86_FEATURE_SYSENTER32  (3*32+15) /* "" sysenter in ia32 userspace */
+ * boot_cpu_has()定义于lib/raid6/x86.h
+ */
+#define vdso32_sysenter()       (boot_cpu_has(X86_FEATURE_SYSENTER32))
+/*
+ * X86_FEATURE_SYSCALL32定义于arch/x86/include/asm/cpufeature.h：
+ * #define X86_FEATURE_SYSCALL32   (3*32+14) /* "" syscall in ia32 userspace */
+ * boot_cpu_has()定义于lib/raid6/x86.h
+ */
+#define vdso32_syscall()        (boot_cpu_has(X86_FEATURE_SYSCALL32))
+
+...
+int __init sysenter_setup(void)
+{
+	/*
+	 * GFP_ATOMIC定义于include/linux/gfp.h，其最终取值为0x20u
+	 * get_zeroed_page()定义于mm/page_alloc.c，该函数返回一个单个的、零填充的页面
+	 */
+	void *syscall_page = (void *)get_zeroed_page(GFP_ATOMIC);
+
+	const void *vsyscall;
+	size_t vsyscall_len;
+
+	/*
+	 * The virt_to_page(addr) macro yields the address of the page descriptor
+	 * associated with the linear address addr. 其定义于arch/x86/include/asm/page.h:
+	 * #define virt_to_page(kaddr)     pfn_to_page(__pa(kaddr) >> PAGE_SHIFT)
+	 * 其中，PAGE_SHIFT定义于arch/x86/include/asm/page_types.h : #define PAGE_SHIFT 12
+	 */
+	vdso32_pages[0] = virt_to_page(syscall_page);
+
+#ifdef CONFIG_X86_32
+	gate_vma_init();
+#endif
+
+	if (vdso32_syscall()) {
+		vsyscall = &vdso32_syscall_start;
+		vsyscall_len = &vdso32_syscall_end - &vdso32_syscall_start;
+	} else if (vdso32_sysenter()){
+		vsyscall = &vdso32_sysenter_start;
+		vsyscall_len = &vdso32_sysenter_end - &vdso32_sysenter_start;
+	} else {
+		vsyscall = &vdso32_int80_start;
+		vsyscall_len = &vdso32_int80_end - &vdso32_int80_start;
+	}
+
+	memcpy(syscall_page, vsyscall, vsyscall_len);
+	relocate_vdso(syscall_page);
+
+	return 0;
+}
+```
+
+在arch/x86/vdso/vdso32.S中，包含如下有关:
+
+* vdso32_syscall_start / vdso32_syscall_end
+* vdso32_sysenter_start / vdso32_sysenter_end
+* vdso32_int80_start / vdso32_int80_end
+
+的代码：
+
+```
+#include <linux/init.h>
+
+__INITDATA
+
+        .globl vdso32_int80_start, vdso32_int80_end
+vdso32_int80_start:
+        .incbin "arch/x86/vdso/vdso32-int80.so"		// 编译过程参见arch/x86/vdso/Makefile
+vdso32_int80_end:
+
+        .globl vdso32_syscall_start, vdso32_syscall_end
+vdso32_syscall_start:
+#ifdef CONFIG_COMPAT
+        .incbin "arch/x86/vdso/vdso32-syscall.so"		// 编译过程参见arch/x86/vdso/Makefile
+#endif
+vdso32_syscall_end:
+
+        .globl vdso32_sysenter_start, vdso32_sysenter_end
+vdso32_sysenter_start:
+        .incbin "arch/x86/vdso/vdso32-sysenter.so"	// 编译过程参见arch/x86/vdso/Makefile
+vdso32_sysenter_end:
+
+__FINIT
+```
+
+#### 5.10.2.2 用户进程执行系统调用
+
+用户进程调用do_execve()时，该函数把vsyscall页动态链接到进程空间。这样用户程序需要执行系统调用时，可以直接调用vsyscall页里的代码kernel_vsyscall()，根据编译连接情况调用int 80或者sysenter指令实现，从而实现user-kernel的跨越。
+
+采用vsyscall页的内核(V2.5.53以后)，把用户信号处理程序中用到的返回代码__kernel_sigreturn也放在了永久固定映射页，这样就不用再放到堆栈里了。
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

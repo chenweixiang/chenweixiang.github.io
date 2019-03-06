@@ -13261,7 +13261,7 @@ VERSION
 	global:
 		__kernel_vsyscall;		// 定义于arch/x86/vdso/vdso32/syscall.S
 		__kernel_sigreturn;		// 定义于arch/x86/vdso/vdso32/sigreturn.S
-		__kernel_rt_sigreturn;	// 定义于arch/x86/vdso/vdso32/sigreturn.S
+		__kernel_rt_sigreturn;		// 定义于arch/x86/vdso/vdso32/sigreturn.S
 	local: *;
 	};
 }
@@ -13271,7 +13271,7 @@ VERSION
  */
 VDSO32_PRELINK		= VDSO_PRELINK;
 VDSO32_vsyscall		= __kernel_vsyscall;
-VDSO32_sigreturn		= __kernel_sigreturn;
+VDSO32_sigreturn	= __kernel_sigreturn;
 VDSO32_rt_sigreturn	= __kernel_rt_sigreturn;
 ```
 
@@ -13289,13 +13289,13 @@ VDSO32_rt_sigreturn	= __kernel_rt_sigreturn;
  * #define X86_FEATURE_SYSENTER32  (3*32+15) /* "" sysenter in ia32 userspace */
  * boot_cpu_has()定义于lib/raid6/x86.h
  */
-#define vdso32_sysenter()       (boot_cpu_has(X86_FEATURE_SYSENTER32))
+#define vdso32_sysenter()          (boot_cpu_has(X86_FEATURE_SYSENTER32))
 /*
  * X86_FEATURE_SYSCALL32定义于arch/x86/include/asm/cpufeature.h：
  * #define X86_FEATURE_SYSCALL32   (3*32+14) /* "" syscall in ia32 userspace */
  * boot_cpu_has()定义于lib/raid6/x86.h
  */
-#define vdso32_syscall()        (boot_cpu_has(X86_FEATURE_SYSCALL32))
+#define vdso32_syscall()           (boot_cpu_has(X86_FEATURE_SYSCALL32))
 
 ...
 int __init sysenter_setup(void)
@@ -13354,7 +13354,7 @@ __INITDATA
 
         .globl vdso32_int80_start, vdso32_int80_end
 vdso32_int80_start:
-        .incbin "arch/x86/vdso/vdso32-int80.so"		// 编译过程参见arch/x86/vdso/Makefile
+        .incbin "arch/x86/vdso/vdso32-int80.so"			// 编译过程参见arch/x86/vdso/Makefile
 vdso32_int80_end:
 
         .globl vdso32_syscall_start, vdso32_syscall_end
@@ -13366,7 +13366,7 @@ vdso32_syscall_end:
 
         .globl vdso32_sysenter_start, vdso32_sysenter_end
 vdso32_sysenter_start:
-        .incbin "arch/x86/vdso/vdso32-sysenter.so"	// 编译过程参见arch/x86/vdso/Makefile
+        .incbin "arch/x86/vdso/vdso32-sysenter.so"		// 编译过程参见arch/x86/vdso/Makefile
 vdso32_sysenter_end:
 
 __FINIT

@@ -13378,6 +13378,111 @@ __FINIT
 
 采用vsyscall页的内核(V2.5.53以后)，把用户信号处理程序中用到的返回代码__kernel_sigreturn也放在了永久固定映射页，这样就不用再放到堆栈里了。
 
+# 6 内存管理 (Memory Management)
+
+内存管理的代码主要在mm/目录，特定结构的代码在arch/$(ARCH)/mm/目录。
+
+## 6.1 段机制和分页机制
+
+参见《Linux 操作系统内核分析_陈莉君.pdf》第四章。
+
+虚拟地址与物理地址的转换：
+
+![Virtual_Address_to_Real_Address](/assets/Virtual_Address_to_Real_Address.png)
+
+段机制参见[6.1.1 段机制](#6-1-1-)节，分页机制参见[分页机制](#)节。
+
+### 6.1.1 段机制
+
+#### 6.1.1.1 段描述符/Segment Descriptor
+
+描述符desc_struct, gate_desc, ldt_desc, tss_desc定义于arch/x86/include/asm/desc_defs.h:
+
+```
+#ifdef CONFIG_X86_64
+typedef struct gate_struct64	gate_desc;
+typedef struct ldttss_desc64	ldt_desc;
+typedef struct ldttss_desc64	tss_desc;
+#define gate_offset(g)		((g).offset_low | ((unsigned long)(g).offset_middle << 16) | ((unsigned long)(g).offset_high << 32))
+#define gate_segment(g)		((g).segment)
+#else
+typedef struct desc_struct	gate_desc;
+typedef struct desc_struct	ldt_desc;
+typedef struct desc_struct	tss_desc;
+#define gate_offset(g)		(((g).b & 0xffff0000) | ((g).a & 0x0000ffff))
+#define gate_segment(g)		((g).a >> 16)
+#endif
+
+struct desc_struct {
+	union {
+		struct {
+			unsigned int a;
+			unsigned int b;
+		};
+		struct {
+			u16 limit0;
+			u16 base0;
+			unsigned base1: 8, type: 4, s: 1, dpl: 2, p: 1;
+			unsigned limit: 4, avl: 1, l: 1, d: 1, g: 1, base2: 8;
+		};
+	};
+} __attribute__((packed));
+
+/* 16byte gate */
+struct gate_struct64 {
+	u16 offset_low;
+	u16 segment;
+	unsigned ist : 3, zero0 : 5, type : 5, dpl : 2, p : 1;
+	u16 offset_middle;
+	u32 offset_high;
+	u32 zero1;
+} __attribute__((packed));
+
+/* LDT or TSS descriptor in the GDT. 16 bytes. */
+struct ldttss_desc64 {
+	u16 limit0;
+	u16 base0;
+	unsigned base1 : 8, type : 5, dpl : 2, p : 1;
+	unsigned limit1 : 4, zero0 : 3, g : 1, base2 : 8;
+	u32 base3;
+	u32 zero1;
+} __attribute__((packed));
+
+// 用于初始化struct desc_struct类型的变量，参见全局描述符表GDT节
+#define GDT_ENTRY_INIT(flags, base, limit) { { {					\
+		.a = ((limit) & 0xffff) | (((base) & 0xffff) << 16),			\
+		.b = (((base) & 0xff0000) >> 16) | (((flags) & 0xf0ff) << 8) |		\
+		     ((limit) & 0xf0000) | ((base) & 0xff000000),			\
+	} } }
+
+// 用于表示desc_struct中的type字段取值，参见错误：引用源未找到
+enum {
+	DESC_TSS = 0x9,
+	DESC_LDT = 0x2,
+	DESCTYPE_S = 0x10,		/* !system */
+};
+
+// 用于表示desc_struct中的type字段取值，参见错误：引用源未找到
+enum {
+	GATE_INTERRUPT = 0xE, 		// 中断门
+	GATE_TRAP = 0xF, 		// 陷阱门
+	GATE_CALL = 0xC,
+	GATE_TASK = 0x5, 		// 系统门
+};
+```
+
+在32位体系结构下，其结构参见：
+
+![Register_1](/assets/Register_1.jpg)
+
+![Register_2](/assets/Register_2.jpg)
+
+![Register_3](/assets/Register_3.jpg)
+
+各字段的含义如下表所示：
+
+![Segment_Descriptor_Fields](/assets/Segment_Descriptor_Fields.png)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

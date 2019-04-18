@@ -36,7 +36,8 @@
     //-->
     </script>
 
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
+    <!-- The MathJax CDN hosted at cdn.mathjax.org will be shutting down on April 30, 2017. See https://www.mathjax.org/cdn-shutting-down/. Also see the online math formula editor https://math.edrawsoft.cn/index.html -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=default"></script>
 
     <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
     <meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">

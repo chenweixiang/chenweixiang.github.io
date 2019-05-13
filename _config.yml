@@ -18,7 +18,7 @@ host : 127.0.0.1
 port : 4004
 
 # Include Gems
-plugins: [jekyll-paginate]
+#plugins: [jekyll-paginate]
 
 # Build settings
 markdown: kramdown
@@ -29,9 +29,9 @@ highlighter: rouge
 # Post excerpts
 excerpt_separator: <!--more-->
 
-# Enable Pagination: Items should be displayed per page
-paginate: 10
-paginate_path: "page:num"
+# Disable Pagination: Items should be displayed per page
+#paginate: 10
+#paginate_path: "page:num"
 
 # Make post visible which has date in the future
 future: true

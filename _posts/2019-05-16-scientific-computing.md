@@ -5,7 +5,7 @@ tag: Programming
 toc: true
 ---
 
-This article introduces the scientific computing software.
+This article introduces the scientific computing software, including [Scilab](#scilab), [SciPy](#scipy) and etc.
 
 <!--more-->
 
@@ -34,17 +34,18 @@ MATLAB helps you take your ideas beyond the desktop. You can run your analyses o
 
 [Wolfram Mathematica](https://www.wolfram.com/mathematica/) is a modern technical computing system spanning most areas of technical computing - including neural networks, machine learning, image processing, geometry, data science, visualizations, and others. The system is used in many technical, scientific, engineering, mathematical, and computing fields. It was conceived by *Stephen Wolfram* and is developed by Wolfram Research of Champaign, Illinois. The Wolfram Language is the programming language used in Mathematica.[9]
 
+# FreeMat
+
+[FreeMat](http://freemat.sourceforge.net/) is a free environment for rapid engineering and scientific prototyping and data processing. It is similar to commercial systems such as MATLAB from Mathworks, and IDL from Research Systems, but is Open Source. FreeMat is available under the GPL license.
+
 # Scilab
 
 [Scilab](https://www.scilab.org/) is a free and open source software for engineers & scientists, with a long history (first release in 1994) and a growing community (100 000 downloads every months worldwide).
 
+* [Scilab Tutorials](https://www.scilab.org/tutorials)
 * [From Matlab to Scilab](https://wiki.scilab.org/MatlabToScilab)
 * [An Introduction to Scilab from a Matlab User's Point of View](/docs/An_Introduction_to_Scilab_from_a_Matlab_User_Point_of_View.pdf)
 * [Comparison of SCILAB Syntax and Functions to MATLAB](/docs/Comparison_of_SCILAB_Syntax_and_Functions_to_MATLAB.pdf)
-
-# FreeMat
-
-[FreeMat](http://freemat.sourceforge.net/) is a free environment for rapid engineering and scientific prototyping and data processing. It is similar to commercial systems such as MATLAB from Mathworks, and IDL from Research Systems, but is Open Source. FreeMat is available under the GPL license.
 
 # GNU Octave
 
@@ -66,11 +67,18 @@ GNU Octave is freely redistributable software. You may redistribute it and/or mo
 
 SciPy contains modules for optimization, linear algebra, integration, interpolation, special functions, FFT, signal and image processing, ODE solvers and other tasks common in science and engineering.
 
-SciPy builds on the **NumPy** array object and is part of the NumPy stack which includes tools like Matplotlib, pandas and SymPy, and an expanding set of scientific computing libraries. This NumPy stack has similar users to other applications such as MATLAB, GNU Octave, and Scilab. The NumPy stack is also sometimes referred to as the SciPy stack.
+SciPy builds on the [NumPy](http://www.numpy.org/) array object and is part of the NumPy stack which includes tools like [Matplotlib](https://matplotlib.org/), [pandas](http://pandas.pydata.org/) and [SymPy](https://www.sympy.org/en/index.html), and an expanding set of scientific computing libraries. This NumPy stack has similar users to other applications such as MATLAB, GNU Octave, and Scilab. The NumPy stack is also sometimes referred to as the SciPy stack.
 
 SciPy is also a family of conferences for users and developers of these tools: SciPy (in the United States), EuroSciPy (in Europe) and SciPy.in (in India). Enthought originated the SciPy conference in the United States and continues to sponsor many of the international conferences as well as host the SciPy website.
 
 The SciPy library is currently distributed under the BSD license, and its development is sponsored and supported by an open community of developers. It is also supported by NumFOCUS, a community foundation for supporting reproducible and accessible science.
+
+* [SciPy](https://www.scipy.org/)
+* [Scipy Documentation](https://scipy.org/docs.html)
+* [Numpy and Scipy Documentation](https://docs.scipy.org/doc/)
+* [SciPy Cookbook](https://scipy-cookbook.readthedocs.io/)
+* [Scipy library main repository](https://github.com/scipy/scipy/)
+* [Code of Conduct](https://scipy.github.io/devdocs/dev/conduct/code_of_conduct.html)
 
 # Gmsh
 
@@ -91,3 +99,7 @@ The SciPy library is currently distributed under the BSD license, and its develo
 * [SciPy](https://www.scipy.org/)
 * [Gmsh](http://gmsh.info/)
 * [Rebol](http://www.rebol.com/)
+
+* [List of numerical-analysis software](https://en.wikipedia.org/wiki/List_of_numerical-analysis_software)
+* [Comparison of numerical-analysis software](https://en.wikipedia.org/wiki/Comparison_of_numerical-analysis_software)
+* [Comparison of statistical packages](https://en.wikipedia.org/wiki/Comparison_of_statistical_packages)

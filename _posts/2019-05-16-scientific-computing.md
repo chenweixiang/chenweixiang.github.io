@@ -854,33 +854,36 @@ The SciPy library is currently distributed under the BSD license, and its develo
 * [Scipy library main repository](https://github.com/scipy/scipy/)
 * [Code of Conduct](https://scipy.github.io/devdocs/dev/conduct/code_of_conduct.html)
 
+Note that **Python 3** is recommended for scientific computing because [Python 2.7 is end of life, and will not be maintained past January 1, 2020](https://pythonclock.org/).
+
 ## Install SciPy via pip
 
 Refer to <a href="{{ site.base-url }}/2017/03/09/python.html#install-pip">Install pip</a> to know how to install pip.
 
-Then, install package **setuptools**, **tkinter** and **wheel** in Python 3.x, which is used when installing SciPy packages later:
+Install package **setuptools** in Python 3.x, which is used when installing SciPy packages later:
 
 ```
-chenwx@chenwx:~ $ sudo apt-get install python3-setuptools
-Reading package lists... Done
-Building dependency tree       
-Reading state information... Done
-Suggested packages:
-  python-setuptools-doc
-The following NEW packages will be installed:
-  python3-setuptools
-0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
-Need to get 248 kB of archives.
-After this operation, 1319 kB of additional disk space will be used.
-Get:1 http://mirrors.aliyun.com/ubuntu bionic/main amd64 python3-setuptools all 39.0.1-2 [248 kB]
-Fetched 248 kB in 1s (184 kB/s)        
-Selecting previously unselected package python3-setuptools.
-(Reading database ... 295047 files and directories currently installed.)
-Preparing to unpack .../python3-setuptools_39.0.1-2_all.deb ...
-Unpacking python3-setuptools (39.0.1-2) ...
-Setting up python3-setuptools (39.0.1-2) ...
+chenwx@chenwx:~ $ python3 -m pip install setuptools
+Collecting setuptools
+  Using cached https://files.pythonhosted.org/packages/ec/51/f45cea425fd5cb0b0380f5b0f048ebc1da5b417e48d304838c02d6288a1e/setuptools-41.0.1-py2.py3-none-any.whl
+Installing collected packages: setuptools
+Successfully installed setuptools-41.0.1
+```
 
-chenwx@chenwx:~/repo/blog $ sudo apt-get install python3-tk
+Install package **wheel** in Python 3.x, which is used when installing SciPy packages later:
+
+```
+chenwx@chenwx:~ $ python3 -m pip install wheel
+Collecting wheel
+  Downloading https://files.pythonhosted.org/packages/bb/10/44230dd6bf3563b8f227dbf344c908d412ad2ff48066476672f3a72e174e/wheel-0.33.4-py2.py3-none-any.whl
+Installing collected packages: wheel
+Successfully installed wheel-0.33.4
+```
+
+Install package **python3-tk** in Python 3.x:
+
+```
+chenwx@chenwx:~ $ sudo apt-get install python3-tk
 [sudo] password for chenwx:       
 Reading package lists... Done
 Building dependency tree       
@@ -927,12 +930,461 @@ Setting up tk8.6-blt2.5 (2.5.3+dfsg-4) ...
 Setting up blt (2.5.3+dfsg-4) ...
 Setting up python3-tk:amd64 (3.6.7-1~18.04) ...
 Processing triggers for libc-bin (2.27-3ubuntu1) ...
+```
 
-chenwx@chenwx:~/repo/blog $ python3 -m pip install wheel
-Collecting wheel
-  Downloading https://files.pythonhosted.org/packages/bb/10/44230dd6bf3563b8f227dbf344c908d412ad2ff48066476672f3a72e174e/wheel-0.33.4-py2.py3-none-any.whl
-Installing collected packages: wheel
-Successfully installed wheel-0.33.4
+Install the header files and static libraries for Python3 **python3-dev**:
+
+```
+chenwx@chenwx:~ $ sudo apt install python3-dev
+[sudo] password for chenwx:       
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following additional packages will be installed:
+  dh-python libpython3-dev libpython3.6-dev python3.6-dev
+The following NEW packages will be installed:
+  dh-python libpython3-dev libpython3.6-dev python3-dev python3.6-dev
+0 upgraded, 5 newly installed, 0 to remove and 0 not upgraded.
+Need to get 45.4 MB of archives.
+After this operation, 77.1 MB of additional disk space will be used.
+Do you want to continue? [Y/n] Y
+Get:1 http://mirror.nforce.com/pub/linux/ubuntu bionic/main amd64 dh-python all 3.20180325ubuntu2 [89.2 kB]
+Get:2 http://mirror.nforce.com/pub/linux/ubuntu bionic-updates/main amd64 libpython3.6-dev amd64 3.6.7-1~18.04 [44.8 MB]
+Get:3 http://mirror.nforce.com/pub/linux/ubuntu bionic-updates/main amd64 libpython3-dev amd64 3.6.7-1~18.04 [7328 B]
+Get:4 http://mirror.nforce.com/pub/linux/ubuntu bionic-updates/main amd64 python3.6-dev amd64 3.6.7-1~18.04 [508 kB]
+Get:5 http://mirror.nforce.com/pub/linux/ubuntu bionic-updates/main amd64 python3-dev amd64 3.6.7-1~18.04 [1288 B]
+Fetched 45.4 MB in 29s (1541 kB/s)
+Selecting previously unselected package dh-python.
+(Reading database ... 308671 files and directories currently installed.)
+Preparing to unpack .../dh-python_3.20180325ubuntu2_all.deb ...
+Unpacking dh-python (3.20180325ubuntu2) ...
+Selecting previously unselected package libpython3.6-dev:amd64.
+Preparing to unpack .../libpython3.6-dev_3.6.7-1~18.04_amd64.deb ...
+Unpacking libpython3.6-dev:amd64 (3.6.7-1~18.04) ...
+Selecting previously unselected package libpython3-dev:amd64.
+Preparing to unpack .../libpython3-dev_3.6.7-1~18.04_amd64.deb ...
+Unpacking libpython3-dev:amd64 (3.6.7-1~18.04) ...
+Selecting previously unselected package python3.6-dev.
+Preparing to unpack .../python3.6-dev_3.6.7-1~18.04_amd64.deb ...
+Unpacking python3.6-dev (3.6.7-1~18.04) ...
+Selecting previously unselected package python3-dev.
+Preparing to unpack .../python3-dev_3.6.7-1~18.04_amd64.deb ...
+Unpacking python3-dev (3.6.7-1~18.04) ...
+Setting up libpython3.6-dev:amd64 (3.6.7-1~18.04) ...
+Processing triggers for man-db (2.8.3-2ubuntu0.1) ...
+Setting up python3.6-dev (3.6.7-1~18.04) ...
+Setting up dh-python (3.20180325ubuntu2) ...
+Setting up libpython3-dev:amd64 (3.6.7-1~18.04) ...
+Setting up python3-dev (3.6.7-1~18.04) ...
+```
+
+Install module **vtk** and **mayavi** for 3D plotting:
+
+```
+chenwx@chenwx:~ $ export LC_ALL=C.UTF-8
+
+chenwx@chenwx:~ $ python3 -m pip install vtk
+Collecting vtk
+  Using cached https://files.pythonhosted.org/packages/22/f5/30e11e1ad21701e1cd185b046979107930419a74a5602c6b899dc8523fe4/vtk-8.1.2-cp36-cp36m-manylinux1_x86_64.whl
+Installing collected packages: vtk
+Successfully installed vtk-8.1.2
+
+chenwx@chenwx:~ $ python3 -m pip install mayavi
+Collecting mayavi
+  Using cached https://files.pythonhosted.org/packages/83/9e/293ba57353ed258c2f64d54bf00ca1447c1f38f4eb60d0e762ddec57bf51/mayavi-4.6.2.tar.bz2
+Collecting apptools (from mayavi)
+Collecting envisage (from mayavi)
+Collecting numpy (from mayavi)
+  Using cached https://files.pythonhosted.org/packages/c1/e2/4db8df8f6cddc98e7d7c537245ef2f4e41a1ed17bf0c3177ab3cc6beac7f/numpy-1.16.3-cp36-cp36m-manylinux1_x86_64.whl
+Collecting pyface>=6.0.0 (from mayavi)
+Collecting pygments (from mayavi)
+  Using cached https://files.pythonhosted.org/packages/6e/00/c5cb5fc7c047da4af049005d0146b3a961b1a25d9cefbbe24bf0882a11ad/Pygments-2.4.0-py2.py3-none-any.whl
+Collecting traits>=4.6.0 (from mayavi)
+Collecting traitsui>=6.0.0 (from mayavi)
+Collecting vtk (from mayavi)
+  Using cached https://files.pythonhosted.org/packages/22/f5/30e11e1ad21701e1cd185b046979107930419a74a5602c6b899dc8523fe4/vtk-8.1.2-cp36-cp36m-manylinux1_x86_64.whl
+Collecting configobj (from apptools->mayavi)
+Collecting six (from traits>=4.6.0->mayavi)
+  Using cached https://files.pythonhosted.org/packages/73/fb/00a976f728d0d1fecfe898238ce23f502a721c0ac0ecfedb80e0d88c64e9/six-1.12.0-py2.py3-none-any.whl
+Building wheels for collected packages: mayavi
+  Running setup.py bdist_wheel for mayavi ... done
+  Stored in directory: /home/chenwx/.cache/pip/wheels/59/49/db/14986f88cce0c66019c64ed57d47536c510efa999e504f378e
+Successfully built mayavi
+Installing collected packages: six, traits, pyface, traitsui, configobj, apptools, envisage, numpy, pygments, vtk, mayavi
+Successfully installed apptools-4.4.0 configobj-5.0.6 envisage-4.7.2 mayavi-4.6.2 numpy-1.16.3 pyface-6.1.0 pygments-2.4.0 six-1.12.0 traits-5.1.1 traitsui-6.1.0 vtk-8.1.2
+```
+
+Install **wxPython** in Python 3.x:
+
+```
+chenwx@chenwx:~ $ pip3 install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-16.04  wxPython
+
+Collecting wxPython
+  Downloading https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-16.04/wxPython-4.0.4-cp36-cp36m-linux_x86_64.whl (104.4MB)
+    100% |################################| 104.4MB 10kB/s
+Collecting six (from wxPython)
+  Using cached https://files.pythonhosted.org/packages/73/fb/00a976f728d0d1fecfe898238ce23f502a721c0ac0ecfedb80e0d88c64e9/six-1.12.0-py2.py3-none-any.whl
+Collecting Pillow (from wxPython)
+  Using cached https://files.pythonhosted.org/packages/d2/c2/f84b1e57416755e967236468dcfb0fad7fd911f707185efc4ba8834a1a94/Pillow-6.0.0-cp36-cp36m-manylinux1_x86_64.whl
+Installing collected packages: six, Pillow, wxPython
+Successfully installed Pillow-6.0.0 six-1.12.0 wxPython-4.0.4
+
+chenwx@chenwx:~ $ python3 -m pip show wxPython
+Name: wxPython
+Version: 4.0.4
+Summary: Cross platform GUI toolkit for Python, "Phoenix" version
+Home-page: http://wxPython.org/
+Author: Robin Dunn
+Author-email: robin@alldunn.com
+License: wxWindows Library License (https://opensource.org/licenses/wxwindows.php)
+Location: /home/chenwx/.local/lib/python3.6/site-packages
+Requires: six, Pillow
+
+chenwx@chenwx:~ $ pip3 show wxPython
+Name: wxPython
+Version: 4.0.4
+Summary: Cross platform GUI toolkit for Python, "Phoenix" version
+Home-page: http://wxPython.org/
+Author: Robin Dunn
+Author-email: robin@alldunn.com
+License: wxWindows Library License (https://opensource.org/licenses/wxwindows.php)
+Location: /home/chenwx/.local/lib/python3.6/site-packages
+Requires: Pillow, six
+```
+
+[IPython](http://ipython.org/) is a powerful interactive shell, which can be installed via the following command.
+
+* [IPython Documentation (old version)](http://ipython.org/ipython-doc/dev/index.html).
+* [IPython Documentation (stable version)](https://ipython.readthedocs.io/en/stable/)
+
+```
+chenwx@chenwx:~ $ sudo apt install ipython3
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following additional packages will be installed:
+  python3-decorator python3-ipython python3-ipython-genutils python3-pickleshare python3-prompt-toolkit
+  python3-pygments python3-simplegeneric python3-traitlets python3-wcwidth
+The following NEW packages will be installed:
+  ipython3 python3-decorator python3-ipython python3-ipython-genutils python3-pickleshare python3-prompt-toolkit
+  python3-pygments python3-simplegeneric python3-traitlets python3-wcwidth
+0 upgraded, 10 newly installed, 0 to remove and 0 not upgraded.
+Need to get 1246 kB of archives.
+After this operation, 6751 kB of additional disk space will be used.
+Do you want to continue? [Y/n] Y
+Get:1 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-decorator all 4.1.2-1 [9364 B]
+Get:2 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-pickleshare all 0.7.4-2 [6904 B]
+Get:3 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-wcwidth all 0.1.7+dfsg1-1 [14.7 kB]
+Get:4 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-prompt-toolkit all 1.0.15-1 [163 kB]
+Get:5 http://mirror.nforce.com/pub/linux/ubuntu bionic/main amd64 python3-pygments all 2.2.0+dfsg-1 [574 kB]
+Get:6 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-simplegeneric all 0.8.1-1 [11.5 kB]
+Get:7 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-ipython-genutils all 0.2.0-1 [20.9 kB]
+Get:8 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-traitlets all 4.3.2-1 [59.1 kB]
+Get:9 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 python3-ipython all 5.5.0-1 [381 kB]
+Get:10 http://mirror.nforce.com/pub/linux/ubuntu bionic/universe amd64 ipython3 all 5.5.0-1 [5304 B]
+Fetched 1246 kB in 2s (797 kB/s)
+Selecting previously unselected package python3-decorator.
+(Reading database ... 307965 files and directories currently installed.)
+Preparing to unpack .../0-python3-decorator_4.1.2-1_all.deb ...
+Unpacking python3-decorator (4.1.2-1) ...
+Selecting previously unselected package python3-pickleshare.
+Preparing to unpack .../1-python3-pickleshare_0.7.4-2_all.deb ...
+Unpacking python3-pickleshare (0.7.4-2) ...
+Selecting previously unselected package python3-wcwidth.
+Preparing to unpack .../2-python3-wcwidth_0.1.7+dfsg1-1_all.deb ...
+Unpacking python3-wcwidth (0.1.7+dfsg1-1) ...
+Selecting previously unselected package python3-prompt-toolkit.
+Preparing to unpack .../3-python3-prompt-toolkit_1.0.15-1_all.deb ...
+Unpacking python3-prompt-toolkit (1.0.15-1) ...
+Selecting previously unselected package python3-pygments.
+Preparing to unpack .../4-python3-pygments_2.2.0+dfsg-1_all.deb ...
+Unpacking python3-pygments (2.2.0+dfsg-1) ...
+Selecting previously unselected package python3-simplegeneric.
+Preparing to unpack .../5-python3-simplegeneric_0.8.1-1_all.deb ...
+Unpacking python3-simplegeneric (0.8.1-1) ...
+Selecting previously unselected package python3-ipython-genutils.
+Preparing to unpack .../6-python3-ipython-genutils_0.2.0-1_all.deb ...
+Unpacking python3-ipython-genutils (0.2.0-1) ...
+Selecting previously unselected package python3-traitlets.
+Preparing to unpack .../7-python3-traitlets_4.3.2-1_all.deb ...
+Unpacking python3-traitlets (4.3.2-1) ...
+Selecting previously unselected package python3-ipython.
+Preparing to unpack .../8-python3-ipython_5.5.0-1_all.deb ...
+Unpacking python3-ipython (5.5.0-1) ...
+Selecting previously unselected package ipython3.
+Preparing to unpack .../9-ipython3_5.5.0-1_all.deb ...
+Unpacking ipython3 (5.5.0-1) ...
+Setting up python3-pickleshare (0.7.4-2) ...
+Setting up python3-simplegeneric (0.8.1-1) ...
+Setting up python3-wcwidth (0.1.7+dfsg1-1) ...
+Setting up python3-ipython-genutils (0.2.0-1) ...
+Processing triggers for man-db (2.8.3-2ubuntu0.1) ...
+Setting up python3-decorator (4.1.2-1) ...
+Setting up python3-traitlets (4.3.2-1) ...
+Setting up python3-pygments (2.2.0+dfsg-1) ...
+Setting up python3-prompt-toolkit (1.0.15-1) ...
+Setting up python3-ipython (5.5.0-1) ...
+Setting up ipython3 (5.5.0-1) ...
+
+chenwx@chenwx:~ $ which ipython3
+/usr/bin/ipython3
+
+chenwx@chenwx:~ $ ipython3 --version
+7.5.0
+
+chenwx@chenwx:~ $ ipython3 -h
+=========
+ IPython
+=========
+
+Tools for Interactive Computing in Python
+=========================================
+
+    A Python shell with automatic history (input and output), dynamic object
+    introspection, easier configuration, command completion, access to the
+    system shell and more.  IPython can also be embedded in running programs.
+
+Usage
+
+    ipython [subcommand] [options] [-c cmd | -m mod | file] [--] [arg] ...
+
+    If invoked with no options, it executes the file and exits, passing the
+    remaining arguments to the script, just as if you had specified the same
+    command with python. You may need to specify `--` before args to be passed
+    to the script, to prevent IPython from attempting to parse them. If you
+    specify the option `-i` before the filename, it will enter an interactive
+    IPython session after running the script, rather than exiting. Files ending
+    in .py will be treated as normal Python, but files ending in .ipy can
+    contain special IPython syntax (magic commands, shell expansions, etc.).
+
+    Almost all configuration in IPython is available via the command-line. Do
+    `ipython --help-all` to see all available options.  For persistent
+    configuration, look into your `ipython_config.py` configuration file for
+    details.
+
+    This file is typically installed in the `IPYTHONDIR` directory, and there
+    is a separate configuration directory for each profile. The default profile
+    directory will be located in $IPYTHONDIR/profile_default. IPYTHONDIR
+    defaults to to `$HOME/.ipython`.  For Windows users, $HOME resolves to
+    C:\Users\YourUserName in most instances.
+
+    To initialize a profile with the default configuration file, do::
+
+      $> ipython profile create
+
+    and start editing `IPYTHONDIR/profile_default/ipython_config.py`
+
+    In IPython's documentation, we will refer to this directory as
+    `IPYTHONDIR`, you can change its default location by creating an
+    environment variable with this name and setting it to the desired path.
+
+    For more information, see the manual available in HTML and PDF in your
+    installation, or online at https://ipython.org/documentation.html.
+
+Subcommands
+-----------
+
+Subcommands are launched as `ipython cmd [args]`. For information on using
+subcommand 'cmd', do: `ipython cmd -h`.
+
+profile
+    Create and manage IPython profiles.
+kernel
+    Start a kernel without an attached frontend.
+locate
+    print the path to the IPython dir
+history
+    Manage the IPython history database.
+qtconsole
+    DEPRECATED, Will be removed in IPython 6.0 : Launch the Jupyter Qt Console.
+notebook
+    DEPRECATED, Will be removed in IPython 6.0 : Launch the Jupyter HTML Notebook Server.
+console
+    DEPRECATED, Will be removed in IPython 6.0 : Launch the Jupyter terminal-based Console.
+nbconvert
+    DEPRECATED, Will be removed in IPython 6.0 : Convert notebooks to/from other formats.
+trust
+    DEPRECATED, Will be removed in IPython 6.0 : Sign notebooks to trust their potentially unsafe contents at load.
+kernelspec
+    DEPRECATED, Will be removed in IPython 6.0 : Manage Jupyter kernel specifications.
+install-nbextension
+    DEPRECATED, Will be removed in IPython 6.0 : Install Jupyter notebook extension files
+
+Options
+-------
+
+Arguments that take values are actually convenience aliases to full
+Configurables, whose aliases are listed on the help line. For more information
+on full configurables, see '--help-all'.
+
+--debug
+    set log level to logging.DEBUG (maximize logging output)
+--quiet
+    set log level to logging.CRITICAL (minimize logging output)
+--init
+    Initialize profile with default config files.  This is equivalent
+    to running `ipython profile create <profile>` prior to startup.
+--autoindent
+    Turn on autoindenting.
+--no-autoindent
+    Turn off autoindenting.
+--automagic
+    Turn on the auto calling of magic commands. Type %%magic at the
+    IPython  prompt  for  more information.
+--no-automagic
+    Turn off the auto calling of magic commands.
+--pdb
+    Enable auto calling the pdb debugger after every exception.
+--no-pdb
+    Disable auto calling the pdb debugger after every exception.
+--pprint
+    Enable auto pretty printing of results.
+--no-pprint
+    Disable auto pretty printing of results.
+--color-info
+    IPython can display information about objects via a set of functions,
+    and optionally can use colors for this, syntax highlighting
+    source code and various other elements. This is on by default, but can cause
+    problems with some pagers. If you see such problems, you can disable the
+    colours.
+--no-color-info
+    Disable using colors for info related things.
+--nosep
+    Eliminate all spacing between prompts.
+--pylab
+    Pre-load matplotlib and numpy for interactive use with
+    the default matplotlib backend.
+--matplotlib
+    Configure matplotlib for interactive use with
+    the default matplotlib backend.
+--autoedit-syntax
+    Turn on auto editing of files with syntax errors.
+--no-autoedit-syntax
+    Turn off auto editing of files with syntax errors.
+--simple-prompt
+    Force simple minimal prompt using `raw_input`
+--no-simple-prompt
+    Use a rich interactive prompt with prompt_toolkit
+--banner
+    Display a banner upon starting IPython.
+--no-banner
+    Don't display a banner upon starting IPython.
+--confirm-exit
+    Set to confirm when you try to exit IPython with an EOF (Control-D
+    in Unix, Control-Z/Enter in Windows). By typing 'exit' or 'quit',
+    you can force a direct exit without any confirmation.
+--no-confirm-exit
+    Don't prompt the user when exiting.
+--term-title
+    Enable auto setting the terminal title.
+--no-term-title
+    Disable auto setting the terminal title.
+--classic
+    Gives IPython a similar feel to the classic Python prompt.
+--quick
+    Enable quick startup with no config files.
+-i
+    If running code from the command line, become interactive afterwards.
+    It is often useful to follow this with `--` to treat remaining flags as
+    script arguments.
+--profile-dir=<Unicode> (ProfileDir.location)
+    Default: ''
+    Set the profile location directly. This overrides the logic used by the
+    `profile` option.
+--profile=<Unicode> (BaseIPythonApplication.profile)
+    Default: 'default'
+    The IPython profile to use.
+--ipython-dir=<Unicode> (BaseIPythonApplication.ipython_dir)
+    Default: ''
+    The name of the IPython directory. This directory is used for logging
+    configuration (through profiles), history storage, etc. The default is
+    usually $HOME/.ipython. This option can also be specified through the
+    environment variable IPYTHONDIR.
+--log-level=<Enum> (Application.log_level)
+    Default: 30
+    Choices: (0, 10, 20, 30, 40, 50, 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL')
+    Set the log level by value or name.
+--config=<Unicode> (BaseIPythonApplication.extra_config_file)
+    Default: ''
+    Path to an extra config file to load.
+    If specified, load this config file in addition to any other IPython config.
+--autocall=<Enum> (InteractiveShell.autocall)
+    Default: 0
+    Choices: (0, 1, 2)
+    Make IPython automatically call any callable object even if you didn't type
+    explicit parentheses. For example, 'str 43' becomes 'str(43)' automatically.
+    The value can be '0' to disable the feature, '1' for 'smart' autocall, where
+    it is not applied if there are no more arguments on the line, and '2' for
+    'full' autocall, where all callable objects are automatically called (even
+    if no arguments are present).
+--colors=<CaselessStrEnum> (InteractiveShell.colors)
+    Default: 'Neutral'
+    Choices: ['Neutral', 'NoColor', 'LightBG', 'Linux']
+    Set the color scheme (NoColor, Neutral, Linux, or LightBG).
+--logfile=<Unicode> (InteractiveShell.logfile)
+    Default: ''
+    The name of the logfile to use.
+--logappend=<Unicode> (InteractiveShell.logappend)
+    Default: ''
+    Start logging to the given file in append mode. Use `logfile` to specify a
+    log file to **overwrite** logs to.
+-c <Unicode> (InteractiveShellApp.code_to_run)
+    Default: ''
+    Execute the given command string.
+-m <Unicode> (InteractiveShellApp.module_to_run)
+    Default: ''
+    Run the module as a script.
+--ext=<Unicode> (InteractiveShellApp.extra_extension)
+    Default: ''
+    dotted module name of an IPython extension to load.
+--gui=<CaselessStrEnum> (InteractiveShellApp.gui)
+    Default: None
+    Choices: ['glut', 'gtk', 'gtk2', 'gtk3', 'osx', 'pyglet', 'qt', 'qt4', 'qt5', 'tk', 'wx', 'gtk2', 'qt4']
+    Enable GUI event loop integration with any of ('glut', 'gtk', 'gtk2',
+    'gtk3', 'osx', 'pyglet', 'qt', 'qt4', 'qt5', 'tk', 'wx', 'gtk2', 'qt4').
+--pylab=<CaselessStrEnum> (InteractiveShellApp.pylab)
+    Default: None
+    Choices: ['auto', 'agg', 'gtk', 'gtk3', 'inline', 'ipympl', 'nbagg', 'notebook', 'osx', 'pdf', 'ps', 'qt', 'qt4', 'qt5', 'svg', 'tk', 'widget', 'wx']
+    Pre-load matplotlib and numpy for interactive use, selecting a particular
+    matplotlib backend and loop integration.
+--matplotlib=<CaselessStrEnum> (InteractiveShellApp.matplotlib)
+    Default: None
+    Choices: ['auto', 'agg', 'gtk', 'gtk3', 'inline', 'ipympl', 'nbagg', 'notebook', 'osx', 'pdf', 'ps', 'qt', 'qt4', 'qt5', 'svg', 'tk', 'widget', 'wx']
+    Configure matplotlib for interactive use with the default matplotlib
+    backend.
+--cache-size=<Int> (InteractiveShell.cache_size)
+    Default: 1000
+    Set the size of the output cache.  The default is 1000, you can change it
+    permanently in your config file.  Setting it to 0 completely disables the
+    caching system, and the minimum value accepted is 3 (if you provide a value
+    less than 3, it is reset to 0 and a warning is issued).  This limit is
+    defined because otherwise you'll spend more time re-flushing a too small
+    cache than working
+
+To see all available configurables, use `--help-all`
+
+Examples
+--------
+
+    ipython --matplotlib       # enable matplotlib integration
+    ipython --matplotlib=qt    # enable matplotlib integration with qt4 backend
+
+    ipython --log-level=DEBUG  # set logging to DEBUG
+    ipython --profile=foo      # start with profile foo
+
+    ipython profile create foo # create profile foo w/ default config files
+    ipython help profile       # show the help for the profile subcmd
+
+    ipython locate             # print the path to the IPython directory
+    ipython locate profile foo # print the path to the directory for profile `foo`
+
+chenwx@chenwx:~ $ ipython3   
+Python 3.6.7 (default, Oct 22 2018, 11:32:17)
+Type 'copyright', 'credits' or 'license' for more information
+IPython 7.5.0 -- An enhanced Interactive Python. Type '?' for help.
+
+In [1]: print('Hello world')
+Hello world
 ```
 
 Now, it's time to install SciPy via pip in Python 3.x, refer to [Install SciPy Packages](https://www.scipy.org/install.html):
@@ -1025,10 +1477,125 @@ Requires:
 
 It's recommended to use an user install, using the ```--user``` flag to pip (note: do not use sudo pip, which can cause problems). This installs packages for your local user, and does not write to the system directories.
 
+## SciPy Organization
+
+SciPy is organized into subpackages covering different scientific computing domains. These are summarized in the following table:
+
+| Subpackage | Description |
+| :--------- | :---------- |
+| cluster | Clustering algorithms |
+| constants | Physical and mathematical constants |
+| fftpack | Fast Fourier Transform routines |
+| integrate | Integration and ordinary differential equation solvers |
+| interpolate | Interpolation and smoothing splines |
+| io | Input and Output |
+| linalg | Linear algebra |
+| ndimage | N-dimensional image processing |
+| odr | Orthogonal distance regression |
+| optimize | Optimization and root-finding routines |
+| signal | Signal processing |
+| sparse | Sparse matrices and associated routines |
+| spatial | Spatial data structures and algorithms |
+| special | Special functions |
+| stats | Statistical distributions and functions |
+
+<p/>
+
+SciPy sub-packages need to be imported separately, for example:
+
+```
+>>> from scipy import linalg, optimize
+```
+
+Because of their ubiquitousness, some of the functions in these subpackages are also made available in the **scipy** namespace to ease their use in interactive sessions and programs. In addition, many basic array functions from **numpy** are also available at the top-level of the scipy package. Before looking at the sub-packages individually, we will first look at some of these common functions.
+
+**Finding Documentation**
+
+SciPy and NumPy have documentation versions in both HTML and PDF format available at [here](https://docs.scipy.org/), that cover nearly all available functionality. However, this documentation is still work-in-progress and some parts may be incomplete or sparse. As we are a volunteer organization and depend on the community for growth, your participation - everything from providing feedback to improving the documentation and code - is welcome and actively encouraged.
+
+Python's documentation strings are used in SciPy for on-line documentation. There are two methods for reading them and getting help. One is Python's command help in the **pydoc** module. Entering this command with no arguments (i.e. ```>>> help```) launches an interactive help session that allows searching through the keywords and modules available to all of Python. Secondly, running the command ```help(obj)``` with an object as the argument displays that object's calling signature, and documentation string.
+
+The **pydoc** method of help is sophisticated but uses a pager to display the text. Sometimes this can interfere with the terminal you are running the interactive session within. A numpy/scipy-specific help system is also available under the command ```numpy.info```. The signature and documentation string for the object passed to the help command are printed to standard output (or to a writeable object passed as the third argument). The second keyword argument of numpy.info defines the maximum width of the line for printing. If a module is passed as the argument to help then a list of the functions and classes defined in that module is printed. For example:
+
+```
+>>> import numpy as np
+>>> import matplotlib as mpl
+>>> import matplotlib.pyplot as plt
+>>> from scipy import linalg, optimize
+
+>>> np.info(optimize.fmin)
+ fmin(func, x0, args=(), xtol=0.0001, ftol=0.0001, maxiter=None, maxfun=None,
+      full_output=0, disp=1, retall=0, callback=None)
+
+Minimize a function using the downhill simplex algorithm.
+
+Parameters
+----------
+func : callable func(x,*args)
+    The objective function to be minimized.
+x0 : ndarray
+    Initial guess.
+args : tuple
+    Extra arguments passed to func, i.e. ``f(x,*args)``.
+callback : callable
+    Called after each iteration, as callback(xk), where xk is the
+    current parameter vector.
+
+Returns
+-------
+xopt : ndarray
+    Parameter that minimizes function.
+fopt : float
+    Value of function at minimum: ``fopt = func(xopt)``.
+iter : int
+    Number of iterations performed.
+funcalls : int
+    Number of function calls made.
+warnflag : int
+    1 : Maximum number of function evaluations made.
+    2 : Maximum number of iterations reached.
+allvecs : list
+    Solution at each iteration.
+
+Other parameters
+----------------
+xtol : float
+    Relative error in xopt acceptable for convergence.
+ftol : number
+    Relative error in func(xopt) acceptable for convergence.
+maxiter : int
+    Maximum number of iterations to perform.
+maxfun : number
+    Maximum number of function evaluations to make.
+full_output : bool
+    Set to True if fopt and warnflag outputs are desired.
+disp : bool
+    Set to True to print convergence messages.
+retall : bool
+    Set to True to return list of solutions at each iteration.
+
+Notes
+-----
+Uses a Nelder-Mead simplex algorithm to find the minimum of function of
+one or more variables.
+```
+
+Another useful command is ```dir```, which can be used to look at the namespace of a module or package.
+
 ## Signal Processing via SciPy
 
+* [Python Scientific Lecture Notes](http://scipy-lectures.org/index.html)
+* [Fourier Transforms (scipy.fftpack)](https://docs.scipy.org/doc/scipy/reference/tutorial/fftpack.html)
 * [Signal Processing (scipy.signal)](https://docs.scipy.org/doc/scipy/reference/signal.html)
 * [Signal Processing via SciPy](https://scipy-cookbook.readthedocs.io/items/idx_signal_processing.html)
+
+For brevity and convenience, we will often assume that the main packages (numpy, scipy, and matplotlib) have been imported as:
+
+```
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+```
 
 # R
 

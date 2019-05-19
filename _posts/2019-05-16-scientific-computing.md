@@ -845,7 +845,7 @@ SciPy builds on the [NumPy](http://www.numpy.org/) array object and is part of t
 
 SciPy is also a family of conferences for users and developers of these tools: SciPy (in the United States), EuroSciPy (in Europe) and SciPy.in (in India). Enthought originated the SciPy conference in the United States and continues to sponsor many of the international conferences as well as host the SciPy website.
 
-The SciPy library is currently distributed under the BSD license, and its development is sponsored and supported by an open community of developers. It is also supported by NumFOCUS, a community foundation for supporting reproducible and accessible science.
+SciPy library is currently distributed under the BSD license, and its development is sponsored and supported by an open community of developers. It is also supported by [NumFOCUS](https://numfocus.org/), a community foundation for supporting reproducible and accessible science.
 
 * [SciPy Home Page](https://www.scipy.org/)
 * [Scipy Documentation](https://scipy.org/docs.html)
@@ -863,6 +863,7 @@ Refer to <a href="{{ site.base-url }}/2017/03/09/python.html#install-pip">Instal
 Install package **setuptools** in Python 3.x, which is used when installing SciPy packages later:
 
 ```
+# pip3 install setuptools
 chenwx@chenwx:~ $ python3 -m pip install setuptools
 Collecting setuptools
   Using cached https://files.pythonhosted.org/packages/ec/51/f45cea425fd5cb0b0380f5b0f048ebc1da5b417e48d304838c02d6288a1e/setuptools-41.0.1-py2.py3-none-any.whl
@@ -873,6 +874,7 @@ Successfully installed setuptools-41.0.1
 Install package **wheel** in Python 3.x, which is used when installing SciPy packages later:
 
 ```
+# pip3 install wheel
 chenwx@chenwx:~ $ python3 -m pip install wheel
 Collecting wheel
   Downloading https://files.pythonhosted.org/packages/bb/10/44230dd6bf3563b8f227dbf344c908d412ad2ff48066476672f3a72e174e/wheel-0.33.4-py2.py3-none-any.whl
@@ -932,7 +934,7 @@ Setting up python3-tk:amd64 (3.6.7-1~18.04) ...
 Processing triggers for libc-bin (2.27-3ubuntu1) ...
 ```
 
-Install the header files and static libraries for Python3 **python3-dev**:
+Install the header files and static libraries **python3-dev** for Python3:
 
 ```
 chenwx@chenwx:~ $ sudo apt install python3-dev
@@ -983,12 +985,14 @@ Install module **vtk** and **mayavi** for 3D plotting:
 ```
 chenwx@chenwx:~ $ export LC_ALL=C.UTF-8
 
+# pip3 install vtk
 chenwx@chenwx:~ $ python3 -m pip install vtk
 Collecting vtk
   Using cached https://files.pythonhosted.org/packages/22/f5/30e11e1ad21701e1cd185b046979107930419a74a5602c6b899dc8523fe4/vtk-8.1.2-cp36-cp36m-manylinux1_x86_64.whl
 Installing collected packages: vtk
 Successfully installed vtk-8.1.2
 
+# pip3 install mayavi
 chenwx@chenwx:~ $ python3 -m pip install mayavi
 Collecting mayavi
   Using cached https://files.pythonhosted.org/packages/83/9e/293ba57353ed258c2f64d54bf00ca1447c1f38f4eb60d0e762ddec57bf51/mayavi-4.6.2.tar.bz2
@@ -1054,7 +1058,7 @@ Requires: Pillow, six
 
 [IPython](http://ipython.org/) is a powerful interactive shell, which can be installed via the following command.
 
-* [IPython Documentation (old version)](http://ipython.org/ipython-doc/dev/index.html).
+* [IPython Documentation (old version)](http://ipython.org/ipython-doc/dev/index.html)
 * [IPython Documentation (stable version)](https://ipython.readthedocs.io/en/stable/)
 
 ```
@@ -1479,25 +1483,26 @@ It's recommended to use an user install, using the ```--user``` flag to pip (not
 
 ## SciPy Organization
 
-SciPy is organized into subpackages covering different scientific computing domains. These are summarized in the following table:
+SciPy is organized into subpackages covering different scientific computing domains. These are summarized in the following table, refer to [Scipy (development version) Reference Guide](http://scipy.github.io/devdocs/):
 
 | Subpackage | Description |
 | :--------- | :---------- |
-| cluster | Clustering algorithms |
-| constants | Physical and mathematical constants |
-| fftpack | Fast Fourier Transform routines |
-| integrate | Integration and ordinary differential equation solvers |
-| interpolate | Interpolation and smoothing splines |
-| io | Input and Output |
-| linalg | Linear algebra |
-| ndimage | N-dimensional image processing |
-| odr | Orthogonal distance regression |
-| optimize | Optimization and root-finding routines |
-| signal | Signal processing |
-| sparse | Sparse matrices and associated routines |
-| spatial | Spatial data structures and algorithms |
-| special | Special functions |
-| stats | Statistical distributions and functions |
+| [scipy.cluster](https://docs.scipy.org/doc/scipy/reference/cluster.html) | Clustering algorithms |
+| [scipy.constants](https://docs.scipy.org/doc/scipy/reference/constants.html) | Physical and mathematical constants |
+| [scipy.fftpack](https://docs.scipy.org/doc/scipy/reference/fftpack.html) | Fast Fourier Transform routines |
+| [scipy.integrate](https://docs.scipy.org/doc/scipy/reference/integrate.html) | Integration and ordinary differential equation solvers |
+| [scipy.interpolate](https://docs.scipy.org/doc/scipy/reference/interpolate.html) | Interpolation and smoothing splines |
+| [scipy.io](https://docs.scipy.org/doc/scipy/reference/io.html) | Input and Output |
+| [scipy.linalg](https://docs.scipy.org/doc/scipy/reference/linalg.html) | Linear algebra |
+| [scipy.misc](https://docs.scipy.org/doc/scipy/reference/misc.html) | Various utilities that don’t have another home. |
+| [scipy.ndimage](https://docs.scipy.org/doc/scipy/reference/ndimage.html) | N-dimensional image processing |
+| [scipy.odr](https://docs.scipy.org/doc/scipy/reference/odr.html) | Orthogonal distance regression |
+| [scipy.optimize](https://docs.scipy.org/doc/scipy/reference/optimize.html) | Optimization and root-finding routines |
+| [scipy.signal](https://docs.scipy.org/doc/scipy/reference/signal.html) | Signal processing |
+| [scipy.sparse](https://docs.scipy.org/doc/scipy/reference/sparse.html) | Sparse matrices and associated routines |
+| [scipy.spatial](https://docs.scipy.org/doc/scipy/reference/spatial.html) | Spatial data structures and algorithms |
+| [scipy.special](https://docs.scipy.org/doc/scipy/reference/special.html) | Special functions |
+| [scipy.stats](https://docs.scipy.org/doc/scipy/reference/stats.html) | Statistical distributions and functions |
 
 <p/>
 
@@ -1514,6 +1519,72 @@ Because of their ubiquitousness, some of the functions in these subpackages are 
 SciPy and NumPy have documentation versions in both HTML and PDF format available at [here](https://docs.scipy.org/), that cover nearly all available functionality. However, this documentation is still work-in-progress and some parts may be incomplete or sparse. As we are a volunteer organization and depend on the community for growth, your participation - everything from providing feedback to improving the documentation and code - is welcome and actively encouraged.
 
 Python's documentation strings are used in SciPy for on-line documentation. There are two methods for reading them and getting help. One is Python's command help in the **pydoc** module. Entering this command with no arguments (i.e. ```>>> help```) launches an interactive help session that allows searching through the keywords and modules available to all of Python. Secondly, running the command ```help(obj)``` with an object as the argument displays that object's calling signature, and documentation string.
+
+```
+chenwx@chenwx:~ $ python3
+Python 3.6.7 (default, Oct 22 2018, 11:32:17)
+[GCC 8.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+>>> help
+Type help() for interactive help, or help(object) for help about object.
+>>>
+>>> from scipy import signal
+>>>
+>>> help()
+
+Welcome to Python 3.6's help utility!
+
+If this is your first time using Python, you should definitely check out
+the tutorial on the Internet at https://docs.python.org/3.6/tutorial/.
+
+Enter the name of any module, keyword, or topic to get help on writing
+Python programs and using Python modules.  To quit this help utility and
+return to the interpreter, just type "quit".
+
+To get a list of available modules, keywords, symbols, or topics, type
+"modules", "keywords", "symbols", or "topics".  Each module also comes
+with a one-line summary of what it does; to list the modules whose name
+or summary contain a given string such as "spam", type "modules spam".
+
+help>
+help> scipy.signal
+Help on package scipy.signal in scipy:
+
+NAME
+    scipy.signal
+
+DESCRIPTION
+    =======================================
+    Signal processing (:mod:`scipy.signal`)
+    =======================================
+
+    Convolution
+    ===========
+    ...
+
+help> quit
+
+You are now leaving help and returning to the Python interpreter.
+If you want to ask for help on a particular object directly from the
+interpreter, you can type "help(object)".  Executing "help('string')"
+has the same effect as typing a particular string at the help> prompt.
+>>>
+>>> help(signal)
+Help on package scipy.signal in scipy:
+
+NAME
+    scipy.signal
+
+DESCRIPTION
+    =======================================
+    Signal processing (:mod:`scipy.signal`)
+    =======================================
+
+    Convolution
+    ===========
+    ...
+```
 
 The **pydoc** method of help is sophisticated but uses a pager to display the text. Sometimes this can interfere with the terminal you are running the interactive session within. A numpy/scipy-specific help system is also available under the command ```numpy.info```. The signature and documentation string for the object passed to the help command are printed to standard output (or to a writeable object passed as the third argument). The second keyword argument of numpy.info defines the maximum width of the line for printing. If a module is passed as the argument to help then a list of the functions and classes defined in that module is printed. For example:
 
@@ -1581,6 +1652,17 @@ one or more variables.
 ```
 
 Another useful command is ```dir```, which can be used to look at the namespace of a module or package.
+
+```
+chenwx@chenwx:~ $ python3
+Python 3.6.7 (default, Oct 22 2018, 11:32:17)
+[GCC 8.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>>   
+>>> import scipy
+>>> dir(scipy)
+['ALLOW_THREADS', 'AxisError', 'BUFSIZE', 'CLIP', 'ComplexWarning', 'DataSource', 'ERR_CALL', 'ERR_DEFAULT', 'ERR_IGNORE', 'ERR_LOG', 'ERR_PRINT', 'ERR_RAISE', 'ERR_WARN', 'FLOATING_POINT_SUPPORT', 'FPE_DIVIDEBYZERO', 'FPE_INVALID', 'FPE_OVERFLOW', 'FPE_UNDERFLOW', 'False_', 'Inf', 'Infinity', 'LowLevelCallable', 'MAXDIMS', 'MAY_SHARE_BOUNDS', 'MAY_SHARE_EXACT', 'MachAr', 'ModuleDeprecationWarning', 'NAN', 'NINF', 'NZERO', 'NaN', 'PINF', 'PZERO', 'RAISE', 'RankWarning', 'SHIFT_DIVIDEBYZERO', 'SHIFT_INVALID', 'SHIFT_OVERFLOW', 'SHIFT_UNDERFLOW', 'ScalarType', 'TooHardError', 'True_', 'UFUNC_BUFSIZE_DEFAULT', 'UFUNC_PYVALS_NAME', 'VisibleDeprecationWarning', 'WRAP', '_UFUNC_API', '__SCIPY_SETUP__', '__all__', '__builtins__', '__cached__', '__config__', '__doc__', '__file__', '__loader__', '__name__', '__numpy_version__', '__package__', '__path__', '__spec__', '__version__', '_add_newdoc_ufunc', '_arg', '_distributor_init', '_lib', 'absolute', 'absolute_import', 'add', 'add_docstring', 'add_newdoc', 'add_newdoc_ufunc', 'alen', 'all', 'allclose', 'alltrue', 'amax', 'amin', 'angle', 'any', 'append', 'apply_along_axis', 'apply_over_axes', 'arange', 'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan', 'arctan2', 'arctanh', 'argmax', 'argmin', 'argpartition', 'argsort', 'argwhere', 'around', 'array', 'array2string', 'array_equal', 'array_equiv', 'array_repr', 'array_split', 'array_str', 'asanyarray', 'asarray', 'asarray_chkfinite', 'ascontiguousarray', 'asfarray', 'asfortranarray', 'asmatrix', 'asscalar', 'atleast_1d', 'atleast_2d', 'atleast_3d', 'average', 'bartlett', 'base_repr', 'binary_repr', 'bincount', 'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor', 'blackman', 'block', 'bmat', 'bool8', 'bool_', 'broadcast', 'broadcast_arrays', 'broadcast_to', 'busday_count', 'busday_offset', 'busdaycalendar', 'byte', 'byte_bounds', 'bytes0', 'bytes_', 'c_', 'can_cast', 'cast', 'cbrt', 'cdouble', 'ceil', 'cfloat', 'char', 'character', 'chararray', 'choose', 'clip', 'clongdouble', 'clongfloat', 'column_stack', 'common_type', 'compare_chararrays', 'complex128', 'complex256', 'complex64', 'complex_', 'complexfloating', 'compress', 'concatenate', 'conj', 'conjugate', 'convolve', 'copy', 'copysign', 'copyto', 'corrcoef', 'correlate', 'cos', 'cosh', 'count_nonzero', 'cov', 'cross', 'csingle', 'ctypeslib', 'cumprod', 'cumproduct', 'cumsum', 'datetime64', 'datetime_as_string', 'datetime_data', 'deg2rad', 'degrees', 'delete', 'deprecate', 'deprecate_with_doc', 'diag', 'diag_indices', 'diag_indices_from', 'diagflat', 'diagonal', 'diff', 'digitize', 'disp', 'divide', 'division', 'divmod', 'dot', 'double', 'dsplit', 'dstack', 'dtype', 'e', 'ediff1d', 'einsum', 'einsum_path', 'emath', 'empty', 'empty_like', 'equal', 'errstate', 'euler_gamma', 'exp', 'exp2', 'expand_dims', 'expm1', 'extract', 'eye', 'fabs', 'fastCopyAndTranspose', 'fft', 'fill_diagonal', 'find_common_type', 'finfo', 'fix', 'flatiter', 'flatnonzero', 'flexible', 'flip', 'fliplr', 'flipud', 'float128', 'float16', 'float32', 'float64', 'float_', 'float_power', 'floating', 'floor', 'floor_divide', 'fmax', 'fmin', 'fmod', 'format_float_positional', 'format_float_scientific', 'format_parser', 'frexp', 'frombuffer', 'fromfile', 'fromfunction', 'fromiter', 'frompyfunc', 'fromregex', 'fromstring', 'full', 'full_like', 'fv', 'gcd', 'generic', 'genfromtxt', 'geomspace', 'get_array_wrap', 'get_include', 'get_printoptions', 'getbufsize', 'geterr', 'geterrcall', 'geterrobj', 'gradient', 'greater', 'greater_equal', 'half', 'hamming', 'hanning', 'heaviside', 'histogram', 'histogram2d', 'histogram_bin_edges', 'histogramdd', 'hsplit', 'hstack', 'hypot', 'i0', 'identity', 'ifft', 'iinfo', 'imag', 'in1d', 'index_exp', 'indices', 'inexact', 'inf', 'info', 'infty', 'inner', 'insert', 'int0', 'int16', 'int32', 'int64', 'int8', 'int_', 'int_asbuffer', 'intc', 'integer', 'interp', 'intersect1d', 'intp', 'invert', 'ipmt', 'irr', 'is_busday', 'isclose', 'iscomplex', 'iscomplexobj', 'isfinite', 'isfortran', 'isin', 'isinf', 'isnan', 'isnat', 'isneginf', 'isposinf', 'isreal', 'isrealobj', 'isscalar', 'issctype', 'issubclass_', 'issubdtype', 'issubsctype', 'iterable', 'ix_', 'kaiser', 'kron', 'lcm', 'ldexp', 'left_shift', 'less', 'less_equal', 'lexsort', 'linspace', 'little_endian', 'load', 'loads', 'loadtxt', 'log', 'log10', 'log1p', 'log2', 'logaddexp', 'logaddexp2', 'logical_and', 'logical_not', 'logical_or', 'logical_xor', 'logn', 'logspace', 'long', 'longcomplex', 'longdouble', 'longfloat', 'longlong', 'lookfor', 'ma', 'mafromtxt', 'mask_indices', 'mat', 'math', 'matmul', 'matrix', 'maximum', 'maximum_sctype', 'may_share_memory', 'mean', 'median', 'memmap', 'meshgrid', 'mgrid', 'min_scalar_type', 'minimum', 'mintypecode', 'mirr', 'mod', 'modf', 'moveaxis', 'msort', 'multiply', 'nan', 'nan_to_num', 'nanargmax', 'nanargmin', 'nancumprod', 'nancumsum', 'nanmax', 'nanmean', 'nanmedian', 'nanmin', 'nanpercentile', 'nanprod', 'nanquantile', 'nanstd', 'nansum', 'nanvar', 'nbytes', 'ndarray', 'ndenumerate', 'ndfromtxt', 'ndim', 'ndindex', 'nditer', 'negative', 'nested_iters', 'newaxis', 'nextafter', 'nonzero', 'not_equal', 'nper', 'npv', 'number', 'obj2sctype', 'object0', 'object_', 'ogrid', 'ones', 'ones_like', 'outer', 'packbits', 'pad', 'partition', 'percentile', 'pi', 'piecewise', 'place', 'pmt', 'poly', 'poly1d', 'polyadd', 'polyder', 'polydiv', 'polyfit', 'polyint', 'polymul', 'polysub', 'polyval', 'positive', 'power', 'ppmt', 'print_function', 'printoptions', 'prod', 'product', 'promote_types', 'ptp', 'put', 'put_along_axis', 'putmask', 'pv', 'quantile', 'r_', 'rad2deg', 'radians', 'rand', 'randn', 'random', 'rank', 'rate', 'ravel', 'ravel_multi_index', 'real', 'real_if_close', 'rec', 'recarray', 'recfromcsv', 'recfromtxt', 'reciprocal', 'record', 'remainder', 'repeat', 'require', 'reshape', 'resize', 'result_type', 'right_shift', 'rint', 'roll', 'rollaxis', 'roots', 'rot90', 'round_', 'row_stack', 's_', 'safe_eval', 'save', 'savetxt', 'savez', 'savez_compressed', 'sctype2char', 'sctypeDict', 'sctypeNA', 'sctypes', 'searchsorted', 'select', 'set_numeric_ops', 'set_printoptions', 'set_string_function', 'setbufsize', 'setdiff1d', 'seterr', 'seterrcall', 'seterrobj', 'setxor1d', 'shape', 'shares_memory', 'short', 'show_config', 'show_numpy_config', 'sign', 'signbit', 'signedinteger', 'sin', 'sinc', 'single', 'singlecomplex', 'sinh', 'size', 'sometrue', 'sort', 'sort_complex', 'source', 'spacing', 'split', 'sqrt', 'square', 'squeeze', 'stack', 'std', 'str0', 'str_', 'string_', 'subtract', 'sum', 'swapaxes', 'take', 'take_along_axis', 'tan', 'tanh', 'tensordot', 'test', 'tile', 'timedelta64', 'trace', 'tracemalloc_domain', 'transpose', 'trapz', 'tri', 'tril', 'tril_indices', 'tril_indices_from', 'trim_zeros', 'triu', 'triu_indices', 'triu_indices_from', 'true_divide', 'trunc', 'typeDict', 'typeNA', 'typecodes', 'typename', 'ubyte', 'ufunc', 'uint', 'uint0', 'uint16', 'uint32', 'uint64', 'uint8', 'uintc', 'uintp', 'ulonglong', 'unicode', 'unicode_', 'union1d', 'unique', 'unpackbits', 'unravel_index', 'unsignedinteger', 'unwrap', 'ushort', 'vander', 'var', 'vdot', 'vectorize', 'version', 'void', 'void0', 'vsplit', 'vstack', 'where', 'who', 'zeros', 'zeros_like']
+```
 
 ## Signal Processing via SciPy
 

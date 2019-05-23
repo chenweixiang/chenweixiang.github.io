@@ -19,6 +19,10 @@ This article lists the Linux distributions.
 
 If you want to know all information for all of those different linux distributions in one place, the website [DistroWatch](http://distrowatch.com/) is what you need.
 
+# Install Linux Distribution
+
+* [How to Install Multiple Linux Distribution on U Disk](/docs/How_to_Install_Multiple_Linux_Distribution_on_U_Disk.pdf)
+
 # References
 
 * [GNU/Linux Distribution Timeline](http://futurist.se/gldt/)

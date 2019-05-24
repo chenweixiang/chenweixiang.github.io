@@ -13976,6 +13976,1986 @@ NOTE: 在x86-64架构下，不存在高端内存(ZONE_HIGHMEM)区域。
 
 ![Paging_Buffer_Register](/assets/Paging_Buffer_Register.png)
 
+#### 6.1.2.6 Paging in Linux Kernel
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第2. Memory Addressing章第Paging in Linux节:
+
+Two paging levels are sufficient for 32-bit architectures, while 64-bit architectures require a higher number of paging levels. Up to version 2.6.10, the Linux paging model consisted of three paging levels. Starting with version 2.6.11, a four-level paging model has been adopted. The four types of page tables illustrated in below figure are called:
+* Page Global Directory
+* Page Upper Directory
+* Page Middle Directory
+* Page Table
+
+Linux paging model, refer to Subjects/Chapter06_Memory_Management/Figures/Linux_paging_model.jpg
+
+The Page Global Directory includes the addresses of several Page Upper Directories, which in turn include the addresses of several Page Middle Directories, which in turn include the addresses of several Page Tables. Each Page Table entry points to a page frame. Thus the linear address can be split into up to five parts. 错误：引用源未找到 does not show the bit numbers, because the size of each part depends on the computer architecture.
+
+**For 32-bit architectures with no Physical Address Extension**, two paging levels are sufficient. Linux essentially eliminates the Page Upper Directory and the Page Middle Directory fields by saying that they contain zero bits. However, the positions of the Page Upper Directory and the Page Middle Directory in the sequence of pointers are kept so that the same code can work on 32-bit and 64-bit architectures. The kernel keeps a position for the Page Upper Directory and the Page Middle Directory by setting the number of entries in them to 1 and mapping these two entries into the proper entry of the Page Global Directory.
+
+**For 32-bit architectures with the Physical Address Extension enabled**, three paging levels are used. The Linux’s Page Global Directory corresponds to the 80×86’s Page Directory Pointer Table (PDPT), the Page Upper Directory is eliminated, the Page Middle Directory corresponds to the 80×86’s Page Directory, and the Linux’s Page Table
+corresponds to the 80×86’s Page Table.
+
+Finally, **for 64-bit architectures** three or four levels of paging are used depending on the linear address bit splitting performed by the hardware, see section Paging for 64-bit Architectures Table 2-4. For x86-64, four levels of paging are used.
+
+Each process has its own Page Global Directory (**mm_struct->pgd**) and its own set of Page Tables. When a process switch occurs (see section context_switch()), Linux saves the **cr3** control register in the descriptor of the process previously in execution and then loads **cr3** with the value stored in the descriptor of the process to be executed next. Thus, when the new process resumes its execution on the CPU, the paging unit refers to the correct set of Page Tables.
+
+##### 6.1.2.6.1 页表结构层级
+
+PAGETABLE_LEVELS表示页表层级，取值为2，3，或4，其分别定义于：
+
+arch/x86/include/asm/pgtable-2level_types.h
+
+```
+#define PAGETABLE_LEVELS 	2
+```
+
+arch/x86/include/asm/pgtable-3level_types.h
+
+```
+#define PAGETABLE_LEVELS 	3
+```
+
+arch/x86/include/asm/pgtable-64_types.h
+
+```
+#define PAGETABLE_LEVELS 	4
+```
+
+各头文件的引用关系如下：
+
+```
+arch/x86/include/asm/pgtable.h
++- arch/x86/include/asm/pgtable_types.h
+|  +- #ifdef CONFIG_X86_32
+|  |     #include "pgtable_32_types.h"
+|  |     +- #ifdef CONFIG_X86_PAE
+|  |     |     #include <asm/pgtable-3level_types.h>		// PAGETABLE_LEVELS = 3
+|  |     |     +- typedef u64	pteval_t;
+|  |     |     +- typedef u64	pmdval_t;
+|  |     |     +- typedef u64	pudval_t;
+|  |     |     +- typedef u64	pgdval_t;
+|  |     |     +- typedef union {
+|  |     |             struct { unsigned long pte_low, pte_high; };
+|  |     |             pteval_t pte;
+|  |     |     	    } pte_t;
+|  |     |     +- #ifdef CONFIG_PARAVIRT
+|  |     |            #define SHARED_KERNEL_PMD	(pv_info.shared_kernel_pmd)
+|  |     |         #else
+|  |     |            #define SHARED_KERNEL_PMD	1
+|  |     |         #endif
+|  |     |     +- #define PAGETABLE_LEVELS		3
+|  |     |     +- #define PGDIR_SHIFT			30
+|  |     |     +- #define PTRS_PER_PGD			4
+|  |     |     +- #define PMD_SHIFT			21
+|  |     |     +- #define PTRS_PER_PMD			512
+|  |     |     +- #define PTRS_PER_PTE			512
+|  |     +- #else
+|  |     |     #include <asm/pgtable-2level_types.h>		// PAGETABLE_LEVELS = 2
+|  |     |     +- typedef unsigned long	pteval_t;
+|  |     |     +- typedef unsigned long	pmdval_t;
+|  |     |     +- typedef unsigned long	pudval_t;
+|  |     |     +- typedef unsigned long	pgdval_t;
+|  |     |     +- typedef union {
+|  |     |             pteval_t pte;
+|  |     |             pteval_t pte_low;
+|  |     |     	    } pte_t;
+|  |     |     +- #define SHARED_KERNEL_PMD		0
+|  |     |     +- #define PAGETABLE_LEVELS		2
+|  |     |     +- #define PGDIR_SHIFT			22
+|  |     |     +- #define PTRS_PER_PGD			1024
+|  |     |     +- #define PTRS_PER_PTE			1024
+|  |     +- #endif
+|  +- #else
+|  |     #include "pgtable_64_types.h"				// PAGETABLE_LEVELS = 4
+|  |     +- typedef unsigned long	pteval_t;
+|  |     +- typedef unsigned long	pmdval_t;
+|  |     +- typedef unsigned long	pudval_t;
+|  |     +- typedef unsigned long	pgdval_t;
+|  |     +- typedef struct { pteval_t pte; } pte_t;
+|  |     +- #define SHARED_KERNEL_PMD			0
+|  |     +- #define PAGETABLE_LEVELS			4
+|  |     +- #define PGDIR_SHIFT				39
+|  |     +- #define PTRS_PER_PGD			512
+|  |     +- #define PUD_SHIFT				30
+|  |     +- #define PTRS_PER_PUD			512
+|  |     +- #define PMD_SHIFT				21
+|  |     +- #define PTRS_PER_PMD			512
+|  |     +- #define PTRS_PER_PTE			512
+|  +- #endif
+|  |
+|  |
+|  +- typedef struct { pgdval_t pgd; } pgd_t;
+|  |
+|  |
+|  +- #if PAGETABLE_LEVELS > 3
+|  |     typedef struct { pudval_t pud; } pud_t;
+|  +- #else
+|  |     #include <asm-generic/pgtable-nopud.h>
+|  |     +- typedef struct { pgd_t pgd; } pud_t;
+|  |     +- #define PUD_SHIFT		PGDIR_SHIFT
+|  |     +- #define PTRS_PER_PUD	1
+|  +- #endif
+|  |
+|  +- #if PAGETABLE_LEVELS > 2
+|  |     typedef struct { pmdval_t pmd; } pmd_t;
+|  +- #else
+|  |     #include <asm-generic/pgtable-nopmd.h>
+|  |     +- typedef struct { pud_t pud; } pmd_t;
+|  |     +- #define PMD_SHIFT		PUD_SHIFT
+|  |     +- #define PTRS_PER_PMD	1
+|  +- #endif
+|
+|
++- #ifdef CONFIG_X86_32
+|  +- #include "pgtable_32.h"
++- #else
+|  +- #include "pgtable_64.h"
++- #endif
+```
+
+页表结构:
+
+![Memery_Layout_30](/assets/Memery_Layout_30.jpg)
+
+###### 6.1.2.6.1.1 与页目录表项/页表项有关的操作函数
+
+除了页目录结构/pgd_t节至页面结构/pte_t节中的函数，如下函数用于操作页目录表项/页表项：
+
+* **pgd_none(), pud_none(), pmd_none(), pte_none()**
+
+  Yield the value 1 if the corresponding entry has the value 0; otherwise, they yield the value 0.
+
+* **pgd_clear(), pud_clear(), pmd_clear(), pte_clear()**
+
+  Clear an entry of the corresponding page table, thus forbidding a process to use the linear addresses mapped by the page table entry. The ptep_get_and_clear() function clears a Page Table entry and returns the previous value.
+
+* **set_pgd(), set_pud(), set_pmd(), set_pte()**
+
+  Write a given value into a page table entry; set_pte_atomicis() identical to set_pte(), but when PAE is enabled it also ensures that the 64-bit value is written atomically.
+
+* **pte_same(a,b)**
+
+  Returns 1 if two Page Table entries a and b refer to the same page and specify the same access privileges, 0 otherwise.
+
+* **pmd_large(e)**
+
+  Returns 1 if the Page Middle Directory entryerefers to a large page (2 MB or 4 MB), 0 otherwise.
+
+* **pgd_bad(), pud_bad(), pmd_bad()**
+
+  The pud_bad() and pgd_bad() macros always yield 0.
+
+  The pmd_bad() macro is used by functions to check Page Middle Directory entries passed as input parameters. It yields the value 1 if the entry points to a bad Page Table — that is, if at least one of the following conditions applies:
+
+  * The page is not in main memory (Present flag cleared).
+  * The page allows only Read access (Read/Writeflag cleared).
+  * Either Accessed or Dirtyis cleared (Linux always forces these flags to be set for every existing Page Table).
+  <p/>
+
+  No pte_bad() macro is defined, because it is legal for a Page Table entry to refer to a page that is not present in main memory, not writable, or not accessible at all.
+
+* **pgd_present(), pud_present(), pmd_present(), pte_present()**
+
+  The pud_present() and pgd_present() macros always yield the value 1.
+
+  The pmd_present() macro yields the value 1 if the Present flag of the corresponding entry is equal to 1 — that is, if the corresponding page or Page Table is loaded in main memory.
+
+  The pte_present() macro yields the value 1 if either the Present flag or the Page Size flag of a Page Table entry is equal to 1, the value 0 otherwise. Recall that the Page Size flag in Page Table entries has no meaning for the paging unit of the microprocessor; the kernel, however, marks Present equal to 0 and Page Size equal to 1 for the pages present in main memory but without read, write, or execute privileges. In this way, any access to such pages triggers a Page Fault exception because Present is cleared, and the kernel can detect that the fault is not due to a missing page by checking the value of Page Size.
+
+##### 6.1.2.6.2 页目录结构/pgd_t
+
+###### 6.1.2.6.2.1 pgd_t结构
+
+页目录项结构为pgd_t，如页目录项/Page Directory Entry节的图所示，其定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+typedef struct { pgdval_t pgd; } pgd_t;
+```
+
+按照体系架构的不同，pgdval_t定义于如下头文件：
+
+1) arch/x86/include/asm/pgtable-2level_types.h
+
+```
+typedef unsigned long   pgdval_t;
+
+/*
+ * traditional i386 two-level paging structure:
+ */
+// 线性地址的最高10位用来产生页目录项索引，
+// 参见Linear Address转换到Physical Address节
+#define PGDIR_SHIFT   	22
+#define PTRS_PER_PGD		1024		// 页目录中包含1024个页目录项
+```
+
+2) arch/x86/include/asm/pgtable-3level_types.h
+
+```
+typedef u64   pgdval_t;
+
+/*
+ * PGDIR_SHIFT determines what a top-level page table entry can map
+ */
+// 线性地址的最高2位用来产生PDPT，参见Paging Mechanism of PAE节
+#define PGDIR_SHIFT		30
+#define PTRS_PER_PGD		4		// PDPT中包含4个项
+```
+
+3) arch/x86/include/asm/pgtable_64_types.h
+
+```
+typedef unsigned long   pgdval_t;
+
+/*
+ * PGDIR_SHIFT determines what a top-level page table entry can map
+ */
+// 线性地址中的9位(A47-A39)用来产生页目录项，
+// 参见Paging for 64-bit Architectures节
+#define PGDIR_SHIFT	39
+
+// 页目录中包含512个页目录项
+#define PTRS_PER_PGD	512
+```
+
+###### 6.1.2.6.2.2 pgd_offset()/pgd_offset_k()
+
+操作页目录表的函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+/*
+ * the pgd page can be thought of an array like this: pgd_t[PTRS_PER_PGD]
+ *
+ * this macro returns the index of the entry in the pgd page which would
+ * control the given virtual address
+ */
+#define pgd_index(address)		(((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
+
+/*
+ * pgd_offset() returns a (pgd_t *)
+ * pgd_index() is used get the offset into the pgd page's array of pgd_t's;
+ */
+// 用于获取进程虚拟地址address的一级页目录项指针，其中mm为mm_struct类型，参见struct mm_struct节
+#define pgd_offset(mm, address)	((mm)->pgd + pgd_index((address)))
+
+/*
+ * a shortcut which implies the use of the kernel's pgd, instead of a process's
+ */
+// 用于获取内核地址address的一级页目录字指针，其中init_mm定义于mm/init-mm.c，
+// init_mm->pgd = swapper_pg_dir
+#define pgd_offset_k(address)		pgd_offset(&init_mm, (address))
+```
+
+###### 6.1.2.6.2.3 pgd_val()/native_pgd_val()/native_make_pgd()
+
+宏pgd_val()用于获取页目录表项的值，其定义于arch/x86/include/asm/pgtable.h:
+
+```
+#define pgd_val(x)		native_pgd_val(x)
+
+static inline pgdval_t	native_pgd_val(pgd_t pgd)
+{
+	return pgd.pgd;
+}
+
+static inline pgd_t native_make_pgd(pgdval_t val)
+{
+	return (pgd_t) { val };
+}
+```
+
+###### 6.1.2.6.2.4 pgd_flags()
+
+该函数定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+/* PTE_PFN_MASK extracts the PFN from a (pte|pmd|pud|pgd)val_t */
+#define PTE_PFN_MASK		((pteval_t)PHYSICAL_PAGE_MASK)		// A31-A12置1，其他位置0
+
+/* PTE_FLAGS_MASK extracts the flags from a (pte|pmd|pud|pgd)val_t */
+#define PTE_FLAGS_MASK	(~PTE_PFN_MASK)					// A11-A0置1，其他位置0
+
+static inline pgdval_t pgd_flags(pgd_t pgd)
+{
+	// 函数native_pgd_val()参见pgd_val()/native_pgd_val()/native_make_pgd()节
+	return native_pgd_val(pgd) & PTE_FLAGS_MASK;
+}
+```
+
+其中，PHYSICAL_PAGE_MASK定义于arch/x86/include/asm/page_types.h:
+
+```
+/* PAGE_SHIFT determines the page size */
+#define PAGE_SHIFT		12
+#define PAGE_SIZE		(_AC(1,UL) << PAGE_SHIFT)
+#define PAGE_MASK		(~(PAGE_SIZE-1))				// A11-A0置0，其他位置1
+
+#define __PHYSICAL_MASK	((phys_addr_t)((1ULL << __PHYSICAL_MASK_SHIFT) - 1))	// A31-A0置1，高位置0
+
+/* Cast PAGE_MASK to a signed type so that it is sign-extended if
+   virtual addresses are 32-bits but physical addresses are larger
+   (ie, 32-bit PAE). */
+#define PHYSICAL_PAGE_MASK	(((signed long)PAGE_MASK) & __PHYSICAL_MASK)	// A31-A12置1，其他位置0
+```
+
+###### 6.1.2.6.2.4.1 PDG Flags
+
+页目录项中各标志位定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+#define _PAGE_BIT_PRESENT		0	/* is present */
+#define _PAGE_BIT_RW			1	/* writeable */
+#define _PAGE_BIT_USER			2	/* userspace addressable */
+#define _PAGE_BIT_PWT			3	/* page write through */
+#define _PAGE_BIT_PCD			4	/* page cache disabled */
+#define _PAGE_BIT_ACCESSED		5	/* was accessed (raised by CPU) */
+#define _PAGE_BIT_DIRTY			6	/* was written to (raised by CPU) */
+#define _PAGE_BIT_PSE			7	/* 4 MB (or 2MB) page */
+#define _PAGE_BIT_PAT			7	/* on 4KB pages */
+#define _PAGE_BIT_GLOBAL		8	/* Global TLB entry PPro+ */
+#define _PAGE_BIT_UNUSED1		9	/* available for programmer */
+#define _PAGE_BIT_IOMAP			10	/* flag used to indicate IO mapping */
+#define _PAGE_BIT_HIDDEN		11	/* hidden by kmemcheck */
+#define _PAGE_BIT_PAT_LARGE		12	/* On 2MB or 1GB pages */
+#define _PAGE_BIT_SPECIAL		_PAGE_BIT_UNUSED1
+#define _PAGE_BIT_CPA_TEST		_PAGE_BIT_UNUSED1
+#define _PAGE_BIT_SPLITTING		_PAGE_BIT_UNUSED		1 /* only valid on a PSE pmd */
+#define _PAGE_BIT_NX			63	/* No execute: only valid after cpuid check */
+
+#define _PAGE_PRESENT	 		(_AT(pteval_t, 1) << _PAGE_BIT_PRESENT)
+#define _PAGE_RW	        	(_AT(pteval_t, 1) << _PAGE_BIT_RW)
+#define _PAGE_USER	     		(_AT(pteval_t, 1) << _PAGE_BIT_USER)
+#define _PAGE_PWT	     		(_AT(pteval_t, 1) << _PAGE_BIT_PWT)
+#define _PAGE_PCD	     		(_AT(pteval_t, 1) << _PAGE_BIT_PCD)
+#define _PAGE_ACCESSED	 		(_AT(pteval_t, 1) << _PAGE_BIT_ACCESSED)
+#define _PAGE_DIRTY	     		(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY)
+#define _PAGE_PSE	     		(_AT(pteval_t, 1) << _PAGE_BIT_PSE)
+#define _PAGE_GLOBAL	 		(_AT(pteval_t, 1) << _PAGE_BIT_GLOBAL)
+#define _PAGE_UNUSED1	 		(_AT(pteval_t, 1) << _PAGE_BIT_UNUSED1)
+#define _PAGE_IOMAP	     		(_AT(pteval_t, 1) << _PAGE_BIT_IOMAP)
+#define _PAGE_PAT	     		(_AT(pteval_t, 1) << _PAGE_BIT_PAT)
+#define _PAGE_PAT_LARGE 		(_AT(pteval_t, 1) << _PAGE_BIT_PAT_LARGE)
+#define _PAGE_SPECIAL	 		(_AT(pteval_t, 1) << _PAGE_BIT_SPECIAL)
+#define _PAGE_CPA_TEST	 		(_AT(pteval_t, 1) << _PAGE_BIT_CPA_TEST)
+#define _PAGE_SPLITTING	 		(_AT(pteval_t, 1) << _PAGE_BIT_SPLITTING)
+
+#ifdef CONFIG_KMEMCHECK
+#define _PAGE_HIDDEN	 		(_AT(pteval_t, 1) << _PAGE_BIT_HIDDEN)
+#else
+#define _PAGE_HIDDEN	 		(_AT(pteval_t, 0))
+#endif
+
+#if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
+#define _PAGE_NX	         	(_AT(pteval_t, 1) << _PAGE_BIT_NX)
+#else
+#define _PAGE_NX	         	(_AT(pteval_t, 0))
+#endif
+```
+
+###### 6.1.2.6.2.5 pgd_page_vaddr()
+
+该函数用于获取PGD所在页面的虚拟地址，其定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline unsigned long pgd_page_vaddr(pgd_t pgd)
+{
+	// PTE_PFN_MASK定义于pgd_flags()节
+	return (unsigned long)__va((unsigned long)pgd_val(pgd) & PTE_PFN_MASK);
+}
+```
+
+其中，\_\_va(x)定义于arch/x86/include/asm/page.h:
+
+```
+#define __va(x)		((void *)((unsigned long)(x)+PAGE_OFFSET))
+```
+
+其中，PAGE_OFFSET参见错误：引用源未找到。
+
+###### 6.1.2.6.2.6 pgd_alloc()/pgd_free()
+
+**pgd_alloc(mm)**: Allocates a new Page Global Directory; if PAE is enabled, it also allocates the three children Page Middle Directories that map the User Mode linear addresses. The argument mm (the address of a memory descriptor) is ignored on the 80x86 architecture.
+
+**pgd_free(pgd)**: Releases the Page Global Directory at address pgd; if PAE is enabled, it also releases the three Page Middle Directories that map the User Mode linear addresses.
+
+该函数定义于arch/x86/mm/pgtable.c:
+
+```
+pgd_t *pgd_alloc(struct mm_struct *mm)
+{
+	pgd_t *pgd;
+	pmd_t *pmds[PREALLOCATED_PMDS];
+
+	pgd = (pgd_t *)__get_free_page(PGALLOC_GFP);
+
+	if (pgd == NULL)
+		goto out;
+
+	// 创建进程的页目录表
+	mm->pgd = pgd;
+
+	// 分配pmd_t结构
+	if (preallocate_pmds(pmds) != 0)
+		goto out_free_pgd;
+
+	if (paravirt_pgd_alloc(mm) != 0)
+		goto out_free_pmds;
+
+	/*
+	 * Make sure that pre-populating the pmds is atomic with
+	 * respect to anything walking the pgd_list, so that they
+	 * never see a partially populated pgd.
+	 */
+	spin_lock(&pgd_lock);
+
+	pgd_ctor(mm, pgd);			// 初始化pgd
+	pgd_prepopulate_pmd(mm, pgd, pmds);	// 初始化pmds
+
+	spin_unlock(&pgd_lock);
+
+	return pgd;
+
+out_free_pmds:
+	free_pmds(pmds);
+out_free_pgd:
+	free_page((unsigned long)pgd);
+out:
+	return NULL;
+}
+
+void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+{
+	pgd_mop_up_pmds(mm, pgd);
+	pgd_dtor(pgd);
+	paravirt_pgd_free(mm, pgd);
+	free_page((unsigned long)pgd);
+}
+```
+
+##### 6.1.2.6.3 页目录结构/pud_t
+
+###### 6.1.2.6.3.1 pud_t结构
+
+该结构的定义参见页表结构节。
+
+###### 6.1.2.6.3.2 pud_offset()
+
+该函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline unsigned long pud_index(unsigned long address)
+{
+	return (address >> PUD_SHIFT) & (PTRS_PER_PUD - 1);
+}
+
+static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
+{
+	// 函数pgd_page_vaddr()参见pgd_page_vaddr()节
+	return (pud_t *)pgd_page_vaddr(*pgd) + pud_index(address);
+}
+```
+
+###### 6.1.2.6.3.3 pud_val()/native_pud_val()
+
+该宏定义于arch/x86/include/asm/pgtable.h:
+
+```
+#define pud_val(x)		native_pud_val(x)
+```
+
+其中，native_pud_val()定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+#if PAGETABLE_LEVELS > 3
+typedef struct { pudval_t pud; } pud_t;
+
+static inline pud_t native_make_pud(pmdval_t val)
+{
+	return (pud_t) { val };
+}
+
+static inline pudval_t native_pud_val(pud_t pud)
+{
+	return pud.pud;
+}
+#else
+#include <asm-generic/pgtable-nopud.h>
+
+static inline pudval_t native_pud_val(pud_t pud)
+{
+	// 参见pgd_val()/native_pgd_val()节
+	return native_pgd_val(pud.pgd);
+}
+#endif
+```
+
+###### 6.1.2.6.3.4 pud_flags()
+
+该函数定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+static inline pudval_t pud_flags(pud_t pud)
+{
+	// PTE_FLAGS_MASK参见pmd_flags()节
+	return native_pud_val(pud) & PTE_FLAGS_MASK;
+}
+```
+
+###### 6.1.2.6.3.5 pud_page_vaddr()
+
+该函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline unsigned long pud_page_vaddr(pud_t pud)
+{
+	return (unsigned long)__va((unsigned long)pud_val(pud) & PTE_PFN_MASK);
+}
+```
+
+###### 6.1.2.6.3.6 pud_alloc()/pud_free()
+
+**pud_alloc(mm, pgd, addr)**: In a two- or three-level paging system, this function does nothing: it simply returns the linear address of the Page Global Directory entry pgd.
+
+**pud_free(x)**: In a two- or three-level paging system, this macro does nothing.
+
+##### 6.1.2.6.4 页目录结构/pmd_t
+
+###### 6.1.2.6.4.1 pmd_t结构
+
+该结构的定义参见页表结构节。
+
+###### 6.1.2.6.4.2 pmd_offset()
+
+该函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline unsigned long pmd_index(unsigned long address)
+{
+	return (address >> PMD_SHIFT) & (PTRS_PER_PMD - 1);
+}
+
+static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
+{
+	return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(address);
+}
+```
+
+######6.1.2.6.4.3 pmd_val()/native_pmd_val()
+
+该宏定义于arch/x86/include/asm/pgtable.h:
+
+```
+#define pmd_val(x)	native_pmd_val(x)
+```
+
+其中，native_pmd_val()定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+#if PAGETABLE_LEVELS > 2
+typedef struct { pmdval_t pmd; } pmd_t;
+
+static inline pmd_t native_make_pmd(pmdval_t val)
+{
+	return (pmd_t) { val };
+}
+
+static inline pmdval_t native_pmd_val(pmd_t pmd)
+{
+	return pmd.pmd;
+}
+#else
+#include <asm-generic/pgtable-nopmd.h>
+
+static inline pmdval_t native_pmd_val(pmd_t pmd)
+{
+	// 参见pgd_val()/native_pgd_val()节
+	return native_pgd_val(pmd.pud.pgd);
+}
+#endif
+```
+
+###### 6.1.2.6.4.4 pmd_flags()
+
+该函数定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+static inline pmdval_t pmd_flags(pmd_t pmd)
+{
+	// PTE_FLAGS_MASK参见pmd_flags()节
+	return native_pmd_val(pmd) & PTE_FLAGS_MASK;
+}
+```
+
+###### 6.1.2.6.4.5 pmd_page_vaddr() / pmd_pfn()
+
+该函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+{
+	return (unsigned long)__va(pmd_val(pmd) & PTE_PFN_MASK);
+}
+
+static inline unsigned long pmd_pfn(pmd_t pmd)
+{
+	return (pmd_val(pmd) & PTE_PFN_MASK) >> PAGE_SHIFT;
+}
+```
+
+###### 6.1.2.6.4.6 pmd_alloc()/pmd_free()
+
+**pmd_alloc(mm, pud, addr)**: Defined so generic three-level paging systems can allocate a new Page Middle Directory for the linear address addr. If PAE is not enabled, the function simply returns the input parameter pud — that is, the address of the entry in the Page Global Directory. If PAE is enabled, the function returns the linear address of the Page Middle Directory entry that maps the linear address addr. The argument cw is ignored.
+
+**pmd_free(x)**: Does nothing, because Page Middle Directories are allocated and deallocated together with their parent Page Global Directory.
+
+##### 6.1.2.6.5 页面结构/pte_t
+
+###### 6.1.2.6.5.1 pte_t结构
+
+该结构的定义参见页表结构节。
+
+###### 6.1.2.6.5.2 pte_offset_kernel()
+
+该函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
+{
+	return (pte_t *)pmd_page_vaddr(*pmd) + pte_index(address);
+}
+```
+
+###### 6.1.2.6.5.3 pte_val()/native_pte_val()
+
+该宏用于获取页表项的值，其定义于arch/x86/include/asm/pgtable.h:
+
+```
+#define pte_val(x)		native_pte_val(x)
+```
+
+其中，native_pte_val()定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+static inline pteval_t native_pte_val(pte_t pte)
+{
+	return pte.pte;
+}
+
+static inline pte_t native_make_pte(pteval_t val)
+{
+	return (pte_t) { .pte = val };
+}
+```
+
+###### 6.1.2.6.5.4 pte_flags()
+
+该函数定义于arch/x86/include/asm/pgtable_types.h:
+
+```
+static inline pteval_t pte_flags(pte_t pte)
+{
+	return native_pte_val(pte) & PTE_FLAGS_MASK;
+}
+```
+
+###### 6.1.2.6.5.4.1 PTE的标志位函数
+
+PTE的标志位函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline int pte_dirty(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_DIRTY;
+}
+
+static inline int pte_young(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_ACCESSED;
+}
+
+static inline int pte_write(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_RW;
+}
+
+static inline int pte_file(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_FILE;
+}
+
+static inline int pte_huge(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_PSE;
+}
+
+static inline int pte_global(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_GLOBAL;
+}
+
+static inline int pte_exec(pte_t pte)
+{
+	return !(pte_flags(pte) & _PAGE_NX);
+}
+
+static inline int pte_special(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_SPECIAL;
+}
+```
+
+###### 6.1.2.6.5.5 pte_page()/pte_pfn()
+
+该函数定义于arch/x86/include/asm/pgtable.h:
+
+```
+static inline unsigned long pte_pfn(pte_t pte)
+{
+	return (pte_val(pte) & PTE_PFN_MASK) >> PAGE_SHIFT;
+}
+
+#define pte_page(pte)	pfn_to_page(pte_pfn(pte))
+```
+
+The **pfn_to_page(pfn)** yields the address of the page descriptor associated with the page frame having number pfn. 其定义于include/asm-generic/memory_model.h:
+
+```
+#if defined(CONFIG_FLATMEM)
+
+// 变量mem_map参见mem_map节
+#define __pfn_to_page(pfn)	(mem_map + ((pfn) - ARCH_PFN_OFFSET))
+#define __page_to_pfn(page)	((unsigned long)((page) - mem_map) + ARCH_PFN_OFFSET)
+
+#elif defined(CONFIG_DISCONTIGMEM)
+
+#define __pfn_to_page(pfn)								\
+({	unsigned long __pfn = (pfn);							\
+	unsigned long __nid = arch_pfn_to_nid(__pfn);  					\
+	NODE_DATA(__nid)->node_mem_map + arch_local_page_offset(__pfn, __nid);	\
+})
+
+#define __page_to_pfn(pg) 								\
+({	const struct page *__pg = (pg);							\
+	struct pglist_data *__pgdat = NODE_DATA(page_to_nid(__pg)); 			\
+	(unsigned long)(__pg - __pgdat->node_mem_map) + __pgdat->node_start_pfn;	\
+})
+
+#elif defined(CONFIG_SPARSEMEM_VMEMMAP)
+
+/* memmap is virtually contiguous.  */
+#define __pfn_to_page(pfn)	(vmemmap + (pfn))
+#define __page_to_pfn(page)	(unsigned long)((page) - vmemmap)
+
+#elif defined(CONFIG_SPARSEMEM)
+/*
+ * Note: section's mem_map is encorded to reflect its start_pfn.
+ * section[i].section_mem_map == mem_map's address - start_pfn;
+ */
+#define __pfn_to_page(pfn)								\
+({	unsigned long __pfn = (pfn);							\
+	struct mem_section *__sec = __pfn_to_section(__pfn);				\
+	__section_mem_map_addr(__sec) + __pfn;						\
+})
+
+#define __page_to_pfn(pg)								\
+({	const struct page *__pg = (pg);							\
+	int __sec = page_to_section(__pg);						\
+	(unsigned long)(__pg - __section_mem_map_addr(__nr_to_section(__sec)));		\
+})
+#endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
+
+#define pfn_to_page		__pfn_to_page
+#define page_to_pfn		__page_to_pfn
+```
+
+###### 6.1.2.6.5.6 pte_alloc_map()/pte_free()/pte_alloc_kernel()/pte_free_kernel()/clear_page_range()
+
+**pte_alloc_map(mm, pmd, addr)**: Receives as parameters the addressof a Page Middle Directory entry pmd and a linear address addr, and returns the address of the Page Table entry corresponding to addr. If the Page Middle Directory entry is null, the function allocatesa new Page Table by invoking pte_alloc_one(). If a new Page Table is allocated, the entry corresponding toaddris initialized and the User/Supervisor flag is set. If the Page Table is kept in high memory, the kernel establishes a temporary kernel mapping, to be released by pte_unmap.
+
+**pte_free(pte)**: Releases the Page Table associated with theptepage descriptor pointer.
+
+**pte_alloc_kernel(mm, pmd, addr)**: If the Page Middle Directory entry pmd associated with the address addr is null, the function allocates a new Page Table. It then returns the linear address of the Page Table entry associated withaddr. Used only for master kernel page tables.
+
+**pte_free_kernel(pte)**: Equivalent to pte_free(), but used for master kernel page tables.
+
+**clear_page_range(mmu, start, end)**: Clears the contents of the page tables of a process from linear address start to end by iteratively releasing its Page Tables and clearing the Page Middle Directory entries.
+
+## 6.2 与内存管理有关的数据结构
+
+### 6.2.1 PAGE_SIZE
+
+PAGE_SIZE表示页面的大小，取值为4096，即页面大小为4KB，其定义于include/asm-generic/page.h:
+
+```
+/* PAGE_SHIFT determines the page size */
+#define PAGE_SHIFT	12
+
+#ifdef __ASSEMBLY__
+#define PAGE_SIZE	(1 << PAGE_SHIFT)
+#else
+#define PAGE_SIZE	(1UL << PAGE_SHIFT)
+#endif
+
+#define PAGE_MASK	(~(PAGE_SIZE-1))
+```
+
+### 6.2.2 struct page
+
+该结构定义于include/linux/mm_types.h:
+
+```
+struct page {
+	/* First double word block */
+	// Array of flags (see below).
+	// Also encodes the zone number to which the page frame belongs.
+	unsigned long				flags;
+	// Used when the page is inserted into the page cache, or
+	// when it belongs to an anonymous region.
+	struct address_space			*mapping;
+
+	/* Second double word */
+	struct {
+		union {
+			// Used by several kernel components with different meanings.
+			// For instance, it identifies the position of the data stored
+			// in the page frame within the page’s disk image or within an
+			// anonymous region, or it stores a swapped-out page identifier.
+			pgoff_t			index;	/* Our offset within mapping. */
+			void			*freelist;	/* slub first free object */
+		};
+
+		union {
+			/* Used for cmpxchg_double in slub */
+			unsigned long				counters;
+			struct {
+				union {
+					// Number of Page Table entries that refer to the page frame (-1 if none).
+					atomic_t		_mapcount;
+					struct {
+						unsigned	inuse:16;
+						unsigned	objects:15;
+						unsigned	frozen:1;
+					};
+				};
+				// Page frame’s reference counter. The page_count() returns
+				// the value of the _count field.
+				// If _count == -1, the corresponding page frame is free and
+				// 	can be assigned to any process or to the kernel itself.
+				// If _count >= 0,  the page frame is assigned to one or more
+				// 	processes or is used to store some kernel data structures.
+				atomic_t			_count;
+			};
+		};
+	};
+
+	/* Third double word block */
+	union {
+		// Contains pointers to the least recently used doubly linked list of pages.
+		struct list_head		lru;
+		struct {
+			struct page		*next;	/* Next partial slab */
+#ifdef CONFIG_64BIT
+			int			pages;	/* Nr of partial slabs left */
+			int			pobjects;	/* Approximate # of objects */
+#else
+			short int		pages;
+			short int		pobjects;
+#endif
+		};
+	};
+
+	/* Remainder is not double word aligned */
+	union {
+		// Available to the kernel component that is using the page.
+		// For instance, it’s a buffer head pointer in case of buffer page.
+		// If the page is free, this field is used by the buddy allocator system:
+		// 用于保存其order值，参见__rmqueue_smallest()节:
+		// * 在__rmqueue_smallest()->rmv_page_order()复位为0；
+		// * 在__rmqueue_smallest()->expand()置为特定的order值。
+		unsigned long			private;
+#if USE_SPLIT_PTLOCKS
+		spinlock_t			ptl;
+#endif
+		struct kmem_cache		*slab;		/* SLUB: Pointer to slab */
+		// 通过buffered_rmqueue()->prep_new_page()
+		// ->prep_compound_page()设置，参见prep_new_page()节
+		struct page			*first_page;	/* Compound tail pages */
+	};
+
+#if defined(WANT_PAGE_VIRTUAL)
+	Void					*virtual;
+#endif
+
+#ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
+	unsigned long				debug_flags;
+#endif
+
+#ifdef CONFIG_KMEMCHECK
+	Void					*shadow;
+#endif
+};
+```
+
+struct page的结构图:
+
+![Memery_Layout_16](/assets/Memery_Layout_16.jpg)
+
+struct page中flags域的取值如下，参见include/linux/page-flags.h:
+
+```
+enum pageflags {
+	// for instance, it’s involved in a disk I/O operation.
+	PG_locked,		/* Page is locked. Don't touch. */
+	PG_error,		// An I/O error occurred while transferring the page.
+	PG_referenced,		// The page has been recently accessed.
+	PG_uptodate,		// It’s set after completing a read operation, unless a disk I/O error happened.
+	PG_dirty,		// The page has been modified.
+	PG_lru,			// The page is in the active or inactive page list.
+	PG_active,		// The page is in the active page list.
+	PG_slab,		// The page frame is included in a slab.
+	PG_owner_priv_1,	/* Owner use. If pagecache, fs may use*/
+	PG_arch_1,		// Not used on the 80x86 architecture.
+	PG_reserved,		// The page frame is reserved for kernel code or is unusable.
+	// The private field of the page descriptor stores meaningful data.
+	PG_private,		/* If pagecache, has fs-private data */
+	PG_private_2,		/* If pagecache, has fs aux data */
+	// The page is being written to disk by means of the writepage() method.
+	PG_writeback,		/* Page is under writeback */
+#ifdef CONFIG_PAGEFLAGS_EXTENDED
+	PG_head,		/* A head page */
+	PG_tail,		/* A tail page */
+#else
+	// The page frame is handled through the extended paging mechanism.
+	PG_compound,		/* A compound page */
+#endif
+	// The page belongs to the swap cache.
+	PG_swapcache,		/* Swap page: swp_entry_t in private */
+	// All data in the page frame corresponds to blocks allocated on disk.
+	PG_mappedtodisk,	/* Has blocks allocated on-disk */
+	// The page has been marked to be written to disk in order to reclaim memory.
+	PG_reclaim,		/* To be reclaimed asap */
+	PG_swapbacked,		/* Page is backed by RAM/swap */
+	PG_unevictable,		/* Page is "unevictable"  */
+#ifdef CONFIG_MMU
+	PG_mlocked,		/* Page is vma mlocked */
+#endif
+#ifdef CONFIG_ARCH_USES_PG_UNCACHED
+	PG_uncached,		/* Page has been mapped as uncached */
+#endif
+#ifdef CONFIG_MEMORY_FAILURE
+	PG_hwpoison,		/* hardware poisoned page. Don't touch */
+#endif
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+	PG_compound_lock,
+#endif
+	__NR_PAGEFLAGS,
+
+	/* Filesystems */
+	// Used by some filesystems such as Ext2 and Ext3.
+	PG_checked		= PG_owner_priv_1,
+
+	/* Two page bits are conscripted by FS-Cache to maintain local caching
+	 * state.  These bits are set on pages belonging to the netfs's inodes
+	 * when those inodes are being locally cached.
+	 */
+	PG_fscache		= PG_private_2,	/* page backed by cache */
+
+	/* XEN */
+	PG_pinned		= PG_owner_priv_1,
+	PG_savepinned		= PG_dirty,
+
+	/* SLOB */
+	PG_slob_free		= PG_private,
+};
+```
+
+#### 6.2.2.1 mem_map
+
+All page descriptors are stored in the mem_map array. 其定义于mm/memory.c:
+
+```
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+/* use the per-pgdat data instead for discontigmem - mbligh */
+unsigned long	max_mapnr;
+struct page	*mem_map;
+#endif
+```
+
+变量mem_map初始化过程如下：
+
+```
+start_kernel()
+-> setup_arch()
+   -> paging_init()
+      -> zone_sizes_init()
+         -> free_area_init_nodes()
+            -> free_area_init_node()
+               -> alloc_node_mem_map()
+```
+
+函数alloc_node_mem_map()定义于mm/page_alloc.c:
+
+```
+static void __init_refok alloc_node_mem_map(struct pglist_data *pgdat)
+{
+	/* Skip empty nodes */
+	if (!pgdat->node_spanned_pages)
+		return;
+
+#ifdef CONFIG_FLAT_NODE_MEM_MAP
+	/* ia64 gets its own node_mem_map, before this, without bootmem */
+	if (!pgdat->node_mem_map) {
+		unsigned long size, start, end;
+		struct page *map;
+
+		/*
+		 * The zone's endpoints aren't required to be MAX_ORDER
+		 * aligned but the node_mem_map endpoints must be in order
+		 * for the buddy allocator to function correctly.
+		 */
+		// MAX_ORDER_NR_PAGES = 1024
+		start = pgdat->node_start_pfn & ~(MAX_ORDER_NR_PAGES - 1);
+		end = pgdat->node_start_pfn + pgdat->node_spanned_pages;
+		end = ALIGN(end, MAX_ORDER_NR_PAGES);
+		size =  (end - start) * sizeof(struct page);
+		map = alloc_remap(pgdat->node_id, size);
+		if (!map)
+			map = alloc_bootmem_node_nopanic(pgdat, size);
+		pgdat->node_mem_map = map + (pgdat->node_start_pfn - start);
+	}
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+	/*
+	 * With no DISCONTIG, the global mem_map is just set as node 0's
+	 */
+	if (pgdat == NODE_DATA(0)) {
+		mem_map = NODE_DATA(0)->node_mem_map;
+#ifdef CONFIG_ARCH_POPULATES_NODE_MAP
+		if (page_to_pfn(mem_map) != pgdat->node_start_pfn)
+			mem_map -= (pgdat->node_start_pfn - ARCH_PFN_OFFSET);
+#endif /* CONFIG_ARCH_POPULATES_NODE_MAP */
+	}
+#endif
+#endif /* CONFIG_FLAT_NODE_MEM_MAP */
+}
+```
+
+Page descriptor与其所描述的Page之间的关系:
+
+![Page_Descriptor_and_Page](/assets/Page_Descriptor_and_Page.jpg)
+
+变量mem_map用于计算page descriptor与物理页面之间的映射关系，即宏__pfn_to_page(pfn)和__page_to_pfn(page)，参见pte_page()/pte_pfn()节。
+
+### 6.2.3 struct zone
+
+该结构定义于include/linux/mmzone.h:
+
+```
+struct zone {
+	// 参见enum zone_watermarks
+	unsigned long		watermark[NR_WMARK];
+	unsigned long 		percpu_drift_mark;
+	unsigned long 		lowmem_reserve[MAX_NR_ZONES];
+
+#ifdef CONFIG_NUMA
+	// 取值与struct zone->zone_pgdat->node_nid相同
+	int			node;
+	unsigned long		min_unmapped_pages;
+	unsigned long		min_slab_pages;
+#endif
+
+	// The Per-CPU Page Frame Cache
+	struct per_cpu_pageset __percpu *pageset;
+	spinlock_t		lock;
+	int			all_unreclaimable;
+
+#ifdef CONFIG_MEMORY_HOTPLUG
+	seqlock_t		span_seqlock;
+#endif
+	/*
+	 * Identifies the blocks of free page frames in the zone.
+	 *
+	 * Buddy Allocator System Algorithm. All free page frames are grouped into 11 lists
+	 * of blocks that contain groups of 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, and 1024
+	 * contiguous page frames, respectively. that’s, free_area[k] has 2k contiguous page
+	 * frames.
+	 *
+	 * NOTE #1: The physical address of the first page frame of a block is a multiple of
+	 * the group size. for example, the initial address of a 16-page-frame block is a
+	 * multiple of 16×212
+	 *
+	 * NOTE #2: The free_list field of free_area[k] is the head of a doubly linked circular
+	 * list that collects the page descriptors associated with the free blocks of 2k pages.
+	 * More precisely, this list includes the page descriptors of the starting page frame
+	 * of every block of 2k free page frames; the pointers to the adjacent elements in the
+	 * list are stored in the lru field of the page descriptor.
+	 */
+	struct free_area	free_area[MAX_ORDER];
+
+#ifndef CONFIG_SPARSEMEM
+	unsigned long		*pageblock_flags;
+#endif /* CONFIG_SPARSEMEM */
+
+#ifdef CONFIG_COMPACTION
+	unsigned int		compact_considered;
+	unsigned int		compact_defer_shift;
+#endif
+
+	ZONE_PADDING(_pad1_)
+
+	spinlock_t		lru_lock;
+	struct zone_lru {
+		struct list_head list;
+	} lru[NR_LRU_LISTS];
+
+	struct zone_reclaim_stat reclaim_stat;
+
+	// Counter used when doing page frame reclaiming in the zone
+	unsigned long		pages_scanned;
+	unsigned long		flags;
+
+	atomic_long_t		vm_stat[NR_VM_ZONE_STAT_ITEMS];
+
+	unsigned int		inactive_ratio;
+
+	ZONE_PADDING(_pad2_)
+
+	// Hash table of wait queues of processes waiting for one of the pages of the zone.
+	wait_queue_head_t	*wait_table;
+	unsigned long		wait_table_hash_nr_entries;
+	// Power-of-2 order of the size of the wait queue hash table array.
+	unsigned long		wait_table_bits;
+
+	// struct pglist_data->node_zones[*]指向本结构体，而本域指向struct pglist_data
+	struct pglist_data	*zone_pgdat;
+	// 本zone包含的物理页的起始帧号，即页地址中12-31位的取值
+	unsigned long		zone_start_pfn;
+
+	unsigned long		spanned_pages;	/* total size of the zone in pages, including holes */
+	unsigned long		present_pages;	/* amount of memory (excluding holes) */
+
+	// 本zone的名字，取值参见数组zone_names[]
+	const char		*name;
+} ____cacheline_internodealigned_in_smp;
+```
+
+其结构参见错误：引用源未找到。
+
+### 6.2.4 pg_data_t
+
+该类型定义于include/linux/mmzone.h:
+
+```
+typedef struct pglist_data {
+	struct zone		node_zones[MAX_NR_ZONES];		// Array of zone descriptors of the node
+	struct zonelist		node_zonelists[MAX_ZONELISTS]; 		// Used by the page allocator
+	int			nr_zones;				// Number of zones in the node
+
+#ifdef CONFIG_FLAT_NODE_MEM_MAP	/* means !SPARSEMEM */
+	// The first page of the struct page array representing each physical frame in the node.
+	// It will be placed somewhere within the global mem_map array.
+	struct page		*node_mem_map;				// Array of page descriptors of the node
+#ifdef CONFIG_CGROUP_MEM_RES_CTLR
+	struct page_cgroup	*node_page_cgroup;
+#endif
+#endif
+
+#ifndef CONFIG_NO_BOOTMEM
+	// Pointer to Boot Memory Allocatoer, which is used in the kernel initialization phase.
+	// 参见free_all_bootmem()/free_all_bootmem_core()节和Initialise the Boot Memory Allocator节
+	struct bootmem_data	*bdata;
+#endif
+
+#ifdef CONFIG_MEMORY_HOTPLUG
+	/*
+	 * Must be held any time you expect node_start_pfn, node_present_pages
+	 * or node_spanned_pages stay constant.  Holding this will also
+	 * guarantee that any pfn_valid() stays that way.
+	 *
+	 * Nests above zone->lock and zone->size_seqlock.
+	 */
+	spinlock_t		node_size_lock;
+#endif
+
+	// Index of the first page frame in the node
+	unsigned long		node_start_pfn;
+	// Size of the memory node, excluding holes (in page frames)
+	unsigned long		node_present_pages; /* total number of physical pages */
+	// Size of the node, including holes (in page frames)
+	unsigned long		node_spanned_pages; /* total size of physical page range, including holes */
+	// Identifier of the node, starts at 0
+	int			node_id;
+	// Wait queue for the kswapd pageout daemon
+	wait_queue_head_t	kswapd_wait;
+	// Pointer to the process descriptor of the kswapd kernel thread. 参见kswapd节
+	struct task_struct	*kswapd;
+	// Logarithmic size of free blocks to be created by kswapd
+	int			kswapd_max_order;
+	enum zone_type		classzone_idx;
+} pg_data_t;
+```
+
+其结构参见错误：引用源未找到。
+
+在mm/bootmem.c中定义了一个该类型的全局变量contig_page_data:
+
+```
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+struct pglist_data __refdata	contig_page_data = {
+	.bdata = &bootmem_node_data[0]
+};
+#endif
+```
+
+该变量可通过include/linux/mmzone.h中的如下宏访问：
+
+```
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+extern struct pglist_data		contig_page_data;
+#define NODE_DATA(nid)			(&contig_page_data)
+#define NODE_MEM_MAP(nid)		mem_map
+#else /* CONFIG_NEED_MULTIPLE_NODES */
+#include <asm/mmzone.h>
+#endif /* !CONFIG_NEED_MULTIPLE_NODES */
+```
+
+### 6.2.5 gfp_t
+
+该类型定义于include/linux/gfp.h:
+
+![Memery_Layout_06](/assets/Memery_Layout_06.jpg)
+
+### 6.2.6 struct mm_struct
+
+The kernel represents a process’s address space with a data structure called **the memory descriptor**. This structure contains all the information related to the process address space. The memory descriptor is represented by struct mm_struct and defined in include/linux/mm_types.h:
+
+```
+struct mm_struct {
+	// Pointer to the head of the list of memory region objects. 参见struct vm_area_struct节
+	struct vm_area_struct		*mmap;		/* list of VMAs */
+	// Pointer to the root of the red-black tree of memory region objects
+	struct rb_root 			mm_rb;
+	// Pointer to the last referenced memory region object
+	struct vm_area_struct 		*mmap_cache;	/* last find_vma result */
+#ifdef CONFIG_MMU
+	// Method that searches an available linear address interval in the process address space
+	unsigned long (*get_unmapped_area) (struct file *filp, unsigned long addr, unsigned long len,
+							   unsigned long pgoff, unsigned long flags);
+	// Method invoked when releasing a linear address interval
+	void (*unmap_area) (struct mm_struct *mm, unsigned long addr);
+#endif
+	// Identifies the linear address of the first allocated anonymousmemory region or file memory mapping
+	unsigned long 			mmap_base;		/* base of mmap area */
+	unsigned long 			task_size;		/* size of task vm space */
+	unsigned long 			cached_hole_size; 	/* if non-zero, the largest hole below free_area_cache */
+	/*
+	 * Address from which the kernel will look for a free interval of linear addresses
+	 * in the process address space
+	 */
+	unsigned long 			free_area_cache;	/* first hole of size cached_hole_size or larger */
+	/*
+	 * Pointer to the Page Global Directory, which is a physical page frame.
+	 * 参见Linear Address转换到Physical Address节
+	 * On the x86, the process page table is loaded by copying mm_struct->pgd
+	 * into the cr3 register which has the side effect of flushing the TLB.
+	 * In fact this is how the function __flush_tlb() is implemented in the
+	 * architecture dependent code.
+	 */
+	pgd_t 				*pgd;
+	/*
+	 * mm_count is main usage counter; all users in mm_users count as one unit in mm_count.
+	 * Every time the mm_count is decreased, the kernel checks whether it becomes zero;
+	 * if so, the memory descriptor is deallocated because it is no longer in use.
+	 */
+	atomic_t 			mm_users;	/* How many users with user space? */
+	atomic_t 			mm_count;	/* How many references to "struct mm_struct" (users count as 1) */
+	/*
+	 * map_count field contains the number of memory regions owned by the process.
+	 * By default, a process may own up to 65,536 different memory regions;
+	 * however, the system administrator may change this limit by writing in
+	 * /proc/sys/vm/max_map_count，参do_mmap_pgoff()见节，do_mmap_pgoff():
+	 * if (mm->map_count > sysctl_max_map_count)
+	 */
+	int 				map_count;			/* number of VMAs */
+
+	spinlock_t 			page_table_lock;		/* Protects page tables and some counters */
+	struct rw_semaphore 		mmap_sem;			// Memory regions’read/write semaphore
+
+	/*
+	 * List of maybe swapped mm's.
+	 * These are globally strung together off init_mm.mmlist,
+	 * and are protected by mmlist_lock.
+	 */
+	/*
+	 * The first element of list mmlist is init_mm.mmlist,
+	 * which is used by process 0 in the initialization
+	 */
+	struct list_head 		mmlist;
+
+	unsigned long 			hiwater_rss;		/* High-watermark of RSS usage */
+	unsigned long 			hiwater_vm;		/* High-water virtual memory usage */
+
+	unsigned long 			total_vm;		/* Total pages mapped */
+	unsigned long 			locked_vm;		/* Pages that have PG_mlocked set */
+	unsigned long 			pinned_vm;		/* Refcount permanently increased */
+	unsigned long 			shared_vm;		/* Shared pages (files) */
+	unsigned long 			exec_vm;		/* VM_EXEC & ~VM_WRITE */
+	unsigned long 			stack_vm;		/* VM_GROWSUP/DOWN */
+	unsigned long 			reserved_vm;		/* VM_RESERVED|VM_IO pages */
+	unsigned long 			def_flags;
+	unsigned long 			nr_ptes;		/* Page table pages */
+
+	/*
+	 * start_code / end_code: Initial / Final address of executable code
+	 * start_data / end_data: Initial / Final address of initialized data
+	 */
+	unsigned long 			start_code, end_code, start_data, end_data;
+	/*
+	 * start_brk / brk: Initial / Current final address of the heap
+	 * start_stack: Initial address of User Mode stack
+	 */
+	unsigned long 			start_brk, brk, start_stack;
+	/*
+	 * arg_start / arg_end: Initial / Final address of command-line arguments
+	 * env_start / end_start: Initial / Final address of environment variables
+	 */
+	unsigned long 			arg_start, arg_end, env_start, env_end;
+
+	unsigned long 			saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
+
+	/*
+	 * Special counters, in some configurations protected by the
+	 * page_table_lock, in other configurations by being atomic.
+	 */
+	struct mm_rss_stat 		rss_stat;
+
+	struct linux_binfmt 		*binfmt;
+
+	cpumask_var_t 			cpu_vm_mask_var;
+
+	/* Architecture-specific MM context */
+	mm_context_t 			context;
+
+	/* Swap token stuff */
+	/*
+	 * Last value of global fault stamp as seen by this process.
+	 * In other words, this value gives an indication of how long
+	 * it has been since this task got the token.
+	 * Look at mm/thrash.c
+	 */
+	unsigned int 			faultstamp;
+	unsigned int 			token_priority;
+	unsigned int 			last_interval;
+
+	unsigned long 			flags; 		/* Must use atomic bitops to access the bits */
+
+	struct core_state 		*core_state;	/* coredumping support */
+#ifdef CONFIG_AIO
+	spinlock_t			ioctx_lock;
+	struct hlist_head		ioctx_list;
+#endif
+#ifdef CONFIG_MM_OWNER
+	/*
+	 * "owner" points to a task that is regarded as the canonical
+	 * user/owner of this mm. All of the following must be true in
+	 * order for it to be changed:
+	 *
+	 * current == mm->owner
+	 * current->mm != mm
+	 * new_owner->mm == mm
+	 * new_owner->alloc_lock is held
+	 */
+	struct task_struct __rcu	*owner;
+#endif
+
+	/* store ref to file /proc/<pid>/exe symlink points to */
+	struct file 			*exe_file;
+	unsigned long 			num_exe_file_vmas;
+#ifdef CONFIG_MMU_NOTIFIER
+	struct mmu_notifier_mm	*mmu_notifier_mm;
+#endif
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+	pgtable_t 			pmd_huge_pte; /* protected by page_table_lock */
+#endif
+#ifdef CONFIG_CPUMASK_OFFSTACK
+	struct cpumask 			cpumask_allocation;
+#endif
+};
+```
+
+链表mm_struct:
+
+![Memery_Layout_24](/assets/Memery_Layout_24.jpg)
+
+若存在进程号为1234的进程，则可通过如下两种方式查看其虚拟内存空间：
+
+```
+$ cat /proc/1234/maps
+$ cat /proc/1234/smaps
+$ pmap 1234
+```
+
+### 6.2.7 struct vm_area_struct
+
+Linux implements a memory region by means of an object of type vm_area_struct.
+
+Each memory region descriptor identifies a linear address interval. The vm_start field contains the first linear address of the interval, while the vm_end field contains the first linear address outside of the interval; vm_end – vm_start thus denotes the length of the memory region.
+
+Memory regions owned by a process never overlap, and the kernel tries to merge regions when a new one is allocated right next to an existing one. Two adjacent regions can be merged if their access rights match.
+
+该结构定义于include/linux/mm_types.h:
+
+```
+struct vm_area_struct {
+	// 参见struct mm_struct节
+	struct mm_struct		*vm_mm;		/* The address space we belong to. */
+	unsigned long			vm_start;		/* Our start address within vm_mm. */
+	unsigned long			vm_end;		/* The first byte after our end address within vm_mm. */
+
+	/* linked list of VM areas per task, sorted by address */
+	struct vm_area_struct		*vm_next, *vm_prev;
+
+	pgprot_t			vm_page_prot;	/* Access permissions of this VMA. */
+	unsigned long			vm_flags;		/* Flags, see mm.h. */
+
+	struct rb_node			vm_rb;
+
+	/*
+	 * For areas with an address space and backing store,
+	 * linkage into the address_space->i_mmap prio tree, or
+	 * linkage to the list of like vmas hanging off its node, or
+	 * linkage of vma in the address_space->i_mmap_nonlinear list.
+	 */
+	union {
+		struct {
+			struct list_head		list;
+			void				*parent;	/* aligns with prio_tree_node parent */
+			struct vm_area_struct		*head;
+		} vm_set;
+
+		struct raw_prio_tree_node		prio_tree_node;
+	} shared;
+
+	/*
+	 * A file's MAP_PRIVATE vma can be in both i_mmap tree and anon_vma
+	 * list, after a COW of one of the file pages.	A MAP_SHARED vma
+	 * can only be in the i_mmap tree.  An anonymous MAP_PRIVATE, stack
+	 * or brk vma (with NULL file) can only be in an anon_vma list.
+	 */
+	struct list_head			anon_vma_chain;	/* Serialized by mmap_sem & page_table_lock */
+	struct anon_vma				*anon_vma;		/* Serialized by page_table_lock */
+
+	/* Function pointers to deal with this struct. */
+	// 参见struct vm_operations_struct节
+	const struct vm_operations_struct	*vm_ops;
+
+	/* Information about our backing store: */
+	/* Offset (within vm_file) in PAGE_SIZE units, *not* PAGE_CACHE_SIZE */
+	unsigned long				vm_pgoff;
+	// Pointer to the file being mapped, see 错误：引用源未找到
+	struct file				*vm_file;		/* File we map to (can be NULL). */
+	void				*vm_private_data;	/* was vm_pte (shared mem) */
+
+#ifndef CONFIG_MMU
+	struct vm_region		*vm_region;	/* NOMMU mapping region */
+#endif
+#ifdef CONFIG_NUMA
+	struct mempolicy		*vm_policy;	/* NUMA policy for the VMA */
+#endif
+};
+```
+
+All the regions owned by a process are linked in a simple list. Regions appear in the list in ascending order by memory address; however, successive regions can be separated by an area of unused memory addresses.
+
+A full list of mapped regions a process has may be viewed via the proc interface at /proc/<PID>/maps where PID is the process ID of the process that is to be examined.
+
+Descriptors related to the address space of a process，seen
+
+![Memery_Layout_25](/assets/Memery_Layout_25.jpg)
+
+#### 6.2.7.1 struct vm_operations_struct
+
+该结构定义于include/linux/mm_types.h:
+
+```
+struct vm_operations_struct {
+	// Invoked when the memory region is added to the set of regions owned by a process.
+	void	(*open)(struct vm_area_struct * area);
+	// Invoked when the memory region is removed from the set of regions owned by a process.
+	void	(*close)(struct vm_area_struct * area);
+	/*
+	 * The callback is responsible for locating the page in the page cache or
+	 * allocating a page and populating it with the required data before returning it.
+	 * See section fault()/filemap_fault()
+	 */
+	int	(*fault)(struct vm_area_struct *vma, struct vm_fault *vmf);
+
+	/* notification that a previously read-only page is about to become
+	 * writable, if an error is returned it will cause a SIGBUS */
+	int	(*page_mkwrite)(struct vm_area_struct *vma, struct vm_fault *vmf);
+
+	/* called by access_process_vm when get_user_pages() fails, typically
+	 * for use by special VMAs that can switch between memory and hardware
+	 */
+	int	(*access)(struct vm_area_struct *vma, unsigned long addr, void *buf, int len, int write);
+#ifdef CONFIG_NUMA
+	/*
+	 * set_policy() op must add a reference to any non-NULL @new mempolicy
+	 * to hold the policy upon return.  Caller should pass NULL @new to
+	 * remove a policy and fall back to surrounding context--i.e. do not
+	 * install a MPOL_DEFAULT policy, nor the task or system default
+	 * mempolicy.
+	 */
+	int	(*set_policy)(struct vm_area_struct *vma, struct mempolicy *new);
+
+	/*
+	 * get_policy() op must add reference [mpol_get()] to any policy at
+	 * (vma,addr) marked as MPOL_SHARED.  The shared policy infrastructure
+	 * in mm/mempolicy.c will do this automatically.
+	 * get_policy() must NOT add a ref if the policy at (vma,addr) is not
+	 * marked as MPOL_SHARED. vma policies are protected by the mmap_sem.
+	 * If no [shared/vma] mempolicy exists at the addr, get_policy() op
+	 * must return NULL--i.e., do not "fallback" to task or system default
+	 * policy.
+	 */
+	struct mempolicy *(*get_policy)(struct vm_area_struct *vma, unsigned long addr);
+	int	(*migrate)(struct vm_area_struct *vma, const nodemask_t *from,
+				const nodemask_t *to, unsigned long flags);
+#endif
+};
+```
+
+##### 6.2.7.1.1 fault()/filemap_fault()
+
+struct vm_operations_struct->fault可被注册为filemap_fault()，其定义于mm/filemap.c:
+
+```
+const struct vm_operations_struct generic_file_vm_ops = {
+	.fault	= filemap_fault,
+};
+
+/**
+ * filemap_fault - read in file data for page fault handling
+ * @vma:	vma in which the fault was taken
+ * @vmf:	struct vm_fault containing details of the fault
+ *
+ * filemap_fault() is invoked via the vma operations vector for a
+ * mapped memory region to read in file data during a page fault.
+ *
+ * The goto's are kind of ugly, but this streamlines the normal case of having
+ * it in the page cache, and handles the special cases reasonably without
+ * having a lot of duplicated code.
+ */
+int filemap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+{
+	int error;
+	struct file *file = vma->vm_file;
+	struct address_space *mapping = file->f_mapping;
+	struct file_ra_state *ra = &file->f_ra;
+	struct inode *inode = mapping->host;
+	pgoff_t offset = vmf->pgoff;
+	struct page *page;
+	pgoff_t size;
+	int ret = 0;
+
+	size = (i_size_read(inode) + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
+	if (offset >= size)
+		return VM_FAULT_SIGBUS;
+
+	/*
+	 * Do we have something in the page cache already?
+	 */
+	page = find_get_page(mapping, offset);
+	if (likely(page)) {
+		/*
+		 * We found the page, so try async readahead before
+		 * waiting for the lock.
+		 */
+		do_async_mmap_readahead(vma, ra, file, page, offset);
+	} else {
+		/* No page in the page cache at all */
+		do_sync_mmap_readahead(vma, ra, file, offset);
+		count_vm_event(PGMAJFAULT);
+		mem_cgroup_count_vm_event(vma->vm_mm, PGMAJFAULT);
+		ret = VM_FAULT_MAJOR;
+retry_find:
+		page = find_get_page(mapping, offset);
+		if (!page)
+			goto no_cached_page;
+	}
+
+	if (!lock_page_or_retry(page, vma->vm_mm, vmf->flags)) {
+		page_cache_release(page);
+		return ret | VM_FAULT_RETRY;
+	}
+
+	/* Did it get truncated? */
+	if (unlikely(page->mapping != mapping)) {
+		unlock_page(page);
+		put_page(page);
+		goto retry_find;
+	}
+	VM_BUG_ON(page->index != offset);
+
+	/*
+	 * We have a locked page in the page cache, now we need to check
+	 * that it's up-to-date. If not, it is going to be due to an error.
+	 */
+	if (unlikely(!PageUptodate(page)))
+		goto page_not_uptodate;
+
+	/*
+	 * Found the page and have a reference on it.
+	 * We must recheck i_size under page lock.
+	 */
+	size = (i_size_read(inode) + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
+	if (unlikely(offset >= size)) {
+		unlock_page(page);
+		page_cache_release(page);
+		return VM_FAULT_SIGBUS;
+	}
+
+	vmf->page = page;
+	return ret | VM_FAULT_LOCKED;
+
+no_cached_page:
+	/*
+	 * We're only likely to ever get here if MADV_RANDOM is in
+	 * effect.
+	 */
+	error = page_cache_read(file, offset);
+
+	/*
+	 * The page we want has now been added to the page cache.
+	 * In the unlikely event that someone removed it in the
+	 * meantime, we'll just come back here and read it again.
+	 */
+	if (error >= 0)
+		goto retry_find;
+
+	/*
+	 * An error return from page_cache_read can result if the
+	 * system is low on memory, or a problem occurs while trying
+	 * to schedule I/O.
+	 */
+	if (error == -ENOMEM)
+		return VM_FAULT_OOM;
+	return VM_FAULT_SIGBUS;
+
+page_not_uptodate:
+	/*
+	 * Umm, take care of errors if the page isn't up-to-date.
+	 * Try to re-read it _once_. We do this synchronously,
+	 * because there really aren't any performance issues here
+	 * and we need to check for errors.
+	 */
+	ClearPageError(page);
+	error = mapping->a_ops->readpage(file, page);
+	if (!error) {
+		wait_on_page_locked(page);
+		if (!PageUptodate(page))
+			error = -EIO;
+	}
+	page_cache_release(page);
+
+	if (!error || error == AOP_TRUNCATED_PAGE)
+		goto retry_find;
+
+	/* Things didn't work out. Return zero to tell the mm layer so. */
+	shrink_readahead_size_eio(file, ra);
+	return VM_FAULT_SIGBUS;
+}
+```
+
+### 6.2.8 struct address_space
+
+该结构定义于include/linux/fs.h:
+
+```
+struct address_space {
+	struct inode			*host;			/* owner: inode, block_device */
+	struct radix_tree_root		page_tree;			/* radix tree of all pages */
+	spinlock_t			tree_lock;			/* and lock protecting it */
+	unsigned int			i_mmap_writable;		/* count VM_SHARED mappings */
+	struct prio_tree_root		i_mmap;			/* tree of private and shared mappings */
+	struct list_head		i_mmap_nonlinear;	/*list VM_NONLINEAR mappings */
+	struct mutex			i_mmap_mutex;		/* protect tree, count, list */
+	/* Protected by tree_lock together with the radix tree */
+	unsigned long			nrpages;			/* number of total pages */
+	pgoff_t				writeback_index;		/* writeback starts here */
+	// 参见struct address_space_operations节
+	const struct address_space_operations *a_ops;	/* methods */
+	unsigned long			flags;			/* error bits/gfp mask */
+	struct backing_dev_info		*backing_dev_info;	/* device readahead, etc */
+	spinlock_t				private_lock;		/* for use by the address_space */
+	struct list_head			private_list;		/* ditto */
+	struct address_space			*assoc_mapping;		/* ditto */
+} __attribute__((aligned(sizeof(long))));
+```
+
+#### 6.2.8.1 struct address_space_operations
+
+该结构定义于include/linux/fs.h:
+
+```
+struct address_space_operations {
+	/*
+	 * Write a page to disk. The offset within the file
+	 * to write to is stored within the struct page.
+	 */
+	int (*writepage)(struct page *page, struct writeback_control *wbc);
+	// Read a page from disk
+	int (*readpage)(struct file *, struct page *);
+
+	/* Write back some dirty pages from this mapping. */
+	int (*writepages)(struct address_space *, struct writeback_control *);
+
+	/* Set a page dirty.  Return true if this dirtied it */
+	int (*set_page_dirty)(struct page *page);
+
+	int (*readpages)(struct file *filp, struct address_space *mapping,
+				struct list_head *pages, unsigned nr_pages);
+
+	int (*write_begin)(struct file *, struct address_space *mapping, loff_t pos,
+				   unsigned len, unsigned flags, struct page **pagep, void **fsdata);
+	int (*write_end)(struct file *, struct address_space *mapping, loff_t pos, unsigned len,
+				unsigned copied, struct page *page, void *fsdata);
+
+	/* Unfortunately this kludge is needed for FIBMAP. Don't use it */
+	sector_t (*bmap)(struct address_space *, sector_t);
+	void (*invalidatepage)(struct page *, unsigned long);
+	int (*releasepage)(struct page *, gfp_t);
+	void (*freepage)(struct page *);
+	ssize_t (*direct_IO)(int, struct kiocb *, const struct iovec *iov,
+				     loff_t offset, unsigned long nr_segs);
+	int (*get_xip_mem)(struct address_space *, pgoff_t, int, void **, unsigned long *);
+
+	/* migrate the contents of a page to the specified target */
+	int (*migratepage)(struct address_space *, struct page *, struct page *);
+	int (*launder_page)(struct page *);
+	int (*is_partially_uptodate)(struct page *, read_descriptor_t *, unsigned long);
+	int (*error_remove_page)(struct address_space *, struct page *);
+};
+```
+
+### 6.2.9 Boot Memory Allocator/bootmem_data_t
+
+In order to allocate memory to initialise itself, a specialised allocator called the Boot Memory Allocator is used. It is based on the most basic of allocators, a First Fit allocator which uses a bitmap to represent memory instead of linked lists of free blocks. If a bit is 1, the page is allocated and 0 if unallocated. To satisfy allocations of sizes smaller than a page, the allocator records the Page Frame Number (PFN) of the last allocation and the offset the allocation ended at. Subsequent small allocations are "merged" together and stored on the same page.
+
+bootmem_data_t定义于include/linux/bootmem.h:
+
+```
+#ifndef CONFIG_NO_BOOTMEM
+/*
+ * node_bootmem_map is a map pointer - the bits represent all physical
+ * memory pages (including holes) on the node.
+ */
+typedef struct bootmem_data {
+	// Starting physical address of the represented block
+	unsigned long		node_min_pfn;
+	// End physical address, in other words, the end of the ZONE_NORMAL this node represents
+	unsigned long 		node_low_pfn;
+	// The location of the bitmap representing allocated or free pages with each bit
+	void				*node_bootmem_map;
+	// The offset within the the page of the end of the last allocation. If 0, the page used is full.
+	unsigned long		last_end_off;
+	/*
+	 * The PFN of the page used with the last allocation.
+	 * Using this with the last_end_off field, a test can
+	 * be made to see if allocations can be merged with the
+	 * page used for the last allocation rather than using
+	 * up a full new page.
+	 */
+	unsigned long		hint_idx;
+	struct list_head		list;
+} bootmem_data_t;
+#endif
+```
+
+#### 6.2.9.1 变量bdata_list
+
+所有类型为bootmem_data_t的变量链接到双向循环链表bdata_list中，其赋值过程参见Initialise the Boot Memory Allocator节。该变量定义于mm/bootmem.c:
+
+```
+static struct list_head bdata_list __initdata = LIST_HEAD_INIT(bdata_list);
+```
+
+链表bdata_list:
+
+![Memery_Layout_26](/assets/Memery_Layout_26.jpg)
+
+#### 6.2.9.2 Initialise the Boot Memory Allocator
+
+Each architecture is required to supply a setup_arch() function which, among other tasks, is responsible for acquiring the necessary parameters to initialise the boot memory allocator.
+
+Each architecture has its own function to get the necessary parameters. On the x86, it is called setup_arch(). Regardless of the architecture, the tasks are essentially the same. See section e820=>memblock.memory. The parameters it calculates are:
+
+| Variable Name | Description |
+| :------------ | :---------- |
+| min_low_pfn   | Page frame number of the first usable page frame after the kernel image in RAM |
+| max_low_pfn   | Page frame number of the last page frame directly mapped by the kernel (low memory) |
+| highstart_pfn | Page frame number of the first page frame not directly mapped by the kernel |
+| highend_pfn   | Page frame number of the last page frame not directly mapped by the kernel |
+| max_pfn       | Page frame number of the last usable page frame |
+
+<p/>
+
+函数init_bootmem()定义于mm/bootmem.c:
+
+```
+/**
+ * init_bootmem_node - register a node as boot memory
+ * @pgdat: node to register
+ * @freepfn: pfn where the bitmap for this node is to be placed
+ * @startpfn: first pfn on the node
+ * @endpfn: first pfn after the node
+ *
+ * Returns the number of bytes needed to hold the bitmap for this node.
+ */
+unsigned long __init init_bootmem_node(pg_data_t *pgdat, unsigned long freepfn,
+					 unsigned long startpfn, unsigned long endpfn)
+{
+	return init_bootmem_core(pgdat->bdata, freepfn, startpfn, endpfn);
+}
+```
+
+其中，函数init_bootmem_core()定义于include/linux/mmzone.h:
+
+```
+/*
+ * Called once to set up the allocator itself.
+ */
+static unsigned long __init init_bootmem_core(bootmem_data_t *bdata, unsigned long mapstart,
+			 unsigned long start, unsigned long end)
+{
+	unsigned long mapsize;
+
+	mminit_validate_memmodel_limits(&start, &end);
+	bdata->node_bootmem_map = phys_to_virt(PFN_PHYS(mapstart));
+	bdata->node_min_pfn = start;
+	bdata->node_low_pfn = end;
+	link_bootmem(bdata);		// 将bdata插入到链表bdata_list的适当位置
+
+	/*
+	 * Initially all pages are reserved - setup_arch() has to
+	 * register free RAM areas explicitly.
+	 */
+	mapsize = bootmap_bytes(end - start);
+	memset(bdata->node_bootmem_map, 0xff, mapsize);
+
+	bdebug("nid=%td start=%lx map=%lx end=%lx mapsize=%lx\n",
+		  bdata - bootmem_node_data, start, mapstart, end, mapsize);
+
+	return mapsize;
+}
+```
+
+其中，函数link_bootmem()定义于include/linux/mmzone.h:
+
+```
+static void __init link_bootmem(bootmem_data_t *bdata)
+{
+	struct list_head *iter;
+
+	// 变量bdata_list参见变量bdata_list节
+	list_for_each(iter, &bdata_list) {
+		bootmem_data_t *ent;
+
+		ent = list_entry(iter, bootmem_data_t, list);
+		if (bdata->node_min_pfn < ent->node_min_pfn)
+			break;
+	}
+	list_add_tail(&bdata->list, iter);
+}
+```
+
+#### 6.2.9.3 Boot Memory Allocator APIs
+
+##### 6.2.9.3.1 Boot Memory Allocator API for UMA Architectures
+
+```
+unsigned long init_bootmem(unsigned long start, unsigned long page)
+This initialises the memory between 0 and the PFN page. The beginning of usable memory is at the PFN start.
+
+void reserve_bootmem(unsigned long addr, unsigned long size)
+Mark the pages between the address addr and addr+size reserved. Requests to partially reserve a page will result in the full page being reserved.
+
+void free_bootmem(unsigned long addr, unsigned long size)
+Mark the pages between the address addr and addr+size free.
+
+void *alloc_bootmem(unsigned long size)
+Allocate size number of bytes from ZONE_NORMAL. The allocation will be aligned to the L1 hardware cache to get the maximum benefit from the hardware cache.
+
+void *alloc_bootmem_low(unsigned long size)
+Allocate size number of bytes from ZONE_DMA. The allocation will be aligned to the L1 hardware cache.
+
+void *alloc_bootmem_pages(unsigned long size)
+Allocate size number of bytes from ZONE_NORMAL aligned on a page size so that full pages will be returned to the caller.
+
+void *alloc_bootmem_low_pages(unsigned long size)
+Allocate size number of bytes from ZONE_NORMAL aligned on a page size so that full pages will be returned to the caller.
+
+unsigned long bootmem_bootmap_pages(unsigned long pages)
+Calculate the number of pages required to store a bitmap representing the allocation state of pages number of pages.
+
+unsigned long free_all_bootmem()
+Used at the boot allocator end of life. It cycles through all pages in the bitmap. For each one that is free, the flags are cleared and the page is freed to the physical page allocator (See next chapter) so the runtime allocator can set up its free lists.
+```
+
+##### 6.2.9.3.2 Boot Memory Allocator API for NUMA Architectures
+
+```
+unsigned long init_bootmem_node(pg_data_t *pgdat, unsigned long freepfn, unsigned long startpfn, unsigned long endpfn)
+For use with NUMA architectures. It initialise the memory between PFNs startpfn and endpfn with the first usable PFN at freepfn. Once initialised, the pgdat node is inserted into the pgdat_list.
+
+void reserve_bootmem_node(pg_data_t *pgdat, unsigned long physaddr, unsigned long size)
+Mark the pages between the address addr and addr+size on the specified node pgdat reserved. Requests to partially reserve a page will result in the full page being reserved.
+
+void free_bootmem_node(pg_data_t *pgdat, unsigned long physaddr, unsigned long size)
+Mark the pages between the address addr and addr+size on the specified node pgdat free.
+
+void *alloc_bootmem_node(pg_data_t *pgdat, unsigned long size)
+Allocate size number of bytes from ZONE_NORMAL on the specified node pgdat. The allocation will be aligned to the L1 hardware cache to get the maximum benefit from the hardware cache.
+
+void *alloc_bootmem_pages_node(pg_data_t *pgdat, unsigned long size)
+Allocate size number of bytes from ZONE_NORMAL on the specified node pgdat aligned on a page size so that full pages will be returned to the caller.
+
+void *alloc_bootmem_low_pages_node(pg_data_t *pgdat, unsigned long size)
+Allocate size number of bytes from ZONE_NORMAL on the specified node pgdat aligned on a page size so that full pages will be returned to the caller.
+
+unsigned long free_all_bootmem_node(pg_data_t *pgdat)
+Used at the boot allocator end of life. It cycles through all pages in the bitmap for the specified node. For each one that is free, the page flags are cleared and the page is freed to the physical page allocator (See next chapter) so the runtime allocator can set up its free lists.
+```
+
+### 6.2.10 struct vm_struct
+
+该结构定义于include/linux/vmalloc.h:
+
+```
+struct vm_struct {
+	/*
+	 * vm_struct list ordered by address and the
+	 * list is protected by the vmlist_lock lock
+	 */
+	struct vm_struct	*next;
+	// The starting address of the memory block.
+	void			*addr;
+	// the size in bytes
+	unsigned long		size;
+	/*
+	 * Set either to VM_ALLOC, in the case of use
+	 * with vmalloc() or VM_IOREMAP when ioremap is
+	 * used to map high memory into the kernel virtual
+	 * address space.
+	 */
+	unsigned long		flags;
+	struct page		**pages;
+	unsigned int		nr_pages;
+	phys_addr_t		phys_addr;
+	void			*caller;
+};
+```
+
+该结构参见错误：引用源未找到.
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

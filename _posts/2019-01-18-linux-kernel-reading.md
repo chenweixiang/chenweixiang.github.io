@@ -13483,6 +13483,499 @@ enum {
 
 ![Segment_Descriptor_Fields](/assets/Segment_Descriptor_Fields.png)
 
+#### 6.1.1.2 全局段描述符表GDT/全局描述符表寄存器GDTR
+
+##### 6.1.1.2.1 全局描述符表GDT
+
+除了任务门描述符、中断门描述符和陷阱门描述符(这些描述符保存于中断描述符表，参见6.1.1.3 中断描述符表IDT/中断描述符表寄存器IDTR节)外，全局描述符表GDT包含系统中所有任务都可用的那些描述符。
+
+全局描述符表结构struct pdt_page定义于arch/x86/include/asm/desc.h:
+
+```
+struct gdt_page {
+	/*
+	 * struct desc_struct参见段描述符节；
+	 * 常量GDT_ENTRIES定义于arch/x86/include/asm/segment.h，取值为32或16
+	 */
+	struct desc_struct gdt[GDT_ENTRIES];
+} __attribute__((aligned(PAGE_SIZE)));		// 页对齐
+```
+
+全局描述符表gdt_page的声明及获取函数参见arch/x86/include/asm/desc.h:
+
+```
+// 声明全局描述符表gdt_page，该宏定义于include/linux/percpu-defs.h
+DECLARE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page);
+
+// 获取指定CPU的全局描述符表
+static inline struct desc_struct *get_cpu_gdt_table(unsigned int cpu)
+{
+	return per_cpu(gdt_page, cpu).gdt;
+}
+```
+
+NOTE: In uniprocessor systems there is only one GDT, while in multiprocessor systems there is one GDT for every CPU in the system.
+
+全局描述符表gdt_page定义于arch/x86/kernel/cpu/common.c:
+
+```
+/*
+ * The first entry of the GDT is always set to 0. This ensures that logical addresses with
+ * a null Segment Selector will be considered invalid, thus causing a processor exception.
+ */
+DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
+	.gdt = {
+#ifdef CONFIG_X86_64
+		/*
+		 * We need valid kernel segments for data and code in long mode too
+		 * IRET will check the segment types  kkeil 2000/10/28
+		 * Also sysret mandates a special GDT layout
+		 *
+		 * TLS descriptors are currently at a different place compared to i386.
+		 * Hopefully nobody expects them at a fixed place (Wine?)
+		 */
+		[GDT_ENTRY_KERNEL32_CS]		= GDT_ENTRY_INIT(0xc09b, 0, 0xfffff), 	// 1
+		[GDT_ENTRY_KERNEL_CS]			= GDT_ENTRY_INIT(0xa09b, 0, 0xfffff), 	// 2
+		[GDT_ENTRY_KERNEL_DS]			= GDT_ENTRY_INIT(0xc093, 0, 0xfffff), 	// 3
+		[GDT_ENTRY_DEFAULT_USER32_CS]	= GDT_ENTRY_INIT(0xc0fb, 0, 0xfffff), 	// 4
+		[GDT_ENTRY_DEFAULT_USER_DS]		= GDT_ENTRY_INIT(0xc0f3, 0, 0xfffff), 	// 5
+		[GDT_ENTRY_DEFAULT_USER_CS]		= GDT_ENTRY_INIT(0xa0fb, 0, 0xfffff), 	// 6
+#else
+		[GDT_ENTRY_KERNEL_CS]			= GDT_ENTRY_INIT(0xc09a, 0, 0xfffff), 	// 12
+		[GDT_ENTRY_KERNEL_DS]			= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 13
+		[GDT_ENTRY_DEFAULT_USER_CS]		= GDT_ENTRY_INIT(0xc0fa, 0, 0xfffff), 	// 14
+		[GDT_ENTRY_DEFAULT_USER_DS]		= GDT_ENTRY_INIT(0xc0f2, 0, 0xfffff), 	// 15
+		/*
+		 * Segments used for calling PnP BIOS have byte granularity.
+		 * They code segments and data segments have fixed 64k limits,
+		 * the transfer segment sizes are set at run time.
+		 */
+		/* 32-bit code */
+		[GDT_ENTRY_PNPBIOS_CS32]		= GDT_ENTRY_INIT(0x409a, 0, 0xffff), 	// 18
+		/* 16-bit code */
+		[GDT_ENTRY_PNPBIOS_CS16]		= GDT_ENTRY_INIT(0x009a, 0, 0xffff), 	// 19
+		/* 16-bit data */
+		[GDT_ENTRY_PNPBIOS_DS]		= GDT_ENTRY_INIT(0x0092, 0, 0xffff), 		// 20
+		/* 16-bit data */
+		[GDT_ENTRY_PNPBIOS_TS1]		= GDT_ENTRY_INIT(0x0092, 0, 0), 		// 21
+		/* 16-bit data */
+		[GDT_ENTRY_PNPBIOS_TS2]		= GDT_ENTRY_INIT(0x0092, 0, 0), 		// 22
+		/*
+		 * The APM segments have byte granularity and their bases
+		 * are set at run time.  All have 64k limits.
+		 */
+		/* 32-bit code */
+		[GDT_ENTRY_APMBIOS_BASE]		= GDT_ENTRY_INIT(0x409a, 0, 0xffff), 	// 23
+		/* 16-bit code */
+		[GDT_ENTRY_APMBIOS_BASE+1]		= GDT_ENTRY_INIT(0x009a, 0, 0xffff),	// 24
+		/* data */
+		[GDT_ENTRY_APMBIOS_BASE+2]		= GDT_ENTRY_INIT(0x4092, 0, 0xffff),	// 25
+
+		[GDT_ENTRY_ESPFIX_SS]			= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 26
+		[GDT_ENTRY_PERCPU]			= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 27
+		GDT_STACK_CANARY_INIT 								// 28
+#endif
+	}
+};
+```
+
+其中，宏DEFINE_PER_CPU_PAGE_ALIGNED()定义于include/linux/percpu-defs.h，其他宏定义于arch/x86/include/asm/segment.h。
+
+由段描述符节中GDT_ENTRY_INIT的定义可知，全局描述符表中各表项的基地址(BASE)为0，界限(LIMIT)为0xfffff，故段长为4GB空间(G位为1，故颗粒度为4K字节)。根据段机制，基地址＋偏移量＝线性地址，可知，0+偏移量=线性地址，即虚拟地址直接映射到了线性地址，也就是说**虚拟地址和线性地址是相同的**。
+
+由于IA32段机制规定：
+* 必须为代码段和数据段创建不同的段；
+* Linux内核运行在特权级0，而用户程序运行在特权级别3。根据IA32的段保护机制规定，特权级3的程序无法访问特权级为0的段，所以Linux必须为内核和用户程序分别创建其代码段和数据段。
+
+故，Linux必须创建4个段描述符：
+* 特权级0的代码段和数据段：GDT_ENTRY_KERNEL_CS, GDT_ENTRY_KERNEL_DS
+* 特权级3的代码段和数据段：GDT_ENTRY_DEFAULT_USER_CS, GDT_ENTRY_DEFAULT_USER_DS
+
+这四个段定义于arch/x86/include/asm/segment.h:
+
+```
+#ifdef CONFIG_X86_32
+#define GDT_ENTRY_KERNEL_BASE		(12)
+
+#define GDT_ENTRY_KERNEL_CS			(GDT_ENTRY_KERNEL_BASE+0)
+#define GDT_ENTRY_KERNEL_DS			(GDT_ENTRY_KERNEL_BASE+1)
+
+#define GDT_ENTRY_DEFAULT_USER_CS	14
+#define GDT_ENTRY_DEFAULT_USER_DS	15
+#else
+#define GDT_ENTRY_KERNEL_CS 		2
+#define GDT_ENTRY_KERNEL_DS 		3
+
+#define GDT_ENTRY_DEFAULT_USER_DS 	5
+#define GDT_ENTRY_DEFAULT_USER_CS 	6
+#endif
+```
+
+这四个段对应的Segment Selector定义于arch/x86/include/asm/segment.h:
+
+```
+#define __KERNEL_CS		(GDT_ENTRY_KERNEL_CS*8)		// 96, or 16
+#define __KERNEL_DS		(GDT_ENTRY_KERNEL_DS*8)		// 104, or 24
+#define __USER_CS		(GDT_ENTRY_DEFAULT_USER_CS*8+3)	// 115, or 51
+#define __USER_DS		(GDT_ENTRY_DEFAULT_USER_DS*8+3)	// 123, or 43
+```
+
+综上，各段的字段取值：
+
+| Segment | Base  |   G   | Limit |   S   | Type  |  DPL  |  D/B  |   P   |
+| :------ | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| user code / __USER_CS | 0x00000000 | 1 | 0xFFFFF | 1 | 10 | 3 | 1 | 1 |
+| user data / __USER_DS | 0x00000000 | 1 | 0xFFFFF | 1 | 2  | 3 | 1 | 1 |
+| kernel code / __KERNEL_CS | 0x00000000 | 1 | 0xFFFFF | 1  | 10 | 0 | 1 | 1 |
+| kernel data / __KERNEL_DS | 0x00000000 | 1 | 0xFFFFF | 1 | 2 | 0 | 1 | 1 |
+
+<p/>
+
+##### 6.1.1.2.2 全局描述符表寄存器GDTR
+
+全局描述符表寄存器(GDTR)是一个48位的寄存器：低16位保存全局描述符表(GDT)的大小，最大取值为64KB；高32位保存GDT的段基址，取值范围为[0, 4G)地址空间。其结构如下图所示：
+
+![GDTR](/assets/GDTR.png)
+
+#### 6.1.1.3 中断描述符表IDT/中断描述符表寄存器IDTR
+
+##### 6.1.1.3.1 中断描述符表IDT
+
+中断描述符结构gate_desc定义于arch/x86/include/asm/desc_defs.h，参见段描述符节。
+
+中断描述符表idt_table定义于arch/x86/kernel/traps.c中，如下：
+
+```
+gate_desc idt_table[NR_VECTORS] __page_aligned_data = { { { { 0, 0 } } }, };
+```
+
+其中，NR_VECTORS取值为256，即中断描述符表可包含256个描述符，参见中断处理简介节。
+
+中断描述符表只能包含任务门描述符、中断门描述符和陷阱门描述符：
+
+| Task Gate Descriptor | Includes the TSS selector of the process that must replace the current one when an interrupt signal occurs. |
+| Interrupt Gate Descriptor | Includes the Segment Selector and the offset inside the segment of an interrupt or exception handler. While transferring control to the proper segment, the processor clears the IF flag, thus disabling further maskable interrupts. |
+| Trap Gate Descriptor | Similar to an interrupt gate, except that while transferring control to the proper segment, the processor does not modify the IF flag. |
+
+<p/>
+
+参见下图，bit 40-43代表中断描述符类型，分别用常量GATE_TASK,GATE_INTERRUPT,GATE_TRAP表示，参见段描述符/Segment Descriptor节：
+
+![Gate_Descriptor](/assets/Gate_Descriptor.jpg)
+
+###### 6.1.1.3.1.1 中断描述符表的初步初始化
+
+1) 声明256个门描述符的IDT表空间，参见arch/x86/kernel/head_32.S:
+
+```
+idt_descr:
+	.word IDT_ENTRIES*8-1		# idt contains 256 entries
+	.long idt_table
+```
+
+2) 设置指向IDT表地址的寄存器IDTR，参见arch/x86/kernel/head_32.S:
+
+```
+	lgdt early_gdt_descr
+	lidt idt_descr
+	ljmp $(__KERNEL_CS),$1f
+1:	movl $(__KERNEL_DS),%eax	# reload all the segment registers
+
+ENTRY(early_gdt_descr)
+	.word GDT_ENTRIES*8-1
+	.long gdt_page			/* Overwritten for secondary CPUs */
+```
+
+3) 初始化256个门描述符。对于每个门描述符，段选择子都指向内核段，段偏移都指向函数igore_int()，该函数只打印信息：
+
+	Unknown interrupt or fault at: %p %p %p\n
+
+```
+/*
+ *  setup_idt
+ *
+ *  sets up a idt with 256 entries pointing to
+ *  ignore_int, interrupt gates. It doesn't actually load
+ *  idt - that can be done only after paging has been enabled
+ *  and the kernel moved to PAGE_OFFSET. Interrupts
+ *  are enabled elsewhere, when we can be relatively
+ *  sure everything is ok.
+ *
+ *  Warning: %esi is live across this function.
+ */
+setup_idt:
+	lea ignore_int,%edx
+	movl $(__KERNEL_CS << 16),%eax
+	movw %dx,%ax		/* selector = 0x0010 = cs */
+	movw $0x8E00,%dx		/* interrupt gate - dpl=0, present */
+
+	lea idt_table,%edi
+	mov $256,%ecx
+rp_sidt:
+	movl %eax,(%edi)
+	movl %edx,4(%edi)
+	addl $8,%edi
+	dec %ecx
+	jne rp_sidt
+
+/* This is the default interrupt "handler" :-) */
+	ALIGN
+ignore_int:
+	cld
+#ifdef CONFIG_PRINTK
+	pushl %eax
+	pushl %ecx
+	pushl %edx
+	pushl %es
+	pushl %ds
+	movl $(__KERNEL_DS),%eax
+	movl %eax,%ds
+	movl %eax,%es
+	cmpl $2,early_recursion_flag
+	je hlt_loop
+	incl early_recursion_flag
+	pushl 16(%esp)
+	pushl 24(%esp)
+	pushl 32(%esp)
+	pushl 40(%esp)
+	pushl $int_msg
+	call printk
+
+	call dump_stack
+
+	addl $(5*4),%esp
+	popl %ds
+	popl %es
+	popl %edx
+	popl %ecx
+	popl %eax
+#endif
+	iret
+
+int_msg:
+	.asciz "Unknown interrupt or fault at: %p %p %p\n"
+```
+
+**NOTE**: The ```ignore_int()``` handler should never be executed. The occurrence of "Unknown interrupt" messages on the console or in the log files denotes either a hardware problem (an I/O device is issuing unforeseen interrupts) or a kernel problem (an interrupt or exception is not being handled properly).
+
+###### 6.1.1.3.1.2 中断描述符表的最终初始化
+
+中断描述符表的最终初始化分为两部分：
+* 异常：由函数trap_init()实现，被系统初始化入口函数start_kernel()调用，参见trap_init()节；
+* 中断：由函数init_IRQ()实现，被系统初始化入口函数start_kernel()调用，参见init_IRQ()节。
+
+##### 6.1.1.3.2 中断描述符表寄存器IDTR
+
+中断描述符表寄存器(IDTR)与全局描述符表寄存器(GDTR)类似，参见全局描述符表寄存器GDTR节。
+
+#### 6.1.1.4 局部描述符表LDT/局部描述符表寄存器LDTR
+
+##### 6.1.1.4.1 局部描述符表LDT
+
+局部描述符表包含与特定任务有关的描述符，每个任务都有一个各自的局部描述符表LDT。每个任务的局部描述符表也用一个描述符来表示，称为LDT描述符，它包含了局部描述符表的信息，在全局描述符表GDT中(参见错误：引用源未找到，当S=0, TYPE=2时，该项即为LDT描述符)。
+
+局部描述符结构ldt_desc定义于arch/x86/include/asm/desc_defs.h，参见段描述符节。
+
+##### 6.1.1.4.2 局部描述符表寄存器LDTR
+
+局部描述符表寄存器(LDTR)包括如下两部分：
+* 可见部分: 16-bit Index，用来选择全局描述符表GDT中的局部描述符表LDT中的描述符；
+* 不可见部分: 48-bit BASE/LIMIT，用来保存局部描述符表的基地址和界限。
+
+![Register_5](/assets/Register_5.jpg)
+
+#### 6.1.1.5 段选择器(Segment Selector)与描述符表寄存器
+
+##### 6.1.1.5.1 段选择器(Segment Selector)
+
+在实模式下，段寄存器存储的是真实的段地址；在保护模式下，16位的段寄存器无法存储32位的段地址，故它被称为段选择器，即段寄存器的作用是用来选择段描述符，这样就把段描述符中的32位段地址(参见段描述符节表格中的BASE域)作为实际的段地址。
+
+段选择器结构及各字段含义如下：
+
+![Segment_Selector](/assets/Segment_Selector.png)
+
+| Field | Description |
+| :---- | :--- |
+| Index | Identifies the Segment Descriptor entry contained in the GDT or in the LDT. 占13 bit，取值范围[0, 8191] |
+| TI    | Table Indicator: specifies whether the Segment Descriptor is included in the GDT (TI = 0) or in the LDT (TI = 1). |
+| RPL   | Requestor Privilege Level: specifies the Current Privilege Level of the CPU (see section 段描述符) when the corresponding Segment Selector is loaded into the cs register; it also may be used to selectively weaken the processor privilege level when accessing data segments (see Intel documentation for details). |
+
+<p/>
+
+在arch/x86/include/asm/kvm.h中，包含如下类型：
+
+```
+struct kvm_segment {
+	__u64 base;
+	__u32 limit;
+	__u16 selector;		// 段选择器
+	__u8  type;
+	__u8  present, dpl, db, s, l, g, avl;
+	__u8  unusable;
+	__u8  padding;
+};
+```
+
+在arch/x86/include/linux/kvm_host.h中，包含如下宏，分别用于获取段选择器中的TI和RPL字段：
+
+```
+#define SELECTOR_TI_MASK		(1 << 2)
+#define SELECTOR_RPL_MASK		0x03
+```
+
+##### 6.1.1.5.2 Logical Address转换到Linear Address
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第2. Memory Addressing章第Segmentation Unit节:
+
+![Segmentation_Unit](/assets/Segmentation_Unit.png)
+
+The segmentation unit performs the following operations:
+
+* Examines the TI field of the Segment Selector to determine which Descriptor Table stores the Segment Descriptor. This field indicates that the Descriptor is either in the GDT (in which case the segmentation unit gets the base linear address of the GDT from the gdtr register) or in the active LDT (in which case the segmentation unit gets the base linear address of that LDT from the ldtr register).
+
+* Computes the address of the Segment Descriptor from the index field of the Segment Selector. The index field is multiplied by 8 (the size of a Segment Descriptor), and the result is added to the content of the gdtr or ldtr register.
+
+* Adds the offset of the logical address to the BASE field of the Segment Descriptor, thus obtaining the linear address.
+
+### 6.1.2 分页机制
+
+寄存器参见下图：
+
+![Register_7](/assets/Register_7.jpg)
+
+![Register_7_Description](/assets/Register_7_Description.png)
+
+Starting with the 80386, all 80×86 processors support paging; it is enabled by setting the PG flag of a control register named CR0. When PG = 0, linear addresses are interpreted as physical addresses.
+
+80386使用4K字节大小的页。每一页都有4K字节长，并在4K字节的边界上对齐，即每一页的起始地址都能被4K整除。因此，80386把4G字节的线性地址空间划分为1M个页面。因为每页的整个4K字节作为一个单位进行映射，并且每页都对齐4K字节的边界，故线性地址的低12位经过分页机制后直接作为物理地址的低12位使用。重定位函数也因此可看成是把线性地址的高20位转换为对应物理地址的高20位的转换函数。
+
+#### 6.1.2.1 两级页表结构
+
+两级页表结构的第一级为页目录，存储在一个4KB的页中(该页的基地址保存在CR3中，参见错误：引用源未找到)。页目录表中共有1024个表项，每个表项大小为4字节并指向一个第二级表。线性地址的最高10位(即31-22位)用来产生第一级的索引，由索引得到的表项指定并选择了1K个二级表中的一个表。
+
+两级页表结构的第二级为页表，也刚好存储在一个4KB的页中。页表中共有1024个表项，每个表项大小为4字节并包含一个页的物理基地址。线性地址的中间10位(即21-12位)用来产生第二级的索引，以获得包含页物理地址的页表项。这个物理地址的高20位与线性地址的低12位形成最后的物理地址，也就是页转化过程输出的物理地址。
+
+NOTE 1: The aim of this two-level scheme is to reduce the amount of RAM required for per-process Page Tables.
+
+NOTE 2: Each active process must have a Page Directory assigned to it. However, there is no need to allocate RAM for all Page Tables of a process at once; it is more efficient to allocate RAM for a Page Table only when the process effectively needs it.
+
+##### 6.1.2.1.1 页目录项/Page Directory Entry
+
+Refer to <<Intel 64 and IA-32 Architectures Software Developer's Manual_201309>> Figure 4-4. Formats of CR3 and Paging-Structure Entries with 32-Bit Paging:
+
+![Register_7](/assets/Register_7.jpg)
+
+| Field | Description |
+| :---- | :---------- |
+| P     | If it is set, the referred-to page (or Page Table) is contained in main memory; if the flag is 0, the page is not contained in main memory and the remaining entry bits may be used by the operating system for its own purposes. If the entry of a Page Table or Page Directory needed to perform an address translation has the Presentflag cleared, the paging unit stores the linear address in a control register named cr2 and generates exception 14: the Page Fault exception. |
+| R/W   | Contains the access right (Read/Write or Read) of the page or of the Page Table. If the flag of a Page Directory or Page Table entry is equal to 0, the corresponding Page Table or page can only be read; otherwise it can be read and written. |
+| U/S   | Contains the privilege level required to access the page or Page Table. When this flag is 0, the page can be addressed only when theCPLis less than 3 (this means, for Linux, when the processor is in Kernel Mode). When the flag is 1, the page can always be addressed. |
+| A     | Set each time the paging unit addresses the corresponding page frame. This flag may be used by the operating system when selecting pages to be swapped out. The paging unit never resets this flag; this must be done by the operating system. |
+| 20位页表地址 | Because each page frame has a 4-KB capacity, its physical address must be a multiple of 4096, so the 12 least significant bits of the physical address are always equal to 0. If the field refers to a Page Directory, the page frame contains a Page Table; if it refers to a Page Table, the page frame contains a page of data. |
+| PS    | Page Size flag. Applies only to Page Directory entries. If it is set, the entry refers to a 2 MB– or 4 MB–long page frame. See section Extended Paging and Physical Address Extension (PAE). |
+
+<p/>
+
+由U/S和R/W为页目录项提供保护属性：
+
+| U/S | R/W | 允许级别3 | 允许级别0、1、2 |
+| 0   | 0   | 无       | 读/写          |
+| 0   | 1   | 无       | 读/写          |
+| 1   | 0   | 只读     | 读/写          |
+| 1   | 1   | 读/写    | 读/写          |
+
+<p/>
+
+##### 6.1.2.1.2 页表项/Page Table Entry
+
+Page table entry:
+
+![Register_8](/assets/Register_8.jpg)
+
+| Field | Description |
+| :---- | :---------- |
+| P     | If it is set, the referred-to page (or Page Table) is contained in main memory; if the flag is 0, the page is not contained in main memory and the remaining entry bits may be used by the operating system for its own purposes. If the entry of a Page Table or Page Directory needed to perform an address translation has the Presentflag cleared, the paging unit stores the linear address in a control register named cr2 and generates exception 14: the Page Fault exception. |
+| R/W   | Contains the access right (Read/Write or Read) of the page or of the Page Table. If the flag of a Page Directory or Page Table entry is equal to 0, the corresponding Page Table or page can only be read; otherwise it can be read and written. |
+| U/S   | Contains the privilege level required to access the page or Page Table. When this flag is 0, the page can be addressed only when theCPLis less than 3 (this means, for Linux, when the processor is in Kernel Mode). When the flag is 1, the page can always be addressed. |
+| A     | Set each time the paging unit addresses the corresponding page frame. This flag may be used by the operating system when selecting pages to be swapped out. The paging unit never resets this flag; this must be done by the operating system. |
+| D     | Applies only to the Page Table entries. It is set each time a write operation is performed on the page frame. As with the Accessed flag, Dirty may be used by the operating system when selecting pages to be swapped out. The paging unit never resets this flag; this must be done by the operating system. |
+| 20位页表地址 | Because each page frame has a 4-KB capacity, its physical address must be a multiple of 4096, so the 12 least significant bits of the physical address are always equal to 0. If the field refers to a Page Directory, the page frame contains a Page Table; if it refers to a Page Table, the page frame contains a page of data. |
+| G     | Applies only to Page Table entries. This flag was introduced in the Pentium Pro to prevent frequently used pages from being flushed from the TLB cache. It works only if the Page Global Enable (PGE) flag of registercr4is set. |
+
+<p/>
+
+#### 6.1.2.2 Linear Address转换到Physical Address
+
+线性地址到物理地址的转换步骤如下：
+
+1) CR3包含页目录的起始地址，用32位线性地址的最高10位A31-A22作为页目录的页目录项的索引，将它乘以4，与CR3中的页目录的起始地址相加，形成相应页表的地址。
+
+2) 从指定的地址中取出32位页目录项，在页目录项中取出高20位页表地址，并与低12位0，形成32位的页表起始地址。用32位线性地址中的A21-A12位作为页表的页面的索引，将它乘以4，与页表的起始地址相加，形成32位页面地址。
+
+3) 将A11-A0作为相对于页面地址的偏移量，与32位页面地址相加，形成32位物理地址。
+
+![Linear_Address_to_Physical_Address](/assets/Linear_Address_to_Physical_Address.jpg)
+
+##### 6.1.2.2.1 Extended Paging
+
+Starting with the Pentium model, 80×86 microprocessors introduce extended paging, which allows page frames to be 4 MB instead of 4 KB in size (see below figure). Extended paging is used to translate large contiguous linear address ranges into corresponding physical ones; in these cases, the kernel can do without intermediate Page Tables and thus save memory and preserve TLB entries.
+
+Extended paging is enabled by setting the Page Size (PS) flag of a Page Directory entry, see section 页目录项/Page Directory Entry.
+
+![Extended_Paging](/assets/Extended_Paging.jpg)
+
+NOTE: Only the 10 most significant bits of the 20-bit physical address field are significant. This is because each physical address is aligned on a 4-MB boundary, so the 22 least significant bits of the address are 0.
+
+#### 6.1.2.3 Physical Address Extension (PAE)
+
+参见 <<Understanding the Linux Kernel, 3rd Edition>>第2. Memory Addressing章第The Physical Address Extension (PAE) Paging Mechanism节:
+
+The amount of RAM supported by a processor is limited by the number of address pins connected to the address bus. Older Intel processors from the 80386 to the Pentium used 32-bit physical addresses. In theory, up to 4 GB of RAM could be installed on such systems.
+
+However, big servers that need to run hundreds or thousands of processes at the same time require more than 4 GB of RAM, and in recent years this created a pressure on Intel to expand the amount of RAM supported on the 32-bit 80×86 architecture.
+
+Intel has satisfied these requests by increasing the number of address pins on its processors from 32 to 36. Starting with the Pentium Pro, all Intel processors are now able to address up to 236 = 64 GB of RAM. However, the increased range of physical addresses can be exploited only by introducing a new paging mechanism that translates 32-bit linear addresses into 36-bit physical ones.
+
+With the Pentium Pro processor, Intel introduced a mechanism called Physical Address Extension (PAE). Another mechanism, Page Size Extension (PSE-36), was introduced in the Pentium III processor, but Linux does not use it.
+
+PAE is activated by setting the Physical Address Extension (PAE) flag in the cr4 control register. The Page Size (PS) flag in the page directory entry enables large page sizes (2 MB when PAE is enabled).
+
+##### 6.1.2.3.1 Paging Mechanism of PAE
+
+Intel has changed the paging mechanism in order to support PAE.
+
+* The 64 GB of RAM are split into 224 distinct page frames, and the physical address field of Page Table entries has been expanded from 20 to 24 bits. Because a PAE Page Table entry must include the 12 flag bits and the 24 physical address bits, for a grand total of 36, the Page Table entry size has been doubled from 32 bits to 64 bits. As a result, a 4-KB PAE Page Table includes 512 entries instead of 1,024.
+
+* A new level of Page Table called the Page Directory Pointer Table (PDPT) consisting of four 64-bit entries has been introduced.
+
+* The cr3 control register contains a 27-bit Page Directory Pointer Table (PDPT) base address field. Because PDPTs are stored in the first 4 GB of RAM and aligned to a multiple of 32 bytes (25), 27 bits are sufficient to represent the base address of such tables.
+
+* When mapping linear addresses to 4 KB pages (PS flag cleared in Page Directory entry), the 32 bits of a linear address are interpreted in the following way. Refer to Subjects/Chapter06_Memory_Management/Figures/PAE1.jpg
+
+* When mapping linear addresses to 2-MB pages (PS flag set in Page Directory entry), the 32 bits of a linear address are interpreted in the following way. Refer to below figure:
+
+![PAE2](/assets/PAE2.jpg)
+
+To summarize, once cr3 is set, it is possible to address up to 4 GB of RAM. If we want to address more RAM, we’ll have to put a new value in cr3 or change the content of the PDPT. However, the main problem with PAE is that linear addresses are still 32 bits long. This forces kernel programmers to reuse the same linear addresses to map different areas of RAM. Clearly, PAE does not enlarge the linear address space of a process, because it deals only with physical addresses. Furthermore, only the kernel can modify the page tables of the processes, thus a process running in User Mode cannot use a physical address space larger than 4 GB. On the other hand, PAE allows the kernel to exploit up to 64 GB of RAM, and thus to increase significantly the number of processes in the system.
+
+#### 6.1.2.4 Paging for 64-bit Architectures
+
+As we have seen in the previous sections, two-level paging is commonly used by 32-bit microprocessors. Two-level paging, however, is not suitable for computers that adopt a 64-bit architecture. Let’s use a thought experiment to explain why:
+
+Start by assuming a standard page size of 4 KB. Because 1 KB covers a range of 210 addresses, 4 KB covers 212 addresses, so the Offset field is 12 bits. This leaves up to 52 bits of the linear address to be distributed between the Table and the Directory fields. If we now decide to use only 48 of the 64 bits for addressing (this restriction leaves us with a comfortable 256 TB address space!), the remaining 48-12 = 36 bits will have to be split among Table and the Directory fields. If we now decide to reserve 18 bits for each of these two fields, both the Page Directory and the Page Tables of each process should include 218 entries—that is, more than 256,000 entries.
+
+For that reason, all hardware paging systems for 64-bit processors make use of additional paging levels. The number of levels used depends on the type of processor. Below table summarizes the main characteristics of the hardware paging systems used by some 64-bit platforms supported by Linux.
+
+![Paging_Levels](/assets/Paging_Levels.png)
+
+NOTE: 在x86-64架构下，不存在高端内存(ZONE_HIGHMEM)区域。
+
+#### 6.1.2.5 页面高速缓冲寄存器
+
+在启用分页机制的情况下，每次存储器访问都要存取两级页表，这就大大降低了访问速度。所以，为了提高速度，在386中设置了一个最近存取页面的高速缓冲寄存器，它自动保存32项处理器最近使用的页面地址，因此可以覆盖128K字节的存储器地址。当进行存储器访问时，先检查要访问的页面是否在高速缓冲器中，如果在，就不必经过两级访问了；如果不在，再进行两级访问。平均而言，页面高速缓冲寄存器大约有98%的命中率，也就是说每次访问存储器时，只有2%的情况必须访问两级分页机构。其示意图如下：
+
+![Paging_Buffer_Register](/assets/Paging_Buffer_Register.png)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

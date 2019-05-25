@@ -29377,6 +29377,828 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid, struct timespec __user *, int
 
 Refer to kernel/sched.c. Writes the default timeslice value of a given process into the user-space timespec buffer. A value of '0' means infinity. 通过调用对应调度类的sched_class->get_rr_interval()函数实现。
 
+## 7.5 工作队列/workqueue
+
+参见文档：Documentation/workqueue.txt
+
+工作队列和定时器函数处理有些类似，都是执行回调函数，但和定时器处理函数不同的是：定时器回调函数只执行一次，且执行定时器回调函数时是在时钟中断中，限制比较多，因此回调程序不能太复杂；而工作队列是通过内核线程实现，一直有效，可重复执行，由于执行时降低了线程的优先级，执行时可能休眠，因此工作队列用于处理那些不是很紧急的任务，如垃圾回收等，通常在系统空闲时执行。在xfrm库中就广泛使用了workqueue。使用时，只需要定义work_struct结构，然后调用函数schedule_work()/schedule_delayed_work()即可。
+
+此外，workqueue是中断处理中Bottom Half的一种实现方式，参见irq_exit()节。
+
+### 7.5.1 与workqueue有关的数据结构
+
+#### 7.5.1.1 struct work_struct
+
+该结构定义于include/linux/workqueue.h:
+
+```
+/*
+ * A worker thread executes this function (see process_one_work()),
+ * and thus, the function runs in process context. By default,
+ * interrupts are enabled and no locks are held. If needed, the
+ * function can sleep.
+ */
+typedef void (*work_func_t)(struct work_struct *work);
+
+...
+struct work_struct {
+	atomic_long_t		data;
+	struct list_head	entry;
+	work_func_t		func;
+#ifdef CONFIG_LOCKDEP
+	struct lockdep_map	lockdep_map;
+#endif
+};
+```
+
+data域包含了一些标志位，可通过宏```work_data_bits(work)```获得指定work的data域，参见include/linux/workqueue.h：
+
+```
+/*
+ * The first word is the work queue pointer and the flags rolled into one
+ */
+#define work_data_bits(work) ((unsigned long *)(&(work)->data))
+
+enum {
+	WORK_STRUCT_PENDING_BIT		= 0,	/* work item is pending execution */
+	WORK_STRUCT_DELAYED_BIT		= 1,	/* work item is delayed */
+	WORK_STRUCT_CWQ_BIT		= 2,	/* data points to cwq */
+	WORK_STRUCT_LINKED_BIT		= 3,	/* next work is linked to this one */
+#ifdef CONFIG_DEBUG_OBJECTS_WORK
+	WORK_STRUCT_STATIC_BIT		= 4,	/* static initializer (debugobjects) */
+	WORK_STRUCT_COLOR_SHIFT		= 5,	/* color for workqueue flushing */
+#else
+	WORK_STRUCT_COLOR_SHIFT		= 4,	/* color for workqueue flushing */
+#endif
+
+	WORK_STRUCT_COLOR_BITS		= 4,
+
+	WORK_STRUCT_PENDING		= 1 << WORK_STRUCT_PENDING_BIT,		// 1
+	WORK_STRUCT_DELAYED		= 1 << WORK_STRUCT_DELAYED_BIT, 	// 2
+	WORK_STRUCT_CWQ			= 1 << WORK_STRUCT_CWQ_BIT, 		// 4
+	WORK_STRUCT_LINKED		= 1 << WORK_STRUCT_LINKED_BIT, 		// 8
+#ifdef CONFIG_DEBUG_OBJECTS_WORK
+	WORK_STRUCT_STATIC		= 1 << WORK_STRUCT_STATIC_BIT, 		// 16
+#else
+	WORK_STRUCT_STATIC		= 0,
+#endif
+
+	/*
+	 * The last color is no color used for works which don't
+	 * participate in workqueue flushing.
+	 */
+	WORK_NR_COLORS			= (1 << WORK_STRUCT_COLOR_BITS) - 1, 	// 15
+	WORK_NO_COLOR			= WORK_NR_COLORS,			// 15
+
+	/* special cpu IDs */
+	WORK_CPU_UNBOUND		= NR_CPUS,
+	WORK_CPU_NONE			= NR_CPUS + 1,
+	WORK_CPU_LAST			= WORK_CPU_NONE,
+
+	/*
+	 * Reserve 7 bits off of cwq pointer w/ debugobjects turned
+	 * off.  This makes cwqs aligned to 256 bytes and allows 15
+	 * workqueue flush colors.
+	 */
+	WORK_STRUCT_FLAG_BITS		= WORK_STRUCT_COLOR_SHIFT + WORK_STRUCT_COLOR_BITS, 	// 9 or 8
+
+	WORK_STRUCT_FLAG_MASK		= (1UL << WORK_STRUCT_FLAG_BITS) - 1,
+	WORK_STRUCT_WQ_DATA_MASK	= ~WORK_STRUCT_FLAG_MASK,
+	WORK_STRUCT_NO_CPU		= WORK_CPU_NONE << WORK_STRUCT_FLAG_BITS,
+
+	/* bit mask for work_busy() return values */
+	WORK_BUSY_PENDING		= 1 << 0,
+	WORK_BUSY_RUNNING		= 1 << 1,
+};
+```
+
+data域的结构如下图所示：
+
+\#ifdef CONFIG_DEBUG_OBJECTS_WORK
+
+![Workqueue_1](/assets/Workqueue_1.jpg)
+
+\#else
+
+![Workqueue_2](/assets/Workqueue_2.jpg)
+
+\#endif
+
+可以通过如下宏定义并初始化struct work_struct类型的对象，参见include/linux/workqueue.h:
+
+```
+#define DECLARE_WORK(n, f)						\
+	struct work_struct n = __WORK_INITIALIZER(n, f)
+
+#define PREPARE_WORK(_work, _func)					\
+	do {								\
+		(_work)->func = (_func);				\
+	} while (0)
+
+#de```fine INIT_WORK(_work, _func)					\
+	do {								\
+		__INIT_WORK((_work), (_func), 0);			\
+	} while (0)
+
+#define INIT_WORK_ONSTACK(_work, _func)					\
+	do {								\
+		__INIT_WORK((_work), (_func), 1);			\
+	} while (0)
+```
+
+可以通过如下宏操纵struct work_struct类型的对象，参见include/linux/workqueue.h:
+
+```
+/**
+ * work_pending - Find out whether a work item is currently pending
+ * @work: The work item in question
+ */
+#define work_pending(work) 			\
+	test_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))
+
+/**
+ * work_clear_pending - for internal use only, mark a work item as not pending
+ * @work: The work item in question
+ */
+#define work_clear_pending(work)		\
+	clear_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))
+```
+
+#### 7.5.1.2 struct delayed_work
+
+在include/linux/workqueue.h中，包含如下代码：
+
+```
+struct delayed_work {
+	struct work_struct work;	// 参见struct work_struct节
+	struct timer_list timer;	// 定时器
+};
+```
+
+可以通过如下宏定义并初始化struct work_struct类型的对象，参见include/linux/workqueue.h:
+
+```
+#define DECLARE_DELAYED_WORK(n, f)						\
+	struct delayed_work n = __DELAYED_WORK_INITIALIZER(n, f)
+
+#define DECLARE_DEFERRED_WORK(n, f)						\
+	struct delayed_work n = __DEFERRED_WORK_INITIALIZER(n, f)
+
+#define PREPARE_DELAYED_WORK(_work, _func)					\
+	PREPARE_WORK(&(_work)->work, (_func))
+
+#define INIT_DELAYED_WORK(_work, _func)						\
+	do {									\
+		INIT_WORK(&(_work)->work, (_func));				\
+		init_timer(&(_work)->timer);					\
+	} while (0)
+
+#define INIT_DELAYED_WORK_ONSTACK(_work, _func)					\
+	do {									\
+		INIT_WORK_ONSTACK(&(_work)->work, (_func));			\
+		init_timer_on_stack(&(_work)->timer);				\
+	} while (0)
+
+#define INIT_DELAYED_WORK_DEFERRABLE(_work, _func)				\
+	do {									\
+		INIT_WORK(&(_work)->work, (_func));				\
+		init_timer_deferrable(&(_work)->timer);				\
+	} while (0)
+```
+
+可以通过如下宏操纵struct work_struct类型的对象，参见include/linux/workqueue.h:
+
+```
+/**
+ * work_pending - Find out whether a work item is currently pending
+ * @work: The work item in question
+ */
+#define work_pending(work) 			\
+	test_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))
+
+/**
+ * work_clear_pending - for internal use only, mark a work item as not pending
+ * @work: The work item in question
+ */
+#define work_clear_pending(work)		\
+	clear_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))
+```
+
+通过函数```to_delayed_work()```可将指向struct work_struct类型的指针转换成指向struct delayed_work类型的指针，参见include/linux/workqueue.h:
+
+```
+static inline struct delayed_work *to_delayed_work(struct work_struct *work)
+{
+	return container_of(work, struct delayed_work, work);
+}
+```
+
+#### 7.5.1.3 struct workqueue_struct
+
+该结构定义于kernel/workqueue.c:
+
+```
+/*
+ * The externally visible workqueue abstraction is an array of
+ * per-CPU workqueues:
+ */
+struct workqueue_struct {
+	// 参见include/linux/workqueue.h
+	unsigned int		flags;			/* W: WQ_* flags */
+	union {
+		struct cpu_workqueue_struct __percpu	*pcpu;
+		struct cpu_workqueue_struct		*single;
+		unsigned long				v;
+	} cpu_wq;					/* I: cwq's */
+	struct list_head	list;			/* W: list of all workqueues */
+
+	struct mutex		flush_mutex;		/* protects wq flushing */
+	int			work_color;		/* F: current work color */
+	int			flush_color;		/* F: current flush color */
+
+	atomic_t		nr_cwqs_to_flush;	/* flush in progress */
+	struct wq_flusher	*first_flusher;		/* F: first flusher */
+	struct list_head	flusher_queue;		/* F: flush waiters */
+	struct list_head	flusher_overflow; 	/* F: flush overflow list */
+
+	mayday_mask_t		mayday_mask;		/* cpus requesting rescue */
+	struct worker		*rescuer;		/* I: rescue worker */
+
+	int			nr_drainers;		/* W: drain in progress */
+	int			saved_max_active; 	/* W: saved cwq max_active */
+	const char		*name;			/* I: workqueue name */
+#ifdef CONFIG_LOCKDEP
+	struct lockdep_map	lockdep_map;
+#endif
+};
+```
+
+在kernel/workqueue.c中定义了一个全局的工作队列链表workqueues:
+
+```
+/* Serializes the accesses to the list of workqueues. */
+static DEFINE_SPINLOCK(workqueue_lock);
+static LIST_HEAD(workqueues);
+```
+
+新创建的工作队列(通过wq->list域)会被链接到workqueues的头部，参见alloc_workqueue()节。
+
+struct workqueue_struct, struct cpu_workqueue_struct, struct global_cwq, struct work_struct各结构之间的关系:
+
+![Workqueue_3](/assets/Workqueue_3.jpg)
+
+#### 7.5.1.4 struct cpu_workqueue_struct
+
+该结构定义于kernel/workqueue.c:
+
+```
+/*
+ * The per-CPU workqueue.  The lower WORK_STRUCT_FLAG_BITS of
+ * work_struct->data are used for flags and thus cwqs need to be
+ * aligned at two's power of the number of flag bits.
+ */
+struct cpu_workqueue_struct {
+	struct global_cwq		*gcwq;		/* I: the associated gcwq */
+	struct workqueue_struct 	*wq;		/* I: the owning workqueue */
+	int				work_color;	/* L: current color */
+	int				flush_color;	/* L: flushing color */
+	int				nr_in_flight[WORK_NR_COLORS]; /* L: nr of in_flight works */
+	int				nr_active;	/* L: nr of active works */
+	int				max_active;	/* L: max active works */
+	struct list_head		delayed_works;	/* L: delayed works */
+};
+```
+
+#### 7.5.1.5 struct global_cwq
+
+该结构定义于kernel/workqueue.c:
+
+```
+/*
+ * Global per-cpu workqueue.  There's one and only one for each cpu
+ * and all works are queued and processed here regardless of their
+ * target workqueues.
+ */
+struct global_cwq {
+	spinlock_t		lock;			/* the gcwq lock */
+	/*
+	 * 将struct work_struct中的entry域链接起来，
+	 * 参见错误：引用源未找到
+	 */
+	struct list_head	worklist;		/* L: list of pending works */
+	unsigned int		cpu;			/* I: the associated cpu */
+	unsigned int		flags;			/* L: GCWQ_* flags */
+
+	int			nr_workers;		/* L: total number of workers */
+	int			nr_idle;		/* L: currently idle ones */
+
+	/* workers are chained either in the idle_list or busy_hash */
+	struct list_head	idle_list;		/* X: list of idle workers */
+	struct hlist_head	busy_hash[BUSY_WORKER_HASH_SIZE]; /* L: hash of busy workers */
+
+	struct timer_list	idle_timer;		/* L: worker idle timeout */
+	struct timer_list	mayday_timer;		/* L: SOS timer for dworkers */
+
+	struct ida		worker_ida;		/* L: for worker IDs */
+
+	struct task_struct	*trustee;		/* L: for gcwq shutdown */
+	unsigned int		trustee_state;		/* L: trustee state */
+	wait_queue_head_t	trustee_wait;		/* trustee wait */
+	struct worker		*first_idle;		/* L: first idle worker */
+} ____cacheline_aligned_in_smp;
+```
+
+#### 7.5.1.6 struct worker
+
+该结构定义于kernel/workqueue.c:
+
+```
+/*
+ * The poor guys doing the actual heavy lifting.  All on-duty workers
+ * are either serving the manager role, on idle list or on busy hash.
+ */
+struct worker {
+	/* on idle list while idle, on busy hash table while busy */
+	union {
+		struct list_head	entry;		/* L: while idle */
+		struct hlist_node	hentry;		/* L: while busy */
+	};
+
+	struct work_struct		*current_work;	/* L: work being processed */
+	struct cpu_workqueue_struct	*current_cwq; 	/* L: current_work's cwq */
+	struct list_head		scheduled;	/* L: scheduled works */
+	// 该内核线程由函数alloc_worker()创建，参见alloc_workqueue()节
+	struct task_struct		*task;		/* I: worker task */
+	// 参见错误：引用源未找到
+	struct global_cwq		*gcwq;		/* I: the associated gcwq */
+	/* 64 bytes boundary on 64bit, 32 on 32bit */
+	unsigned long			last_active;	/* L: last active timestamp */
+	unsigned int			flags;		/* X: flags */
+	int				id;		/* I: worker id */
+	/*
+	 * 函数alloc_worker()为之赋值：
+	 * rebind_work.func = worker_rebind_fn，
+	 * 参见alloc_workqueue()节
+	 */
+	struct work_struct		rebind_work;	/* L: rebind worker to cpu */
+};
+```
+
+函数```alloc_worker()```用于分配并初始化worker，其定义于kernel/workqueue.c:
+
+```
+static struct worker *alloc_worker(void)
+{
+	struct worker *worker;
+
+	worker = kzalloc(sizeof(*worker), GFP_KERNEL);
+	if (worker) {
+		INIT_LIST_HEAD(&worker->entry);
+		INIT_LIST_HEAD(&worker->scheduled);
+		INIT_WORK(&worker->rebind_work, worker_rebind_fn);
+		/* on creation a worker is in !idle && prep state */
+		worker->flags = WORKER_PREP;
+	}
+	return worker;
+}
+```
+
+### 7.5.2 创建workqueue
+
+在include/linux/workqueue.h中定义了如下宏用于创建workqueue:
+
+```
+#define create_workqueue(name)				\
+	alloc_workqueue((name), WQ_MEM_RECLAIM, 1)
+
+#define create_freezable_workqueue(name)		\
+	alloc_workqueue((name), WQ_FREEZABLE | WQ_UNBOUND | WQ_MEM_RECLAIM, 1)
+
+#define create_singlethread_workqueue(name)		\
+	alloc_workqueue((name), WQ_UNBOUND | WQ_MEM_RECLAIM, 1)
+```
+
+The parameter name is used to name the kernel threads (参见workqueue的初始化/init_workqueues()节的```init_workqueues()```). For example, the default events queue is created via
+
+```
+struct workqueue_struct *keventd_wq;
+keventd_wq = create_workqueue(“events”);
+```
+
+#### 7.5.2.1 alloc_workqueue()
+
+通过宏alloc_workqueue()创建工作队列，其定义于include/linux/workqueue.h:
+
+```
+/*
+ * name: 工作队列的名字
+ * flags: 取值为include/linux/workqueue.h中WQ_*值，
+ * 	参见Documentation/workqueue.txt中对各标志的介绍
+ * max_active: determines the maximum number of execution
+ * 	contexts per CPU which can be assigned to the work
+ * 	items of a wq.
+ */
+#ifdef CONFIG_LOCKDEP
+#define alloc_workqueue(name, flags, max_active)				\
+({										\
+	static struct lock_class_key __key;					\
+	const char *__lock_name;						\
+										\
+	if (__builtin_constant_p(name))						\
+		__lock_name = (name);						\
+	else									\
+		__lock_name = #name;						\
+										\
+	__alloc_workqueue_key((name), (flags), (max_active),			\
+			      &__key, __lock_name);				\
+})
+#else
+#define alloc_workqueue(name, flags, max_active)				\
+	__alloc_workqueue_key((name), (flags), (max_active), NULL, NULL)
+#endif
+```
+
+函数__alloc_workqueue_key()定义于kernel/workqueue.c:
+
+```
+static DEFINE_PER_CPU(struct global_cwq, global_cwq);	// 每个CPU对应一个变量
+static struct global_cwq unbound_global_cwq;		// 全局变量
+
+...
+struct workqueue_struct *__alloc_workqueue_key(const char *name, unsigned int flags,
+					int max_active, struct lock_class_key *key, const char *lock_name)
+{
+	struct workqueue_struct *wq;
+	unsigned int cpu;
+
+	/*
+	 * Workqueues which may be used during memory reclaim should
+	 * have a rescuer to guarantee forward progress.
+	 */
+	if (flags & WQ_MEM_RECLAIM)
+		flags |= WQ_RESCUER;
+
+	/*
+	 * Unbound workqueues aren't concurrency managed and should be
+	 * dispatched to workers immediately.
+	 */
+	if (flags & WQ_UNBOUND)
+		flags |= WQ_HIGHPRI;
+
+	max_active = max_active ?: WQ_DFL_ACTIVE;
+	max_active = wq_clamp_max_active(max_active, flags, name);
+
+	// 为工作队列wq分配空间，并初始化
+	wq = kzalloc(sizeof(*wq), GFP_KERNEL);
+	if (!wq)
+		goto err;
+
+	wq->flags = flags;
+	wq->saved_max_active = max_active;
+	mutex_init(&wq->flush_mutex);
+	atomic_set(&wq->nr_cwqs_to_flush, 0);
+	INIT_LIST_HEAD(&wq->flusher_queue);
+	INIT_LIST_HEAD(&wq->flusher_overflow);
+
+	wq->name = name;
+	lockdep_init_map(&wq->lockdep_map, lock_name, key, 0);
+	INIT_LIST_HEAD(&wq->list);
+
+	// 为工作队列的成员wq->cpu_wq.pcpu或者wq->cpu_wq.single分配空间，并初始化
+	if (alloc_cwqs(wq) < 0)
+		goto err;
+
+	for_each_cwq_cpu(cpu, wq) {
+		// 返回wq->cpu_wq.single，或者对应CPU的变量wq->cpu_wq.pcpu
+		struct cpu_workqueue_struct *cwq = get_cwq(cpu, wq);
+		// 返回变量unbound_global_cwq的地址，或者对应CPU的变量global_cwq的地址
+		struct global_cwq *gcwq = get_gcwq(cpu);
+
+		BUG_ON((unsigned long)cwq & WORK_STRUCT_FLAG_MASK);
+		cwq->gcwq = gcwq;
+		cwq->wq = wq;
+		cwq->flush_color = -1;
+		cwq->max_active = max_active;
+		INIT_LIST_HEAD(&cwq->delayed_works);
+	}
+
+	if (flags & WQ_RESCUER) {
+		struct worker *rescuer;
+
+		/*
+		 * 为wq->mayday_mask赋值，该值在rescuer_thread()使用，
+		 * 参见rescuer_thread()节
+		 */
+		if (!alloc_mayday_mask(&wq->mayday_mask, GFP_KERNEL))
+			goto err;
+
+		// 为该工作队列分配worker
+		wq->rescuer = rescuer = alloc_worker();
+		if (!rescuer)
+			goto err;
+
+		/*
+		 * 调用kthread_create()为该工作队列创建内核线程，
+		 * 参见kthread_run()节；该线程将执行函数rescuer_thread()，
+		 * 参见rescuer_thread()节，其入参为新创建的工作队列wq
+		 */
+		rescuer->task = kthread_create(rescuer_thread, wq, "%s", name);
+		if (IS_ERR(rescuer->task))
+			goto err;
+
+		rescuer->task->flags |= PF_THREAD_BOUND;
+		// 唤醒该内核线程，使之进入运行状态
+		wake_up_process(rescuer->task);
+	}
+
+	/*
+	 * workqueue_lock protects global freeze state and workqueues
+	 * list.  Grab it, set max_active accordingly and add the new
+	 * workqueue to workqueues list.
+	 */
+	spin_lock(&workqueue_lock);
+
+	if (workqueue_freezing && wq->flags & WQ_FREEZABLE)
+		for_each_cwq_cpu(cpu, wq)
+			get_cwq(cpu, wq)->max_active = 0;
+
+	/*
+	 * 将新创建的工作队列wq添加到链表workqueues头部，
+	 * 参见struct workqueue_struct节
+	 */
+	list_add(&wq->list, &workqueues);
+
+	spin_unlock(&workqueue_lock);
+
+	return wq;
+err:
+	if (wq) {
+		free_cwqs(wq);
+		free_mayday_mask(wq->mayday_mask);
+		kfree(wq->rescuer);
+		kfree(wq);
+	}
+	return NULL;
+}
+```
+
+##### 7.5.2.1.1 rescuer_thread()
+
+该函数定义于kernel/workqueue.c:
+
+```
+// __wq为struct workqueue_struct类型的对象
+static int rescuer_thread(void *__wq)
+{
+	struct workqueue_struct *wq = __wq;
+	struct worker *rescuer = wq->rescuer;
+	struct list_head *scheduled = &rescuer->scheduled;
+	bool is_unbound = wq->flags & WQ_UNBOUND;
+	unsigned int cpu;
+
+	set_user_nice(current, RESCUER_NICE_LEVEL);
+repeat:
+	// 设置当前内核线程的状态为可中断状态
+	set_current_state(TASK_INTERRUPTIBLE);
+
+	if (kthread_should_stop())
+		return 0;
+
+	/*
+	 * See whether any cpu is asking for help.  Unbounded
+	 * workqueues use cpu 0 in mayday_mask for CPU_UNBOUND.
+	 */
+	/*
+	 * 在函数alloc_workqueue() -> alloc_mayday_mask()中
+	 * 为变量wq->mayday_mask赋值，参见alloc_workqueue()节
+	 */
+	for_each_mayday_cpu(cpu, wq->mayday_mask) {
+		unsigned int tcpu = is_unbound ? WORK_CPU_UNBOUND : cpu;
+		// 返回wq->cpu_wq.single，或者对应CPU的变量wq->cpu_wq.pcpu
+		struct cpu_workqueue_struct *cwq = get_cwq(tcpu, wq);
+		struct global_cwq *gcwq = cwq->gcwq;
+		struct work_struct *work, *n;
+
+		__set_current_state(TASK_RUNNING);
+		mayday_clear_cpu(cpu, wq->mayday_mask);
+
+		/* migrate to the target cpu if possible */
+		rescuer->gcwq = gcwq;
+		worker_maybe_bind_and_lock(rescuer);
+
+		/*
+		 * Slurp in all works issued via this workqueue and
+		 * process'em.
+		 */
+		BUG_ON(!list_empty(&rescuer->scheduled));
+		// 循环&gcwq->worklist链表中的每个work元素
+		list_for_each_entry_safe(work, n, &gcwq->worklist, entry)
+			if (get_work_cwq(work) == cwq)
+				/*
+				 * 将符合条件的work链接到scheduled链表(即rescuer->scheduled)中；
+				 * 该链表在函数process_scheduled_works()中处理
+				 */
+				move_linked_works(work, scheduled, &n);
+
+		/*
+		 * 处理链表rescuer->scheduled中的各work元素，
+		 * 参见process_scheduled_works()节
+		 */
+		process_scheduled_works(rescuer);
+
+		/*
+		 * Leave this gcwq.  If keep_working() is %true, notify a
+		 * regular worker; otherwise, we end up with 0 concurrency
+		 * and stalling the execution.
+		 */
+		if (keep_working(gcwq))
+			wake_up_worker(gcwq);	// 参见wake_up_worker()节
+
+		spin_unlock_irq(&gcwq->lock);
+	}
+
+	// 调度进程运行，参见schedule()节
+	schedule();
+	goto repeat;
+}
+```
+
+###### 7.5.2.1.1.1 process_scheduled_works()/process_one_work()
+
+函数process_scheduled_works()定义于kernel/workqueue.c:
+
+```
+/**
+ * process_scheduled_works - process scheduled works
+ * @worker: self
+ *
+ * Process all scheduled works.  Please note that the scheduled list
+ * may change while processing a work, so this function repeatedly
+ * fetches a work from the top and executes it.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock) which may be released and regrabbed
+ * multiple times.
+ */
+static void process_scheduled_works(struct worker *worker)
+{
+	while (!list_empty(&worker->scheduled)) {
+		struct work_struct *work = list_first_entry(&worker->scheduled,
+						struct work_struct, entry);
+		process_one_work(worker, work);
+	}
+}
+```
+
+函数process_one_work()定义于kernel/workqueue.c:
+
+```
+/**
+ * process_one_work - process single work
+ * @worker: self
+ * @work: work to process
+ *
+ * Process @work.  This function contains all the logics necessary to
+ * process a single work including synchronization against and
+ * interaction with other workers on the same cpu, queueing and
+ * flushing.  As long as context requirement is met, any worker can
+ * call this function to process a work.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock) which is released and regrabbed.
+ */
+static void process_one_work(struct worker *worker, struct work_struct *work)
+		__releases(&gcwq->lock)
+		__acquires(&gcwq->lock)
+{
+	struct cpu_workqueue_struct *cwq = get_work_cwq(work);
+	struct global_cwq *gcwq = cwq->gcwq;
+	struct hlist_head *bwh = busy_worker_head(gcwq, work);
+	bool cpu_intensive = cwq->wq->flags & WQ_CPU_INTENSIVE;
+	work_func_t f = work->func;
+	int work_color;
+	struct worker *collision;
+#ifdef CONFIG_LOCKDEP
+	/*
+	 * It is permissible to free the struct work_struct from
+	 * inside the function that is called from it, this we need to
+	 * take into account for lockdep too.  To avoid bogus "held
+	 * lock freed" warnings as well as problems when looking into
+	 * work->lockdep_map, make a copy and use that here.
+	 */
+	struct lockdep_map lockdep_map = work->lockdep_map;
+#endif
+	/*
+	 * A single work shouldn't be executed concurrently by
+	 * multiple workers on a single cpu.  Check whether anyone is
+	 * already processing the work.  If so, defer the work to the
+	 * currently executing one.
+	 */
+	collision = __find_worker_executing_work(gcwq, bwh, work);
+	if (unlikely(collision)) {
+		// 如果已经有worker执行本work，则将该work移出列表
+		move_linked_works(work, &collision->scheduled, NULL);
+		return;
+	}
+
+	/* claim and process */
+	debug_work_deactivate(work);
+	hlist_add_head(&worker->hentry, bwh);
+	worker->current_work = work;
+	worker->current_cwq = cwq;
+	work_color = get_work_color(work);
+
+	/* record the current cpu number in the work data and dequeue */
+	set_work_cpu(work, gcwq->cpu);
+	list_del_init(&work->entry);
+
+	/*
+	 * If HIGHPRI_PENDING, check the next work, and, if HIGHPRI,
+	 * wake up another worker; otherwise, clear HIGHPRI_PENDING.
+	 */
+	if (unlikely(gcwq->flags & GCWQ_HIGHPRI_PENDING)) {
+		struct work_struct *nwork = list_first_entry(&gcwq->worklist, struct work_struct, entry);
+
+		if (!list_empty(&gcwq->worklist) && get_work_cwq(nwork)->wq->flags & WQ_HIGHPRI)
+			wake_up_worker(gcwq);
+		else
+			gcwq->flags &= ~GCWQ_HIGHPRI_PENDING;
+	}
+
+	/*
+	 * CPU intensive works don't participate in concurrency
+	 * management.  They're the scheduler's responsibility.
+	 */
+	if (unlikely(cpu_intensive))
+		worker_set_flags(worker, WORKER_CPU_INTENSIVE, true);
+
+	spin_unlock_irq(&gcwq->lock);
+
+	// 复位work->data的标志位WORK_STRUCT_PENDING_BIT
+	work_clear_pending(work);
+	lock_map_acquire_read(&cwq->wq->lockdep_map);
+	lock_map_acquire(&lockdep_map);
+	trace_workqueue_execute_start(work);
+	f(work);	// 执行work的处理函数work->func()
+	/*
+	 * While we must be careful to not use "work" after this, the trace
+	 * point will only record its address.
+	 */
+	trace_workqueue_execute_end(work);
+	lock_map_release(&lockdep_map);
+	lock_map_release(&cwq->wq->lockdep_map);
+
+	if (unlikely(in_atomic() || lockdep_depth(current) > 0)) {
+		printk(KERN_ERR "BUG: workqueue leaked lock or atomic: "
+		       "%s/0x%08x/%d\n",
+		       current->comm, preempt_count(), task_pid_nr(current));
+		printk(KERN_ERR "    last function: ");
+		print_symbol("%s\n", (unsigned long)f);
+		debug_show_held_locks(current);
+		dump_stack();
+	}
+
+	spin_lock_irq(&gcwq->lock);
+
+	/* clear cpu intensive status */
+	if (unlikely(cpu_intensive))
+		worker_clr_flags(worker, WORKER_CPU_INTENSIVE);
+
+	/* we're done with it, release */
+	hlist_del_init(&worker->hentry);
+	worker->current_work = NULL;
+	worker->current_cwq = NULL;
+	cwq_dec_nr_in_flight(cwq, work_color, false);
+}
+```
+
+###### 7.5.2.1.1.2 wake_up_worker()
+
+该函数定义于kernel/workqueue.c:
+
+```
+static void wake_up_worker(struct global_cwq *gcwq)
+{
+	// 返回gcwq空闲链表中的第一个worker
+	struct worker *worker = first_worker(gcwq);
+
+	/*
+	 * 唤醒worker所在的内核线程，该线程执行函数worker_thread()，
+	 * 参见worker_thread()节
+	 */
+	if (likely(worker))
+		wake_up_process(worker->task);
+}
+
+static struct worker *first_worker(struct global_cwq *gcwq)
+{
+	if (unlikely(list_empty(&gcwq->idle_list)))
+		return NULL;
+
+	return list_first_entry(&gcwq->idle_list, struct worker, entry);
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

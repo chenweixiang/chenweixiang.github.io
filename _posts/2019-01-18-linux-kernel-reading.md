@@ -22643,6 +22643,3732 @@ The ZONE_DMA and ZONE_NORMAL memory zones contribute to the reserved memory with
 
 The **pages_min** field of the zone descriptor stores the number of reserved page frames inside the zone. That field plays also a role for the page frame reclaiming algorithm, together with the **pages_low** and **pages_high** fields. The **pages_low** field is always set to 5/4 of the value of **pages_min**, and **pages_high** is always set to 3/2 of the value of **pages_min**.
 
+# 7 内核/kernel
+
+## 7.1 进程描述符/struct task_struct
+
+Linux系统中每个进程都有一个进程描述符结构struct task_struct，即操作系统课程中的进程控制块PCB，它是理解任务调度的关键。struct task_struct是一个巨大的结构体，其定义于include/linux/sched.h:
+
+```
+struct task_struct {
+	// 其取值参见进程状态节
+	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
+	void *stack; 		// 参见进程内核栈节
+	atomic_t usage; 	// 参见进程描述符使用计数节
+	unsigned int flags;	/* per process flags, defined below */	 // 参见标志节
+	unsigned int ptrace; 	// 参见ptrace系统调用节
+
+#ifdef CONFIG_SMP
+	struct llist_node wake_entry;
+	int on_cpu;
+#endif
+	int on_rq;
+
+	// 进程调度有关的变量，参见进程调度节
+	int prio, static_prio, normal_prio; 		
+	unsigned int rt_priority;
+	const struct sched_class *sched_class;
+	struct sched_entity se;
+	struct sched_rt_entity rt;
+
+#ifdef CONFIG_PREEMPT_NOTIFIERS
+	/* list of struct preempt_notifier: */
+	struct hlist_head preempt_notifiers;
+#endif
+
+	/*
+	 * fpu_counter contains the number of consecutive context switches
+	 * that the FPU is used. If this is over a threshold, the lazy fpu
+	 * saving becomes unlazy to save the trap. This is an unsigned char
+	 * so that after 256 times the counter wraps and the behavior turns
+	 * lazy again; this to deal with bursty apps that only use FPU for
+	 * a short time
+	 */
+	unsigned char fpu_counter;		// 参见FPU使用计数节
+#ifdef CONFIG_BLK_DEV_IO_TRACE
+	unsigned int btrace_seq; 		// 参见块设备I/O层的跟踪工具节
+#endif
+
+	unsigned int policy; 			// 参见进程调度节
+	cpumask_t cpus_allowed; 		// 参见进程调度节
+
+#ifdef CONFIG_PREEMPT_RCU
+	int rcu_read_lock_nesting; 		// 参见RCU同步原语节
+	char rcu_read_unlock_special; 		// 参见RCU同步原语节
+	struct list_head rcu_node_entry; 	// 参见RCU同步原语节
+#endif /* #ifdef CONFIG_PREEMPT_RCU */
+#ifdef CONFIG_TREE_PREEMPT_RCU
+	struct rcu_node *rcu_blocked_node; 	// 参见RCU同步原语节
+#endif /* #ifdef CONFIG_TREE_PREEMPT_RCU */
+#ifdef CONFIG_RCU_BOOST
+	struct rt_mutex *rcu_boost_mutex;	// 参见RCU同步原语节
+#endif /* #ifdef CONFIG_RCU_BOOST */
+
+#if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
+	struct sched_info sched_info; 		// 参见用于调度器统计进程的运行信息节
+#endif
+
+	struct list_head tasks; 		// 参见进程链表节
+#ifdef CONFIG_SMP
+	struct plist_node pushable_tasks; 	// 参见进程链表节
+#endif
+
+	// mm field points to the memory descriptor owned by the process;
+	// active_mm field points to the memory descriptor used by the process when it is in execution.
+	// For regular processes, the two fields store the same pointer.
+	// Kernel threads don’t own any memory descriptor, thus their mm field is always NULL.
+	// When a kernel thread is selected for execution, its active_mm field is initialized
+	// to the value of the active_mm of the previously running process.
+	struct mm_struct *mm, *active_mm; 	// 参见进程地址空间节和struct mm_struct节
+#ifdef CONFIG_COMPAT_BRK
+	unsigned brk_randomized:1; 		// 参见进程地址空间节
+#endif
+#if defined(SPLIT_RSS_COUNTING)
+	struct task_rss_stat rss_stat; 		// 参见进程地址空间节
+#endif
+	/* task state */
+	int exit_state; 			// 其取值参见进程状态节
+	int exit_code, exit_signal; 		// 参见判断标志节
+	int pdeath_signal;    			/* The signal sent when the parent dies */ // 参见判断标志节
+	unsigned int jobctl;  			/* JOBCTL_*, siglock protected */ // 参见判断标志节
+	unsigned int personality; 		// 参见判断标志节
+	unsigned did_exec:1; 			// 参见判断标志节
+	unsigned in_execve:1;			/* Tell the LSMs that the process is doing an execve */ // 参见判断标志节
+	unsigned in_iowait:1; 			// 参见判断标志节
+
+	/* Revert to default priority/policy when forking */
+	unsigned sched_reset_on_fork:1; 	// 参见判断标志节
+	unsigned sched_contributes_to_load:1;
+
+	pid_t pid; 				// 参见进程标识符节
+	pid_t tgid; 				// 参见进程标识符节
+
+#ifdef CONFIG_CC_STACKPROTECTOR
+	/* Canary value for the -fstack-protector gcc feature */
+	unsigned long stack_canary; 		// 参见防止内核堆栈溢出节
+#endif
+
+	/*
+	 * pointers to (original) parent process, youngest child, younger sibling,
+	 * older sibling, respectively.  (p->father can be replaced with
+	 * p->real_parent->pid)
+	 */
+	struct task_struct *real_parent; 	/* real parent process */ // 参见进程的亲属关系节
+	struct task_struct *parent; 		/* recipient of SIGCHLD, wait4() reports */ // 参见进程的亲属关系节
+	/*
+	 * children/sibling forms the list of my natural children
+	 */
+	struct list_head children;		/* list of my children */ // 参见进程的亲属关系节
+	struct list_head sibling;		/* linkage in my parent's children list */ // 参见进程的亲属关系节
+	struct task_struct *group_leader;	/* threadgroup leader */ // 参见进程的亲属关系节
+
+	/*
+	 * ptraced is the list of tasks this task is using ptrace on.
+	 * This includes both natural children and PTRACE_ATTACH targets.
+	 * p->ptrace_entry is p's link on the p->parent->ptraced list.
+	 */
+	struct list_head ptraced; 		// 参见ptrace系统调用节
+	struct list_head ptrace_entry; 		// 参见ptrace系统调用节
+
+	/* PID/PID hash table linkage. */
+	struct pid_link pids[PIDTYPE_MAX];	// 参见PID散列表和链表节
+	struct list_head thread_group; 		// 参见PID散列表和链表节
+
+	struct completion *vfork_done;		/* for vfork() */ // 参见do_fork函数节
+	int __user *set_child_tid;	 	/* CLONE_CHILD_SETTID */ // 参见do_fork函数节
+	int __user *clear_child_tid;    	/* CLONE_CHILD_CLEARTID */ // 参见do_fork函数节
+
+	cputime_t utime, stime, utimescaled, stimescaled;	// 参见时间节
+	cputime_t gtime; 					// 参见时间节
+#ifndef CONFIG_VIRT_CPU_ACCOUNTING
+	cputime_t prev_utime, prev_stime; 			// 参见时间节
+#endif
+	unsigned long nvcsw, nivcsw;		/* context switch counts */ // 参见时间节
+	struct timespec start_time;		/* monotonic time */ // 参见时间节
+	struct timespec real_start_time; 	/* boot based time */ // 参见时间节
+	/* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific */
+	unsigned long min_flt, maj_flt; 	// 参见缺页统计节和Page Fault/do_page_fault()节
+
+	struct task_cputime cputime_expires; 	// 参见时间节
+	struct list_head cpu_timers[3]; 	// 参见时间节
+
+	/* process credentials */			// 参见进程权能节
+	const struct cred __rcu *real_cred;	/* objective and real subjective task credentials (COW) */
+	const struct cred __rcu *cred;		/* effective (overridable) subjective task credentials (COW) */
+	struct cred *replacement_session_keyring; /* for KEYCTL_SESSION_TO_PARENT */
+
+	// 参见程序名节
+	char comm[TASK_COMM_LEN]; /* executable name excluding path
+				  - access with [gs]et_task_comm (which lock it with task_lock())
+				  - initialized normally by setup_new_exec */
+	/* file system info */
+	int link_count, total_link_count; 	// 参见文件系统节
+#ifdef CONFIG_SYSVIPC
+	/* ipc stuff */
+	struct sysv_sem sysvsem; 		// 参见进程通信/SYSVIPC节
+#endif
+#ifdef CONFIG_DETECT_HUNG_TASK
+	/* hung task detection */
+	unsigned long last_switch_count; 	// 参见时间节
+#endif
+	/* CPU-specific state of this task */
+	struct thread_struct thread; 		// 参加处理器特有数据节
+	/* filesystem information */
+	struct fs_struct *fs; 			// 参见文件系统节和struct fs_struct节
+	/* open file information */
+	struct files_struct *files; 		// 参见文件系统节和struct files_struct节
+	/* namespaces */
+	struct nsproxy *nsproxy; 		// 参见命名空间节
+	/* signal handlers */
+	struct signal_struct *signal; 		// 参见信号处理节
+	struct sighand_struct *sighand; 	// 参见信号处理节
+
+	sigset_t blocked, real_blocked;
+	sigset_t saved_sigmask;			/* restored if set_restore_sigmask() was used */
+	struct sigpending pending; 			// 参见信号处理节
+
+	unsigned long sas_ss_sp;
+	size_t sas_ss_size;
+	int (*notifier)(void *priv);
+	void *notifier_data;
+	sigset_t *notifier_mask;
+	struct audit_context *audit_context; 	// 参见进程审计节
+#ifdef CONFIG_AUDITSYSCALL
+	uid_t loginuid; 			// 参见进程审计节
+	unsigned int sessionid; 		// 参见进程审计节
+#endif
+	seccomp_t seccomp; 			// 参见安全计算节
+
+   	/* Thread group tracking */
+   	u32 parent_exec_id; 			// 参见用于copy_process函数使用CLONE_PARENT标记时节
+   	u32 self_exec_id; 			// 参见用于copy_process函数使用CLONE_PARENT标记时节
+   	/* Protection of (de-)allocation: mm, files, fs, tty, keyrings, mems_allowed, mempolicy */
+   	spinlock_t alloc_lock; 			// 参见保护资源分配或释放的自旋锁节
+
+#ifdef CONFIG_GENERIC_HARDIRQS
+	/* IRQ handler threads */
+	struct irqaction *irqaction; 		// 参见中断节
+#endif
+
+	/* Protection of the PI data structures: */
+	raw_spinlock_t pi_lock; 		// 参见task_rq_lock函数所使用的锁节
+
+#ifdef CONFIG_RT_MUTEXES			// 参见基于PI协议的等待互斥锁节
+	/* PI waiters blocked on a rt_mutex held by this task */
+	struct plist_head pi_waiters;
+	/* Deadlock detection and priority inheritance handling */
+	struct rt_mutex_waiter *pi_blocked_on;
+#endif
+
+#ifdef CONFIG_DEBUG_MUTEXES
+	/* mutex deadlock detection */
+	struct mutex_waiter *blocked_on; 	// 参见死锁检测节
+#endif
+#ifdef CONFIG_TRACE_IRQFLAGS			// 参见中断节
+	unsigned int irq_events;
+	unsigned long hardirq_enable_ip;
+	unsigned long hardirq_disable_ip;
+	unsigned int hardirq_enable_event;
+	unsigned int hardirq_disable_event;
+	int hardirqs_enabled;
+	int hardirq_context;
+	unsigned long softirq_disable_ip;
+	unsigned long softirq_enable_ip;
+	unsigned int softirq_disable_event;
+	unsigned int softirq_enable_event;
+	int softirqs_enabled;
+	int softirq_context;
+#endif
+#ifdef CONFIG_LOCKDEP				// 参见lockdep节
+# define MAX_LOCK_DEPTH 48UL
+	u64 curr_chain_key;
+	int lockdep_depth;
+	unsigned int lockdep_recursion;
+	struct held_lock held_locks[MAX_LOCK_DEPTH];
+	gfp_t lockdep_reclaim_gfp;
+#endif
+
+	/* journalling filesystem info */
+	void *journal_info; 			// 参见JFS文件系统节
+
+	/* stacked block device info */
+	struct bio_list *bio_list; 		// 参见块设备链表节
+
+#ifdef CONFIG_BLOCK
+	/* stack plugging */
+	struct blk_plug *plug;
+#endif
+
+	/* VM state */
+	struct reclaim_state *reclaim_state; 	// 参见内存回收节
+	struct backing_dev_info *backing_dev_info; 	// 参见存放块设备I/O数据流量信息节
+	struct io_context *io_context; 		// 参见I/O调度器所使用的信息节
+
+	unsigned long ptrace_message; 		// 参见ptrace系统调用节
+	siginfo_t *last_siginfo;		/* For ptrace use.  */ // 参见ptrace系统调用节
+	struct task_io_accounting ioac; 	// 参见记录进程的I/O计数节
+#if defined(CONFIG_TASK_XACCT) 			// 参见记录进程的I/O计数节
+	u64 acct_rss_mem1;		/* accumulated rss usage */
+	u64 acct_vm_mem1;		/* accumulated virtual memory usage */
+	cputime_t acct_timexpd;	/* stime + utime since last update */
+#endif
+#ifdef CONFIG_CPUSETS			// 参见CPUSET功能节
+	nodemask_t mems_allowed;	/* Protected by alloc_lock */
+	int mems_allowed_change_disable;
+	int cpuset_mem_spread_rotor;
+	int cpuset_slab_spread_rotor;
+#endif
+#ifdef CONFIG_CGROUPS			// 参见Control Groups节
+	/* Control Group info protected by css_set_lock */
+	struct css_set __rcu *cgroups;
+	/* cg_list protected by css_set_lock and tsk->alloc_lock */
+	struct list_head cg_list;
+#endif
+#ifdef CONFIG_FUTEX			// 参见Futex同步机制节
+	struct robust_list_head __user *robust_list;
+#ifdef CONFIG_COMPAT
+	struct compat_robust_list_head __user *compat_robust_list;
+#endif
+	struct list_head pi_state_list;
+	struct futex_pi_state *pi_state_cache;
+#endif
+#ifdef CONFIG_PERF_EVENTS		// 参见Performance Event节
+	struct perf_event_context *perf_event_ctxp[perf_nr_task_contexts];
+	struct mutex perf_event_mutex;
+	struct list_head perf_event_list;
+#endif
+#ifdef CONFIG_NUMA			// 参见非一致内存访问(NUMA)节
+	struct mempolicy *mempolicy;	/* Protected by alloc_lock */
+	short il_next;
+	short pref_node_fork;
+#endif
+	struct rcu_head rcu; 		// 参见RCU链表节
+
+	/*
+	 * cache last used pipe for splice
+	 */
+	struct pipe_inode_info *splice_pipe;
+#ifdef	CONFIG_TASK_DELAY_ACCT
+	struct task_delay_info *delays; 	// 参见延迟计数节
+#endif
+#ifdef CONFIG_FAULT_INJECTION
+	int make_it_fail; 			// 参见Fault Injection节
+#endif
+	/*
+	 * when (nr_dirtied >= nr_dirtied_pause), it's time to call
+	 * balance_dirty_pages() for some dirty throttling pause
+	 */
+	int nr_dirtied;
+	int nr_dirtied_pause;
+
+// 参见Infrastructure for displaying latency节
+#ifdef CONFIG_LATENCYTOP
+	int latency_record_count;
+	struct latency_record latency_record[LT_SAVECOUNT];
+#endif
+	/*
+	 * time slack values; these are used to round up poll() and
+	 * select() etc timeout values. These are in nanoseconds.
+	 */
+	unsigned long timer_slack_ns; 		// 参见Time slack values节
+	unsigned long default_timer_slack_ns; 	// 参见Time slack values节
+
+	struct list_head *scm_work_list; 	// 参见socket控制消息节
+#ifdef CONFIG_FUNCTION_GRAPH_TRACER		// 参见ftrace跟踪器节
+	/* Index of current stored address in ret_stack */
+	int curr_ret_stack;
+	/* Stack of return addresses for return function tracing */
+	struct ftrace_ret_stack	*ret_stack;
+	/* time stamp for last schedule */
+	unsigned long long ftrace_timestamp;
+	/*
+	 * Number of functions that haven't been traced
+	 * because of depth overrun.
+	 */
+	atomic_t trace_overrun;
+	/* Pause for the tracing */
+	atomic_t tracing_graph_pause;
+#endif
+#ifdef CONFIG_TRACING				// 参见ftrace跟踪器节
+	/* state flags for use by tracers */
+	unsigned long trace;
+	/* bitmask and counter of trace recursion */
+	unsigned long trace_recursion;
+#endif /* CONFIG_TRACING */
+
+// 参见Control Groups节
+#ifdef CONFIG_CGROUP_MEM_RES_CTLR		/* memcg uses this to do batch job */
+	struct memcg_batch_info {
+		int do_batch;			/* incremented when batch uncharge started */
+		struct mem_cgroup *memcg;	/* target memcg of uncharge */
+		unsigned long nr_pages;		/* uncharged usage */
+		unsigned long memsw_nr_pages;	/* uncharged mem+swap usage */
+	} memcg_batch;
+#endif
+#ifdef CONFIG_HAVE_HW_BREAKPOINT
+	atomic_t ptrace_bp_refcnt;		// 参见ptrace系统调用节
+#endif
+};
+```
+
+可通过下列命令查看进程1684的有关信息：
+
+```
+chenwx proc # cat 1684/status
+Name:	cinnamon
+State:	R (running)
+Tgid:	1684
+Ngid:	0
+Pid:	1684
+PPid:	1655
+TracerPid:	0
+Uid:	1000	1000	1000	1000
+Gid:	1000	1000	1000	1000
+FDSize:	32
+Groups:	4 24 27 30 46 112 118 1000
+VmPeak:	576760 kB
+VmSize:	537716 kB
+VmLck:	0 kB
+VmPin:	0 kB
+VmHWM:	171856 kB
+VmRSS:	157588 kB
+VmData:	198996 kB
+VmStk:	136 kB
+VmExe:	8 kB
+VmLib:	70360 kB
+VmPTE:	548 kB
+VmSwap:	0 kB
+Threads:	6
+SigQ:		0/11942
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	0000000000000000
+SigIgn:	0000000021001000
+SigCgt:	0000000180014002
+CapInh:	0000000000000000
+CapPrm:	0000000000000000
+CapEff:	0000000000000000
+CapBnd:	0000001fffffffff
+Seccomp:	0
+Cpus_allowed:	1
+Cpus_allowed_list:	0
+Mems_allowed:	1
+Mems_allowed_list:	0
+voluntary_ctxt_switches:	163421
+nonvoluntary_ctxt_switches:	240193
+```
+
+### 7.1.1 进程描述符成员简介
+
+#### 7.1.1.1 进程状态
+
+struct task_struct中与进程状态有关的域包括：
+* volatile long state;
+* int exit_state;
+
+这些域的取值定义于include/linux/sched.h:
+
+![task_struct](/assets/task_struct.jpg)
+
+进程状态转换图:
+
+![Process_Status](/assets/Process_Status.jpg)
+
+![Process_Status_1](/assets/Process_Status_1.jpg)
+
+| 进程状态 | 备注 |
+| :------ | :--- |
+| TASK_RUNNING | 无论进程是否正在占用CPU，只要具备运行条件，都处于该状态。Linux把所有TASK_RUNNING状态的task_struct组成一个可运行队列run queue，调度程序从这个队列中选择进程运行。参见进程调度节。 |
+| TASK_INTERRUPTIBLE | Linux将阻塞状态划分成TASK_INTERRUPTIBLE, TASK_UNINTERRUPTIBLE, TASK_STOPPED三种状态。处于TASK_INTERRUPTIBLE状态的进程在资源有效时被唤醒，也可以通过信号或定时中断唤醒。 |
+| TASK_UNINTERRUPTIBLE | 处于该状态的进程只有当资源有效时被唤醒，不能通过信号或定时中断唤醒。 |
+| TASK_STOPPED | Process execution has been stopped; the process enters this state after receiving a SIGSTOP, SIGTSTP, SIGTTIN, or SIGTTOU signal. 处于该状态的进程只能通过其他进程的信号才能唤醒。 |
+| TASK_TRACED | Process execution has been stopped by a debugger. When a process is being monitored by another (such as when a debugger executes a ptrace system call to monitor a test program), each signal may put the process in the TASK_TRACED state. |
+| TASK_ZOMBIE | Process execution is terminated, but the parent process has not yet issued a wait4()or waitpid() system call to return information about the dead process. Before the wait( )-like call is issued, the kernel cannot discard the data contained in the dead process descriptor because the parent might need it. |
+| EXIT_DEAD | The final state: the process is being removed by the system because the parent process has just issued await4() or waitpid() system call for it. Changing its state from EXIT_ZOMBIE to EXIT_DEAD avoids race conditions due to other threads of execution that execute wait()-like calls on the same process. |
+
+<p/>
+
+状态TASK_INTERRUPTIBLE和TASK_UNINTERRUPTIBLE之间的区别，参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第4. Process Scheduling章第Sleeping and Waking Up节：
+
+Two states are associated with sleeping, TASK_INTERRUPTIBLE and TASK_UNINTERRUPTIBLE. They differ only in that tasks in the TASK_UNINTERRUPTIBLE state ignore signals, whereas tasks in the TASK_INTERRUPTIBLE state wake up prematurely and respond to a signal if one is issued. Both types of sleeping tasks sit on a wait queue, waiting for an event to occur, and are not runnable.
+
+##### 7.1.1.1.1 设置进程状态
+
+Calling following function to set process state, see include/linux/sched.h:
+
+```
+/*
+ * set_current_state() includes a barrier so that the write of current->state
+ * is correctly serialised wrt the caller's subsequent test of whether to
+ * actually sleep:
+ *
+ *	set_current_state(TASK_UNINTERRUPTIBLE);
+ *	if (do_i_need_to_sleep())
+ *		schedule();
+ *
+ * If the caller does not need such serialisation then use __set_current_state()
+ */
+#define __set_current_state(state_value)		\
+	do { current->state = (state_value); } while (0)
+
+#define set_current_state(state_value)			\
+	set_mb(current->state, (state_value))
+```
+
+In older code, you often see something like this instead:
+
+```
+current->state = TASK_INTERRUPTIBLE;
+```
+
+But changing current directly in that manner is discouraged; such code breaks easily when data structures change.
+
+#### 7.1.1.2 进程标识符
+
+task_struct结构中与进程标识符有关的域包括：
+* pid_t pid;
+* pid_t tgid;
+
+pid_t定义于include/linux/types.h:
+
+```
+typedef __kernel_pid_t	pid_t;
+```
+
+而，\__kernel_pid_t定义于linux/posix_types.h:
+
+```
+typedef int		__kernel_pid_t;
+```
+
+因此，进程标识符的取值范围定义于include/linux/threads.h:
+
+```
+#ifndef _LINUX_THREADS_H
+#define _LINUX_THREADS_H
+
+/*
+ * The default limit for the nr of threads is now in
+ * /proc/sys/kernel/threads-max.
+ */
+
+/*
+ * Maximum supported processors.  Setting this smaller saves quite a
+ * bit of memory.  Use nr_cpu_ids instead of this except for static bitmaps.
+ */
+#ifndef CONFIG_NR_CPUS
+/* FIXME: This should be fixed in the arch's Kconfig */
+#define CONFIG_NR_CPUS			1
+#endif
+
+/* Places which use this should consider cpumask_var_t. */
+#define NR_CPUS				CONFIG_NR_CPUS
+
+#define MIN_THREADS_LEFT_FOR_ROOT 	4
+
+/*
+ * This controls the default maximum pid allocated to a process
+ */
+#define PID_MAX_DEFAULT 		(CONFIG_BASE_SMALL ? 0x1000 : 0x8000)
+
+/*
+ * A maximum of 4 million PIDs should be enough for a while.
+ * [NOTE: PID/TIDs are limited to 2^29 ~= 500+ million, see futex.h.]
+ */
+#define PID_MAX_LIMIT (CONFIG_BASE_SMALL ? PAGE_SIZE * 8 :	\
+	(sizeof(long) > 4 ? 4 * 1024 * 1024 : PID_MAX_DEFAULT))
+
+/*
+ * Define a minimum number of pids per cpu.  Heuristically based
+ * on original pid max of 32k for 32 cpus.  Also, increase the
+ * minimum settable value for pid_max on the running system based
+ * on similar defaults.  See kernel/pid.c:pidmap_init() for details.
+ */
+#define PIDS_PER_CPU_DEFAULT		1024
+#define PIDS_PER_CPU_MIN		8
+
+#endif
+```
+
+In fact, the POSIX 1003.1c standard states that all threads of a multithreaded application must have the same PID. To comply with this standard, Linux makes use of thread groups. The identifier shared by the threads is the PID of the thread group leader, that is, the PID of the first lightweight process in the group; it is stored in the tgid field of the process descriptors. The getpid() system call returns the value of tgid relative to the current process instead of the value of pid, so all the threads of a multithreaded application share the same identifier. Most processes belong to a thread group consisting of a single member; as thread group leaders, they have the tgid field equal to the pid field, thus the getpid() system call works as usual for this kind of process.
+
+NOTE: If the system is willing to break compatibility with old applications, the administrator may increase the maximum value via /proc/sys/kernel/pid_max.
+
+#### 7.1.1.3 进程内核栈
+
+struct task_struct中与进程内核栈有关的域为：
+
+```
+void *stack;
+```
+
+其类型为union thread_union。
+
+##### 7.1.1.3.1 进程内核栈的结构/union thread_union
+
+Linux Kernel通过union thread_union来表示进程的内核栈，参见include/linux/sched.h：
+
+```
+union thread_union {
+	struct thread_info thread_info;
+	unsigned long stack[THREAD_SIZE/sizeof(long)];
+};
+```
+
+其中，THREAD_SIZE定义于arch/x86/include/asm/page_32_types.h，其值为8192：
+
+```
+#define THREAD_ORDER	1
+#define THREAD_SIZE 	(PAGE_SIZE << THREAD_ORDER) 	// PAGE_SIZE取值为4096
+```
+
+struct thread_info定义于arch/x86/include/asm/thread_info.h:
+
+```
+struct thread_info {
+	struct task_struct			*task; 		/* main task structure */
+		struct exec_domain		*exec_domain; 	/* execution domain */
+		// 其取值为TIF_xxx，参见arch/x86/include/asm/thread_info.h
+		__u32				flags; 		/* low level flags */
+		__u32				status; 		/* thread synchronous flags */
+		// 本进程所在的CPU ID
+		__u32				cpu; 			/* current CPU */
+		// 参见struct thread_info->preempt_count节
+		int				preempt_count; 	/* 0 => preemptable, <0 => BUG */
+		mm_segment_t			addr_limit;
+		struct restart_block		restart_block;
+		void __user			*sysenter_return;
+#ifdef CONFIG_X86_32
+		/* ESP of the previous stack in case of nested (IRQ) stacks */
+		unsigned long			previous_esp;
+		__u8				supervisor_stack[0];
+#endif
+		int				uaccess_err;
+};
+```
+
+###### 7.1.1.3.1.1 struct thread_info->preempt_count
+
+struct thread_info中preempt_count域的取值:
+
+![Kernel](/assets/Kernel.jpg)
+
+**Preemption counter**
+
+Keeps track of how many times kernel preemption has been explicitly disabled on the local CPU; the value zero means that kernel preemption has not been explicitly disabled at all.
+
+**Softirq counter**
+
+Specifies how many levels deep the disabling of deferrable functions is (level 0 means that deferrable functions are enabled).
+
+**Hardirq counter**
+
+Specifies the number of nested interrupt handlers on the local CPU (the value is increased by ```irq_enter()``` and decreased by ```irq_exit()```.
+
+各标志位定义于include/linux/hardirq.h:
+
+```
+#define PREEMPT_BITS		8
+#define SOFTIRQ_BITS		8
+#define NMI_BITS		1
+
+#define MAX_HARDIRQ_BITS	10
+
+#ifndef HARDIRQ_BITS
+# define HARDIRQ_BITS		MAX_HARDIRQ_BITS
+#endif
+
+#if HARDIRQ_BITS > MAX_HARDIRQ_BITS
+#error HARDIRQ_BITS 	too high!
+#endif
+
+#define PREEMPT_SHIFT		0							// 0
+#define SOFTIRQ_SHIFT		(PREEMPT_SHIFT + PREEMPT_BITS)		// 8
+#define HARDIRQ_SHIFT		(SOFTIRQ_SHIFT + SOFTIRQ_BITS)		// 16
+#define NMI_SHIFT		(HARDIRQ_SHIFT + HARDIRQ_BITS)		// 26
+
+#define __IRQ_MASK(x)		((1UL << (x))-1)
+
+#define PREEMPT_MASK		(__IRQ_MASK(PREEMPT_BITS) << PREEMPT_SHIFT)	// 0x000000FF
+#define SOFTIRQ_MASK		(__IRQ_MASK(SOFTIRQ_BITS) << SOFTIRQ_SHIFT)	// 0x0000FF00
+#define HARDIRQ_MASK		(__IRQ_MASK(HARDIRQ_BITS) << HARDIRQ_SHIFT)	// 0x03FF0000
+#define NMI_MASK		(__IRQ_MASK(NMI_BITS)      << NMI_SHIFT)	// 0x04000000
+
+#define PREEMPT_OFFSET		(1UL << PREEMPT_SHIFT)			// 0x00000001
+#define SOFTIRQ_OFFSET		(1UL << SOFTIRQ_SHIFT) 			// 0x00000100
+#define HARDIRQ_OFFSET		(1UL << HARDIRQ_SHIFT) 			// 0x00010000
+#define NMI_OFFSET		(1UL << NMI_SHIFT) 				// 0x04000000
+
+#define SOFTIRQ_DISABLE_OFFSET	(2 * SOFTIRQ_OFFSET)			// 0x00000200
+
+#ifndef PREEMPT_ACTIVE
+#define PREEMPT_ACTIVE_BITS	1
+#define PREEMPT_ACTIVE_SHIFT	(NMI_SHIFT + NMI_BITS)		// 27
+#define PREEMPT_ACTIVE		(__IRQ_MASK(PREEMPT_ACTIVE_BITS) << PREEMPT_ACTIVE_SHIFT)	// 0x08000000
+#endif
+
+#if PREEMPT_ACTIVE < (1 << (NMI_SHIFT + NMI_BITS))
+#error PREEMPT_ACTIVE is too low!
+#endif
+
+#define hardirq_count()		(preempt_count() & HARDIRQ_MASK)
+#define softirq_count()		(preempt_count() & SOFTIRQ_MASK)
+#define irq_count()		(preempt_count() & (HARDIRQ_MASK | SOFTIRQ_MASK | NMI_MASK))
+
+#define in_irq()		(hardirq_count())
+#define in_softirq()		(softirq_count())
+#define in_interrupt()		(irq_count())
+#define in_serving_softirq()	(softirq_count() & SOFTIRQ_OFFSET)
+#define in_nmi()		(preempt_count() & NMI_MASK)
+```
+
+###### 7.1.1.3.1.2 内核栈与进程描述符的关系
+
+进程内核栈(union thread_union)与进程描述符(struct task_struct)的关系:
+
+![thread_info](/assets/thread_info.jpg)
+
+注：do_fork() -> copy_process() -> dup_task_struct()在end_of_stack()处填充了一个魔数STACK_END_MAGIC，其取值为0x57AC6E9D，参见dup_task_struct()节。
+
+###### 7.1.1.3.1.3 alloc_thread_info_node() / free_thread_info()
+
+The kernel uses the ```alloc_thread_info_node()``` and ```free_thread_info()``` macros to allocate and release the memory area storing a thread_info structure and a kernel stack.
+
+###### 7.1.1.3.1.4 current_thread_info()
+
+该函数用于获取指向当前进程内核栈的指针，其定义于arch/x86/include/asm/thread_info.h:
+
+```
+/*
+ * ESP专门用作堆栈指针，也被称为栈顶指针，堆栈的顶部是地址小的区域，
+ * 压入堆栈的数据越多，ESP也就越来越小。在32位平台上，ESP每次减少4字节。
+ */
+/* how to get the current stack pointer from C */
+register unsigned long current_stack_pointer asm("esp") __used;
+
+// 获取当前进程的thread_info结构的首地址
+/* how to get the thread information struct from C */
+static inline struct thread_info *current_thread_info(void)
+{
+	/*
+	 * current_stack_pointer即下图中的esp所指的位置
+	 * ~(THREAD_SIZE - 1)的二进制取值为0 0000 0000 0000，
+	 * 即取当前进程内核栈的低地址，也就是thread_info所在位置
+	 */
+	return (struct thread_info *) (current_stack_pointer & ~(THREAD_SIZE - 1));
+}
+```
+
+###### 7.1.1.3.1.5 current
+
+宏current用来获取当前进程的进程描述符，其定义于arch/x86/include/asm/current.h:
+
+```
+DECLARE_PER_CPU(struct task_struct *, current_task);
+
+static __always_inline struct task_struct *get_current(void)
+{
+	return percpu_read_stable(current_task);
+}
+
+#define current	get_current()
+```
+
+##### 7.1.1.3.2 进程内核栈的分配与释放
+
+通过alloc_thread_info_node()分配内核栈，通过free_thread_info()释放所分配的内核栈。参见kernel/fork.c:
+
+```
+#ifndef __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+static struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node)
+{
+#ifdef CONFIG_DEBUG_STACK_USAGE
+	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
+#else
+	gfp_t mask = GFP_KERNEL;
+#endif
+    // THREAD_SIZE_ORDER定义于arch/arm/include/asm/thread_info.h，取值为1
+	struct page *page = alloc_pages_node(node, mask, THREAD_SIZE_ORDER);
+
+	return page ? page_address(page) : NULL;
+}
+
+static inline void free_thread_info(struct thread_info *ti)
+{
+	free_pages((unsigned long)ti, THREAD_SIZE_ORDER);
+}
+#endif
+```
+
+函数alloc_thread_info()通过调用__get_free_pages()分配2个页的内存，它的首地址是8192字节对齐的。
+
+#### 7.1.1.4 标志
+
+task_struct结构中的标志flags为：
+
+```
+unsigned int flags;
+```
+
+该域可以取如下值，定义于include/linux/sched.h：
+
+```
+/*
+ * Per process flags
+ */
+#define PF_STARTING		0x00000002	/* being created */
+#define PF_EXITING		0x00000004	/* getting shut down */
+#define PF_EXITPIDONE		0x00000008	/* pi exit done on shut down */
+#define PF_VCPU			0x00000010	/* I'm a virtual CPU */
+#define PF_WQ_WORKER		0x00000020	/* I'm a workqueue worker */
+#define PF_FORKNOEXEC		0x00000040	/* forked but didn't exec */
+#define PF_MCE_PROCESS  	0x00000080	/* process policy on mce errors */
+#define PF_SUPERPRIV		0x00000100	/* used super-user privileges */
+#define PF_DUMPCORE		0x00000200	/* dumped core */
+#define PF_SIGNALED		0x00000400	/* killed by a signal */
+#define PF_MEMALLOC		0x00000800	/* Allocating memory */
+#define PF_NPROC_EXCEEDED	0x00001000	/* set_user noticed that RLIMIT_NPROC was exceeded */
+#define PF_USED_MATH		0x00002000	/* if unset the fpu must be initialized before use */
+#define PF_FREEZING		0x00004000	/* freeze in progress. do not account to load */
+#define PF_NOFREEZE		0x00008000	/* this thread should not be frozen */
+#define PF_FROZEN		0x00010000	/* frozen for system suspend */
+#define PF_FSTRANS		0x00020000	/* inside a filesystem transaction */
+#define PF_KSWAPD		0x00040000	/* I am kswapd */
+#define PF_LESS_THROTTLE 	0x00100000	/* Throttle me less: I clean memory */
+#define PF_KTHREAD		0x00200000	/* I am a kernel thread */
+#define PF_RANDOMIZE		0x00400000	/* randomize virtual address space */
+#define PF_SWAPWRITE		0x00800000	/* Allowed to write to swap */
+#define PF_SPREAD_PAGE		0x01000000	/* Spread page cache over cpuset */
+#define PF_SPREAD_SLAB		0x02000000	/* Spread some slab caches over cpuset */
+#define PF_THREAD_BOUND		0x04000000	/* Thread bound to specific cpu */
+#define PF_MCE_EARLY   		0x08000000	/* Early kill for mce process policy */
+#define PF_MEMPOLICY		0x10000000	/* Non-default NUMA mempolicy */
+#define PF_MUTEX_TESTER		0x20000000	/* Thread belongs to the rt mutex tester */
+#define PF_FREEZER_SKIP		0x40000000	/* Freezer should not count it as freezable */
+#define PF_FREEZER_NOSIG 	0x80000000	/* Freezer won't send signals to it */
+```
+
+#### 7.1.1.5 进程的亲属关系
+
+Processes created by a program have a parent/child relationship. When a process creates multiple children, these children have sibling relationships. Several fields must be introduced in a process descriptor to represent these relationships; they are listed in below list respect to a given process P.
+
+```
+struct task_struct *real_parent;
+```
+
+Points to the process descriptor of the process that created P or to the descriptor of process 1 (init) if the parent process no longer exists. (Therefore, when a user starts a background process and exits the shell, the background process becomes the child of init.)
+
+```
+struct task_struct *parent;
+```
+
+Pointsto the current parent of P (this is the process that must be signaled when the child process terminates); its value usually coincides with that of real_parent. It may occasionally differ, such as when another process issues a ptrace() system call requesting that it be allowed to monitor P.
+
+```
+struct list_head children;
+```
+
+The head of the list containing all children created by P.
+
+```
+struct list_head sibling;
+```
+
+The pointers to the next and previous elements in the list of the sibling processes, those that have the same parent as P.
+
+```
+struct task_struct *group_leader;
+```
+
+Process descriptor pointer of the group leader of P.
+
+可以通过双向循环链表节的宏查询其他进程描述符的信息。
+
+#### 7.1.1.6 ptrace系统调用
+
+task_struct结构中包含与ptrace有关的成员：
+
+```
+unsigned int ptrace;
+struct list_head ptraced;
+struct list_head ptrace_entry;
+unsigned long ptrace_message;
+siginfo_t *last_siginfo; /* For ptrace use. */
+
+#ifdef CONFIG_HAVE_HW_BREAKPOINT
+atomic_t ptrace_bp_refcnt;
+#endif
+```
+
+ptrace设置为0时表示不需要被跟踪，其可能的取值定义于：
+
+```
+#define PTRACE_EVENT_FORK	1
+#define PTRACE_EVENT_VFORK	2
+#define PTRACE_EVENT_CLONE	3
+#define PTRACE_EVENT_EXEC	4
+#define PTRACE_EVENT_VFORK_DONE	5
+#define PTRACE_EVENT_EXIT	6
+#define PTRACE_EVENT_STOP	7
+
+#define PT_PTRACED		0x00000001
+#define PT_DTRACE		0x00000002	/* delayed trace (used on m68k, i386) */
+#define PT_TRACESYSGOOD		0x00000004
+#define PT_PTRACE_CAP		0x00000008	/* ptracer can follow suid-exec */
+
+/* PT_TRACE_* event enable flags */
+#define PT_EVENT_FLAG_SHIFT	4
+#define PT_EVENT_FLAG(event)	(1 << (PT_EVENT_FLAG_SHIFT + (event) - 1))
+
+#define PT_TRACE_FORK		PT_EVENT_FLAG(PTRACE_EVENT_FORK)
+#define PT_TRACE_VFORK		PT_EVENT_FLAG(PTRACE_EVENT_VFORK)
+#define PT_TRACE_CLONE		PT_EVENT_FLAG(PTRACE_EVENT_CLONE)
+#define PT_TRACE_EXEC		PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
+#define PT_TRACE_VFORK_DONE	PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
+#define PT_TRACE_EXIT		PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
+
+#define PT_TRACE_MASK		0x000003f4
+```
+
+#### 7.1.1.7 Performance Event
+
+task_struct结构中包含如下与performance event有关的成员：
+
+```
+#ifdef CONFIG_PERF_EVENTS
+	struct perf_event_context *perf_event_ctxp[perf_nr_task_contexts];
+	struct mutex perf_event_mutex;
+	struct list_head perf_event_list;
+#endif
+```
+
+Performance Event是一款随Linux内核代码一同发布和维护的性能诊断工具。这些成员用于帮助PerformanceEvent分析进程的性能问题。参见如下两篇文章：
+* [Perf -- Linux下的系统性能调优工具，第 1 部分](http://www.ibm.com/developerworks/cn/linux/l-cn-perf1/index.html?ca=drs-#major1)
+* [Perf -- Linux下的系统性能调优工具，第 2 部分](http://www.ibm.com/developerworks/cn/linux/l-cn-perf2/index.html?ca=drs-#major1)
+
+#### 7.1.1.8 进程调度
+
+task_struct结构中包含如下与进程调度有关的成员：
+
+```
+int prio, static_prio, normal_prio;
+unsigned int rt_priority;
+const struct sched_class *sched_class;	// 参见进程的调度类/struct sched_class节
+struct sched_entity se;
+struct sched_rt_entity rt;
+
+unsigned int policy;			// 参见进程的调度策略节
+cpumask_t cpus_allowed;			// 用于控制进程可以在哪个CPU上运行
+```
+
+##### 7.1.1.8.1 进程优先级
+
+* prio：动态优先级
+* static_prio：静态优先级，可以通过nice系统调用来进行修改
+* normal_prio：其值取决于静态优先级和调度策略
+* rt_priority：实时优先级
+
+进程优先级的取值参见include/linux/sched.h：
+
+```
+/*
+ * Priority of a process goes from 0..MAX_PRIO-1, valid RT
+ * priority is 0..MAX_RT_PRIO-1, and SCHED_NORMAL/SCHED_BATCH
+ * tasks are in the range MAX_RT_PRIO..MAX_PRIO-1. Priority
+ * values are inverted: lower p->prio value means higher priority.
+ *
+ * The MAX_USER_RT_PRIO value allows the actual maximum
+ * RT priority to be separate from the value exported to
+ * user-space.  This allows kernel threads to set their
+ * priority to a value higher than any user task. Note:
+ * MAX_RT_PRIO must not be smaller than MAX_USER_RT_PRIO.
+ */
+
+#define MAX_USER_RT_PRIO	100
+#define MAX_RT_PRIO		MAX_USER_RT_PRIO
+
+/*
+ * 优先级取值范围为[0..140)，其中[0..99]为实时进程优先级，
+ * [100..139]为普通进程优先级。且取值越小，优先级越高
+ */
+#define MAX_PRIO		(MAX_RT_PRIO + 40)
+#define DEFAULT_PRIO		(MAX_RT_PRIO + 20) 	// 默认优先级为120
+```
+
+nice与priority取值之间的映射关系，参见kernel/sched.c：
+
+```
+/*
+ * Convert user-nice values [ -20 ... 0 ... 19 ]
+ * to static priority [ MAX_RT_PRIO..MAX_PRIO-1 ],
+ * and back.
+ */
+// nice的取值范围为[-20..19]，一一对应于prioriy的取值范围[100..139]
+#define NICE_TO_PRIO(nice)	(MAX_RT_PRIO + (nice) + 20)
+#define PRIO_TO_NICE(prio)	((prio) - MAX_RT_PRIO - 20)
+#define TASK_NICE(p)		PRIO_TO_NICE((p)->static_prio)
+
+/*
+ * 'User priority' is the nice value converted to something we
+ * can work with better when scaling various scheduler parameters,
+ * it's a [ 0 ... 39 ] range.
+ */
+#define USER_PRIO(p)		((p)-MAX_RT_PRIO) 		// [0..39]
+#define TASK_USER_PRIO(p)	USER_PRIO((p)->static_prio)	// [0..39]
+#define MAX_USER_PRIO		(USER_PRIO(MAX_PRIO)) 		// 40
+```
+
+##### 7.1.1.8.2 调度实体/struct sched_entity/struct sched_rt_entity
+
+se是普通进程的调度实体；rt是实时进程的调度实体。
+
+struct sched_entity和struct sched_rt_entity表示一个可调度实体(进程，进程组等)。它包含了完整的调度信息，用于实现对单个任务或任务组的调度。调度实体可能与进程没有关联。
+
+#### 7.1.1.9 进程地址空间
+
+```
+	struct mm_struct 	*mm, *active_mm;
+#ifdef CONFIG_COMPAT_BRK
+	unsigned 		brk_randomized:1;
+#endif
+#if defined(SPLIT_RSS_COUNTING)
+	struct task_rss_stat	rss_stat;
+#endif
+```
+
+mm指向当前进程所拥有的内存描述符。active_mm指向进程运行时所使用的内存描述符。对于普通进程而言，这两个指针变量的值相同。但是，内核线程不拥有任何内存描述符，所以它们的mm总是为NULL。当内核线程得以运行时，它的active_mm成员被初始化为前一个运行进程的active_mm(为改进上下文切换时间的一种优化)。
+
+brk_randomized用来确定对随机堆内存的探测。
+
+rss_stat用来记录缓冲信息。
+
+#### 7.1.1.10 判断标志
+
+```
+	int exit_code, exit_signal;
+	int pdeath_signal;    /*  The signal sent when the parent dies  */
+	unsigned int jobctl;  /* JOBCTL_*, siglock protected */
+
+	unsigned int personality;
+	unsigned did_exec:1;
+	unsigned in_execve:1;	/* Tell the LSMs that the process is doing an execve */
+	unsigned in_iowait:1;
+
+	/* Revert to default priority/policy when forking */
+	unsigned sched_reset_on_fork:1;
+```
+
+exit_code用于设置进程的终止代号，这个值要么是_exit()或exit_group()系统调用参数(正常终止)，要么是由内核提供的一个错误代号(异常终止)。
+
+exit_signal被置为-1时表示本进程是某个线程组的一员。只有当该线程组的最后一个成员终止时，才会产生一个信号，以通知线程组的领头进程的父进程。
+
+pdeath_signal用于判断父进程终止时发送信号。
+
+personality用于处理不同的ABI，其可能取值如下，参见include/linux/personality.h：
+
+```
+enum {
+	PER_LINUX		=	0x0000,
+	PER_LINUX_32BIT		=	0x0000 | ADDR_LIMIT_32BIT,
+	PER_LINUX_FDPIC		=	0x0000 | FDPIC_FUNCPTRS,
+	PER_SVR4		=	0x0001 | STICKY_TIMEOUTS | MMAP_PAGE_ZERO,
+	PER_SVR3		=	0x0002 | STICKY_TIMEOUTS | SHORT_INODE,
+	PER_SCOSVR3		=	0x0003 | STICKY_TIMEOUTS | WHOLE_SECONDS | SHORT_INODE,
+	PER_OSR5		=	0x0003 | STICKY_TIMEOUTS | WHOLE_SECONDS,
+	PER_WYSEV386		=	0x0004 | STICKY_TIMEOUTS | SHORT_INODE,
+	PER_ISCR4		=	0x0005 | STICKY_TIMEOUTS,
+	PER_BSD			=	0x0006,
+	PER_SUNOS		=	0x0006 | STICKY_TIMEOUTS,
+	PER_XENIX		=	0x0007 | STICKY_TIMEOUTS | SHORT_INODE,
+	PER_LINUX32		=	0x0008,
+	PER_LINUX32_3GB		=	0x0008 | ADDR_LIMIT_3GB,
+	PER_IRIX32		=	0x0009 | STICKY_TIMEOUTS, 	/* IRIX5 32-bit */
+	PER_IRIXN32		=	0x000a | STICKY_TIMEOUTS, 	/* IRIX6 new 32-bit */
+	PER_IRIX64		=	0x000b | STICKY_TIMEOUTS, 	/* IRIX6 64-bit */
+	PER_RISCOS		=	0x000c,
+	PER_SOLARIS		=	0x000d | STICKY_TIMEOUTS,
+	PER_UW7			=	0x000e | STICKY_TIMEOUTS | MMAP_PAGE_ZERO,
+	PER_OSF4		=	0x000f,	/* OSF/1 v4 */
+	PER_HPUX		=	0x0010,
+	PER_MASK		=	0x00ff,
+};
+```
+
+* did_exec用于记录进程代码是否被execve()函数所执行。
+* in_execve用于通知LSM是否被do_execve()函数所调用。
+* in_iowait用于判断是否进行iowait计数。
+* sched_reset_on_fork用于判断是否恢复默认的优先级或调度策略。
+
+#### 7.1.1.11 时间
+
+task_struct结构中包含如下与时间有关的成员变量：
+
+```
+	cputime_t utime, stime, utimescaled, stimescaled;
+	cputime_t gtime;
+#ifndef CONFIG_VIRT_CPU_ACCOUNTING
+	cputime_t prev_utime, prev_stime;
+#endif
+	unsigned long nvcsw, nivcsw;		/* context switch counts */
+	struct timespec start_time;		/* monotonic time */
+	struct timespec real_start_time;	/* boot based time */
+
+	struct task_cputime cputime_expires;
+	struct list_head cpu_timers[3];
+
+#ifdef CONFIG_DETECT_HUNG_TASK
+	/* hung task detection */
+	unsigned long last_switch_count;
+#endif
+```
+
+* utime/stime用于记录进程在用户态/内核态下所经过的节拍数(定时器)。prev_utime/prev_stime是先前的运行时间。
+* utimescaled/stimescaled也是用于记录进程在用户态/内核态的运行时间，但它们以处理器的频率为刻度。
+* gtime是以节拍计数的虚拟机运行时间(guest time)。
+* nvcsw/nivcsw是自愿(voluntary)/非自愿(involuntary)上下文切换计数。last_switch_count是nvcsw和nivcsw的总和。
+* start_time和real_start_time都是进程创建时间，real_start_time还包含了进程睡眠时间，常用于/proc/pid/stat。
+* cputime_expires用来统计进程或进程组被跟踪的处理器时间，其中的三个成员对应着cpu_timers[3]的三个链表。
+
+#### 7.1.1.12 信号处理
+
+```
+/* signal handlers */
+// Pointer to the process's signal descriptor，线程组共用的信号
+struct signal_struct *signal;
+// Pointer to the process's signal handler descriptor，线程组共用
+struct sighand_struct *sighand;
+
+/*
+ * blocked: Mask of blocked signals
+ * real_blocked: Temporary mask of blocked signals
+ * (used by the rt_sigtimedwait()system call)
+ */
+sigset_t blocked, real_blocked;
+sigset_t saved_sigmask;    /* restored if set_restore_sigmask() was used */
+// Data structure storing the private pending signals
+struct sigpending pending;
+
+// Address of alternative signal handler stack. 可不提供
+unsigned long sas_ss_sp;
+// Size of alternative signal handler stack. 可不提供
+size_t sas_ss_size;
+/*
+ * Pointer to a function used by a device driver to
+ * block some signals of the process
+ */
+int (*notifier)(void *priv);
+/*
+ * Pointer to data that might be used by the notifier
+ * function (previous field of table)
+ */
+void *notifier_data;
+/*
+ * Bit mask of signals blocked by a device driver
+ * through a notifier function
+ */
+sigset_t *notifier_mask;
+```
+
+设备驱动程序常用notifier指向的函数来阻塞进程的某些信号(notifier_mask是这些信号的位掩码)，notifier_data指的是notifier所指向的函数可能使用的数据。
+
+参见信号/signal节。
+
+#### 7.1.1.13 保护资源分配或释放的自旋锁
+
+```
+    /* Protection of (de-)allocation: mm, files, fs, tty, keyrings, mems_allowed, mempolicy */
+	spinlock_t alloc_lock;
+```
+
+#### 7.1.1.14 进程描述符使用计数
+
+```
+	atomic_t usage;
+```
+
+当usage被置为2时，表示进程描述符正在被使用而且其相应的进程处于活动状态。
+
+#### 7.1.1.15 FPU使用计数
+
+```
+	/*
+	 * fpu_counter contains the number of consecutive context switches
+	 * that the FPU is used. If this is over a threshold, the lazy fpu
+	 * saving becomes unlazy to save the trap. This is an unsigned char
+	 * so that after 256 times the counter wraps and the behavior turns
+	 * lazy again; this to deal with bursty apps that only use FPU for
+	 * a short time
+	 */
+	unsigned char fpu_counter;
+```
+
+#### 7.1.1.16 块设备I/O层的跟踪工具
+
+```
+#ifdef CONFIG_BLK_DEV_IO_TRACE
+	unsigned int btrace_seq;
+#endif
+```
+
+blktrace是一个针对Linux内核中块设备I/O层的跟踪工具。
+
+#### 7.1.1.17 RCU同步原语
+
+```
+#ifdef CONFIG_PREEMPT_RCU
+	int rcu_read_lock_nesting;
+	char rcu_read_unlock_special;
+	struct list_head rcu_node_entry;
+#endif /* #ifdef CONFIG_PREEMPT_RCU */
+#ifdef CONFIG_TREE_PREEMPT_RCU
+	struct rcu_node *rcu_blocked_node;
+#endif /* #ifdef CONFIG_TREE_PREEMPT_RCU */
+#ifdef CONFIG_RCU_BOOST
+	struct rt_mutex *rcu_boost_mutex;
+#endif /* #ifdef CONFIG_RCU_BOOST */
+```
+
+#### 7.1.1.18 用于调度器统计进程的运行信息
+
+```
+#if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
+	struct sched_info sched_info;
+#endif
+```
+
+#### 7.1.1.19 进程链表
+
+```
+	struct list_head tasks;
+#ifdef CONFIG_SMP
+	struct plist_node pushable_tasks;
+#endif
+```
+
+#### 7.1.1.20 防止内核堆栈溢出
+
+```
+#ifdef CONFIG_CC_STACKPROTECTOR
+	/* Canary value for the -fstack-protector gcc feature */
+	unsigned long stack_canary;
+#endif
+```
+
+在GCC编译内核时，需要加上```-fstack-protector```选项。
+
+#### 7.1.1.21 PID散列表和链表
+
+```
+/* PID/PID hash table linkage. */
+struct pid_link pids[PIDTYPE_MAX];
+struct list_head thread_group;
+```
+
+其中，PIDTYPE_MAX定义于include/linux/pid.h:
+
+```
+enum pid_type
+{
+	PIDTYPE_PID,	// PID of the process
+	PIDTYPE_PGID,	// PID of the group leader process
+	PIDTYPE_SID,	// PID of the session leader process
+	PIDTYPE_MAX
+};
+```
+
+struct pid_link定义于:
+
+```
+struct pid_link
+{
+	struct hlist_node node;
+	struct pid *pid;
+};
+```
+
+pids[i]组成的哈希链表结构参见哈希链表/struct hlist_head/struct hlist_node节。
+
+哈希链表头保存在数组pid_hash中，其定义于kernel/pid.c:
+
+```
+static struct hlist_head *pid_hash;
+```
+
+pid_hash在函数pidhash_init()中初始化，其定义于kernel/pid.c:
+
+```
+/*
+ * The pid hash table is scaled according to the amount of memory in the
+ * machine.  From a minimum of 16 slots up to 4096 slots at one gigabyte or
+ * more.
+ */
+void __init pidhash_init(void)
+{
+	int i, pidhash_size;
+
+	// pid_hash分配一个页面
+	pid_hash = alloc_large_system_hash("PID", sizeof(*pid_hash), 0, 18,
+				   HASH_EARLY | HASH_SMALL, &pidhash_shift, NULL, 4096);
+	pidhash_size = 1 << pidhash_shift;
+
+	for (i = 0; i < pidhash_size; i++)
+		INIT_HLIST_HEAD(&pid_hash[i]);
+}
+```
+
+其调用关系如下：
+
+```
+start_kernel()
+-> pidhash_init()
+```
+
+![PID_hash_table](/assets/PID_hash_table.png)
+
+#### 7.1.1.22 do_fork函数
+
+```
+struct completion *vfork_done;	/* for vfork() */
+int __user *set_child_tid;	/* CLONE_CHILD_SETTID */
+int __user *clear_child_tid;	/* CLONE_CHILD_CLEARTID */
+```
+
+在执行```do_fork()```时，如果给定特别标志，则vfork_done会指向一个特殊地址。
+
+如果copy_process函数的clone_flags参数的值被置为CLONE_CHILD_SETTID或CLONE_CHILD_CLEARTID，则会把child_tidptr参数的值分别复制到set_child_tid和clear_child_tid成员。这些标志说明必须改变子进程用户态地址空间的child_tidptr所指向的变量的值。
+
+#### 7.1.1.23 缺页统计
+
+```
+/* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific */
+unsigned long min_flt, maj_flt;
+```
+
+#### 7.1.1.24 进程权能
+
+```
+/* process credentials */
+const struct cred __rcu *real_cred;		/* objective and real subjective task credentials (COW) */
+const struct cred __rcu *cred;			/* effective (overridable) subjective task credentials (COW) */
+struct cred *replacement_session_keyring;	/* for KEYCTL_SESSION_TO_PARENT */
+```
+
+#### 7.1.1.25 程序名称
+
+```
+	char comm[TASK_COMM_LEN]; /* executable name excluding path
+				  - access with [gs]et_task_comm (which lock it with task_lock())
+				  - initialized normally by setup_new_exec */
+```
+
+#### 7.1.1.26 文件系统
+
+```
+	/* file system info */
+	int link_count, total_link_count;
+
+	/* filesystem information */
+	struct fs_struct *fs; 		// 参见struct fs_struct节
+	/* open file information */
+	struct files_struct *files; 	// 参见struct files_struct节
+```
+
+* fs用来表示进程与文件系统的联系，包括当前目录和根目录。
+* files表示进程当前打开的文件。
+
+#### 7.1.1.27 进程通信/SYSVIPC
+
+```
+#ifdef CONFIG_SYSVIPC
+    /* ipc stuff */
+	struct sysv_sem sysvsem;
+#endif
+````
+
+#### 7.1.1.28 处理器特有数据
+
+```
+	/* CPU-specific state of this task */
+	struct thread_struct thread;
+```
+
+#### 7.1.1.29 命名空间
+
+```
+	/* namespaces */
+	struct nsproxy *nsproxy;
+```
+
+#### 7.1.1.30 进程审计
+
+```
+	struct audit_context *audit_context;
+#ifdef CONFIG_AUDITSYSCALL
+	uid_t loginuid;
+	unsigned int sessionid;
+#endif
+```
+
+#### 7.1.1.31 安全计算
+
+```
+	seccomp_t seccomp;
+```
+
+#### 7.1.1.32 用于copy_process函数使用CLONE_PARENT标记时
+
+```
+	/* Thread group tracking */
+   	u32 parent_exec_id;
+   	u32 self_exec_id;
+```
+
+#### 7.1.1.33 中断
+
+```
+#ifdef CONFIG_GENERIC_HARDIRQS
+	/* IRQ handler threads */
+	struct irqaction *irqaction;
+#endif
+
+#ifdef CONFIG_TRACE_IRQFLAGS
+	unsigned int irq_events;
+
+	unsigned long hardirq_enable_ip;
+	unsigned long hardirq_disable_ip;
+	unsigned int hardirq_enable_event;
+	unsigned int hardirq_disable_event;
+	int hardirqs_enabled;
+	int hardirq_context;
+
+	unsigned long softirq_disable_ip;
+	unsigned long softirq_enable_ip;
+	unsigned int softirq_disable_event;
+	unsigned int softirq_enable_event;
+	int softirqs_enabled;
+	int softirq_context;
+#endif
+```
+
+#### 7.1.1.34 task_rq_lock函数所使用的锁
+
+```
+	/* Protection of the PI data structures: */
+	raw_spinlock_t pi_lock;
+```
+
+#### 7.1.1.35 基于PI协议的等待互斥锁
+
+```
+#ifdef CONFIG_RT_MUTEXES
+	/* PI waiters blocked on a rt_mutex held by this task */
+	struct plist_head pi_waiters;
+	/* Deadlock detection and priority inheritance handling */
+	struct rt_mutex_waiter *pi_blocked_on;
+#endif
+```
+
+* PI指的是priority inheritance(优先级继承)。
+
+#### 7.1.1.36 死锁检测
+
+```
+#ifdef CONFIG_DEBUG_MUTEXES
+	/* mutex deadlock detection */
+	struct mutex_waiter *blocked_on;
+#endif
+```
+
+#### 7.1.1.37 lockdep
+
+```
+#ifdef CONFIG_LOCKDEP
+# define MAX_LOCK_DEPTH 48UL
+	u64 curr_chain_key;
+	int lockdep_depth;
+	unsigned int lockdep_recursion;
+	struct held_lock held_locks[MAX_LOCK_DEPTH];
+	gfp_t lockdep_reclaim_gfp;
+#endif
+```
+
+参见内核说明文档Documentation/lockdep-design.txt
+
+#### 7.1.1.39 JFS文件系统
+
+```
+	/* journalling filesystem info */
+	void *journal_info;
+```
+
+#### 7.1.1.40 块设备链表
+
+```
+	/* stacked block device info */
+	struct bio_list *bio_list;
+```
+
+#### 7.1.1.41 内存回收
+
+```
+	struct reclaim_state *reclaim_state;
+```
+
+#### 7.1.1.42 存放块设备I/O数据流量信息
+
+```
+	struct backing_dev_info *backing_dev_info;
+```
+
+#### 7.1.1.43 I/O调度器所使用的信息
+
+```
+	struct io_context *io_context;
+```
+
+#### 7.1.1.44 记录进程的I/O计数
+
+```
+	struct task_io_accounting ioac;
+#if defined(CONFIG_TASK_XACCT)
+	u64 acct_rss_mem1;		/* accumulated rss usage */
+	u64 acct_vm_mem1;		/* accumulated virtual memory usage */
+	cputime_t acct_timexpd;		/* stime + utime since last update */
+#endif
+```
+
+在Ubuntu 11.04上，执行cat获得进程1的I/O计数如下：
+
+```
+$ sudo cat /proc/1/io
+
+rchar: 164258906
+wchar: 455212837
+syscr: 388847
+syscw: 92563
+read_bytes: 439251968
+write_bytes: 14143488
+cancelled_write_bytes: 2134016
+```
+
+输出的数据项刚好是task_io_accounting结构体的所有成员。
+
+#### 7.1.1.45 CPUSET功能
+
+```
+#ifdef CONFIG_CPUSETS
+	nodemask_t mems_allowed;	/* Protected by alloc_lock */
+	int mems_allowed_change_disable;
+	int cpuset_mem_spread_rotor;
+	int cpuset_slab_spread_rotor;
+#endif
+```
+
+#### 7.1.1.46 Control Groups
+
+```
+#ifdef CONFIG_CGROUPS
+	/* Control Group info protected by css_set_lock */
+	struct css_set __rcu *cgroups;
+	/* cg_list protected by css_set_lock and tsk->alloc_lock */
+	struct list_head cg_list;
+#endif
+
+#ifdef CONFIG_CGROUP_MEM_RES_CTLR		/* memcg uses this to do batch job */
+	struct memcg_batch_info {
+		int do_batch;					/* incremented when batch uncharge started */
+		struct mem_cgroup *memcg;			/* target memcg of uncharge */
+		unsigned long nr_pages;		/* uncharged usage */
+		unsigned long memsw_nr_pages;	/* uncharged mem+swap usage */
+	} memcg_batch;
+#endif
+```
+
+#### 7.1.1.47 Futex同步机制
+
+```
+#ifdef CONFIG_FUTEX
+	struct robust_list_head __user *robust_list;
+#ifdef CONFIG_COMPAT
+	struct compat_robust_list_head __user *compat_robust_list;
+#endif
+	struct list_head pi_state_list;
+	struct futex_pi_state *pi_state_cache;
+#endif
+```
+
+#### 7.1.1.48 非一致内存访问(NUMA)
+
+NUMA: Non-Uniform Memory Access，非一致内存访问
+
+```
+#ifdef CONFIG_NUMA
+	struct mempolicy *mempolicy;	/* Protected by alloc_lock */
+	short il_next;
+	short pref_node_fork;
+#endif
+```
+
+#### 7.1.1.49 RCU链表
+
+```
+	struct rcu_head rcu;
+```
+
+#### 7.1.1.50 管道
+
+```
+	/*
+	 * cache last used pipe for splice
+	 */
+	struct pipe_inode_info *splice_pipe;
+```
+
+#### 7.1.1.51 延迟计数
+
+```
+#ifdef	CONFIG_TASK_DELAY_ACCT
+	struct task_delay_info *delays;
+#endif
+```
+
+#### 7.1.1.52 Fault Injection
+
+```
+#ifdef CONFIG_FAULT_INJECTION
+	int make_it_fail;
+#endif
+```
+
+参考内核说明文件Documentation/fault-injection/fault-injection.txt
+
+#### 7.1.1.53 Infrastructure for displaying latency
+
+```
+#ifdef CONFIG_LATENCYTOP
+	int latency_record_count;
+	struct latency_record latency_record[LT_SAVECOUNT];
+#endif
+```
+
+#### 7.1.1.54 Time slack values
+
+```
+	/*
+	 * time slack values; these are used to round up poll() and
+	 * select() etc timeout values. These are in nanoseconds.
+	 */
+	unsigned long timer_slack_ns;
+	unsigned long default_timer_slack_ns;
+```
+
+#### 7.1.1.55 socket控制消息
+
+```
+	struct list_head	*scm_work_list;
+```
+
+#### 7.1.1.56 ftrace跟踪器
+
+```
+#ifdef CONFIG_FUNCTION_GRAPH_TRACER
+	/* Index of current stored address in ret_stack */
+	int curr_ret_stack;
+	/* Stack of return addresses for return function tracing */
+	struct ftrace_ret_stack *ret_stack;
+	/* time stamp for last schedule */
+	unsigned long long ftrace_timestamp;
+	/*
+	 * Number of functions that haven't been traced
+	 * because of depth overrun.
+	 */
+	atomic_t trace_overrun;
+	/* Pause for the tracing */
+	atomic_t tracing_graph_pause;
+#endif
+#ifdef CONFIG_TRACING
+	/* state flags for use by tracers */
+	unsigned long trace;
+	/* bitmask and counter of trace recursion */
+	unsigned long trace_recursion;
+#endif /* CONFIG_TRACING */
+```
+
+### 7.1.2 进程描述符链表
+
+#### 7.1.2.1 双向循环链表
+
+内核中所有分配的进程描述符组成了一个双向循环链表。由于init_task总是存在的，因此可以将其作为链表头，进而可以查询其他进程。在include/linux/sched.h中有如下宏定义用于进程链表操作：
+
+```
+#define next_task(p)			\
+	list_entry_rcu((p)->tasks.next, struct task_struct, tasks)
+
+#define for_each_process(p)		\
+	for (p = &init_task ; (p = next_task(p)) != &init_task ; )
+```
+
+其中，变量init_task定义于arch/x86/kernel/init_task.c:
+
+```
+/*
+ * Initial task structure.
+ *
+ * All other task structs will be allocated on slabs in fork.c
+ */
+struct task_struct init_task = INIT_TASK(init_task);
+```
+
+举例：查询系统中所有的进程描述符
+
+```
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/sched.h>
+
+int init_module(void)
+{
+	struct task_struct *tsk;
+
+	for_each_process(tsk) {
+		printk(KERN_INFO "=== %s [%d] parent %s\n", tsk->comm, tsk->pid, tsk->parent->comm);
+	}
+
+	printk(KERN_INFO "Current task is %s [%d]\n", current->comm, current->pid);
+	return 0;
+}
+
+void cleanup_module(void)
+{
+	return;
+}
+```
+
+其对应的Makefile：
+
+```
+obj-m += procsview.o
+
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+default:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+```
+
+执行下列命令编译/加载此模块：
+
+```
+# make
+# insmod procsview.ko
+```
+
+执行下列命令查看结果：
+
+```
+# dmesg
+...
+[92483.950958] === swapper/0 [0] parent swapper/0
+[92483.950971] === init [1] parent swapper/0
+[92483.950979] === kthreadd [2] parent swapper/0
+[92483.950986] === ksoftirqd/0 [3] parent kthreadd
+[92483.950993] === kworker/u:0 [5] parent kthreadd
+[92483.951001] === migration/0 [6] parent kthreadd
+[92483.951008] === watchdog/0 [7] parent kthreadd
+[92483.951016] === cpuset [8] parent kthreadd
+[92483.951023] === khelper [9] parent kthreadd
+...
+```
+
+#### 7.1.2.2 哈希表
+
+参见PID散列表和链表节。
+
+### 7.1.3 进程与线程
+
+根据《Linux Kernel Development, 3rd Edition》第3 Process Management章的The Linux Implementation of Threads节可知：
+
+Linux has a unique implementation of threads. To the Linux kernel, there is no concept of a thread. Linux implements all threads as standard processes. The Linux kernel does not provide any special scheduling semantics or data structures to represent threads.
+
+Instead, a thread is merely a process that shares certain resources with other processes. Each thread has a unique task_struct and appears to the kernel as a normal process — threads just happen to share resources, such as an address space, with other processes.
+
+## 7.2 进程创建
+
+### 7.2.1 与进程创建有关的系统调用/用户接口
+
+![copy_process](/assets/copy_process.png)
+
+#### 7.2.1.1 sys_fork()/fork()
+
+一个现有进程(父进程)调用sys_fork() / sys_vfork()函数是Linux内核创建一个新进程(子进程)的唯一方法。注意：这种方法并不适用于交换进程、init进程和页守护进程，因为这些进程是由内核作为自举过程的一部分而以特殊方式创建的。
+
+使用sys_fork() / fork()时，子进程复制父进程的全部资源。由于要复制父进程的进程描述符task_struct给子进程，而进程描述符的结构体很大(参见进程描述符/struct task_struct节)，因此这一过程的开销很大。Linux采用了“写时复制技术”(copy-on-write，COW)，使子进程先共享父进程的物理页，只有当子进程进行写操作时，再复制对应的物理页，避免了无用的复制开销，从而提高了系统性能。
+
+系统调用sys_fork()的定义参见arch/x86/kernel/process.c:
+
+```
+int sys_fork(struct pt_regs *regs)
+{
+	// do_fork()参见do_fork()节，SIGCHLD参见Cloning Flags节
+	return do_fork(SIGCHLD, regs->sp, regs, 0, NULL, NULL);
+}
+```
+
+用户接口fork()的声明如下：
+
+```
+#include <sys/types.h>
+#include <unistd.h>
+pid_t fork(void);
+````
+
+fork()函数的返回值：在子进程中为0，在父进程中为子进程的PID，出错时为-1。
+
+由fork()创建的新进程被称为子进程(child process)。该函数被调用一次，但返回两次。两次返回值的区别是子进程的返回值是0，而父进程的返回值则是新子进程的进程PID。将子进程PID返回给父进程的理由是：因为一个进程的子进程可以多于一个，但是没有一个函数使一个进程获得其所有子进程的PID。Fork()使子进程得到返回值0的理由是：一个进程只会有一个父进程，所以子进程总是可以调用getppid()以获得其父进程的PID(进程ID 0总是由交换进程使用，所以一个子进程的进程ID不可能为0)。
+
+子进程和父进程继续执行fork()之后的指令。子进程是父进程的复制品，即子进程获得父进程数据空间、堆和栈的复制品。注意：这是子进程所拥有的拷贝，父、子进程并不共享这些存储空间部分。如果正文段是只读的，则父、子进程共享正文段。
+
+fork()的经典例子：
+
+```
+// 例子1：打印两个hello
+#include <stdio.h>
+int main()
+{
+    fork();
+    printf("hello!\n");
+    exit(0);
+}
+
+Output:
+hello
+hello
+
+// 例子2：打印四个hello
+#include <stdio.h>
+int main()
+{
+    fork();
+    fork();
+    printf("hello!\n");
+    exit(0);
+}
+
+Output:
+hello
+hello
+hello
+hello
+
+// 例子3：打印八个hello
+#include <stdio.h>
+int main()
+{
+    fork();
+    fork();
+    fork();
+    printf("hello!\n");
+    exit(0);
+}
+
+Output:
+hello
+hello
+hello
+hello
+hello
+hello
+hello
+hello
+```
+
+例子：根据fork()的返回值区分父子进程
+
+```
+#include <stdio.h>		/* printf, stderr, fprintf */
+#include <sys/types.h>		/* pid_t */
+#include <unistd.h>		/* _exit, fork */
+#include <stdlib.h>		/* exit */
+#include <errno.h>		/* errno */
+
+int main(void)
+{
+   pid_t  pid;
+
+   /* Output from both the child and the parent process will be written
+    * to the standard output, as they both run at the same time.
+    */
+   pid = fork();
+
+   if (pid == -1)
+   {
+      /* Error: When fork() returns -1, an error happened
+       * (for example, number of processes reached the limit).
+       */
+      fprintf(stderr, "can't fork, error %d\n", errno);
+      exit(EXIT_FAILURE);
+   }
+   else if (pid == 0)
+   {
+      /* Child process: When fork() returns 0, we are in the child process. */
+      int  j;
+      for (j = 0; j < 10; j++)
+      {
+         printf("child: %d\n", j);
+         sleep(1);
+      }
+      _exit(0);  /* Note that we do not use exit() */
+   }
+   else
+   {
+      /* When fork() returns a positive number, we are in the parent process
+       * (the fork return value is the PID of the newly created child process)
+       * Again we count up to ten.
+       */
+      int  i;
+      for (i = 0; i < 10; i++)
+      {
+         printf("parent: %d\n", i);
+         sleep(1);
+      }
+      exit(0);
+   }
+   return 0;
+}
+```
+
+#### 7.2.1.2 sys_vfork()/vfork()
+
+该系统调用创建的子进程完全运行在父进程的地址空间上，子进程对地址空间任何数据的修改同样为父进程所见。且该系统调用执行时父进程被堵塞，直到子进程运行结束。
+
+系统调用sys_vfork()定义于arch/x86/kernel/process.c:
+
+```
+/*
+ * This is trivial, and on the face of it looks like it
+ * could equally well be done in user mode.
+ *
+ * Not so, for quite unobvious reasons - register pressure.
+ * In user mode vfork() cannot have a stack frame, and if
+ * done by calling the "clone()" system call directly, you
+ * do not have enough call-clobbered registers to hold all
+ * the information you need.
+ */
+int sys_vfork(struct pt_regs *regs)
+{
+	// do_fork()参见do_fork()节，CLONE_VFORK, CLONE_VM, SIGCHLD参见Cloning Flags节
+	return do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD, regs->sp, regs, 0, NULL, NULL);
+}
+```
+
+用户接口vfork()的声明如下：
+
+```
+#include <sys/types.h>
+#include <unistd.h>
+pid_t vfork(void);
+```
+
+根据《Linux Kernel Development.[3rd Edition].[Robert Love]》 第3 Process Management章的vfork()节可知：
+
+Today, with copy-on-write and child-runs first semantics, the only benefit to vfork() is not copying the parent page tables entries.
+
+#### 7.2.1.3 sys_clone()/clone()
+
+该系统调用是Linux系统所特有的，其NPTL (Native POSIX Thread Library)的实现依赖此函数。与sys_fork()和sys_vfork()相比，sys_clone()对进程创建有更好的控制能力，能控制子进程和父进程共享何种资源。
+
+系统调用sys_clone()定义于arch/x86/kernel/process.c:
+
+```
+long sys_clone(unsigned long clone_flags, unsigned long newsp,
+		  void __user *parent_tid, void __user *child_tid, struct pt_regs *regs)
+{
+	if (!newsp)
+		newsp = regs->sp;
+	// do_fork()参见do_fork()节，clone_flags参见Cloning Flags节
+	return do_fork(clone_flags, newsp, regs, 0, parent_tid, child_tid);
+}
+```
+
+sys_clone() is a system call in the Linux kernel that creates a child process that may share parts of its execution context with the parent. It is often used to implement multithreading. In practice, sys_clone() is not often called directly, but instead using a threading library (such as pthreads) that uses clone() when starting a thread (such as during a call to pthread_create()).
+
+用户接口clone()的声明如下：
+
+```
+#include <sched.h>
+int clone(int (*fn) (void *), void *child_stack, int flags, void *arg);
+```
+
+clone() creates a new thread that starts with the function pointed to by the fn argument (as opposed to fork() which continues with the next command after fork()). The child_stack argument is a pointer to a memory space to be used as the stack for the new thread (which must be malloc'ed before that; on most architectures stack grows down, so the pointer should point at the end of the space), flags specify what gets inherited from the parent process (see section Cloning Flags), and arg is the argument passed to the function. It returns the process ID of the child process or -1 on failure.
+
+#### 7.2.1.4 kernel_thread()
+
+由于内核对进程和线程不做区分，所以内核线程(kernel thread)又称为内核进程(kernel process)。注意：不能把普通进程中的线程理解为进程。
+
+内核线程和普通进程的区别：
+* 内核线程只运行在内核态，普通进程可以运行在内核态和用户态。
+* 内核线程只能调用内核函数，普通进程可以通过系统调用调用内核函数。
+* 内核线程只能运行在大于PAGE_OFFSET的地址空间，而普通进程可以使用4G的地址空间(除了访问用户空间的3G，通过系统调用可以访问内核空间的1G空间)。
+
+由于内核线程不受用户态上下文的拖累，常被内核用于执行一些重要的任务，如刷新磁盘高速缓存，交换不同的页面。在Linux系统中使用命令：
+
+```
+$ ps -ef
+```
+
+查看结果中用方括号(```[]```)括起来的进程就是内核线程。
+
+内核线程除了各自的栈和硬件上下文外，共享所有资源。内核利用内核线程来完成一些后台工作，如kswapd，ksoftirqd。内核线程由kernel_thread()在内核态创建。
+
+其定义参见arch/x86/kernel/process.c:
+
+```
+/*
+ * Create a kernel thread
+ */
+int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
+{
+	struct pt_regs regs;
+
+	memset(&regs, 0, sizeof(regs));
+
+	regs.si = (unsigned long) fn;		// 新创建的内核线程要执行的函数
+	regs.di = (unsigned long) arg; 		// 函数fn的入参
+
+#ifdef CONFIG_X86_32
+	regs.ds = __USER_DS; 			// 参见全局描述符表GDT节
+	regs.es = __USER_DS; 			// 参见全局描述符表GDT节
+	regs.fs = __KERNEL_PERCPU; 		// 参见全局描述符表GDT节
+	regs.gs = __KERNEL_STACK_CANARY; 	// 参见全局描述符表GDT节
+#else
+	regs.ss = __KERNEL_DS;			// 参见全局描述符表GDT节
+#endif
+
+	regs.orig_ax = -1;
+	regs.ip = (unsigned long) kernel_thread_helper;
+	regs.cs = __KERNEL_CS | get_kernel_rpl();
+	regs.flags = X86_EFLAGS_IF | 0x2;
+
+	/* Ok, create the new process.. */
+	/*
+	 * do_fork()参见do_fork()节，flags参见Cloning Flags节;
+	 * The CLONE_VM flag avoids the duplication of the page
+	 * tables of the calling process: this duplication would
+	 * be a waste of time and memory, because the new kernel
+	 * thread will not access the User Mode address space
+	 * anyway. The CLONE_UNTRACED flag ensures that no process
+	 * will be able to trace the new kernel thread, even if
+	 * the calling process is being traced.
+	 */
+	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs, 0, NULL, NULL);
+}
+```
+
+kernel_thread()会被rest_init()调用，在系统启动时创建相关内核线程，参见rest_init()节。此外，kernel_thread()还会被如下函数调用：
+
+```
+static void create_kthread(struct kthread_create_info *create);
+static void __init handle_initrd(void);
+static int wait_for_helper(void *data);
+static void __call_usermodehelper(struct work_struct *work);
+```
+
+#### 7.2.1.5 sys_execve()/exec()
+
+系统调用sys_execve()定义于arch/x86/kernel/process.c:
+
+```
+/*
+ * sys_execve() executes a new program.
+ */
+long sys_execve(const char __user *name,
+		const char __user *const __user *argv,
+		const char __user *const __user *envp, struct pt_regs *regs)
+{
+	long error;
+	char *filename;
+
+	filename = getname(name);
+	error = PTR_ERR(filename);
+	if (IS_ERR(filename))
+		return error;
+	error = do_execve(filename, argv, envp, regs);	// 参见do_execve()节
+
+#ifdef CONFIG_X86_32
+	if (error == 0) {
+		    /* Make sure we don't return using sysenter.. */
+            set_thread_flag(TIF_IRET);
+        }
+#endif
+
+	putname(filename);
+	return error;
+}
+```
+
+In computing, exec is a functionality of an operating system that runs an executable file in the context of an already existing process, replacing the previous executable. This act is also referred to as an overlay. It is especially important in Unix-like systems, although exists elsewhere. As a new process is not created, the process identifier (PID) does not change, but the machine code, data, heap, and stack of the process are replaced by those of the new program.
+
+The exec is available for many programming languages including compilable languages and some scripting languages. In OS command interpreters exec built-in command replaces the shell process with the specified program. Though, in some languages the call named exec means passing the command line to a command interpreter, a different function.
+
+Interfaces to exec and its implementations vary. Depending on programming language it may be accessible via one or more functions, and depending on operating system it may be represented with one or more actual system calls. For this reason exec is sometimes described as a collection of functions.
+
+Standard names of such functions in C are execl, execle, execlp, execv, execve, and execvp (see below), but not "exec" itself. Linux kernel has one corresponding system call named "execve", whereas all aforementioned functions are user-space wrappers around it.
+
+Higher-level languages usually provide one call named exec.
+
+exec用户接口的声明如下：
+
+```
+#include <unistd.h>
+
+/* Replace the current process, executing PATH with arguments ARGV and
+   environment ENVP.  ARGV and ENVP are terminated by NULL pointers.  */
+int execve(const char *path, char *const argv[], char *const envp[]);
+
+/* Execute PATH with arguments ARGV and environment from `environ'.  */
+int execv (const char *path, char *const argv[]);
+
+/* Execute FILE, searching in the `PATH' environment variable if it contains
+   no slashes, with arguments ARGV and environment from `environ'.  */
+int execvp(const char *file, char *const argv[]);
+
+/* Execute PATH with all arguments after PATH until
+   a NULL pointer and environment from `environ'.  */
+int execl (const char *path, const char*arg, ...);
+
+/* Execute FILE, searching in the `PATH' environment variable if
+   it contains no slashes, with all arguments after FILE until a
+   NULL pointer and environment from `environ'.  */
+int execlp(const char *file, const char*arg, ...);
+
+/* Execute PATH with all arguments after PATH until a NULL pointer,
+   and the argument after that for environment.  */
+int execle(const char *path, const char*arg, ..., char * const envp[]);
+```
+
+The base of each is exec (execute), followed by one or more letters:
+
+| e | An array of pointers to environment variables is explicitly passed to the new process image. |
+| l | Command-line arguments are passed individually to the function. |
+| p | Uses the PATH environment variable to find the file named in the path argument to be executed. |
+| v | Command-line arguments are passed to the function as an array of pointers. |
+
+<p/>
+
+**path**
+
+The argument specifies the path name of the file to execute as the new process image. Arguments beginning at arg are pointers to arguments to be passed to the new process image. The argv value is an array of pointers to arguments.
+
+**arg**
+
+The first argument arg0 should be the name of the executable file. Usually it is the same value as the path argument. Some programs may incorrectly rely on this argument providing the location of the executable, but there is no guarantee of this nor is it standardized across platforms.
+
+**envp**
+
+Argument envp is an array of pointers to environment settings. The exec calls named ending with an e alter the environment for the new process image by passing a list of environment settings through the envp argument. This argument is an array of character pointers; each element (except for the final element) points to a null-terminated string defining an environment variable. Each null-terminated string has the form ```name=value``` where name is the environment variable name, and value is the value of that that variable. The final element of the envp array must be null.
+
+In the execl, execlp, execv, and execvp calls, the new process image inherits the current environment variables.
+
+A file descriptor open when an exec call is made remain open in the new process image, unless was fcntled with FD_CLOEXEC. This aspect is used to specify the standard streams (stdin, stdout and stderr) of the new program.
+
+A successful overlay destroys the previous memory address space of the process, and all its memory areas, that were not shared, are reclaimed by the operating system. Consequently, all its data that were not passed to the new program, or otherwise saved, become lost.
+
+**Return value**
+
+A successful exec replaces the current process image, so it cannot return anything to the program that made the call. Processes do have an exit status, but that value is collected by the parent process.
+
+If an exec function does return to the calling program, an error occurs, the return value is −1, and errno is set to one of the following values:
+
+| Name | Notes |
+| :--- | :---- |
+| E2BIG | The argument list exceeds the system limit. |
+| EACCES | The specified file has a locking or sharing violation. |
+| ENOENT | The file or path name not found. |
+| ENOMEM | Not enough memory is available to execute the new process image. |
+
+<p/>
+
+各函数之间的关系如下：
+
+![execve](/assets/execve.png)
+
+Also see man page:
+
+```
+$ man exec
+```
+
+#### 7.2.1.6 system()
+
+system()的声明如下：
+
+```
+#include <stdlib.h>
+int system(const char *command);
+```
+
+system() executes a command specified in command by calling /bin/sh -c command, and returns after the command has been completed. During execution of the command, SIGCHLD will be blocked, and SIGINT and SIGQUIT will be ignored.
+
+该函数的执行过程分为三个步骤：
+* 1) fork一个子进程(参见sys_fork()/fork()节)；
+* 2) 在子进程中调用exec函数去执行command命令(参见sys_execve()/exec()节)；
+* 3) 在父进程中调用wait去等待子进程结束。NOTE: system() does not affect the wait status of any other children.
+
+**Return Value**
+
+The value returned is -1 on error, and the return status of the command otherwise. This latter return status is in the format specified in wait. Thus, the exit code of the command will be WEXITSTATUS(status). In case /bin/sh could not be executed, the exit status will be that of a command that does exit(127).
+
+If the value of command is NULL, system() returns nonzero if the shell is available, and zero if not.
+
+### 7.2.2 do_fork()
+
+创建进程是通过调用函数do_fork()完成的。
+
+函数do_fork()会被下列系统调用调用：
+
+```
+int sys_fork(struct pt_regs *regs);		// 参见sys_fork()/fork()节
+int sys_vfork(struct pt_regs *regs); 		// 参见sys_vfork()/vfork()节
+long sys_clone(unsigned long clone_flags,
+               unsigned long newsp,
+               void __user *parent_tid,
+               void __user *child_tid,
+               struct pt_regs *regs);		// 参见sys_clone()/clone()节
+```
+
+函数do_fork()也会被下列函数调用：
+
+```
+int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
+```
+
+函数do_fork()定义于kernel/fork.c：
+
+```
+/*
+ *  Ok, this is the main fork-routine.
+ *
+ * It copies the process, and if successful kick-starts
+ * it and waits for it to finish using the VM if required.
+ */
+/* clone_flags: See section Cloning Flags
+ * stack_start: specifies the User Mode stack pointer to be assigned to
+ * 			the esp register of the child process.
+ * regs: Pointer to the values of the general purpose registers saved into
+ *			the Kernel Mode stack when switching from User Mode to Kernel Mode.
+ * stack_size: Unused (always set to 0)
+ * parent_tidptr: Specifies the address of a User Mode variable of the parent
+ *			process that will hold the PID of the new lightweight process.
+ *			Meaningful only if the CLONE_PARENT_SETTID flag is set.
+ * child_tidptr: Specifies the address of a User Mode variable of the new
+ *			lightweight process that will hold the PID of such process.
+ *			Meaningful only if the CLONE_CHILD_SETTIDflag is set.
+ */
+long do_fork(unsigned long clone_flags, unsigned long stack_start,
+		struct pt_regs *regs, unsigned long stack_size,
+		int __user *parent_tidptr, int __user *child_tidptr)
+{
+	struct task_struct *p; 		// 子进程的进程描述符
+	int trace = 0;
+	long nr; 			// 子进程号
+
+	/*
+	 * Do some preliminary argument and permissions checking before we
+	 * actually start allocating stuff
+	 */
+	/*
+	 * 一些必要的检查工作，在sys_fork(), sys_vfork(),
+	 * kernel_thread()中都没有传递CLONE_NEWUSER，
+	 * 由此可知，此段代码没有执行，这个检查主要是为sys_clone()使用的
+	 */
+	if (clone_flags & CLONE_NEWUSER) {
+		if (clone_flags & CLONE_THREAD)
+			return -EINVAL;
+		/* hopefully this check will go away when userns support is complete */
+		if (!capable(CAP_SYS_ADMIN) || !capable(CAP_SETUID) || !capable(CAP_SETGID))
+			return -EPERM;
+	}
+
+	/*
+	 * Determine whether and which event to report to ptracer.  When
+	 * called from kernel_thread or CLONE_UNTRACED is explicitly
+	 * requested, no event is reported; otherwise, report if the event
+	 * for the type of forking is enabled.
+	 */
+	if (likely(user_mode(regs)) && !(clone_flags & CLONE_UNTRACED)) {
+		if (clone_flags & CLONE_VFORK)
+			trace = PTRACE_EVENT_VFORK;
+		else if ((clone_flags & CSIGNAL) != SIGCHLD)
+			trace = PTRACE_EVENT_CLONE;
+		else
+			trace = PTRACE_EVENT_FORK;
+
+		if (likely(!ptrace_event_enabled(current, trace)))
+			trace = 0;
+	}
+
+	/*
+	 * 调用copy_process()创建进程。在系统资源允许的情况下，
+	 * 拷贝进程描述符，当然进程号是不同的, 参见copy_process()节
+	 */
+	p = copy_process(clone_flags, stack_start, regs, stack_size, child_tidptr, NULL, trace);
+	/*
+	 * Do this prior waking up the new thread - the thread pointer
+	 * might get invalid after that point, if the thread exits quickly.
+	 */
+	if (!IS_ERR(p)) {
+		struct completion vfork;
+
+		trace_sched_process_fork(current, p);
+
+		// 子进程号，取自p->pids[PIDTYPE_PID].pid
+		nr = task_pid_vnr(p);
+
+		/*
+		 * 在sys_fork(), sys_vfork(), kernel_thread()中没有设置
+		 * CLONE_PARENT_SETTID，且parent_tidptr=NULL，故此段代码
+		 * 是为sys_clone()使用的
+		 */
+		if (clone_flags & CLONE_PARENT_SETTID)
+			put_user(nr, parent_tidptr);
+
+		/*
+		 * 检查标志位CLONE_VFORK，用于sys_vfork()或sys_clone()；
+		 * 如果设置了CLONE_VFORK，则父进程会被阻塞，直至子进程调用了
+		 * exec()或exit()退出；此处初始化完成量vfork，完成量的作用：
+		 * 直到任务A发出信号通知任务B发生了某个特定事件时，任务B才会
+		 * 开始执行，否则任务B一直等待
+		 */
+		if (clone_flags & CLONE_VFORK) {
+			p->vfork_done = &vfork;
+			init_completion(&vfork);
+		}
+
+		audit_finish_fork(p);
+
+		/*
+		 * We set PF_STARTING at creation in case tracing wants to
+		 * use this to distinguish a fully live task from one that
+		 * hasn't finished SIGSTOP raising yet.  Now we clear it
+		 * and set the child going.
+		 */
+		p->flags &= ~PF_STARTING;
+
+		// 将进程加入到运行队列中，参见wake_up_new_task()节
+		wake_up_new_task(p);
+
+		/* forking complete and child started to run, tell ptracer */
+		if (unlikely(trace))
+			ptrace_event(trace, nr);
+
+		if (clone_flags & CLONE_VFORK) {
+			freezer_do_not_count();
+			/*
+			 * 如果设置了CLONE_VFORK，则父进程会被阻塞，直至
+			 * 子进程调用了exec()或exit()。即调用系统调用
+			 * vfork()时，子进程先执行。当子进程调用exec()或
+			 * 退出时向父进程发出信号，此时父进程才会被唤醒执行
+			 */
+			wait_for_completion(&vfork);
+			freezer_count();
+			ptrace_event(PTRACE_EVENT_VFORK_DONE, nr);
+		}
+	} else {
+		// 如果copy_process()错误，则先释放已分配的pid
+		nr = PTR_ERR(p);
+	}
+	return nr;
+}
+```
+
+#### 7.2.2.1 Cloning Flags
+
+函数do_fork()的入参clone_flags提供了很多标志来表明进程的创建方式，其定义于include/linux/sched.h:
+
+```
+/*
+ * cloning flags:
+ */
+#define CSIGNAL			0x000000ff	/* signal mask to be sent at exit */
+#define CLONE_VM		0x00000100	/* set if VM shared between processes */
+#define CLONE_FS		0x00000200	/* set if fs info shared between processes */
+#define CLONE_FILES		0x00000400	/* set if open files shared between processes */
+#define CLONE_SIGHAND		0x00000800	/* set if signal handlers and blocked signals shared */
+#define CLONE_PTRACE		0x00002000	/* set if we want to let tracing continue on the child too */
+#define CLONE_VFORK		0x00004000	/* set if the parent wants the child to wake it up on mm_release */
+#define CLONE_PARENT		0x00008000	/* set if we want to have the same parent as the cloner */
+#define CLONE_THREAD		0x00010000	/* Same thread group? */
+#define CLONE_NEWNS		0x00020000	/* New namespace group? */
+#define CLONE_SYSVSEM		0x00040000	/* share system V SEM_UNDO semantics */
+#define CLONE_SETTLS		0x00080000	/* create a new TLS for the child */
+#define CLONE_PARENT_SETTID	0x00100000	/* set the TID in the parent */
+#define CLONE_CHILD_CLEARTID	0x00200000 /* clear the TID in the child */
+#define CLONE_DETACHED		0x00400000	/* Unused, ignored */
+#define CLONE_UNTRACED		0x00800000	/* set if the tracing process can't force CLONE_PTRACE on this clone */
+#define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
+/* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state)
+    and is now available for re-use. */
+#define CLONE_NEWUTS		0x04000000	/* New utsname group? */
+#define CLONE_NEWIPC		0x08000000	/* New ipcs */
+#define CLONE_NEWUSER		0x10000000	/* New user namespace */
+#define CLONE_NEWPID		0x20000000	/* New pid namespace */
+#define CLONE_NEWNET		0x40000000	/* New network namespace */
+#define CLONE_IO		0x80000000	/* Clone io context */
+```
+
+上述宏定义均占用独立的比特位，可用或(```|```)组合使用。其低八比特位没有使用，是为了和信号量组合使用，低八位用于指定子进程退出时子进程向父进程发出的信号。
+
+#### 7.2.2.2 copy_process()
+
+该函数定义于kernel/fork.c:
+
+```
+/*
+ * This creates a new process as a copy of the old one,
+ * but does not actually start it yet.
+ *
+ * It copies the registers, and all the appropriate
+ * parts of the process environment (as per the clone
+ * flags). The actual kick-off is left to the caller.
+ */
+static struct task_struct *copy_process(unsigned long clone_flags, unsigned long stack_start,
+					struct pt_regs *regs, unsigned long stack_size,
+					int __user *child_tidptr, struct pid *pid, int trace)
+{
+	int retval;
+	struct task_struct *p; 		// 子进程的进程描述符
+	int cgroup_callbacks_done = 0;
+
+	/*
+	 * CLONE_NEWNS表示子进程需要自己的命名空间，而CLONE_FS则
+	 * 代表子进程共享父进程的根目录和当前工作目录，两者不可兼容
+	 */
+	if ((clone_flags & (CLONE_NEWNS|CLONE_FS)) == (CLONE_NEWNS|CLONE_FS))
+		return ERR_PTR(-EINVAL);
+
+	/*
+	 * Thread groups must share signals as well, and detached threads
+	 * can only be started up within the thread group.
+	 */
+	/*
+	 * 若子进程和父进程属于同一个线程组(CLONE_THREAD被设置)，
+	 * 则子进程必须共享父进程的信号(CLONE_SIGHAND被设置)
+	 */
+	if ((clone_flags & CLONE_THREAD) && !(clone_flags & CLONE_SIGHAND))
+		return ERR_PTR(-EINVAL);
+
+	/*
+	 * Shared signal handlers imply shared VM. By way of the above,
+	 * thread groups also imply shared VM. Blocking this case allows
+	 * for various simplifications in other code.
+	 */
+	/*
+	 * 若子进程共享父进程的信号，则必须同时共享父进程的内存描述符
+	 * 和所有的页表(CLONE_VM被设置)
+	 */
+	if ((clone_flags & CLONE_SIGHAND) && !(clone_flags & CLONE_VM))
+		return ERR_PTR(-EINVAL);
+
+	/*
+	 * Siblings of global init remain as zombies on exit since they are
+	 * not reaped by their parent (swapper). To solve this and to avoid
+	 * multi-rooted process trees, prevent global and container-inits
+	 * from creating siblings.
+	 */
+	if ((clone_flags & CLONE_PARENT) && current->signal->flags & SIGNAL_UNKILLABLE)
+		return ERR_PTR(-EINVAL);
+
+	/*
+	 * 调用系统安全框架创建进程，在配置内核时没有选择CONFIG_SECURITY，
+	 * 则系统安全框架函数为空函数，返回值为0;调用变量security_ops中的
+	 * 对应函数，参见security_xxx()节
+	 */
+	retval = security_task_create(clone_flags);
+	if (retval)
+		goto fork_out;
+
+	retval = -ENOMEM;
+	/*
+	 * 该函数为子进程创建一个新的内核栈，并分配一个新的进程描述符和thread_info
+	 * 结构，然后把父进程的进程描述符和thread_info拷贝进去。此处是完全拷贝，即
+	 * 子进程和父进程的进程描述符/thread_info完全相同。参见dup_task_struct()节
+	 */
+	p = dup_task_struct(current);
+	if (!p)
+		goto fork_out;
+
+	ftrace_graph_init_task(p);
+	rt_mutex_init_task(p);
+
+#ifdef CONFIG_PROVE_LOCKING
+	DEBUG_LOCKS_WARN_ON(!p->hardirqs_enabled);
+	DEBUG_LOCKS_WARN_ON(!p->softirqs_enabled);
+#endif
+	retval = -EAGAIN;
+	// 判断是否超出了设置权限
+	if (atomic_read(&p->real_cred->user->processes) >= task_rlimit(p, RLIMIT_NPROC)) {
+		if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_RESOURCE) && p->real_cred->user != INIT_USER)
+			goto bad_fork_free;
+	}
+	current->flags &= ~PF_NPROC_EXCEEDED;
+
+	retval = copy_creds(p, clone_flags);
+	if (retval < 0)
+		goto bad_fork_free;
+
+	/*
+	 * If multiple threads are within copy_process(), then this check
+	 * triggers too late. This doesn't hurt, the check is only there
+	 * to stop root fork bombs.
+	 */
+	/*
+	 * 判断线程数量是否超出了系统允许的范围，否则释放已经申请到的资源
+	 * max_threads在kernel/fork中的fork_init()中定义，系统允许
+	 * 的最大进程数和系统的内存大小有关，其具体取值参见：
+	 *     start_kernel() -> fork_init()
+	 * 可通过cat /proc/sys/kernel/threads-max从用户空间查看此值
+	 * 可通过echo NewValue > /proc/sys/kernel/threads-max从用
+	 * 户空间更改此值
+	 */
+	retval = -EAGAIN;
+	if (nr_threads >= max_threads)
+		goto bad_fork_cleanup_count;
+
+	/*
+	 * 下列代码主要是初始化子进程的进程描述符和复制父进程的资源给子进程；
+	 * 此前，父子进程的进程描述符是完全相同的；
+	 * 此后，子进程的进程描述符的某些域被初始化，故父子进程的进程描述符不再完全相同
+	 */
+
+	// 模块引用计数操作
+	if (!try_module_get(task_thread_info(p)->exec_domain->module))
+		goto bad_fork_cleanup_count;
+
+	/*
+	 * execve系统调用计数初始化为0: it counts the number of
+	 * execve() system calls issued by the process.
+	 */
+	p->did_exec = 0;
+	delayacct_tsk_init(p);		/* Must remain after dup_task_struct() */
+	copy_flags(clone_flags, p); 	// 设置状态标记，因为目前状态表示是从父进程拷贝过来的
+	INIT_LIST_HEAD(&p->children);
+	INIT_LIST_HEAD(&p->sibling);
+	rcu_copy_process(p);
+	p->vfork_done = NULL;
+	spin_lock_init(&p->alloc_lock);
+
+	init_sigpending(&p->pending);
+
+	p->utime = cputime_zero;
+	p->stime = cputime_zero;
+	p->gtime = cputime_zero;
+	p->utimescaled = cputime_zero;
+	p->stimescaled = cputime_zero;
+#ifndef CONFIG_VIRT_CPU_ACCOUNTING
+	p->prev_utime = cputime_zero;
+	p->prev_stime = cputime_zero;
+#endif
+#if defined(SPLIT_RSS_COUNTING)
+	memset(&p->rss_stat, 0, sizeof(p->rss_stat));
+#endif
+
+	p->default_timer_slack_ns = current->timer_slack_ns;
+
+	task_io_accounting_init(&p->ioac);
+	acct_clear_integrals(p);
+
+	posix_cpu_timers_init(p);
+
+	do_posix_clock_monotonic_gettime(&p->start_time);
+	p->real_start_time = p->start_time;
+	monotonic_to_bootbased(&p->real_start_time);
+	p->io_context = NULL;
+	p->audit_context = NULL;
+	if (clone_flags & CLONE_THREAD)
+		threadgroup_fork_read_lock(current);
+	cgroup_fork(p);
+#ifdef CONFIG_NUMA
+	p->mempolicy = mpol_dup(p->mempolicy);
+	if (IS_ERR(p->mempolicy)) {
+		retval = PTR_ERR(p->mempolicy);
+		p->mempolicy = NULL;
+		goto bad_fork_cleanup_cgroup;
+	}
+	mpol_fix_fork_child_flag(p);
+#endif
+#ifdef CONFIG_CPUSETS
+	p->cpuset_mem_spread_rotor = NUMA_NO_NODE;
+	p->cpuset_slab_spread_rotor = NUMA_NO_NODE;
+#endif
+#ifdef CONFIG_TRACE_IRQFLAGS
+	p->irq_events = 0;
+#ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
+	p->hardirqs_enabled = 1;
+#else
+	p->hardirqs_enabled = 0;
+#endif
+	p->hardirq_enable_ip = 0;
+	p->hardirq_enable_event = 0;
+	p->hardirq_disable_ip = _THIS_IP_;
+	p->hardirq_disable_event = 0;
+	p->softirqs_enabled = 1;
+	p->softirq_enable_ip = _THIS_IP_;
+	p->softirq_enable_event = 0;
+	p->softirq_disable_ip = 0;
+	p->softirq_disable_event = 0;
+	p->hardirq_context = 0;
+	p->softirq_context = 0;
+#endif
+#ifdef CONFIG_LOCKDEP
+	p->lockdep_depth = 0; /* no locks held yet */
+	p->curr_chain_key = 0;
+	p->lockdep_recursion = 0;
+#endif
+
+#ifdef CONFIG_DEBUG_MUTEXES
+	p->blocked_on = NULL; /* not blocked yet */
+#endif
+#ifdef CONFIG_CGROUP_MEM_RES_CTLR
+	p->memcg_batch.do_batch = 0;
+	p->memcg_batch.memcg = NULL;
+#endif
+
+	/* Perform scheduler related setup. Assign this task to a CPU. */
+	sched_fork(p);	// 参见ched_fork()节
+
+	retval = perf_event_init_task(p);
+	if (retval)
+		goto bad_fork_cleanup_policy;
+	retval = audit_alloc(p);
+	if (retval)
+		goto bad_fork_cleanup_policy;
+	/* copy all the process information */
+	retval = copy_semundo(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_audit;
+	retval = copy_files(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_semundo;
+	// 复制文件系统信息，参见init_mount_tree()节
+	retval = copy_fs(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_files;
+	retval = copy_sighand(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_fs;
+	retval = copy_signal(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_sighand;
+	// 参见copy_mm()节
+	retval = copy_mm(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_signal;
+	retval = copy_namespaces(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_mm;
+	retval = copy_io(clone_flags, p);
+	if (retval)
+		goto bad_fork_cleanup_namespaces;
+	retval = copy_thread(clone_flags, stack_start, stack_size, p, regs);
+	if (retval)
+		goto bad_fork_cleanup_io;
+
+	if (pid != &init_struct_pid) {
+		retval = -ENOMEM;
+		pid = alloc_pid(p->nsproxy->pid_ns);
+		if (!pid)
+			goto bad_fork_cleanup_io;
+	}
+
+	p->pid = pid_nr(pid);
+	p->tgid = p->pid;
+	if (clone_flags & CLONE_THREAD)
+		p->tgid = current->tgid;
+
+	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
+	/*
+	 * Clear TID on mm_release()?
+	 */
+	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
+#ifdef CONFIG_BLOCK
+	p->plug = NULL;
+#endif
+#ifdef CONFIG_FUTEX
+	p->robust_list = NULL;
+#ifdef CONFIG_COMPAT
+	p->compat_robust_list = NULL;
+#endif
+	INIT_LIST_HEAD(&p->pi_state_list);
+	p->pi_state_cache = NULL;
+#endif
+	/*
+	 * sigaltstack should be cleared when sharing the same VM
+	 */
+	if ((clone_flags & (CLONE_VM|CLONE_VFORK)) == CLONE_VM)
+		p->sas_ss_sp = p->sas_ss_size = 0;
+
+	/*
+	 * Syscall tracing and stepping should be turned off in the
+	 * child regardless of CLONE_PTRACE.
+	 */
+	user_disable_single_step(p);
+	/*
+	 * so the ret_from_fork() function will not notify the
+	 * debugging process about the system call termination.
+	 */
+	clear_tsk_thread_flag(p, TIF_SYSCALL_TRACE);
+#ifdef TIF_SYSCALL_EMU
+	clear_tsk_thread_flag(p, TIF_SYSCALL_EMU);
+#endif
+	clear_all_latency_tracing(p);
+
+	/* ok, now we should be set up.. */
+	p->exit_signal = (clone_flags & CLONE_THREAD) ? -1 : (clone_flags & CSIGNAL);
+	p->pdeath_signal = 0;
+	p->exit_state = 0;
+
+	p->nr_dirtied = 0;
+	p->nr_dirtied_pause = 128 >> (PAGE_SHIFT - 10);
+
+	/*
+	 * Ok, make it visible to the rest of the system.
+	 * We dont wake it up yet.
+	 */
+	p->group_leader = p;
+	INIT_LIST_HEAD(&p->thread_group);
+
+	/* Now that the task is set up, run cgroup callbacks if
+	 * necessary. We need to run them before the task is visible
+	 * on the tasklist. */
+	cgroup_fork_callbacks(p);
+	cgroup_callbacks_done = 1;
+
+	/* Need tasklist lock for parent etc handling! */
+	write_lock_irq(&tasklist_lock);
+
+	/* CLONE_PARENT re-uses the old parent */
+	if (clone_flags & (CLONE_PARENT|CLONE_THREAD)) {
+		p->real_parent = current->real_parent;
+		p->parent_exec_id = current->parent_exec_id;
+	} else {
+		p->real_parent = current;
+		p->parent_exec_id = current->self_exec_id;
+	}
+
+	spin_lock(&current->sighand->siglock);
+
+	/*
+	 * Process group and session signals need to be delivered to just the
+	 * parent before the fork or both the parent and the child after the
+	 * fork. Restart if a signal comes in before we add the new process to
+	 * it's process group.
+	 * A fatal signal pending means that current will exit, so the new
+	 * thread can't slip out of an OOM kill (or normal SIGKILL).
+	*/
+	recalc_sigpending();
+	if (signal_pending(current)) {
+		spin_unlock(&current->sighand->siglock);
+		write_unlock_irq(&tasklist_lock);
+		retval = -ERESTARTNOINTR;
+		goto bad_fork_free_pid;
+	}
+
+	if (clone_flags & CLONE_THREAD) {
+		current->signal->nr_threads++;
+		atomic_inc(&current->signal->live);
+		atomic_inc(&current->signal->sigcnt);
+		p->group_leader = current->group_leader;
+		list_add_tail_rcu(&p->thread_group, &p->group_leader->thread_group);
+	}
+
+	if (likely(p->pid)) {
+		ptrace_init_task(p, (clone_flags & CLONE_PTRACE) || trace);
+
+		if (thread_group_leader(p)) {
+			if (is_child_reaper(pid))
+				p->nsproxy->pid_ns->child_reaper = p;
+
+			p->signal->leader_pid = pid;
+			p->signal->tty = tty_kref_get(current->signal->tty);
+			attach_pid(p, PIDTYPE_PGID, task_pgrp(current));
+			attach_pid(p, PIDTYPE_SID, task_session(current));
+			list_add_tail(&p->sibling, &p->real_parent->children);
+			list_add_tail_rcu(&p->tasks, &init_task.tasks);
+			__this_cpu_inc(process_counts);
+		}
+		attach_pid(p, PIDTYPE_PID, pid);
+		nr_threads++;
+	}
+
+	total_forks++;
+	spin_unlock(&current->sighand->siglock);
+	write_unlock_irq(&tasklist_lock);
+	proc_fork_connector(p);
+	cgroup_post_fork(p);
+	if (clone_flags & CLONE_THREAD)
+		threadgroup_fork_read_unlock(current);
+	perf_event_fork(p);
+	return p; 	// 返回指向子进程的进程描述符的指针
+
+bad_fork_free_pid:
+	if (pid != &init_struct_pid)
+		free_pid(pid);
+bad_fork_cleanup_io:
+	if (p->io_context)
+		exit_io_context(p);
+bad_fork_cleanup_namespaces:
+	exit_task_namespaces(p);
+bad_fork_cleanup_mm:
+	if (p->mm)
+		mmput(p->mm);
+bad_fork_cleanup_signal:
+	if (!(clone_flags & CLONE_THREAD))
+		free_signal_struct(p->signal);
+bad_fork_cleanup_sighand:
+	__cleanup_sighand(p->sighand);
+bad_fork_cleanup_fs:
+	exit_fs(p); /* blocking */
+bad_fork_cleanup_files:
+	exit_files(p); /* blocking */
+bad_fork_cleanup_semundo:
+	exit_sem(p);
+bad_fork_cleanup_audit:
+	audit_free(p);
+bad_fork_cleanup_policy:
+	perf_event_free_task(p);
+#ifdef CONFIG_NUMA
+	mpol_put(p->mempolicy);
+bad_fork_cleanup_cgroup:
+#endif
+	if (clone_flags & CLONE_THREAD)
+		threadgroup_fork_read_unlock(current);
+	cgroup_exit(p, cgroup_callbacks_done);
+	delayacct_tsk_free(p);
+	module_put(task_thread_info(p)->exec_domain->module);
+bad_fork_cleanup_count:
+	atomic_dec(&p->cred->user->processes);
+	exit_creds(p);
+bad_fork_free:
+	free_task(p);
+fork_out:
+	return ERR_PTR(retval);
+}
+```
+
+copy_process()创建进程之后并未执行，而是返回到do_fork()中，将新创建的进程加入到运行队列中等待被执行。
+
+##### 7.2.2.2.1 dup_task_struct()
+
+该函数根据父进程创建子进程内核栈和进程描述符，其被copy_process()调用，定义于kernel/fork.c:
+
+```
+static struct task_struct *dup_task_struct(struct task_struct *orig)
+{
+	struct task_struct *tsk;
+	struct thread_info *ti;
+	unsigned long *stackend;
+	int node = tsk_fork_get_node(orig);
+	int err;
+
+	prepare_to_copy(orig);
+
+	// 创建进程描述符
+	tsk = alloc_task_struct_node(node);
+	if (!tsk)
+		return NULL;
+
+	// 创建进程内核栈thread_info，参见进程内核栈的分配与释放节
+	ti = alloc_thread_info_node(tsk, node);
+	if (!ti) {
+		free_task_struct(tsk);
+		return NULL;
+	}
+
+	// 复制父进程的进程描述符到子进程，使子进程的进程描述符和父进程的完全相同
+	err = arch_dup_task_struct(tsk, orig);
+	if (err)
+		goto out;
+
+	/*
+	 * 使子进程的进程描述符中的stack域指向子进程的内核栈
+	 * thread_info，参见进程内核栈节
+	 */
+	tsk->stack = ti;
+	/*
+	 * 复制父进程的内核栈thread_info到子进程，但其task
+	 * 域指向子进程的进程描述符tsk，参见进程内核栈节
+	 */
+	setup_thread_stack(tsk, orig);
+	clear_user_return_notifier(tsk);
+	clear_tsk_need_resched(tsk);
+	stackend = end_of_stack(tsk); 	// 堆栈尾部
+	// 参见include/linux/magic.h，其取值为0x57AC6E9D
+	*stackend = STACK_END_MAGIC;	/* for overflow detection */
+
+#ifdef CONFIG_CC_STACKPROTECTOR
+	tsk->stack_canary = get_random_int();
+#endif
+
+	/*
+	 * One for us, one for whoever does the "release_task()" (usually parent)
+	 */
+	atomic_set(&tsk->usage, 2);
+#ifdef CONFIG_BLK_DEV_IO_TRACE
+	tsk->btrace_seq = 0;
+#endif
+	tsk->splice_pipe = NULL;
+
+	account_kernel_stack(ti, 1);
+
+	return tsk;
+
+out:
+	// 释放分配的进程内核栈，参见进程内核栈的分配与释放节
+	free_thread_info(ti);
+	free_task_struct(tsk);
+	return NULL;
+}
+```
+
+##### 7.2.2.2.2 sched_fork()
+
+该函数定义于kernel/sched.c:
+
+```
+void sched_fork(struct task_struct *p)
+{
+	unsigned long flags;
+	int cpu = get_cpu();
+
+	__sched_fork(p);
+	/*
+	 * We mark the process as running here. This guarantees that
+	 * nobody will actually run it, and a signal or other external
+	 * event cannot wake it up and insert it on the runqueue either.
+	 */
+	p->state = TASK_RUNNING;
+
+	/*
+	 * Make sure we do not leak PI boosting priority to the child.
+	 */
+	p->prio = current->normal_prio;
+
+	/*
+	 * Revert to default priority/policy on fork if requested.
+	 */
+	if (unlikely(p->sched_reset_on_fork)) {
+		if (task_has_rt_policy(p)) {
+			p->policy = SCHED_NORMAL;
+			p->static_prio = NICE_TO_PRIO(0);
+			p->rt_priority = 0;
+		} else if (PRIO_TO_NICE(p->static_prio) < 0)
+			p->static_prio = NICE_TO_PRIO(0);
+
+		p->prio = p->normal_prio = __normal_prio(p);
+		set_load_weight(p);
+
+		/*
+		 * We don't need the reset flag anymore after the fork. It has
+		 * fulfilled its duty:
+		 */
+		p->sched_reset_on_fork = 0;
+	}
+
+	if (!rt_prio(p->prio))
+		p->sched_class = &fair_sched_class;
+
+	if (p->sched_class->task_fork)
+		p->sched_class->task_fork(p);
+
+	/*
+	 * The child is not yet in the pid-hash so no cgroup attach races,
+	 * and the cgroup is pinned to this child due to cgroup_fork()
+	 * is ran before sched_fork().
+	 *
+	 * Silence PROVE_RCU.
+	 */
+	raw_spin_lock_irqsave(&p->pi_lock, flags);
+	set_task_cpu(p, cpu);
+	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+
+#if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
+	if (likely(sched_info_on()))
+		memset(&p->sched_info, 0, sizeof(p->sched_info));
+#endif
+#if defined(CONFIG_SMP)
+	p->on_cpu = 0;
+#endif
+#ifdef CONFIG_PREEMPT_COUNT
+	/* Want to start with kernel preemption disabled. */
+	// 参见struct thread_info->preempt_count节
+	task_thread_info(p)->preempt_count = 1;
+#endif
+#ifdef CONFIG_SMP
+	plist_node_init(&p->pushable_tasks, MAX_PRIO);
+#endif
+
+	put_cpu();
+}
+```
+
+##### 7.2.2.2.3 copy_mm()
+
+该函数定义于kernel/fork.c:
+
+```
+static int copy_mm(unsigned long clone_flags, struct task_struct *tsk)
+{
+	struct mm_struct *mm, *oldmm;
+	int retval;
+
+	tsk->min_flt = tsk->maj_flt = 0;
+	tsk->nvcsw = tsk->nivcsw = 0;
+#ifdef CONFIG_DETECT_HUNG_TASK
+	tsk->last_switch_count = tsk->nvcsw + tsk->nivcsw;
+#endif
+
+	tsk->mm = NULL;
+	tsk->active_mm = NULL;
+
+	/*
+	 * Are we cloning a kernel thread?
+	 *
+	 * We need to steal a active VM for that..
+	 */
+	oldmm = current->mm;
+	if (!oldmm)
+		return 0;
+
+	// 若设置了CLONE_VM标志，则只需增加父进程内存的使用计数，而无需复制内存页
+	if (clone_flags & CLONE_VM) {
+		atomic_inc(&oldmm->mm_users);
+		mm = oldmm;
+		goto good_mm;
+	}
+
+	// 若未设置CLONE_VM标志，则需要复制父进程(current)的内存页给子进程(tsk)
+	retval = -ENOMEM;
+	mm = dup_mm(tsk);
+	if (!mm)
+		goto fail_nomem;
+
+good_mm:
+	/* Initializing for Swap token stuff */
+	mm->token_priority = 0;
+	mm->last_interval = 0;
+
+	tsk->mm = mm;
+	tsk->active_mm = mm;
+	return 0;
+
+fail_nomem:
+	return retval;
+}
+```
+
+#### 7.2.2.3 wake_up_new_task()
+
+该函数用于唤醒一个新创建的进程，其定义于kernel/sched.c：
+
+```
+/*
+ * wake_up_new_task - wake up a newly created task for the first time.
+ *
+ * This function will do some initial scheduler statistics housekeeping
+ * that must be done for every newly created context, then puts the task
+ * on the runqueue and wakes it.
+ */
+void wake_up_new_task(struct task_struct *p)
+{
+	unsigned long flags;
+	struct rq *rq;
+
+	raw_spin_lock_irqsave(&p->pi_lock, flags);
+#ifdef CONFIG_SMP
+	/*
+	 * Fork balancing, do it here and not earlier because:
+	 *  - cpus_allowed can change in the fork path
+	 *  - any previously selected cpu might disappear through hotplug
+	 */
+	set_task_cpu(p, select_task_rq(p, SD_BALANCE_FORK, 0));
+#endif
+
+	rq = __task_rq_lock(p);
+	// 调用对应调度类的sched_class->enqueue_task()将进程描述符p加入运行队列rq
+	activate_task(rq, p, 0);
+	p->on_rq = 1;
+	trace_sched_wakeup_new(p, true);
+	check_preempt_curr(rq, p, WF_FORK);
+#ifdef CONFIG_SMP
+	if (p->sched_class->task_woken)
+		p->sched_class->task_woken(rq, p);
+#endif
+	task_rq_unlock(rq, p, &flags);
+}
+```
+
+##### 7.2.2.3.1 activate_task()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * activate_task - move a task to the runqueue.
+ */
+static void activate_task(struct rq *rq, struct task_struct *p, int flags)
+{
+	if (task_contributes_to_load(p))
+		rq->nr_uninterruptible--;
+
+	enqueue_task(rq, p, flags);
+}
+```
+
+其中，函数enqueue_task()定义于kernel/sched.c:
+
+```
+static void enqueue_task(struct rq *rq, struct task_struct *p, int flags)
+{
+	update_rq_clock(rq);
+	sched_info_queued(p);
+	// 调用对应调度类的sched_class->enqueue_task()
+	p->sched_class->enqueue_task(rq, p, flags);
+}
+```
+
+### 7.2.3 do_execve()
+
+该函数定义于fs/exec.c：
+
+```
+int do_execve(const char *filename,
+		 const char __user *const __user *__argv,
+		 const char __user *const __user *__envp,
+		 struct pt_regs *regs)
+{
+	struct user_arg_ptr argv = { .ptr.native = __argv };
+	struct user_arg_ptr envp = { .ptr.native = __envp };
+	return do_execve_common(filename, argv, envp, regs);
+}
+```
+
+其中，函数do_execve_common()定义于fs/exec.c：
+
+```
+static int do_execve_common(const char *filename, struct user_arg_ptr argv,
+			  struct user_arg_ptr envp, struct pt_regs *regs)
+{
+	struct linux_binprm *bprm; 	// 保存要执行的文件相关的数据
+	struct file *file;
+	struct files_struct *displaced;
+	bool clear_in_exec;
+	int retval;
+	const struct cred *cred = current_cred();
+
+	/*
+	 * We move the actual failure in case of RLIMIT_NPROC excess from
+	 * set*uid() to execve() because too many poorly written programs
+	 * don't check setuid() return code.  Here we additionally recheck
+	 * whether NPROC limit is still exceeded.
+	 */
+	if ((current->flags & PF_NPROC_EXCEEDED) &&
+	    atomic_read(&cred->user->processes) > rlimit(RLIMIT_NPROC)) {
+		retval = -EAGAIN;
+		goto out_ret;
+	}
+
+	/* We're below the limit (still or again), so we don't want to make
+	 * further execve() calls fail. */
+	current->flags &= ~PF_NPROC_EXCEEDED;
+
+	retval = unshare_files(&displaced);
+	if (retval)
+		goto out_ret;
+
+	retval = -ENOMEM;
+	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
+	if (!bprm)
+		goto out_files;
+
+	retval = prepare_bprm_creds(bprm);
+	if (retval)
+		goto out_free;
+
+	retval = check_unsafe_exec(bprm);
+	if (retval < 0)
+		goto out_free;
+	clear_in_exec = retval;
+	current->in_execve = 1;
+
+	// 打开要执行的文件，并检查其有效性(此处的检查并不完备)
+	file = open_exec(filename);
+	retval = PTR_ERR(file);
+	if (IS_ERR(file))
+		goto out_unmark;
+
+	// 在多处理器系统中才有效，用以分配负载最低的CPU来执行新程序
+	sched_exec();
+
+	// 下面开始填充linux_binprm结构
+	bprm->file = file;
+	bprm->filename = filename;
+	bprm->interp = filename;
+
+	retval = bprm_mm_init(bprm);
+	if (retval)
+		goto out_file;
+
+	bprm->argc = count(argv, MAX_ARG_STRINGS);
+	if ((retval = bprm->argc) < 0)
+		goto out;
+
+	bprm->envc = count(envp, MAX_ARG_STRINGS);
+	if ((retval = bprm->envc) < 0)
+		goto out;
+
+	/*
+	 * Check permissions, then read the first 128 (BINPRM_BUF_SIZE)
+	 * bytes to bprm->buf. ELF文件的头52字节(32位系统，参见结构Elf32_Ehdr)
+	 * 或64字节(64位系统，参见结构Elf64_Ehdr)为ELF Header.
+	 * 下面search_binary_handler()将根据该结构查找对应格式的处理函数，并进行处理
+	 */
+	retval = prepare_binprm(bprm);
+	if (retval < 0)
+		goto out;
+
+	// 将文件名、环境变量和命令行参数拷贝到新分配的页面中
+	retval = copy_strings_kernel(1, &bprm->filename, bprm);
+	if (retval < 0)
+		goto out;
+
+	bprm->exec = bprm->p;
+	retval = copy_strings(bprm->envc, envp, bprm);
+	if (retval < 0)
+		goto out;
+
+	retval = copy_strings(bprm->argc, argv, bprm);
+	if (retval < 0)
+		goto out;
+
+	/*
+	 * 查找能够处理该可执行文件格式的处理函数，并调用相应的load_library()
+	 * 函数进行处理。以ELF格式文件为例，其对应的load_library()函数参见
+	 * fs/binfmt_elf.c:
+	 * static int load_elf_binary(struct linux_binprm *bprm,
+	 * 	struct pt_regs *regs);
+	 * 其中包含如下语句：
+	 *	/* Get the exec-header */
+	 *	loc->elf_ex = *((struct elfhdr *)bprm->buf);
+	 * 参见search_binary_handler()节
+	 */
+	retval = search_binary_handler(bprm, regs);
+	if (retval < 0)
+		goto out;
+
+	/* execve succeeded */
+	current->fs->in_exec = 0;
+	current->in_execve = 0;
+	acct_update_integrals(current);
+	free_bprm(bprm);
+	if (displaced)
+		put_files_struct(displaced);
+	return retval;
+
+out:
+	if (bprm->mm) {
+		acct_arg_size(bprm, 0);
+		mmput(bprm->mm);
+	}
+
+out_file:
+	if (bprm->file) {
+		allow_write_access(bprm->file);
+		fput(bprm->file);
+	}
+
+out_unmark:
+	if (clear_in_exec)
+		current->fs->in_exec = 0;
+	current->in_execve = 0;
+
+out_free:
+	free_bprm(bprm);
+
+out_files:
+	if (displaced)
+		reset_files_struct(displaced);
+out_ret:
+	return retval;
+}
+```
+
+#### 7.2.3.1 search_binary_handler()
+
+该函数根据可执行程序的格式查找其对应的处理函数。其定义于fs/exec.c:
+
+```
+/*
+ * cycle the list of binary formats handler, until one recognizes the image
+ */
+int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs)
+{
+	unsigned int depth = bprm->recursion_depth;
+	int try, retval;
+	struct linux_binfmt *fmt;
+	pid_t old_pid;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	retval = security_bprm_check(bprm);
+	if (retval)
+		return retval;
+
+	retval = audit_bprm(bprm);
+	if (retval)
+		return retval;
+
+	/* Need to fetch pid before load_binary changes it */
+	rcu_read_lock();
+	old_pid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
+	rcu_read_unlock();
+
+	retval = -ENOENT;
+	for (try=0; try<2; try++) {
+		read_lock(&binfmt_lock);
+		/*
+		 * 变量formats是保存注册到系统中的可执行文件格式信息的链表，
+		 * 参见Binary Handler的注册和取消节
+		 */
+		list_for_each_entry(fmt, &formats, lh) {
+			/*
+			 * 获取该可执行文件所对应的处理程序。不同可执行文件对应不同的处理程序：
+			 * 由register_binfmt(), insert_binfmt(), unregister_binfmt()
+			 * 注册和取消，参见Binary Handler的注册和取消节
+			 */
+			int (*fn)(struct linux_binprm *, struct pt_regs *) = fmt->load_binary;
+			if (!fn)
+				continue;
+			if (!try_module_get(fmt->module))
+				continue;
+			read_unlock(&binfmt_lock);
+			retval = fn(bprm, regs); 	// 执行该可执行文件所对应的处理程序
+			/*
+			 * Restore the depth counter to its starting value
+			 * in this call, so we don't have to rely on every
+			 * load_binary function to restore it on return.
+			 */
+			bprm->recursion_depth = depth;
+			if (retval >= 0) {
+				if (depth == 0)
+					ptrace_event(PTRACE_EVENT_EXEC, old_pid);
+				put_binfmt(fmt);
+				allow_write_access(bprm->file);
+				if (bprm->file)
+					fput(bprm->file);
+				bprm->file = NULL;
+				current->did_exec = 1;
+				proc_exec_connector(current);
+				return retval;
+			}
+			read_lock(&binfmt_lock);
+			put_binfmt(fmt);
+			if (retval != -ENOEXEC || bprm->mm == NULL)
+				break;
+			if (!bprm->file) {
+				read_unlock(&binfmt_lock);
+				return retval;
+			}
+		}
+		read_unlock(&binfmt_lock);
+#ifdef CONFIG_MODULES
+		if (retval != -ENOEXEC || bprm->mm == NULL) {
+			break;
+		} else {
+#define printable(c) (((c)=='\t') || ((c)=='\n') || (0x20<=(c) && (c)<=0x7e))
+			if (printable(bprm->buf[0]) &&
+			     printable(bprm->buf[1]) &&
+			     printable(bprm->buf[2]) &&
+			     printable(bprm->buf[3]))
+				break; /* -ENOEXEC */
+			if (try)
+				break; /* -ENOEXEC */
+			request_module("binfmt-%04x", *(unsigned short *)(&bprm->buf[2]));
+		}
+#else
+		break;
+#endif
+	}
+	return retval;
+}
+```
+
+#### 7.2.3.2 Binary Handler的注册和取消
+
+不同格式的可执行文件需要使用不同的处理程序，且这些处理程序需要注册到系统中：
+* register_binfmt() / insert_binfmt() 用于注册指定的处理函数；
+* unregister_binfmt() 用于取消注册指定的处理函数。
+
+函数register_binfmt()和insert_binfmt()定义于include/linux/binfmts.h:
+
+```
+/*
+ * This structure defines the functions that are used
+ * to load the binary formats that linux accepts.
+ */
+struct linux_binfmt {
+	struct list_head lh;
+	struct module *module;
+	int (*load_binary)(struct linux_binprm *, struct  pt_regs * regs);
+	int (*load_shlib)(struct file *);
+	int (*core_dump)(struct coredump_params *cprm);
+	unsigned long min_coredump;	/* minimal dump size */
+};
+
+/* Registration of default binfmt handlers */
+static inline int register_binfmt(struct linux_binfmt *fmt)
+{
+	return __register_binfmt(fmt, 0);
+}
+/* Same as above, but adds a new binfmt at the top of the list */
+static inline int insert_binfmt(struct linux_binfmt *fmt)
+{
+	return __register_binfmt(fmt, 1);
+}
+```
+
+其中，函数定义于fs/exec.c:
+
+```
+/*
+ * formats保存了注册到系统中的可执行文件格式信息的链表。
+ * search_binary_handler()查询该链表以得到对应的处理
+ * 程序，参见search_binary_handler()节
+ */
+static LIST_HEAD(formats);
+static DEFINE_RWLOCK(binfmt_lock);
+
+int __register_binfmt(struct linux_binfmt * fmt, int insert)
+{
+	if (!fmt)
+		return -EINVAL;
+	write_lock(&binfmt_lock);
+	insert ? list_add(&fmt->lh, &formats) : list_add_tail(&fmt->lh, &formats);
+	write_unlock(&binfmt_lock);
+	return 0;
+}
+
+函数unregister_binfmt()定义于fs/exec.c:
+oid unregister_binfmt(struct linux_binfmt * fmt)
+{
+	write_lock(&binfmt_lock);
+	list_del(&fmt->lh);
+	write_unlock(&binfmt_lock);
+}
+```
+
+#### 7.2.3.3 ELF Format Binary Handler
+
+ELF格式可执行程序所对应的处理函数为load_elf_binary()，参见fs/binfmt_elf.c:
+
+```
+static struct linux_binfmt elf_format = {
+	.module		= THIS_MODULE,
+	.load_binary	= load_elf_binary,	// ELF格式可执行文件对应的处理函数
+	.load_shlib	= load_elf_library,	// ELF格式可执行文件对应的处理函数
+	.core_dump		= elf_core_dump,
+	.min_coredump	= ELF_EXEC_PAGESIZE,
+};
+
+static int __init init_elf_binfmt(void)
+{
+	return register_binfmt(&elf_format);	// 参见Binary Handler的注册和取消节
+}
+
+static void __exit exit_elf_binfmt(void)
+{
+	/* Remove the COFF and ELF loaders. */
+	unregister_binfmt(&elf_format);		// 参见Binary Handler的注册和取消节
+}
+
+/*
+ * 若module被编译进内核，其初始化函数在系统启动时被调用，
+ * 其清理函数将不会被调用，参见module被编译进内核时的初始化过程节；
+ * 若module被编译成独立模块，其初始化函数在执行insmod时调用，
+ * 参见insmod调用sys_init_module()节；其清理函数在执行rmmod时
+ * 调用，参见rmmod调用sys_delete_module()节
+ */
+core_initcall(init_elf_binfmt);
+module_exit(exit_elf_binfmt);
+```
+
+函数load_elf_binary()和load_elf_library()定义于fs/binfmt_elf.c。这两个函数与ELF可执行文件的格式有密切关系，32位和64位ELF可执行文件的格式分别参见《TIS ELF Specification Version 1.2》和《ELF-64 Object File Format Version 1.5》。
+
+### 7.2.4 特殊进程的创建
+
+#### 7.2.4.1 进程0/swapper, swapper/0, swapper/1, ...
+
+Linux系统中，只有进程0(idle process, or swapper process)是静态分配的。进程0的进程描述符定义于arch/x86/kernel/init_task.c:
+
+```
+/*
+ * Initial task structure.
+ *
+ * All other task structs will be allocated on slabs in fork.c
+ */
+struct task_struct init_task = INIT_TASK(init_task);
+```
+
+通过宏INIT_TASK填充init_task中的各个域，其定义于include/linux/init_task.h。在系统启动时，start_kernel()会初始化或填充init_task的域，参见start_kernel()节。
+
+每个CPU存在一个进程0(idle进程)。若只有一个CPU，则该CPU对应的进程0的名字(struct task_struct中的comm域)为swapper；若存在多个CPU，则对应与CPU n的进程0的名字为swapper/n。参见sched_init()节，其调用关系为：
+
+```
+start_kernel() -> sched_init() -> init_idle():
+
+#if defined(CONFIG_SMP)
+	sprintf(idle->comm, "%s/%d", INIT_TASK_COMM, cpu);
+#endif
+```
+
+进程0所属的调度类为idle_sched_class，其处于调度类链表中的最后一个位置，参见pick_next_task()节。
+
+NOTE: 参见<<Understanding the Linux Kernel, 3rd Edition>>第3. Process章第Process 0节：
+
+In multiprocessor systems there is a process 0 for each CPU. Right after the power on, the BIOS of the computer starts a single CPU while disabling the others. The swapper process running on CPU 0 initializes the kernel data structures, then enables the other CPUs and creates the additional swapper processes by means of the copy_process() function passing to it the value 0 as the new PID. Moreover, the kernel sets the cpu field of the thread_info descriptor of each forked process to the proper CPU index.
+
+##### 7.2.4.1.1 在SMP系统上如何为每个CPU创建一个idle进程/进程0
+
+如果在配置系统时，配置了CONFIG_SMP，则编译后的系统为SMP系统。同时，可以通过CONFIG_NR_CPUS指定CPU的个数，NR_CPUS是根据CONFIG_NR_CPUS设置的。
+
+每个CPU存在一个自己的运行队列runqueues(参见运行队列结构/struct rq节)，其idle域即指向属于该CPU的idle进程(进程0)的进程描述符，参见kernel/sched.c中的init_idle():
+
+```
+void __cpuinit init_idle(struct task_struct *idle, int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	...
+	rq->curr = rq->idle = idle;
+#if defined(CONFIG_SMP)
+	idle->on_cpu = 1;
+#endif
+	...
+}
+```
+
+因而可以通过idle_task()获得指定CPU上idle进程(进程0)的进程描述符，参见kernel/sched.c:
+
+```
+/**
+ * idle_task - return the idle task for a given cpu.
+ * @cpu: the processor in question.
+ */
+struct task_struct *idle_task(int cpu)
+{
+	/*
+	 * 通过指定CPU上的运行队列获取idle进程描述符。该值是通过如下函数调用设置的：
+	 * kernel_init() -> smp_init() -> cpu_up(cpu) -> _cpu_up(cpu, 0)
+	 * -> __cpu_up(cpu) -> smp_ops.cpu_up(cpu) -> do_boot_cpu(apicid, cpu)
+	 * -> init_idle(c_idle.idle, cpu)
+	 */
+	return cpu_rq(cpu)->idle;
+}
+```
+
+#### 7.2.4.2 进程1/init
+
+内核通过start_kernel() -> rest_init()中的如下语句创建进程1，参见rest_init()节和kernel_init()节。
+
+```
+kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+```
+
+虽然每个CPU对应一个进程0，但是系统中只存在一个进程1。
+
+#### 7.2.4.3 kthreadd进程
+
+内核通过start_kernel() -> rest_init()中的如下语句创建kthreadd进程，参见rest_init()节和kthreadd()节。
+
+```
+pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
+...
+kthreadd_task = find_task_by_pid_ns(pid, &init_pid_ns);
+```
+
+kthreadd进程用于创建链表kthread_create_list中指定的内核线程。
+
+Q: 链表kthread_create_list中的线程信息是如何添加进去的？
+
+A: 通过宏kthread_run()向链表kthread_create_list中添加想要创建的进程，参见通过链表kthread_create_list创建节和kthread_run()节。
+
+#### 7.2.4.4 通过链表kthread_create_list创建内核线程
+
+##### 7.2.4.4.1 kthread_run()
+
+宏kthread_run()用于创建内核线程，其定义参见include/linux/kthread.h:
+
+```
+/*
+ * 宏kthread_create()创建的新内核线程不会自动进入运行状态，
+ * 除非调用wake_up_process()唤醒该线程；而宏kthread_run()
+ * 创建新的内核线程，并运行该线程，参见下文
+  */
+#define kthread_create(threadfn, data, namefmt, arg...) 	\
+	kthread_create_on_node(threadfn, data, -1, namefmt, ##arg)
+
+/**
+ * kthread_run - create and wake a thread.
+ * @threadfn: the function to run until signal_pending(current).
+ * @data: data ptr for @threadfn.
+ * @namefmt: printf-style name for the thread.
+ *
+ * Description: Convenient wrapper for kthread_create() followed by
+ * wake_up_process().  Returns the kthread or ERR_PTR(-ENOMEM).
+ */
+/*
+ * 注意：其实并不是kthread_run()创建了内核线程，它只是将创建内核线程所需的信息
+ * 添加到了链表kthread_create_list中，然后等待kthreadd进程创建所需要的线程
+ */
+#define kthread_run(threadfn, data, namefmt, ...)				\
+({										\
+	struct task_struct *__k							\
+		= kthread_create(threadfn, data, namefmt, ## __VA_ARGS__);	\ // 创建指定的内核线程
+	if (!IS_ERR(__k)) 							\
+		wake_up_process(__k); 						\ // 唤醒创建的内核线程
+	__k; 									\
+})
+```
+
+其中，kthread_create_on_node()的定义参见kernel/kthread.c:
+
+```
+/**
+ * kthread_create_on_node - create a kthread.
+ * @threadfn: the function to run until signal_pending(current).
+ * @data: data ptr for @threadfn.
+ * @node: memory node number.
+ * @namefmt: printf-style name for the thread.
+ *
+ * Description: This helper function creates and names a kernel
+ * thread.  The thread will be stopped: use wake_up_process() to start
+ * it.  See also kthread_run().
+ *
+ * If thread is going to be bound on a particular cpu, give its node
+ * in @node, to get NUMA affinity for kthread stack, or else give -1.
+ * When woken, the thread will run @threadfn() with @data as its
+ * argument. @threadfn() can either call do_exit() directly if it is a
+ * standalone thread for which no one will call kthread_stop(), or
+ * return when 'kthread_should_stop()' is true (which means
+ * kthread_stop() has been called).  The return value should be zero
+ * or a negative error number; it will be passed to kthread_stop().
+ *
+ * Returns a task_struct or ERR_PTR(-ENOMEM).
+ */
+struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
+					   void *data, int node, const char namefmt[], ...)
+{
+	struct kthread_create_info create;
+
+	create.threadfn = threadfn;
+	create.data = data;
+	create.node = node;
+	init_completion(&create.done);
+
+	/*
+	 * 将需要创建的内核线程信息保存到链表kthread_create_list中，
+	 * 由kthreadd进程创建该线程，参见kthreadd进程节
+	 */
+	spin_lock(&kthread_create_lock);
+	list_add_tail(&create.list, &kthread_create_list);
+	spin_unlock(&kthread_create_lock);
+
+	/*
+	 * 唤醒kthreadd_task进程，使其创建指定的线程，
+	 * 参见kthreadd进程节，并等待该线程创建完成
+	 */
+	wake_up_process(kthreadd_task);
+	wait_for_completion(&create.done);
+
+	if (!IS_ERR(create.result)) {
+		static const struct sched_param param = { .sched_priority = 0 };
+		va_list args;
+
+		va_start(args, namefmt);
+		vsnprintf(create.result->comm, sizeof(create.result->comm), namefmt, args);
+		va_end(args);
+		/*
+		 * root may have changed our (kthreadd's) priority or CPU mask.
+		 * The kernel thread should not inherit these properties.
+		 */
+		sched_setscheduler_nocheck(create.result, SCHED_NORMAL, &param);
+		set_cpus_allowed_ptr(create.result, cpu_all_mask);
+	}
+	return create.result;
+}
+```
+
+##### 7.2.4.4.2 kthread_stop()
+
+该函数用于结束kthread_create()所创建的线程，其定义参见kernel/kthread.c:
+
+```
+/**
+ * kthread_stop - stop a thread created by kthread_create().
+ * @k: thread created by kthread_create().
+ *
+ * Sets kthread_should_stop() for @k to return true, wakes it, and
+ * waits for it to exit. This can also be called after kthread_create()
+ * instead of calling wake_up_process(): the thread will exit without
+ * calling threadfn().
+ *
+ * If threadfn() may call do_exit() itself, the caller must ensure
+ * task_struct can't go away.
+ *
+ * Returns the result of threadfn(), or %-EINTR if wake_up_process()
+ * was never called.
+ */
+int kthread_stop(struct task_struct *k)
+{
+	struct kthread *kthread;
+	int ret;
+
+	trace_sched_kthread_stop(k);
+	get_task_struct(k);
+
+	kthread = to_kthread(k);
+	// 如果该线程在调用kthread_stop()之前就结束了，则crash！
+	barrier(); /* it might have exited */
+	if (k->vfork_done != NULL) {
+		// 设置should_stop标志，唤醒该线程，并等待线程结束
+		kthread->should_stop = 1;
+		wake_up_process(k);
+		wait_for_completion(&kthread->exited);
+	}
+	ret = k->exit_code;
+
+	put_task_struct(k);
+	trace_sched_kthread_stop_ret(ret);
+
+	return ret;
+}
+```
+
+##### 7.2.4.4.3 kthread_should_stop()
+
+该函数返回当前线程should_stop标志的取值，用于创建的线程检查结束标志，并决定是否退出。注意：线程完全可以在完成自己的工作后主动结束，不需等待should_stop标志。其定义于kernel/kthread.c：
+
+```
+/**
+ * kthread_should_stop - should this kthread return now?
+ *
+ * When someone calls kthread_stop() on your kthread, it will be woken
+ * and this will return true.  You should then return, and your return
+ * value will be passed through to kthread_stop().
+ */
+int kthread_should_stop(void)
+{
+	return to_kthread(current)->should_stop;
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

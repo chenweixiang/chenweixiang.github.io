@@ -28205,6 +28205,1178 @@ struct task_struct *__switch_to(struct task_struct *prev_p, struct task_struct *
 }
 ```
 
+### 7.4.6 scheduler_tick()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * This function gets called by the timer code, with HZ frequency.
+ * We call it with interrupts disabled.
+ */
+void scheduler_tick(void)
+{
+	int cpu = smp_processor_id();
+	struct rq *rq = cpu_rq(cpu);
+	struct task_struct *curr = rq->curr;
+
+	sched_clock_tick();
+
+	raw_spin_lock(&rq->lock);
+	update_rq_clock(rq);
+	update_cpu_load_active(rq);
+	curr->sched_class->task_tick(rq, curr, 0);
+	raw_spin_unlock(&rq->lock);
+
+	perf_event_task_tick();
+
+#ifdef CONFIG_SMP
+	rq->idle_balance = idle_cpu(cpu);
+	trigger_load_balance(rq, cpu);
+#endif
+}
+```
+
+该函数的调用关系如下：
+
+```
+tick_handle_periodic()				// 参见Architecture-dependent routine / tick_handle_periodic()节
+-> tick_periodic()
+   -> update_process_times()
+      -> scheduler_tick()
+
+run_timer_softirq()				// 参见定时器的超时处理/run_timer_softirq()节
+-> hrtimer_run_pending()
+   -> hrtimer_switch_to_hres()
+      -> tick_setup_sched_timer()		// 设置hrtimer定时器，参见tick_setup_sched_timer()节
+         -> tick_sched_timer()			// hrtimer定时器超时后调用该函数，参见tick_sched_timer()节
+            -> update_process_times()
+               -> scheduler_tick()
+```
+
+### 7.4.7 schedule_timeout()
+
+A more optimal method of delaying execution is to use ```schedule_timeout()```. This call puts your task to sleep until at least the specified time has elapsed. There is no guarantee that the sleep duration will be exactly the specified time - only that the duration is at least as long as specified. When the specified time has elapsed, the kernel wakes the task up and places it back on the runqueue.
+
+The ```schedule_timeout()``` requires that the caller first set the current process state, so a typical call looks like:
+
+```
+set_current_state(TASK_INTERRUPTIBLE);		// set task’s state to interruptible sleep
+schedule_timeout(s * HZ);			// take a nap and wake up in “s” seconds
+```
+
+or,
+
+```
+set_current_state(TASK_UNINTERRUPTIBLE);	// set task’s state to un-interruptible sleep
+schedule_timeout(s * HZ);			// take a nap and wake up in “s” seconds
+```
+
+NOTE: The task must be in one of these two states before schedule_timeout() is called or else the task will not go to sleep.
+
+该函数定义于kernel/timer.c:
+
+```
+/**
+ * schedule_timeout - sleep until timeout
+ * @timeout: timeout value in jiffies
+ *
+ * Make the current task sleep until @timeout jiffies have
+ * elapsed. The routine will return immediately unless
+ * the current task state has been set (see set_current_state()).
+ *
+ * You can set the task state as follows -
+ *
+ * %TASK_UNINTERRUPTIBLE - at least @timeout jiffies are guaranteed to
+ * pass before the routine returns. The routine will return 0
+ *
+ * %TASK_INTERRUPTIBLE - the routine may return early if a signal is
+ * delivered to the current task. In this case the remaining time
+ * in jiffies will be returned, or 0 if the timer expired in time
+ *
+ * The current task state is guaranteed to be TASK_RUNNING when this
+ * routine returns.
+ *
+ * Specifying a @timeout value of %MAX_SCHEDULE_TIMEOUT will schedule
+ * the CPU away without a bound on the timeout. In this case the return
+ * value will be %MAX_SCHEDULE_TIMEOUT.
+ *
+ * In all cases the return value is guaranteed to be non-negative.
+ */
+signed long __sched schedule_timeout(signed long timeout)
+{
+	struct timer_list timer;
+	unsigned long expire;
+
+	switch (timeout)
+	{
+	case MAX_SCHEDULE_TIMEOUT:
+		/*
+		 * These two special cases are useful to be comfortable
+		 * in the caller. Nothing more. We could take
+		 * MAX_SCHEDULE_TIMEOUT from one of the negative value
+		 * but I'd like to return a valid offset (>=0) to allow
+		 * the caller to do everything it want with the retval.
+		 */
+		schedule();	// 参见schedule()节
+		goto out;
+	default:
+		/*
+		 * Another bit of PARANOID. Note that the retval will be
+		 * 0 since no piece of kernel is supposed to do a check
+		 * for a negative retval of schedule_timeout() (since it
+		 * should never happens anyway). You just have the printk()
+		 * that will tell you if something is gone wrong and where.
+		 */
+		if (timeout < 0) {
+			printk(KERN_ERR "schedule_timeout: wrong timeout value %lx\n", timeout);
+			dump_stack();
+			current->state = TASK_RUNNING;
+			goto out;
+		}
+	}
+
+	expire = timeout + jiffies;
+
+	/*
+	 * 设置定时器timer，超时处理函数为process_timeout()，其入参
+	 * 为当前进程的进程描述符current，参见process_timeout()节
+	 */
+	setup_timer_on_stack(&timer, process_timeout, (unsigned long)current);
+	/* 将定时器参见__mod_timer()节 */
+	__mod_timer(&timer, expire, false, TIMER_NOT_PINNED);
+	/*
+	 * 调度其他进程运行，参见schedule()节；调用本函数前，当前进程
+	 * 状态被设置为TASK_INTERRUPTIBLE/TASK_UNINTERRUPTIBLE，
+	 * 故当前进程进入休眠状态，并等待定时器超时；
+	 */
+	schedule();
+	/* 定时器超时后，删除该定时器 */
+	del_singleshot_timer_sync(&timer);
+
+	/* Remove the timer from the object tracker */
+	destroy_timer_on_stack(&timer);
+
+	timeout = expire - jiffies;
+
+out:
+	/*
+	 * The function either returns 0, if the timeout is expired,
+	 * or the number of ticks left to the time-out expiration if
+	 * the process was awakened for some other reason.
+	 */
+	return timeout < 0 ? 0 : timeout;
+}
+```
+
+#### 7.4.7.1 process_timeout()
+
+该函数定义于kernel/timer.c:
+
+```
+static void process_timeout(unsigned long __data)
+{
+	// 入参__data为进程描述符，唤醒该进程，参见wake_up_process()节
+	wake_up_process((struct task_struct *)__data);
+}
+```
+
+#### 7.4.7A schedule_timeout_XXX()
+
+该函数定义于kernel/time/timer.c:
+
+```
+/*
+ * We can use __set_current_state() here because schedule_timeout() calls
+ * schedule() unconditionally.
+ */
+signed long __sched schedule_timeout_interruptible(signed long timeout)
+{
+	__set_current_state(TASK_INTERRUPTIBLE);
+	return schedule_timeout(timeout);
+}
+
+signed long __sched schedule_timeout_killable(signed long timeout)
+{
+	__set_current_state(TASK_KILLABLE);
+	return schedule_timeout(timeout);
+}
+
+signed long __sched schedule_timeout_uninterruptible(signed long timeout)
+{
+	__set_current_state(TASK_UNINTERRUPTIBLE);
+	return schedule_timeout(timeout);
+}
+```
+
+### 7.4.8 cond_resched()
+
+The call to ```cond_resched()``` schedules a new process, but only if need_resched is set. In other words, this solution conditionally invokes the scheduler only if there is some more important task to run. Note that because this approach invokes the scheduler, you cannot make use of it from an interrupt handler — only from process context.
+
+该宏定义于include/linux/sched.h:
+
+```
+#define cond_resched() ({				\
+	__might_sleep(__FILE__, __LINE__, 0);		\
+	_cond_resched();				\
+})
+```
+
+#### 7.4.8.1 \_cond_resched()
+
+该函数定义于kernel/sched.c:
+
+```
+int __sched _cond_resched(void)
+{
+	if (should_resched()) {
+		__cond_resched();
+		return 1;
+	}
+	return 0;
+}
+```
+
+##### 7.4.8.1.1 should_resched()
+
+该函数定义于kernel/sched.c:
+
+```
+static inline int should_resched(void)
+{
+	/*
+	 * 若需要重新调度进程且允许进程抢占，则返回True；否则，返回False
+	 * preempt_count()参见preempt_count()节和
+	 * struct thread_info->preempt_count节
+	 */
+	return need_resched() && !(preempt_count() & PREEMPT_ACTIVE);
+}
+```
+
+###### 7.4.8.1.1.1 need_resched()
+
+该函数定义于include/linux/sched.h:
+
+```
+static inline int need_resched(void)
+{
+	/*
+	 * 通过检查current->stack->flags中的标志位TIF_NEED_RESCHED，
+	 * 来判断是否需要重新调度其他进程运行；该标志位可通过函数
+	 * set_tsk_need_resched()、宏set_need_resched()来设置
+	 */
+	return unlikely(test_thread_flag(TIF_NEED_RESCHED));
+}
+```
+
+##### 7.4.8.1.2 \__cond_resched()
+
+该函数定义于kernel/sched.c:
+
+```
+static void __cond_resched(void)
+{
+	/*
+	 * 不允许进程抢占，即preempt_count() += val，
+	 * 参见struct thread_info->preempt_count节
+	 */
+	add_preempt_count(PREEMPT_ACTIVE);
+	// 调度其他进程运行，参见__schedule()节
+	__schedule();
+	/*
+	 * 允许进程抢占，即preempt_count() -= val，
+	 * 参见struct thread_info->preempt_count节
+	 */
+	sub_preempt_count(PREEMPT_ACTIVE);
+}
+```
+
+### 7.4.9 进程休眠
+
+#### 7.4.9.1 加入等待队列
+
+当进程进入休眠状态时，进程被加入到等待队列(参见等待队列/wait_queue_head_t/wait_queue_t节)中，通过如下几节中的函数添加等待队列：
+
+##### 7.4.9.1.1 add_wait_queue()/\__add_wait_queue_exclusive()
+
+该函数定义于kernel/wait.c:
+
+```
+void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	unsigned long flags;
+
+	// 复位互斥进程标志
+	wait->flags &= ~WQ_FLAG_EXCLUSIVE;
+	spin_lock_irqsave(&q->lock, flags);
+	// 将等待队列wait添加到链表q的头部
+	__add_wait_queue(q, wait);
+	spin_unlock_irqrestore(&q->lock, flags);
+}
+
+// 与add_wait_queue()的区别在于：没有加锁，且将进程互斥标志置位
+static inline void __add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	wait->flags |= WQ_FLAG_EXCLUSIVE;
+	__add_wait_queue(q, wait);
+}
+
+static inline void __add_wait_queue(wait_queue_head_t *head, wait_queue_t *new)
+{
+	list_add(&new->task_list, &head->task_list);
+}
+```
+
+##### 7.4.9.1.2 add_wait_queue_exclusive()/\__add_wait_queue_tail_exclusive()
+
+该函数定义于kernel/wait.c:
+
+```
+void add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	unsigned long flags;
+
+	// 置位互斥进程标志
+	wait->flags |= WQ_FLAG_EXCLUSIVE;
+	spin_lock_irqsave(&q->lock, flags);
+	// 将等待队列wait添加到链表q的头尾部
+	__add_wait_queue_tail(q, wait);
+	spin_unlock_irqrestore(&q->lock, flags);
+}
+
+// 与add_wait_queue_exclusive()的区别在于：没有加锁
+static inline void __add_wait_queue_tail_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	wait->flags |= WQ_FLAG_EXCLUSIVE;
+	__add_wait_queue_tail(q, wait);
+}
+
+static inline void __add_wait_queue_tail(wait_queue_head_t *head, wait_queue_t *new)
+{
+	list_add_tail(&new->task_list, &head->task_list);
+}
+```
+
+#### 7.4.9.2 休眠函数
+
+函数```sleep_on()```, ```sleep_on_timeout()```, ```interruptible_sleep_on()```, ```interruptible_sleep_on_timeout()```用于进程休眠，其定义于kernel/sched.c:
+
+```
+void __sched sleep_on(wait_queue_head_t *q)
+{
+	sleep_on_common(q, TASK_UNINTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
+}
+
+long __sched sleep_on_timeout(wait_queue_head_t *q, long timeout)
+{
+	return sleep_on_common(q, TASK_UNINTERRUPTIBLE, timeout);
+}
+
+/*
+ * set state to TASK_UNINTERRUPTIBLE, so that the process
+ * also can be woken up by receiving a signal.
+ */
+void __sched interruptible_sleep_on(wait_queue_head_t *q)
+{
+	sleep_on_common(q, TASK_INTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
+}
+
+long __sched interruptible_sleep_on_timeout(wait_queue_head_t *q, long timeout)
+{
+	return sleep_on_common(q, TASK_INTERRUPTIBLE, timeout);
+}
+```
+
+这些函数均通过调用```sleep_on_common()```实现其功能，仅入参不同而已，参见sleep_on_common()节。
+
+As you might expect, these functions unconditionally put the current process to sleep on the given queue. These functions are strongly deprecated, however, and you should never use them. The problem is obvious if you think about it: sleep_on offers no way to protect against race conditions. There is always a window between when your code decides it must sleep and when sleep_on actually effects that sleep. A wakeup that arrives during that window is missed. For this reason, code that calls sleep_on is never entirely safe.
+
+NOTE: Those macros are removed from kernel after v3.15. Refer to commit b8780c363d808a726a34793caa900923d32b6b80:
+
+```
+chenwx@chenwx ~/linux $ git lc b8780c363d808a726a34793caa900923d32b6b80
+commit b8780c363d808a726a34793caa900923d32b6b80
+Author:     Arnd Bergmann <arnd@arndb.de>
+AuthorDate: Mon Apr 7 17:33:06 2014 +0200
+Commit:     Linus Torvalds <torvalds@linux-foundation.org>
+CommitDate: Mon Apr 7 11:24:06 2014 -0700
+
+    sched: remove sleep_on() and friends
+
+    This is the final piece in the puzzle, as all patches to remove the
+    last users of \(interruptible_\|\)sleep_on\(_timeout\|\) have made it
+    into the 3.15 merge window. The work was long overdue, and this
+    interface in particular should not have survived the BKL removal
+    that was done a couple of years ago.
+
+    Citing Jon Corbet from http://lwn.net/2001/0201/kernel.php3":
+
+     "[...] it was suggested that the janitors look for and fix all code
+      that calls sleep_on() [...] since (1) almost all such code is
+      incorrect, and (2) Linus has agreed that those functions should
+      be removed in the 2.5 development series".
+
+    We haven't quite made it for 2.5, but maybe we can merge this for 3.15.
+
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Ingo Molnar <mingo@kernel.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+ Documentation/DocBook/kernel-hacking.tmpl | 10 ----------
+ include/linux/wait.h                      | 11 -----------
+ kernel/sched/core.c                       | 46 ----------------------------------------------
+ 3 files changed, 67 deletions(-)
+```
+
+##### 7.4.9.2.1 sleep_on_common()
+
+该函数定义于kernel/sched.c:
+
+```
+static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeout)
+{
+	unsigned long flags;
+	wait_queue_t wait;
+
+	/*
+	 * 参见定义/初始化等待队列/wait_queue_t节，为当前进程创建等待队列，
+	 * 其唤醒函数为default_wake_function()，参见default_wake_function()节
+	 */
+	init_waitqueue_entry(&wait, current);
+
+	// 设置当前进程为TASK_INTERRUPTIBLE或TASK_UNINTERRUPTIBLE
+	__set_current_state(state);
+
+	spin_lock_irqsave(&q->lock, flags);
+	/*
+	 * 将等待队列wait添加到链表q中，
+	 * 参见add_wait_queue()/__add_wait_queue_exclusive()节
+	 */
+	__add_wait_queue(q, &wait);
+	spin_unlock(&q->lock);
+
+	/*
+	 * 调度其他进程运行，当前进程转入休眠状态，并指定的休眠时间，
+	 * 参见schedule_timeout()节
+	 */
+	timeout = schedule_timeout(timeout);
+
+	spin_lock_irq(&q->lock);
+	/*
+	 * 当前进程被唤醒后，将等待队列wait从链表q中移出，
+	 * 参见remove_wait_queue()节
+	 */
+	__remove_wait_queue(q, &wait);
+	spin_unlock_irqrestore(&q->lock, flags);
+
+	return timeout;
+}
+```
+
+#### 7.4.9.3 prepare_to_wait()/prepare_to_wait_exclusive()/finish_wait()
+
+Those methods offer yet another way to put the current process to sleep in a wait queue. Typically, they are used as follows:
+
+```
+DEFINE_WAIT(wait);	// 参见7.4.2.4.2 定义/初始化等待队列/wait_queue_t节
+prepare_to_wait_exclusive(&wq, &wait, TASK_INTERRUPTIBLE); /* wq is the head of the wait queue */
+
+/* ... */
+
+if (!condition)
+	schedule();
+finish_wait(&wq, &wait);
+```
+
+该函数定义于kernel/wait.c:
+
+```
+/*
+ * Note: we use "set_current_state()" _after_ the wait-queue add,
+ * because we need a memory barrier there on SMP, so that any
+ * wake-function that tests for the wait-queue being active
+ * will be guaranteed to see waitqueue addition _or_ subsequent
+ * tests in this thread will see the wakeup having taken place.
+ *
+ * The spin_unlock() itself is semi-permeable and only protects
+ * one way (it only protects stuff inside the critical region and
+ * stops them from bleeding out - it would still allow subsequent
+ * loads to move into the critical region).
+ */
+void prepare_to_wait(wait_queue_head_t *q, wait_queue_t *wait, int state)
+{
+	unsigned long flags;
+
+	wait->flags &= ~WQ_FLAG_EXCLUSIVE;
+	spin_lock_irqsave(&q->lock, flags);
+	if (list_empty(&wait->task_list))
+		__add_wait_queue(q, wait);		// 添加到等待队列头部
+	set_current_state(state);
+	spin_unlock_irqrestore(&q->lock, flags);
+}
+
+/*
+ * An exclusive wait acts very much like a normal sleep, with two important differences:
+ *  - When a wait queue entry has the WQ_FLAG_EXCLUSIVE flag set, it is added to the end
+ *    of the wait queue. Entries without that flag are, instead, added to the beginning.
+ *  - When wake_up is called on a wait queue, it stops after waking the first process that
+ *    has the WQ_FLAG_EXCLUSIVE flag set.
+ *
+ * The end result is that processes performing exclusive waits are awakened one at a time,
+ * in an orderly manner, and do not create thundering herds. The kernel still wakes up all
+ * nonexclusive waiters every time, however.
+ *
+ * Employing exclusive waits within a driver is worth considering if two conditions are met:
+ *  - you expect significant contention for a resource, and
+ *  - waking a single process is sufficient to completely consume the resource when it becomes
+ *    available.
+ */
+void prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_t *wait, int state)
+{
+	unsigned long flags;
+
+	wait->flags |= WQ_FLAG_EXCLUSIVE;
+	spin_lock_irqsave(&q->lock, flags);
+	if (list_empty(&wait->task_list))
+		__add_wait_queue_tail(q, wait);		// 添加到等待队列尾部
+	set_current_state(state);
+	spin_unlock_irqrestore(&q->lock, flags);
+}
+
+/**
+ * finish_wait - clean up after waiting in a queue
+ * @q: waitqueue waited on
+ * @wait: wait descriptor
+ *
+ * Sets current thread back to running state and removes
+ * the wait descriptor from the given waitqueue if still
+ * queued.
+ */
+void finish_wait(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	unsigned long flags;
+
+	__set_current_state(TASK_RUNNING);
+	/*
+	 * We can check for list emptiness outside the lock
+	 * IFF:
+	 *  - we use the "careful" check that verifies both
+	 *    the next and prev pointers, so that there cannot
+	 *    be any half-pending updates in progress on other
+	 *    CPU's that we haven't seen yet (and that might
+	 *    still change the stack area.
+	 * and
+	 *  - all other users take the lock (ie we can only
+	 *    have _one_ other CPU that looks at or modifies
+	 *    the list).
+	 */
+	if (!list_empty_careful(&wait->task_list)) {
+		spin_lock_irqsave(&q->lock, flags);
+		list_del_init(&wait->task_list);
+		spin_unlock_irqrestore(&q->lock, flags);
+	}
+}
+```
+
+#### 7.4.9.4 wait_event_XXX()
+
+The simplest way of sleeping in the Linux kernel is a macro called wait_event (with a few variants). Those macros put the calling process to sleep on a wait queue until a given condition is verified. Refer to include/linux/wait.h.
+
+```
+wait_event(queue, condition)
+wait_event_interruptible(queue, condition)
+wait_event_timeout(queue, condition, timeout)
+wait_event_interruptible_timeout(queue, condition, timeout)
+```
+
+Note that the timeout value represents the number of jiffies to wait, not an absolute time value. The value is represented by a signed number, because it sometimes is the result of a subtraction, although the functions complain through a printk statement if the provided timeout is negative. If the timeout expires, the functions return 0; if the process is awakened by another event, it returns the remaining delay expressed in jiffies. The return value is never negative, even if the delay is greater than expected because of system load.
+
+##### 7.4.9.4.1 wait_event()
+
+```
+/**
+ * wait_event - sleep until a condition gets true
+ * @wq: the waitqueue to wait on
+ * @condition: a C expression for the event to wait for
+ *
+ * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+ * @condition evaluates to true. The @condition is checked each time
+ * the waitqueue @wq is woken up.
+ *
+ * wake_up() has to be called after changing any variable that could
+ * change the result of the wait condition.
+ */
+#define wait_event(wq, condition) 							\
+do {											\
+	if (condition)									\
+		break;									\
+	__wait_event(wq, condition);							\
+} while (0)
+
+#define __wait_event(wq, condition) 							\
+do {											\
+	DEFINE_WAIT(__wait);								\
+											\
+	for (;;) {									\
+		prepare_to_wait(&wq, &__wait, TASK_UNINTERRUPTIBLE);			\
+		if (condition)								\
+			break;								\
+		schedule();								\	// 参见schedule()节
+	}										\
+	finish_wait(&wq, &__wait);							\
+} while (0)
+```
+
+##### 7.4.9.4.2 wait_event_interruptible()
+
+```
+/**
+ * wait_event_interruptible - sleep until a condition gets true
+ * @wq: the waitqueue to wait on
+ * @condition: a C expression for the event to wait for
+ *
+ * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+ * @condition evaluates to true or a signal is received.
+ * The @condition is checked each time the waitqueue @wq is woken up.
+ *
+ * wake_up() has to be called after changing any variable that could
+ * change the result of the wait condition.
+ *
+ * The function will return -ERESTARTSYS if it was interrupted by a
+ * signal and 0 if @condition evaluated to true.
+ */
+#define wait_event_interruptible(wq, condition)						\
+({											\
+	int __ret = 0;									\
+	if (!(condition))								\
+		__wait_event_interruptible(wq, condition, __ret);			\
+	__ret;										\
+})
+
+#define __wait_event_interruptible(wq, condition, ret)					\
+do {											\
+	DEFINE_WAIT(__wait);								\
+											\
+	for (;;) {									\
+		prepare_to_wait(&wq, &__wait, TASK_INTERRUPTIBLE);			\
+		if (condition)								\
+			break;								\
+		if (!signal_pending(current)) {						\
+			schedule();							\	// 参见schedule()节
+			continue;							\
+		}									\
+		ret = -ERESTARTSYS;							\
+		break;									\
+	}										\
+	finish_wait(&wq, &__wait);							\
+} while (0)
+```
+
+##### 7.4.9.4.3 wait_event_timeout()
+
+```
+/**
+ * wait_event_timeout - sleep until a condition gets true or a timeout elapses
+ * @wq: the waitqueue to wait on
+ * @condition: a C expression for the event to wait for
+ * @timeout: timeout, in jiffies
+ *
+ * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+ * @condition evaluates to true. The @condition is checked each time
+ * the waitqueue @wq is woken up.
+ *
+ * wake_up() has to be called after changing any variable that could
+ * change the result of the wait condition.
+ *
+ * The function returns 0 if the @timeout elapsed, and the remaining
+ * jiffies if the condition evaluated to true before the timeout elapsed.
+ */
+#define wait_event_timeout(wq, condition, timeout)					\
+({											\
+	long __ret = timeout;								\
+	if (!(condition)) 								\
+		__wait_event_timeout(wq, condition, __ret);				\
+	__ret;										\
+})
+
+#define __wait_event_timeout(wq, condition, ret)					\
+do {											\
+	DEFINE_WAIT(__wait);								\
+											\
+	for (;;) {									\
+		prepare_to_wait(&wq, &__wait, TASK_UNINTERRUPTIBLE);			\
+		if (condition)								\
+			break;								\
+		ret = schedule_timeout(ret);						\	// 参见schedule_timeout()节
+		if (!ret)								\
+			break;								\
+	}										\
+	finish_wait(&wq, &__wait);							\
+} while (0)
+```
+
+##### 7.4.9.4.4 wait_event_interruptible_timeout()
+
+```
+/**
+ * wait_event_interruptible_timeout - sleep until a condition gets true or a timeout elapses
+ * @wq: the waitqueue to wait on
+ * @condition: a C expression for the event to wait for
+ * @timeout: timeout, in jiffies
+ *
+ * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+ * @condition evaluates to true or a signal is received.
+ * The @condition is checked each time the waitqueue @wq is woken up.
+ *
+ * wake_up() has to be called after changing any variable that could
+ * change the result of the wait condition.
+ *
+ * The function returns 0 if the @timeout elapsed, -ERESTARTSYS if it
+ * was interrupted by a signal, and the remaining jiffies otherwise
+ * if the condition evaluated to true before the timeout elapsed.
+ */
+#define wait_event_interruptible_timeout(wq, condition, timeout)			\
+({											\
+	long __ret = timeout;								\
+	if (!(condition))								\
+		__wait_event_interruptible_timeout(wq, condition, __ret); 		\
+	__ret;										\
+})
+
+#define __wait_event_interruptible_timeout(wq, condition, ret)				\
+do {											\
+	DEFINE_WAIT(__wait);								\
+											\
+	for (;;) {									\
+		prepare_to_wait(&wq, &__wait, TASK_INTERRUPTIBLE);			\
+		if (condition)								\
+			break;								\
+		if (!signal_pending(current)) {						\
+			ret = schedule_timeout(ret);					\	// 参见schedule_timeout()节
+			if (!ret)							\
+				break;							\
+			continue;							\
+		}									\
+		ret = -ERESTARTSYS;							\
+		break;									\
+	}										\
+	finish_wait(&wq, &__wait);							\
+} while (0)
+```
+
+#### 7.4.9.5 移出等待队列
+
+当进程被唤醒时，进程被移出等待队列(参见等待队列/wait_queue_head_t/wait_queue_t节)中，通过如下几节中的函数移出等待队列：
+
+##### 7.4.9.5.1 remove_wait_queue()
+
+该函数定义于kernel/wait.c:
+
+```
+void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&q->lock, flags);
+	// 将wait从链表q中移出
+	__remove_wait_queue(q, wait);
+	spin_unlock_irqrestore(&q->lock, flags);
+}
+
+static inline void __remove_wait_queue(wait_queue_head_t *head, wait_queue_t *old)
+{
+	list_del(&old->task_list);
+}
+```
+
+### 7.4.10 唤醒进程
+
+#### 7.4.10.1 wake_up_XXX()
+
+wake_up wakes up all processes waiting on the given queue (though the situation is a little more complicated than that). The other form (wake_up_interruptible) restricts itself to processes performing an interruptible sleep. In general, the two are indistinguishable (if you are using interruptible sleeps); in practice, the convention is to use wake_up if you are using wait_event and wake_up_interruptble if you use wait_event_interruptible.
+
+```
+wake_up(wait_queue_head_t *queue);
+wake_up_interruptible(wait_queue_head_t *queue);
+```
+
+wake_up awakens every process on the queue that is not in an exclusive wait, and exactly one exclusive waiter, if it exists. wake_up_interruptible does the same, with the exception that it skips over processes in an uninterruptible sleep. These functions can, before returning, cause one or more of the processes awakened to be scheduled (although this does not happen if they are called from an atomic context).
+
+```
+wake_up_nr(wait_queue_head_t *queue, int nr);
+wake_up_interruptible_nr(wait_queue_head_t *queue, int nr);
+```
+
+These functions perform similarly to wake_up, except they can awaken up to nr exclusive waiters, instead of just one. Note that passing 0 is interpreted as asking for all of the exclusive waiters to be awakened, rather than none of them.
+
+```
+wake_up_all(wait_queue_head_t *queue);
+wake_up_interruptible_all(wait_queue_head_t *queue);
+```
+
+This form of wake_up awakens all processes whether they are performing an exclusive wait or not (though the interruptible form still skips processes doing uninterruptible waits).
+
+```
+wake_up_interruptible_sync(wait_queue_head_t *queue);
+```
+
+Normally, a process that is awakened may preempt the current process and be scheduled into the processor before wake_up returns. In other words, a call to wake_up may not be atomic. If the process calling wake_up is running in an atomic context (it holds a spinlock, for example, or is an interrupt handler), this rescheduling does not happen. Normally, that protection is adequate. If, however, you need to explicitly ask to not be scheduled out of the processor at this time, you can use the "sync" variant of wake_up_interruptible. This function is most often used when the caller is about to reschedule anyway, and it is more efficient to simply finish what little work remains first.
+
+Refer to include/linux/wait.h:
+
+```
+#define wake_up(x)					__wake_up(x, TASK_NORMAL, 1, NULL)
+#define wake_up_nr(x, nr)				__wake_up(x, TASK_NORMAL, nr, NULL)
+#define wake_up_all(x)					__wake_up(x, TASK_NORMAL, 0, NULL)
+/*
+ * It’s similar to wake_up(), except that it’s called
+ * when the spin lock in wait_queue_head_t is already held.
+ */
+#define wake_up_locked(x)				__wake_up_locked((x), TASK_NORMAL)
+
+#define wake_up_interruptible(x)			__wake_up(x, TASK_INTERRUPTIBLE, 1, NULL)
+#define wake_up_interruptible_nr(x, nr)			__wake_up(x, TASK_INTERRUPTIBLE, nr, NULL)
+#define wake_up_interruptible_all(x)			__wake_up(x, TASK_INTERRUPTIBLE, 0, NULL)
+#define wake_up_interruptible_sync(x)			__wake_up_sync((x), TASK_INTERRUPTIBLE, 1)
+
+/*
+ * Wakeup macros to be used to report events to the targets.
+ */
+#define wake_up_poll(x, m)				__wake_up(x, TASK_NORMAL, 1, (void *) (m))
+#define wake_up_locked_poll(x, m)			__wake_up_locked_key((x), TASK_NORMAL, (void *) (m))
+#define wake_up_interruptible_poll(x, m)		__wake_up(x, TASK_INTERRUPTIBLE, 1, (void *) (m))
+#define wake_up_interruptible_sync_poll(x, m)		__wake_up_sync_key((x), TASK_INTERRUPTIBLE, 1, (void *) (m))
+```
+
+其中，函数__wake_up()定义于kernel/sched.c:
+
+```
+/**
+ * __wake_up - wake up threads blocked on a waitqueue.
+ * @q: the waitqueue
+ * @mode: which threads
+ * @nr_exclusive: how many wake-one or wake-many threads to wake up
+ * @key: is directly passed to the wakeup function
+ *
+ * It may be assumed that this function implies a write memory barrier before
+ * changing the task state if and only if any tasks are woken up.
+ */
+void __wake_up(wait_queue_head_t *q, unsigned int mode, int nr_exclusive, void *key)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&q->lock, flags);
+	__wake_up_common(q, mode, nr_exclusive, 0, key);
+	spin_unlock_irqrestore(&q->lock, flags);
+}
+```
+
+##### 7.4.10.1.1 \__wake_up_common()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * The core wakeup function. Non-exclusive wakeups (nr_exclusive == 0) just
+ * wake everything up. If it's an exclusive wakeup (nr_exclusive == small +ve
+ * number) then we wake all the non-exclusive tasks and one exclusive task.
+ *
+ * There are circumstances in which we can try to wake a task which has already
+ * started to run but is not in state TASK_RUNNING. try_to_wake_up() returns
+ * zero in this (rare) case, and we handle it by continuing to scan the queue.
+ */
+static void __wake_up_common(wait_queue_head_t *q, unsigned int mode,
+			int nr_exclusive, int wake_flags, void *key)
+{
+	wait_queue_t *curr, *next;
+
+	// 循环链表q中的所有等待队列curr，并调用其唤醒函数curr->func()
+	list_for_each_entry_safe(curr, next, &q->task_list, task_list) {
+		unsigned flags = curr->flags;
+
+		/*
+		 * 由定义/初始化等待队列/wait_queue_t节可知，等待队列curr的唤醒函数
+		 * 包含如下几个，参见唤醒函数节
+		 * autoremove_wake_function(), default_wake_function(), ...
+		 */
+		if (curr->func(curr, mode, wake_flags, key) &&
+			 (flags & WQ_FLAG_EXCLUSIVE) && !--nr_exclusive)
+			break;
+	}
+}
+```
+
+#### 7.4.10.2 唤醒函数
+
+##### 7.4.10.2.1 autoremove_wake_function()
+
+该函数定义于kernel/wait.c:
+
+```
+int autoremove_wake_function(wait_queue_t *wait, unsigned mode, int sync, void *key)
+{
+	// 唤醒等待队列wait中的进程，参见default_wake_function()节
+	int ret = default_wake_function(wait, mode, sync, key);
+
+	if (ret)
+		list_del_init(&wait->task_list);	// 将等待队列wait移出等待队列链表
+	return ret;
+}
+```
+
+##### 7.4.10.2.2 default_wake_function()
+
+该函数定义于kernel/sched.c:
+
+```
+int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags, void *key)
+{
+	// 唤醒等待队列中的进程curr->private，参见try_to_wake_up()节
+	return try_to_wake_up(curr->private, mode, wake_flags);
+}
+```
+
+###### 7.4.10.2.2.1 try_to_wake_up()
+
+该函数定义于kernel/sched.c:
+
+```
+static int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+{
+	unsigned long flags;
+	int cpu, success = 0;
+
+	smp_wmb();
+	raw_spin_lock_irqsave(&p->pi_lock, flags);
+	if (!(p->state & state))	// 只有指定状态的进程才能被唤醒
+		goto out;
+
+	success = 1; /* we're going to change ->state */
+	// 获取进程p所在的CPU，即p->stack->cpu
+	cpu = task_cpu(p);
+
+	// 参见ttwu_remote()节
+	if (p->on_rq && ttwu_remote(p, wake_flags))
+		goto stat;
+
+#ifdef CONFIG_SMP
+	/*
+	 * If the owning (remote) cpu is still in the middle of schedule() with
+	 * this task as prev, wait until its done referencing the task.
+	 */
+	while (p->on_cpu) {
+#ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
+		/*
+		 * In case the architecture enables interrupts in
+		 * context_switch(), we cannot busy wait, since that
+		 * would lead to deadlocks when an interrupt hits and
+		 * tries to wake up @prev. So bail and do a complete
+		 * remote wakeup.
+		 */
+		if (ttwu_activate_remote(p, wake_flags))
+			goto stat;
+#else
+		cpu_relax();
+#endif
+	}
+	/*
+	 * Pairs with the smp_wmb() in finish_lock_switch().
+	 */
+	smp_rmb();
+
+	p->sched_contributes_to_load = !!task_contributes_to_load(p);
+	p->state = TASK_WAKING;
+
+	/*
+	 * 调用对应调度类的task_waking()，
+	 * 参见进程的调度类/struct sched_class节
+	 */
+	if (p->sched_class->task_waking)
+		p->sched_class->task_waking(p);
+
+	// 参见select_task_rq()节
+	cpu = select_task_rq(p, SD_BALANCE_WAKE, wake_flags);
+	if (task_cpu(p) != cpu) {
+		wake_flags |= WF_MIGRATED;
+		set_task_cpu(p, cpu);
+	}
+#endif /* CONFIG_SMP */
+
+	// 将进程状态设置为TASK_RUNNING，并将其插入运行队列
+	ttwu_queue(p, cpu);
+stat:
+	ttwu_stat(p, cpu, wake_flags);
+out:
+	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+
+	return success;
+}
+```
+
+###### 7.4.10.2.2.1.1 ttwu_remote()
+
+该函数定义于kernel/sched.c:
+
+```
+static int ttwu_remote(struct task_struct *p, int wake_flags)
+{
+	struct rq *rq;
+	int ret = 0;
+
+	rq = __task_rq_lock(p);
+	if (p->on_rq) {
+		ttwu_do_wakeup(rq, p, wake_flags);
+		ret = 1;
+	}
+	__task_rq_unlock(rq);
+
+	return ret;
+}
+```
+
+###### 7.4.10.2.2.1.1.1 ttwu_do_wakeup()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * Mark the task runnable and perform wakeup-preemption.
+ */
+static void ttwu_do_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
+{
+	trace_sched_wakeup(p, true);
+	check_preempt_curr(rq, p, wake_flags);
+
+	p->state = TASK_RUNNING;
+#ifdef CONFIG_SMP
+	/*
+	 * 调用对应调度类的task_woken()，
+	 * 参见进程的调度类/struct sched_class节
+	 */
+	if (p->sched_class->task_woken)
+		p->sched_class->task_woken(rq, p);
+
+	if (rq->idle_stamp) {
+		u64 delta = rq->clock - rq->idle_stamp;
+		u64 max = 2*sysctl_sched_migration_cost;
+
+		if (delta > max)
+			rq->avg_idle = max;
+		else
+			update_avg(&rq->avg_idle, delta);
+		rq->idle_stamp = 0;
+	}
+#endif
+}
+```
+
+###### 7.4.10.2.2.1.2 select_task_rq()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * The caller (fork, wakeup) owns p->pi_lock, ->cpus_allowed is stable.
+ */
+static inline int select_task_rq(struct task_struct *p, int sd_flags, int wake_flags)
+{
+	/*
+	 * 调用对应调度类的select_task_rq()，
+	 * 参见进程的调度类/struct sched_class节
+	 */
+	int cpu = p->sched_class->select_task_rq(p, sd_flags, wake_flags);
+
+	/*
+	 * In order not to call set_task_cpu() on a blocking task we need
+	 * to rely on ttwu() to place the task on a valid ->cpus_allowed
+	 * cpu.
+	 *
+	 * Since this is common to all placement strategies, this lives here.
+	 *
+	 * [ this allows ->select_task() to simply return task_cpu(p) and
+	 *   not worry about this generic constraint ]
+	 */
+	if (unlikely(!cpumask_test_cpu(cpu, tsk_cpus_allowed(p)) || !cpu_online(cpu)))
+		cpu = select_fallback_rq(task_cpu(p), p);
+
+	return cpu;
+}
+```
+
+##### 7.4.10.2.3 wake_up_process()
+
+该函数定义于kernel/sched.c:
+
+```
+int wake_up_process(struct task_struct *p)
+{
+	/*
+	 * 参见try_to_wake_up()节，唤醒满足状态TASK_ALL的进程p，其中TASK_ALL为：
+	 * TASK_INTERRUPTIBLE | TASK_UNINTERRUPTIBLE | __TASK_STOPPED | __TASK_TRACED
+	 */
+	return try_to_wake_up(p, TASK_ALL, 0);
+}
+```
+
+### 7.4.11 与进程调度有关的系统调用
+
+与进程调度有关的系统调用如下：
+
+```
+SYSCALL_DEFINE1(sched_getscheduler, pid_t, pid)
+SYSCALL_DEFINE3(sched_setscheduler, pid_t, pid, int, policy, struct sched_param __user *, param)
+```
+
+Refer to kernel/sched.c. Get/set the policy (scheduling class) of a thread.
+
+```
+SYSCALL_DEFINE1(nice, int, increment)
+```
+
+Refer to kernel/sched.c. Change the priority of the current process。参数increment的取值范围为[-40..40]。
+The nice() system call is maintained for backward compatibility only; it has been replaced by the setpriority() system call.
+
+```
+SYSCALL_DEFINE2(getpriority, int, which, int, who)
+SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
+```
+
+Refer to kernel/sys.c. Not return the normal nice-value, but a negated value that has been offset by 20 (i.e. it returns [40..1] instead of [-20..19]) to stay compatible.
+
+```
+SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len, unsigned long __user *, user_mask_ptr)
+SYSCALL_DEFINE3(sched_setaffinity, pid_t, pid, unsigned int, len, unsigned long __user *, user_mask_ptr)
+```
+
+Refer to kernel/sched.c. The ```sched_getaffinity()``` and ```sched_setaffinity()``` system calls respectively return and set up the CPU affinity mask of a process — the bit mask of the CPUs that are allowed to execute the process. This mask is stored in the cpus_allowed field of the process descriptor.
+
+```
+SYSCALL_DEFINE0(sched_yield)
+```
+
+The system call allows a process to relinquish the CPU voluntarily without being suspended. The call is used mainly by SCHED_FIFO realtime processes.
+
+```
+SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
+SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
+```
+
+Refer to kernel/sched.c. Returns the minimum/maximum rt_priority that can be used by a given scheduling class.
+
+```
+SYSCALL_DEFINE2(sched_getparam, pid_t, pid, struct sched_param __user *, param)
+SYSCALL_DEFINE2(sched_setparam, pid_t, pid, struct sched_param __user *, param)
+```
+
+Refer to kernel/sched.c. The system calls retrieve/set the scheduling parameters for the process identified by pid.
+
+```
+SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid, struct timespec __user *, interval)
+```
+
+Refer to kernel/sched.c. Writes the default timeslice value of a given process into the user-space timespec buffer. A value of '0' means infinity. 通过调用对应调度类的sched_class->get_rr_interval()函数实现。
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

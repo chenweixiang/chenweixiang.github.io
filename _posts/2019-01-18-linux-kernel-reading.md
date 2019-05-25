@@ -22008,6 +22008,641 @@ void exit_mmap(struct mm_struct *mm)
 }
 ```
 
+## 6.9 Page Fault/do_page_fault()
+
+Each architecture registers an architecture-specific function for the handling of page faults.
+
+Pages in the process linear address space are not necessarily resident in memory. For example, allocations made on behalf of a process are not satisfied immediately as the space is just reserved within the vm_area_struct. Other examples of non-resident pages include the page having been swapped out to backing storage or writing a read-only page.
+
+Linux, like most operating systems, has a Demand Fetch policy as its fetch policy for dealing with pages that are not resident. This states that the page is only fetched from backing storage when the hardware raises a page fault exception (see Vec=0xEC in 错误：引用源未找到) which the operating system traps and allocates a page.
+
+There are two types of page fault, major and minor faults. Major page faults occur when data has to be read from disk which is an expensive operation, else the fault is referred to as a minor, or soft page fault. Linux maintains statistics on the number of these types of page faults with the task_struct->maj_flt and task_struct->min_flt fields respectively (see section 进程描述符/struct task_struct).
+
+The page fault handler in Linux is expected to recognise and act on a number of different types of page faults listed in 错误：引用源未找到.
+
+Reasons For Page Faulting:
+
+| Exception | Type | Action |
+| :-------- | :--- | :----- |
+| Region valid but page not allocated | Minor | Allocate a page frame from the physical page allocator |
+| Region not valid but is beside an expandable region like the stack | Minor | Expand the region and allocate a page |
+| Page swapped out but present in swap cache | Minor | Re-establish the page in the process page tables and drop a reference to the swap cache |
+| Page swapped out to backing storage | Major | Find where the page with information stored in the PTE and read it from disk |
+| Page write when marked read-only | Minor | If the page is a COW page, make a copy of it, mark it writable and assign it to the process. If it is in fact a bad write, send a SIGSEGV signal |
+| Region is invalid or process has no permissions to access | Error | Send a SEGSEGV signal to the process |
+| Fault occurred in the kernel portion address space | Minor | If the fault occurred in the vmalloc area of the address space, the current process page tables are updated against the master page table held by init_mm. This is the only valid kernel page fault that may occur |
+| Fault occurred in the userspace region while in kernel mode | Error | If a fault occurs, it means a kernel system did not copy from userspace properly and caused a page fault. This is a kernel bug which is treated quite severely. |
+
+<p/>
+
+函数do_page_fault()定义于arch/x86/mm/fault.c:
+
+```
+/*
+ * This routine handles page faults.  It determines the address, and the problem,
+ * and then passes it off to one of the appropriate routines.
+ */
+dotraplinkage void __kprobes do_page_fault(struct pt_regs *regs, unsigned long error_code)
+{
+	struct vm_area_struct *vma;
+	struct task_struct *tsk;
+	unsigned long address;
+	struct mm_struct *mm;
+	int fault;
+	int write = error_code & PF_WRITE;
+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
+					(write ? FAULT_FLAG_WRITE : 0);
+
+	tsk = current;
+	mm = tsk->mm;
+
+	/* Get the faulting address: */
+	address = read_cr2();		// 参见错误：引用源未找到
+
+	/*
+	 * Detect and handle instructions that would cause a page fault for
+	 * both a tracked kernel page and a userspace page.
+	 */
+	if (kmemcheck_active(regs))
+		kmemcheck_hide(regs);
+	prefetchw(&mm->mmap_sem);
+
+	if (unlikely(kmmio_fault(regs, address)))
+		return;
+
+	/*
+	 * We fault-in kernel-space virtual memory on-demand. The
+	 * 'reference' page table is init_mm.pgd.
+	 *
+	 * NOTE! We MUST NOT take any locks for this case. We may
+	 * be in an interrupt or a critical region, and should
+	 * only copy the information from the master page table,
+	 * nothing more.
+	 *
+	 * This verifies that the fault happens in kernel space
+	 * (error_code & 4) == 0, and that the fault was not a
+	 * protection error (error_code & 9) == 0.
+	 */
+	if (unlikely(fault_in_kernel_space(address))) {	// address >= TASK_SIZE_MAX
+		if (!(error_code & (PF_RSVD | PF_USER | PF_PROT))) {
+			// Handle a fault on the vmalloc area
+			if (vmalloc_fault(address) >= 0)
+				return;
+
+			if (kmemcheck_fault(regs, address, error_code))
+				return;
+		}
+
+		/* Can handle a stale RO->RW TLB: */
+		// Handle a spurious fault caused by a stale TLB entry
+		if (spurious_fault(error_code, address))
+			return;
+
+		/* kprobes don't want to hook the spurious faults: */
+		if (notify_page_fault(regs))
+			return;
+		/*
+		 * Don't take the mm semaphore here. If we fixup a prefetch
+		 * fault we could otherwise deadlock:
+		 */
+		bad_area_nosemaphore(regs, error_code, address);
+
+		return;
+	}
+
+	/* kprobes don't want to hook the spurious faults: */
+	if (unlikely(notify_page_fault(regs)))
+		return;
+	/*
+	 * It's safe to allow irq's after cr2 has been saved and the
+	 * vmalloc fault has been handled.
+	 *
+	 * User-mode registers count as a user access even for any
+	 * potential system fault or CPU buglet:
+	 */
+	if (user_mode_vm(regs)) {
+		local_irq_enable();
+		error_code |= PF_USER;
+	} else {
+		if (regs->flags & X86_EFLAGS_IF)
+			local_irq_enable();
+	}
+
+	if (unlikely(error_code & PF_RSVD))
+		pgtable_bad(regs, error_code, address);
+
+	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+
+	/*
+	 * If we're in an interrupt, have no user context or are running
+	 * in an atomic region then we must not take the fault:
+	 */
+	if (unlikely(in_atomic() || !mm)) {
+		bad_area_nosemaphore(regs, error_code, address);
+		return;
+	}
+
+	/*
+	 * When running in the kernel we expect faults to occur only to
+	 * addresses in user space.  All other faults represent errors in
+	 * the kernel and should generate an OOPS.  Unfortunately, in the
+	 * case of an erroneous fault occurring in a code path which already
+	 * holds mmap_sem we will deadlock attempting to validate the fault
+	 * against the address space.  Luckily the kernel only validly
+	 * references user space from well defined areas of code, which are
+	 * listed in the exceptions table.
+	 *
+	 * As the vast majority of faults will be valid we will only perform
+	 * the source reference check when there is a possibility of a
+	 * deadlock. Attempt to lock the address space, if we cannot we then
+	 * validate the source. If this is invalid we can skip the address
+	 * space check, thus avoiding the deadlock:
+	 */
+	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
+		if ((error_code & PF_USER) == 0 && !search_exception_tables(regs->ip)) {
+			bad_area_nosemaphore(regs, error_code, address);
+			return;
+		}
+retry:
+		down_read(&mm->mmap_sem);
+	} else {
+		/*
+		 * The above down_read_trylock() might have succeeded in
+		 * which case we'll have missed the might_sleep() from
+		 * down_read():
+		 */
+		might_sleep();
+	}
+
+	vma = find_vma(mm, address);	// 参见find_vma()节
+	if (unlikely(!vma)) {
+		bad_area(regs, error_code, address);
+		return;
+	}
+	if (likely(vma->vm_start <= address))
+		goto good_area;
+	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN))) {
+		bad_area(regs, error_code, address);
+		return;
+	}
+	if (error_code & PF_USER) {
+		/*
+		 * Accessing the stack below %sp is always a bug.
+		 * The large cushion allows instructions like enter
+		 * and pusha to work. ("enter $65535, $31" pushes
+		 * 32 pointers and then decrements %sp by 65535.)
+		 */
+		if (unlikely(address + 65536 + 32 * sizeof(unsigned long) < regs->sp)) {
+			bad_area(regs, error_code, address);
+			return;
+		}
+	}
+	if (unlikely(expand_stack(vma, address))) {
+		bad_area(regs, error_code, address);
+		return;
+	}
+
+	/*
+	 * Ok, we have a good vm_area for this memory access, so
+	 * we can handle it..
+	 */
+good_area:
+	if (unlikely(access_error(error_code, vma))) {
+		bad_area_access_error(regs, error_code, address);
+		return;
+	}
+
+	/*
+	 * If for any reason at all we couldn't handle the fault,
+	 * make sure we exit gracefully rather than endlessly redo
+	 * the fault:
+	 */
+	/*
+	 * If handle_mm_fault() returns 1, it’s a minor fault,
+	 * 2 is a major fault, 0 sends a SIGBUS error and any
+	 * other value invokes the out of memory handler.
+	 * 参见handle_mm_fault()节
+	 */
+	fault = handle_mm_fault(mm, vma, address, flags);
+
+	if (unlikely(fault & (VM_FAULT_RETRY|VM_FAULT_ERROR))) {
+		if (mm_fault_error(regs, error_code, address, fault))
+			return;
+	}
+
+	/*
+	 * Major/minor page fault accounting is only done on the
+	 * initial attempt. If we go through a retry, it is extremely
+	 * likely that the page will be found in page cache at that point.
+	 */
+	if (flags & FAULT_FLAG_ALLOW_RETRY) {
+		if (fault & VM_FAULT_MAJOR) {
+			tsk->maj_flt++;
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs, address);
+		} else {
+			tsk->min_flt++;
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs, address);
+		}
+		if (fault & VM_FAULT_RETRY) {
+			/* Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk
+			 * of starvation. */
+			flags &= ~FAULT_FLAG_ALLOW_RETRY;
+			goto retry;
+		}
+	}
+
+	check_v8086_mode(regs, address, tsk);
+
+	up_read(&mm->mmap_sem);
+}
+```
+
+### 6.9.1 handle_mm_fault()
+
+该函数定义于mm/memory.c:
+
+```
+int handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
+			unsigned long address, unsigned int flags)
+{
+	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
+	pte_t *pte;
+
+	__set_current_state(TASK_RUNNING);
+
+	count_vm_event(PGFAULT);
+	mem_cgroup_count_vm_event(mm, PGFAULT);
+
+	/* do counter updates before entering really critical section. */
+	check_sync_rss_stat(current);
+
+	if (unlikely(is_vm_hugetlb_page(vma)))
+		return hugetlb_fault(mm, vma, address, flags);
+
+	pgd = pgd_offset(mm, address);
+	pud = pud_alloc(mm, pgd, address);
+	if (!pud)
+		return VM_FAULT_OOM;
+	pmd = pmd_alloc(mm, pud, address);
+	if (!pmd)
+		return VM_FAULT_OOM;
+	if (pmd_none(*pmd) && transparent_hugepage_enabled(vma)) {
+		if (!vma->vm_ops)
+			return do_huge_pmd_anonymous_page(mm, vma, address, pmd, flags);
+	} else {
+		pmd_t orig_pmd = *pmd;
+		barrier();
+		if (pmd_trans_huge(orig_pmd)) {
+			if (flags & FAULT_FLAG_WRITE &&
+				!pmd_write(orig_pmd) &&
+				!pmd_trans_splitting(orig_pmd))
+				return do_huge_pmd_wp_page(mm, vma, address, pmd, orig_pmd);
+			return 0;
+		}
+	}
+
+	/*
+	 * Use __pte_alloc instead of pte_alloc_map, because we can't
+	 * run pte_offset_map on the pmd, if an huge pmd could
+	 * materialize from under us from a different thread.
+	 */
+	if (unlikely(pmd_none(*pmd)) && __pte_alloc(mm, vma, pmd, address))
+		return VM_FAULT_OOM;
+	/* if an huge pmd materialized from under us just retry later */
+	if (unlikely(pmd_trans_huge(*pmd)))
+		return 0;
+	/*
+	 * A regular pmd is established and it can't morph into a huge pmd
+	 * from under us anymore at this point because we hold the mmap_sem
+	 * read mode and khugepaged takes it in write mode. So now it's
+	 * safe to run pte_offset_map().
+	 */
+	pte = pte_offset_map(pmd, address);
+
+	// 参见handle_pte_fault()节
+	return handle_pte_fault(mm, vma, address, pte, pmd, flags);
+}
+```
+
+#### 6.9.1.1 handle_pte_fault()
+
+该函数定义于mm/memory.c:
+
+```
+int handle_pte_fault(struct mm_struct *mm, struct vm_area_struct *vma,
+		     unsigned long address, pte_t *pte, pmd_t *pmd, unsigned int flags)
+{
+	pte_t entry;
+	spinlock_t *ptl;
+
+	entry = *pte;
+	if (!pte_present(entry)) {
+		/*
+		 * If no PTE has been allocated, do_anonymous_page()
+		 * is called which handles Demand Allocation.
+		 */
+		if (pte_none(entry)) {
+			if (vma->vm_ops) {
+				if (likely(vma->vm_ops->fault))
+					return do_linear_fault(mm, vma, address, pte, pmd, flags, entry);
+			}
+			return do_anonymous_page(mm, vma, address, pte, pmd, flags);
+		}
+		if (pte_file(entry))
+			return do_nonlinear_fault(mm, vma, address, pte, pmd, flags, entry);
+		/*
+		 * Otherwise it is a page that has been swapped out
+		 * to disk and do_swap_page() performs Demand Paging.
+		 */
+		return do_swap_page(mm, vma, address, pte, pmd, flags, entry);
+	}
+
+	ptl = pte_lockptr(mm, pmd);
+	spin_lock(ptl);
+	if (unlikely(!pte_same(*pte, entry)))
+		goto unlock;
+	if (flags & FAULT_FLAG_WRITE) {
+		/*
+		 * If the PTE is write protected, then do_wp_page() is
+		 * called as the page is a Copy-On-Write (COW) page.
+		 * A COW page is one which is shared between multiple
+		 * processes (usually a parent and child) until a write
+		 * occurs after which a private copy is made for the
+		 * writing process.
+		 */
+		if (!pte_write(entry))
+			return do_wp_page(mm, vma, address, pte, pmd, ptl, entry);
+		/*
+		 * If it is not a COW page, the page is simply marked
+		 * dirty as it has been written to.
+		 */
+		entry = pte_mkdirty(entry);
+	}
+	/*
+	 * If the page has been read and is present but a fault still
+	 * occurred. This can occur with some architectures that do
+	 * not have a three level page table. In this case, the PTE
+	 * is simply established and marked young.
+	 */
+	entry = pte_mkyoung(entry);
+	if (ptep_set_access_flags(vma, address, pte, entry, flags & FAULT_FLAG_WRITE)) {
+		update_mmu_cache(vma, address, pte);
+	} else {
+		/*
+		 * This is needed only for protection faults but the arch code
+		 * is not yet telling us if this is a protection fault or not.
+		 * This still avoids useless tlb flushes for .text page faults
+		 * with threads.
+		 */
+		if (flags & FAULT_FLAG_WRITE)
+			flush_tlb_fix_spurious_fault(vma, address);
+	}
+unlock:
+	pte_unmap_unlock(pte, ptl);
+	return 0;
+}
+```
+
+### 6.9.2 Out Of Memory (OOM) Management
+
+Out Of Memory (OOM) manager has one simple task: check if there is enough available memory to satisfy, verify that the system is truely out of memory and if so, select a process to kill.
+
+#### 6.9.2.1 mm_fault_error()
+
+该函数定义于arch/x86/mm/fault.c:
+
+```
+static noinline int mm_fault_error(struct pt_regs *regs, unsigned long error_code,
+				  unsigned long address, unsigned int fault)
+{
+	/*
+	 * Pagefault was interrupted by SIGKILL. We have no reason to
+	 * continue pagefault.
+	 */
+	if (fatal_signal_pending(current)) {
+		if (!(fault & VM_FAULT_RETRY))
+			up_read(&current->mm->mmap_sem);
+		if (!(error_code & PF_USER))
+			no_context(regs, error_code, address);
+		return 1;
+	}
+	if (!(fault & VM_FAULT_ERROR))
+		return 0;
+
+	if (fault & VM_FAULT_OOM) {
+		/* Kernel mode? Handle exceptions or die: */
+		if (!(error_code & PF_USER)) {
+			up_read(&current->mm->mmap_sem);
+			no_context(regs, error_code, address);
+			return 1;
+		}
+
+		out_of_memory(regs, error_code, address);
+	} else {
+		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE))
+			do_sigbus(regs, error_code, address, fault);
+		else
+			BUG();
+	}
+	return 1;
+}
+```
+
+其中，函数out_of_memory()定义于arch/x86/mm/fault.c:
+
+```
+static void out_of_memory(struct pt_regs *regs, unsigned long error_code, unsigned long address)
+{
+	/*
+	 * We ran out of memory, call the OOM killer, and return the userspace
+	 * (which will retry the fault, or kill us if we got oom-killed):
+	 */
+	up_read(&current->mm->mmap_sem);
+
+	pagefault_out_of_memory();
+}
+```
+
+其中，函数pagefault_out_of_memory()定义于mm/oom_kill.c:
+
+```
+/*
+ * The pagefault handler calls here because it is out of memory, so kill a
+ * memory-hogging task.  If a populated zone has ZONE_OOM_LOCKED set, a parallel
+ * oom killing is already in progress so do nothing.  If a task is found with
+ * TIF_MEMDIE set, it has been killed so do nothing and allow it to exit.
+ */
+void pagefault_out_of_memory(void)
+{
+	if (try_set_system_oom()) {
+		out_of_memory(NULL, 0, 0, NULL);	// 参见out_of_memory()节
+		clear_system_oom();
+	}
+	if (!test_thread_flag(TIF_MEMDIE))
+		schedule_timeout_uninterruptible(1);
+}
+```
+
+##### 6.9.2.1.1 out_of_memory()
+
+该函数定义于mm/oom_kill.c:
+
+```
+/**
+ * out_of_memory - kill the "best" process when we run out of memory
+ * @zonelist: zonelist pointer
+ * @gfp_mask: memory allocation flags
+ * @order: amount of memory being requested as a power of 2
+ * @nodemask: nodemask passed to page allocator
+ *
+ * If we run out of memory, we have the choice between either
+ * killing a random task (bad), letting the system crash (worse)
+ * OR try to be smart about which process to kill. Note that we
+ * don't have to be perfect here, we just have to be good.
+ */
+void out_of_memory(struct zonelist *zonelist, gfp_t gfp_mask, int order, nodemask_t *nodemask)
+{
+	const nodemask_t *mpol_mask;
+	struct task_struct *p;
+	unsigned long totalpages;
+	unsigned long freed = 0;
+	unsigned int points;
+	enum oom_constraint constraint = CONSTRAINT_NONE;
+	int killed = 0;
+
+	blocking_notifier_call_chain(&oom_notify_list, 0, &freed);
+	if (freed > 0)
+		/* Got some memory back in the last second. */
+		return;
+
+	/*
+	 * If current has a pending SIGKILL, then automatically select it.  The
+	 * goal is to allow it to allocate so that it may quickly exit and free
+	 * its memory.
+	 */
+	if (fatal_signal_pending(current)) {
+		set_thread_flag(TIF_MEMDIE);
+		return;
+	}
+
+	/*
+	 * Check if there were limitations on the allocation (only relevant for
+	 * NUMA) that may require different handling.
+	 */
+	constraint = constrained_alloc(zonelist, gfp_mask, nodemask, &totalpages);
+	mpol_mask = (constraint == CONSTRAINT_MEMORY_POLICY) ? nodemask : NULL;
+	check_panic_on_oom(constraint, gfp_mask, order, mpol_mask);
+
+	read_lock(&tasklist_lock);
+	if (sysctl_oom_kill_allocating_task &&
+		 !oom_unkillable_task(current, NULL, nodemask) &&
+		 current->mm) {
+		/*
+		 * oom_kill_process() needs tasklist_lock held.  If it returns
+		 * non-zero, current could not be killed so we must fallback to
+		 * the tasklist scan.
+		 */
+		if (!oom_kill_process(current, gfp_mask, order, 0, totalpages, NULL, nodemask,
+						"Out of memory (oom_kill_allocating_task)"))
+			goto out;
+	}
+
+retry:
+	/*
+	 * It's responsible for choosing a process to kill.
+	 * It decides by stepping through each running task
+	 * and calculating how suitable it is for killing
+	 * with the function oom_badness().
+	 */
+	p = select_bad_process(&points, totalpages, NULL, mpol_mask);
+	if (PTR_ERR(p) == -1UL)
+		goto out;
+
+	/* Found nothing?!?! Either we hang forever, or we panic. */
+	if (!p) {
+		dump_header(NULL, gfp_mask, order, NULL, mpol_mask);
+		read_unlock(&tasklist_lock);
+		panic("Out of memory and no killable processes...\n");
+	}
+
+	/*
+	 * Once a task is selected, the list is walked again and
+	 * each process that shares the same mm_struct as the
+	 * selected process (i.e. they are threads) is sent a signal.
+	 * If the process has CAP_SYS_RAWIO capabilities, a SIGTERM
+	 * is sent to give the process a chance of exiting cleanly,
+	 * otherwise a SIGKILL is sent.
+	 */
+	if (oom_kill_process(p, gfp_mask, order, points, totalpages, NULL, nodemask, "Out of memory"))
+		goto retry;
+	killed = 1;
+out:
+	read_unlock(&tasklist_lock);
+
+	/*
+	 * Give "p" a good chance of killing itself before we
+	 * retry to allocate memory unless "p" is current
+	 */
+	if (killed && !test_thread_flag(TIF_MEMDIE))
+		schedule_timeout_uninterruptible(1);
+}
+```
+
+## 6.10 Reserved Page Frame Pool
+
+参见<<Understanding the Linux Kernel, 3rd Edition>> 第8. Memory Management章第The Pool of Reserved Page Frames节:
+
+Memory allocation requests can be satisfied in two different ways. If enough free memory is available, the request can be satisfied immediately. Otherwise, some memory reclaiming must take place, and the kernel control path that made the request is blocked until additional memory has been freed.
+
+However, some kernel control paths cannot be blocked while requesting memory — this happens, for instance, when handling an interrupt or when executing code inside a critical region. In these cases, a kernel control path should issue atomic memory allocation requests (using the GFP_ATOMIC flag). An atomic request never blocks: if there are not enough free pages, the allocation simply fails.
+
+Although there is no way to ensure that an atomic memory allocation request never fails, the kernel tries hard to minimize the likelihood of this unfortunate event. In order to do this, the kernel reserves a pool of page frames for atomic memory allocation requests to be used only on low-on-memory conditions.
+
+The amount of the reserved memory (in kilobytes) is stored in the min_free_kbytes variable. Its initial value is set during kernel initialization and depends on the amount of physical memory that is directly mapped in the kernel’s fourth gigabyte of linear addresses — that is, it depends on the number of page frames included in the ZONE_DMA and ZONE_NORMAL memory zones:
+
+![Reserved_Memory](/assets/Reserved_Memory.png)
+
+However, initially min_free_kbytes cannot be lower than 128 and greater than 65,536.
+
+全局变量min_free_kbytes定义于mm/page_alloc.c:
+
+```
+int min_free_kbytes = 1024;
+
+int __meminit init_per_zone_wmark_min(void)
+{
+	unsigned long lowmem_kbytes;
+
+	lowmem_kbytes = nr_free_buffer_pages() * (PAGE_SIZE >> 10);
+
+	min_free_kbytes = int_sqrt(lowmem_kbytes * 16);
+	if (min_free_kbytes < 128)
+		min_free_kbytes = 128;
+	if (min_free_kbytes > 65536)
+		min_free_kbytes = 65536;
+
+	setup_per_zone_wmarks();
+	refresh_zone_stat_thresholds();
+	setup_per_zone_lowmem_reserve();
+	setup_per_zone_inactive_ratio();
+
+	return 0;
+}
+
+/*
+ * 由mm/Makefile可知，mm/page_alloc.c被直接编译进内核，
+ * 故在系统启动时如下初始化函数被调用，
+ * 参见module被编译进内核时的初始化过程节
+ */
+module_init(init_per_zone_wmark_min)
+```
+
+The ZONE_DMA and ZONE_NORMAL memory zones contribute to the reserved memory with a number of page frames proportional to their relative sizes.
+
+The **pages_min** field of the zone descriptor stores the number of reserved page frames inside the zone. That field plays also a role for the page frame reclaiming algorithm, together with the **pages_low** and **pages_high** fields. The **pages_low** field is always set to 5/4 of the value of **pages_min**, and **pages_high** is always set to 3/2 of the value of **pages_min**.
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

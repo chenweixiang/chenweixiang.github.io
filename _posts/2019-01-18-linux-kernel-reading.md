@@ -26369,6 +26369,516 @@ int kthread_should_stop(void)
 }
 ```
 
+## 7.3 进程终结
+
+进程终结可以通过几个事件驱动、通过正常的进程结束(当一个C程序从main()函数返回时startup routine调用exit())、通过信号或着通过显式地调用exit()函数。
+
+### 7.3.1 与进程终结有关的系统调用/用户接口
+
+进程终结时内核释放其所占有的资源，并通知父进程更新父子关系。进程的终结一般是显示或隐式地调用了eixt()，或者接收到某种信号。不管是什么原因导致进程终结，最终都会调用do_exit()来处理。
+
+![do_exit](/assets/do_exit.png)
+
+#### 7.3.1.1 sys_exit_group()/sys_exit()/exit()
+
+系统调用sys_exit_group()和sys_exit()定义于kernel/exit.c:
+
+```
+/*
+ * this kills every thread in the thread group. Note that any externally
+ * wait4()-ing process will get the correct exit code - even if this
+ * thread is not the thread group leader.
+ */
+SYSCALL_DEFINE1(exit_group, int, error_code)
+{
+	do_group_exit((error_code & 0xff) << 8);	// 参见do_group_exit()节
+	/* NOTREACHED */
+	return 0;
+}
+
+SYSCALL_DEFINE1(exit, int, error_code)
+{
+	do_exit((error_code & 0xff) << 8);		// 参见do_exit()节
+}
+```
+
+函数```sys_exit_group()```终止整个线程组中的进程，而函数```sys_exit()```只终止某个进程。
+
+用户接口```exit()```的声明如下：
+
+```
+#include <stdlib.h>
+void exit(int status);
+void _Exit(int status);
+
+#include <unistd.h>
+void _exit(int status);
+```
+
+函数```exit()```：在执行该函数时，进程会检查文件打开情况，清理I/O缓存。如果缓存中有数据，就会将它们写入相应的文件。这样就防止了文件数据的丢失，然后终止进程。
+
+函数```_exit()```：在执行该函数时，并不清理标准输入输出缓存，而是直接清除内存空间，当然也就把文件缓存中尚未写入文件的数据给销毁了。
+
+由此可见，使用```exit()```更安全。
+
+### 7.3.2 do_group_exit()
+
+该函数定义于kernel/exit.c:
+
+```
+/*
+ * Take down every thread in the group.  This is called by fatal signals
+ * as well as by sys_exit_group (below).
+ */
+NORET_TYPE void do_group_exit(int exit_code)
+{
+	struct signal_struct *sig = current->signal;
+
+	BUG_ON(exit_code & 0x80); /* core dumps don't get here */
+
+	/*
+	 * signal_group_exit(): Checks whether the SIGNAL_GROUP_EXIT flag
+	 * of the exiting process is not zero, which means that the kernel
+	 * already started an exit procedure for this thread group.
+	if (signal_group_exit(sig))
+		exit_code = sig->group_exit_code;
+	else if (!thread_group_empty(current)) {
+		struct sighand_struct *const sighand = current->sighand;
+		spin_lock_irq(&sighand->siglock);
+		if (signal_group_exit(sig))
+			/* Another thread got here before we took the lock.  */
+			exit_code = sig->group_exit_code;
+		else {
+			sig->group_exit_code = exit_code;
+			sig->flags = SIGNAL_GROUP_EXIT;
+			/*
+			 * Kill the other processes in the thread group of current,
+			 * if any. In order to do this, the function scans the per
+			 * PID list in the PIDTYPE_TGID hash table corresponding to
+			 * current->tgid; for each process in the list different from
+			 * current, it sends a SIGKILL signal to it. As a result, all
+			 * such processes will eventually execute the do_exit()
+			 * function, and thus they will be killed.
+			 */
+			zap_other_threads(current);
+		}
+		spin_unlock_irq(&sighand->siglock);
+	}
+
+	do_exit(exit_code);	// 参见do_exit()节
+	/* NOTREACHED */
+}
+```
+
+### 7.3.3 do_exit()
+
+该函数定义于kernel/exit.c:
+
+```
+NORET_TYPE void do_exit(long code)
+{
+	struct task_struct *tsk = current; 	// 获取当前运行进程
+	int group_dead;
+
+	profile_task_exit(tsk);
+
+	WARN_ON(blk_needs_flush_plug(tsk));
+
+	if (unlikely(in_interrupt()))
+		panic("Aiee, killing interrupt handler!");
+	if (unlikely(!tsk->pid))
+		panic("Attempted to kill the idle task!");
+
+	/*
+	 * If do_exit is called because this processes oopsed, it's possible
+	 * that get_fs() was left as KERNEL_DS, so reset it to USER_DS before
+	 * continuing. Amongst other possible reasons, this is to prevent
+	 * mm_release()->clear_child_tid() from writing to a user-controlled
+	 * kernel address.
+	 */
+	set_fs(USER_DS);
+
+	ptrace_event(PTRACE_EVENT_EXIT, code);
+
+	validate_creds_for_do_exit(tsk);
+
+	/*
+	 * We're taking recursive faults here in do_exit. Safest is to just
+	 * leave this task alone and wait for reboot.
+	 */
+	// 标志PF_EXITING表示进程正在终止，参见下文中的 exit_signals(tsk);
+	if (unlikely(tsk->flags & PF_EXITING)) {
+		printk(KERN_ALERT "Fixing recursive fault but reboot is needed!\n");
+		/*
+		 * We can do this unlocked here. The futex code uses
+		 * this flag just to verify whether the pi state
+		 * cleanup has been done or not. In the worst case it
+		 * loops once more. We pretend that the cleanup was
+		 * done as there is no way to return. Either the
+		 * OWNER_DIED bit is set by now or we push the blocked
+		 * task into the wait for ever nirwana as well.
+		 */
+		tsk->flags |= PF_EXITPIDONE;
+		set_current_state(TASK_UNINTERRUPTIBLE);
+		schedule();	// 调度其他进程运行，参见schedule()节
+	}
+
+	exit_irq_thread();
+
+	/*
+	 * 设置PF_EXITING标志来表明进程正在退出，并清除所有信号处理函数。
+	 * 内核的其他部分会利用PF_EXITING标志来防止在进程被删除时还试图
+	 * 处理此进程，参见上述的语句块：
+	 *	if (unlikely(tsk->flags & PF_EXITING)) {
+	 */
+	exit_signals(tsk);  /* sets PF_EXITING */
+	/*
+	 * tsk->flags are checked in the futex code to protect against
+	 * an exiting task cleaning up the robust pi futexes.
+	 */
+	smp_mb();
+	raw_spin_unlock_wait(&tsk->pi_lock);
+
+	if (unlikely(in_atomic()))
+		printk(KERN_INFO "note: %s[%d] exited with preempt_count %d\n",
+				current->comm, task_pid_nr(current), preempt_count());
+
+	acct_update_integrals(tsk);
+	/* sync mm's RSS info before statistics gathering */
+	if (tsk->mm)
+		sync_mm_rss(tsk, tsk->mm);
+	group_dead = atomic_dec_and_test(&tsk->signal->live);
+	if (group_dead) {
+		/*
+		 * 取消tsk->signal->real_timer定时器，
+		 * 参见取消定时器/hrtimer_cancel()节
+		 */
+		hrtimer_cancel(&tsk->signal->real_timer);
+		exit_itimers(tsk->signal);
+		if (tsk->mm)
+			setmax_mm_hiwater_rss(&tsk->signal->maxrss, tsk->mm);
+	}
+	acct_collect(code, group_dead);
+	if (group_dead)
+		tty_audit_exit();
+	if (unlikely(tsk->audit_context))
+		audit_free(tsk);
+
+	tsk->exit_code = code;
+	taskstats_exit(tsk, group_dead);
+
+	/*
+	 * 下面分别调用exit_mm()，exit_sem()，exit_files()、exit_fs()
+	 * 和exit_thread()函数，以便从进程描述符中分离出与分页、信号量、文
+	 * 件系统、打开文件描述符以及I/O权限位图相关的数据结构。如果没有其它
+	 * 进程共享这些数据结构，那么这些函数还会删除这些数据结构。
+	 * /
+
+	// 释放进程描述符task_struct中的mm_struct内存
+	exit_mm(tsk);
+
+	if (group_dead)
+		acct_process();
+	trace_sched_process_exit(tsk);
+
+	exit_sem(tsk); 		// 退出接收IPC semaphore的队列
+	exit_shm(tsk); 		// 退出进程名字空间
+	exit_files(tsk);	// Decrement the usage count of objects related to file descriptors
+	exit_fs(tsk); 		// Decrement the usage count of objects related to filesystem data
+	check_stack_usage();	// 检查栈的使用情况
+	exit_thread();		// 资源释放
+
+	/*
+	 * Flush inherited counters to the parent - before the parent
+	 * gets woken up by child-exit notifications.
+	 *
+	 * because of cgroup mode, must be called before cgroup_exit()
+	 */
+	perf_event_exit_task(tsk);
+
+	cgroup_exit(tsk, 1);
+
+	if (group_dead)
+		disassociate_ctty(1);
+
+	module_put(task_thread_info(tsk)->exec_domain->module);
+
+	proc_exit_connector(tsk);
+
+	/*
+	 * FIXME: do that only when needed, using sched_exit tracepoint
+	 */
+	ptrace_put_breakpoints(tsk);
+
+	/*
+	 * Send signals to the task’s parent, reparents any of the
+	 * task’s children to another thread in their thread group
+	 * or the init process, and sets the task’s exit state,
+	 * stored in exit_state in the task_struct structure, to
+	 * EXIT_ZOMBIE. 参见exit_notify()节
+	 */
+	exit_notify(tsk, group_dead);
+#ifdef CONFIG_NUMA
+	task_lock(tsk);
+	mpol_put(tsk->mempolicy);
+	tsk->mempolicy = NULL;
+	task_unlock(tsk);
+#endif
+#ifdef CONFIG_FUTEX
+	if (unlikely(current->pi_state_cache))
+		kfree(current->pi_state_cache);
+#endif
+	/*
+	 * Make sure we are holding no locks:
+	 */
+	debug_check_no_locks_held(tsk);
+	/*
+	 * We can do this unlocked here. The futex code uses this flag
+	 * just to verify whether the pi state cleanup has been done
+	 * or not. In the worst case it loops once more.
+	 */
+	tsk->flags |= PF_EXITPIDONE;
+
+	if (tsk->io_context)
+		exit_io_context(tsk);
+
+	if (tsk->splice_pipe)
+		__free_pipe_info(tsk->splice_pipe);
+
+	validate_creds_for_do_exit(tsk);
+
+	preempt_disable();	// 参见preempt_disable()节
+	exit_rcu();
+	/* causes final put_task_struct in finish_task_switch(). */
+	tsk->state = TASK_DEAD;
+	/*
+	 * 调度其他进程运行，参见schedule()节；
+	 * Because the process is now not schedulable, this is
+	 * the last code the task will ever execute. The only
+	 * memory it occupies is its kernel stack, the structure
+	 * thread_info, and the task_struct structure. do_exit()
+	 * never returns.
+	 */
+	schedule();
+	BUG();
+	/* Avoid "noreturn function does return".  */
+	for (;;)
+		cpu_relax();	/* For when BUG is null */
+}
+```
+
+僵死进程是一个进程已经退出，它的内存和资源已经释放掉了，但是为了使系统在它退出后能够获得它的退出状态等信息，它的进程描述符仍然保留。
+
+一个进程退出时，它的父进程会接收到一个SIGCHLD信号，一般情况下这个信号的处理函数会执行```wait()```系列函数等待子进程的结束。从子进程退出到父进程调用```wait()```函数(子进程结束)的这段时间，子进程被称为僵死进程。执行命令```ps -ef```，在结果中以```z```结尾的进程就是僵死进程。
+
+僵死进程很特殊，因为它没有任何可执行代码，不会被调度，只有一个进程描述符用来记录退出等状态，除此之外不再占用其他任何资源。
+
+如果僵死进程的父进程没有调用```wait()```，则该进程会一直处于僵死状态。如果父进程结束，内核会在当前线程组里为其找一个父进程，如果没找到，则把init进程作为其父进程，此时新的父进程将负责清除其进程。如果父进程一直不结束，该进程会一直僵死。在root下使用```kill -9```命令也不能将其杀死。
+
+#### 7.3.3.1 exit_notify()
+
+该函数定义于kernel/exit.c:
+
+```
+/*
+ * Send signals to all our closest relatives so that they know
+ * to properly mourn us.
+ */
+static void exit_notify(struct task_struct *tsk, int group_dead)
+{
+	bool autoreap;
+
+	/*
+	 * This does two things:
+	 *
+	 * A.  Make init inherit all the child processes
+	 * B.  Check to see if any process groups have become orphaned
+	 *	  as a result of our exiting, and if they have any stopped
+	 *	  jobs, send them a SIGHUP and then a SIGCONT. (POSIX 3.2.2.2)
+	 */
+	forget_original_parent(tsk);	// 参见forget_original_parent()节
+	exit_task_namespaces(tsk);
+
+	write_lock_irq(&tasklist_lock);
+	if (group_dead)
+		kill_orphaned_pgrp(tsk->group_leader, NULL);
+
+	/*
+	 * Let father know we died.
+	 *
+	 * Thread signals are configurable, but you aren't going to use
+	 * that to send signals to arbitrary processes.
+	 * That stops right now.
+	 *
+	 * If the parent exec id doesn't match the exec id we saved
+	 * when we started then we know the parent has changed security
+	 * domain.
+	 *
+	 * If our self_exec id doesn't match our parent_exec_id then
+	 * we have changed execution domain as these two values started
+	 * the same after a fork.
+	 */
+	if (thread_group_leader(tsk) && tsk->exit_signal != SIGCHLD &&
+		 (tsk->parent_exec_id != tsk->real_parent->self_exec_id ||
+		  tsk->self_exec_id != tsk->parent_exec_id))
+		tsk->exit_signal = SIGCHLD;
+
+	if (unlikely(tsk->ptrace)) {
+		int sig = thread_group_leader(tsk) && thread_group_empty(tsk) &&
+					!ptrace_reparented(tsk) ? tsk->exit_signal : SIGCHLD;
+		autoreap = do_notify_parent(tsk, sig);
+	} else if (thread_group_leader(tsk)) {
+		autoreap = thread_group_empty(tsk) && do_notify_parent(tsk, tsk->exit_signal);
+	} else {
+		autoreap = true;
+	}
+
+	/*
+	 * 子进程在结束前不一定都需要经过一个EXIT_ZOMBIE过程。
+	 * 若父进程调用了waitpid()等待子进程：
+	 *	则父进程会显式处理它发来的SIGCHILD信号，子进程结束
+	 * 	时会自我清理(在下文中自己调用release_task()清理)；
+	 * 若父进程未调用waitpid()等待子进程：
+	 * 	则父进程不会处理SIGCHLD信号，子进程不会马上被清理，
+	 * 	而是变成EXIT_ZOMBIE状态，成为僵尸进程。
+	 * 若子进程退出时父进程恰好正在睡眠(sleep)：
+	 * 	父进程没有及时处理SIGCHLD信号，子进程也会成为僵尸进程。
+	 * 	只要父进程在醒来后能调用waitpid()，也能清理僵尸子进程，
+	 * 	因为系统调用wait()内部有清理僵尸子进程的代码。
+	 * 综上，如果父进程一直没有调用waitpid()，那么僵尸子进程就只
+	 * 能等到父进程退出时被init接管了。init进程会负责清理这些僵
+	 * 尸进程。
+	 */
+	tsk->exit_state = autoreap ? EXIT_DEAD : EXIT_ZOMBIE;
+
+	/* mt-exec, de_thread() is waiting for group leader */
+	if (unlikely(tsk->signal->notify_count < 0))
+		wake_up_process(tsk->signal->group_exit_task);
+	write_unlock_irq(&tasklist_lock);
+
+	/* If the process is dead, release it - nobody will wait for it */
+	if (autoreap)
+		release_task(tsk);	// 参见release_task()节
+}
+```
+
+##### 7.3.3.1.1 forget_original_parent()
+
+该函数将当前进程的所有子进程的父进程ID设置为1 (init)，让init接管所有这些子进程，以避免成为孤儿进程。如果当前进程是某个进程组的组长，其销毁导致进程组变为“无领导状态“，则向每个组内进程发送挂起信号SIGHUP，然后发送SIGCONT。
+
+该函数定义于kernel/exit.c：
+
+```
+static void forget_original_parent(struct task_struct *father)
+{
+	struct task_struct *p, *n, *reaper;
+	LIST_HEAD(dead_children);
+
+	write_lock_irq(&tasklist_lock);
+	/*
+	 * Note that exit_ptrace() and find_new_reaper() might
+	 * drop tasklist_lock and reacquire it.
+	 */
+	exit_ptrace(father);
+	/*
+	 * Find and return another task in the process’s thread
+	 * group. If another task is not in the thread group,
+	 * it finds and returns the init process.
+	 */
+	reaper = find_new_reaper(father);
+
+	/*
+	 * Now that a suitable new parent for the children is found,
+	 * each child needs to be located and reparented to reaper.
+	 */
+	list_for_each_entry_safe(p, n, &father->children, sibling) {
+		struct task_struct *t = p;
+		do {
+			t->real_parent = reaper;
+			if (t->parent == father) {
+				BUG_ON(t->ptrace);
+				t->parent = t->real_parent;
+			}
+			if (t->pdeath_signal)
+				group_send_sig_info(t->pdeath_signal, SEND_SIG_NOINFO, t);
+		} while_each_thread(p, t);
+		reparent_leader(father, p, &dead_children);
+	}
+	write_unlock_irq(&tasklist_lock);
+
+	BUG_ON(!list_empty(&father->children));
+
+	list_for_each_entry_safe(p, n, &dead_children, sibling) {
+		list_del_init(&p->sibling);
+		release_task(p);		// 参见release_task()节
+	}
+}
+```
+
+##### 7.3.3.1.2 release_task()
+
+该函数定义于kernel/exit.c:
+
+```
+void release_task(struct task_struct * p)
+{
+	struct task_struct *leader;
+	int zap_leader;
+repeat:
+	/* don't need to get the RCU readlock here - the process is dead and
+	 * can't be modifying its own credentials. But shut RCU-lockdep up */
+	rcu_read_lock();
+	atomic_dec(&__task_cred(p)->user->processes);
+	rcu_read_unlock();
+
+	proc_flush_task(p);
+
+	write_lock_irq(&tasklist_lock);
+	ptrace_release_task(p);
+	/*
+	 * Cancel any pending signal and to release the signal_struct
+	 * descriptor of the process. Remove the process from the
+	 * pidhash and remove the process from the task list; Releases
+	 * any remaining resources used by the now dead process and
+	 * finalizes statistics and bookkeeping.
+	 */
+	__exit_signal(p);
+
+	/*
+	 * If we are the last non-leader member of the thread
+	 * group, and the leader is zombie, then notify the
+	 * group leader's parent process. (if it wants notification.)
+	 */
+	zap_leader = 0;
+	leader = p->group_leader;
+	if (leader != p && thread_group_empty(leader) && leader->exit_state == EXIT_ZOMBIE) {
+		/*
+		 * If we were the last child thread and the leader has
+		 * exited already, and the leader's parent ignores SIGCHLD,
+		 * then we are the one who should release the leader.
+		 */
+		zap_leader = do_notify_parent(leader, leader->exit_signal);
+		if (zap_leader)
+			leader->exit_state = EXIT_DEAD;
+	}
+
+	write_unlock_irq(&tasklist_lock);
+	release_thread(p);
+	/*
+	 * Call put_task_struct() to free the pages containing
+	 * the process’s kernel stack and thread_info structure
+	 * and deallocate the slab cache containing the task_struct.
+	 * At this point, the process descriptor and all resources
+	 * belonging solely to the process have been freed.
+	 */
+	call_rcu(&p->rcu, delayed_put_task_struct);
+
+	p = leader;
+	if (unlikely(zap_leader))
+		goto repeat;
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

@@ -20541,6 +20541,489 @@ struct vm_struct *remove_vm_area(const void *addr)
 }
 ```
 
+## 6.7 Kernel Mappings of High-Memory Page Frames
+
+The linear address that corresponds to the end of the directly mapped physical memory, and thus to the beginning of the high memory, is stored in the high_memory variable, which is set to 896 MB. Page frames above the 896 MB boundary are not generally mapped in the fourth gigabyte of the kernel linear address spaces, so the kernel is unable to directly access them. This implies that each page allocator function that returns the linear address of the assigned page frame doesn’t work for high memory page frames, that is, for page frames in the ZONE_HIGHME Mmemory zone.
+
+变量high_memory定义于mm/memory.c:
+
+```
+/*
+ * A number of key systems in x86 including ioremap() rely on the assumption
+ * that high_memory defines the upper bound on direct map memory, then end
+ * of ZONE_NORMAL.  Under CONFIG_DISCONTIG this means that max_low_pfn and
+ * highstart_pfn must be the same; there must be no gap between ZONE_NORMAL
+ * and ZONE_HIGHMEM.
+ */
+void * high_memory;
+```
+
+变量high_memory的初始化过程如下：
+
+```
+start_kernel()
+-> setup_arch()
+   -> initmem_init()		// arch/x86/mm/init_32.c
+```
+
+The allocation of high-memory page frames is done only through the alloc_pages() function and its alloc_page() shortcut.
+
+Page frames in high memory that do not have a linear address cannot be accessed by the kernel. Therefore, part of the last 128 MB of the kernel linear address space is dedicated to mapping high-memory page frames.
+
+The kernel uses three different mechanisms to map page frames in high memory; they are called:
+* Permanent Kernel Mapping, see section Permanent Kernel Mapping
+* Temporary Kernel Mapping, see section emporary Kernel Mapping
+* Noncontiguous Memory Allocation, see section Allocate Virtually Contiguous Memory
+
+### 6.7.1 Permanent Kernel Mapping
+
+Permanent kernel mappings allow the kernel to establish long-lasting mappings of high-memory page frames into the kernel address space. They use a dedicated Page Table in the master kernel page tables. The pkmap_page_table variable (see section pkmap_page_table的初始化) stores the address of this Page Table, while the LAST_PKMAP macro yields the number of entries. As usual, the Page Table includes either 512 or 1,024 entries, according to whether PAE is enabled or disabled; thus, the kernel can access at most 2 or 4 MB of high memory at once. The Page Table maps the linear addresses starting from PKMAP_BASE.
+
+The current state of the page table entries is managed by a simple array called pkmap_count which has LAST_PKMAP entries in it. Each element is not exactly a reference count but it is very close. If the entry is 0, the page is free and has not been used since the last TLB flush. If it is 1, the slot is unused but a page is still mapped there waiting for a TLB flush. Flushes are delayed until every slot has been used at least once as a global flush is required for all CPUs when the global page tables are modified and is extremely expensive. Any higher value is a reference count of n-1 users of the page.
+
+Establishing a permanent kernel mapping may block the current process; this happens when no free Page Table entries exist that can be used as "windows" on the page frames in high memory. Thus, a permanent kernel mapping cannot be established in interrupt handlers and deferrable functions.
+
+参见mm/highmem.c:
+
+```
+static int pkmap_count[LAST_PKMAP];
+static unsigned int last_pkmap_nr;
+static  __cacheline_aligned_in_smp DEFINE_SPINLOCK(kmap_lock);
+pte_t *pkmap_page_table;
+static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
+```
+
+其中，LAST_PKMAP和PKMAP_BASE定义于arch/x86/include/asm/pgtable_32_types.h:
+
+```
+#ifdef CONFIG_X86_PAE
+#define LAST_PKMAP	512
+#else
+#define LAST_PKMAP	1024
+#endif
+
+#define PKMAP_BASE	((FIXADDR_BOOT_START - PAGE_SIZE * (LAST_PKMAP + 1))	& PMD_MASK)
+```
+
+变量pkmap_page_table的结果:
+
+![Memery_Layout_12](/assets/Memery_Layout_12.jpg)
+
+#### 6.7.1.1 pkmap_page_table的初始化
+
+```
+start_kernel()
+-> setup_arch()
+   -> paging_init()
+      -> pagetable_init()		// 参见early_node_map[]=>node_data[]->node_zones[]节
+         -> permanent_kmaps_init(swapper_pg_dir)
+```
+
+函数permanent_kmaps_init()定义于arch/x86/mm/init_32.c:
+
+```
+#ifdef CONFIG_HIGHMEM
+static void __init permanent_kmaps_init(pgd_t *pgd_base)
+{
+	unsigned long vaddr;
+	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
+	pte_t *pte;
+
+	vaddr = PKMAP_BASE;
+	// 即调用：page_table_range_init(PKMAP_BASE, PKMAP_BASE + PAGE_SIZE*LAST_PKMAP, swapper_pg_dir);
+	page_table_range_init(vaddr, vaddr + PAGE_SIZE*LAST_PKMAP, pgd_base);
+
+	pgd = swapper_pg_dir + pgd_index(vaddr);
+	pud = pud_offset(pgd, vaddr);
+	pmd = pmd_offset(pud, vaddr);
+	pte = pte_offset_kernel(pmd, vaddr);
+	/*
+	 * The page table entry for use with kmap() is called
+	 * pkmap_page_table which is located at PKMAP_BASE.
+	 */
+	pkmap_page_table = pte;
+}
+#endif
+```
+
+其中，函数page_table_range_init()定义于arch/x86/mm/init_32.c:
+
+```
+// 即调用：page_table_range_init(PKMAP_BASE, PKMAP_BASE + PAGE_SIZE*LAST_PKMAP, swapper_pg_dir);
+static void __init page_table_range_init(unsigned long start, unsigned long end, pgd_t *pgd_base)
+{
+	int pgd_idx, pmd_idx;
+	unsigned long vaddr;
+	pgd_t *pgd;
+	pmd_t *pmd;
+	pte_t *pte = NULL;
+
+	vaddr = start;
+	pgd_idx = pgd_index(vaddr);
+	pmd_idx = pmd_index(vaddr);
+	pgd = pgd_base + pgd_idx;
+
+	for ( ; (pgd_idx < PTRS_PER_PGD) && (vaddr != end); pgd++, pgd_idx++) {
+		pmd = one_md_table_init(pgd);
+		pmd = pmd + pmd_index(vaddr);
+		for (; (pmd_idx < PTRS_PER_PMD) && (vaddr != end); pmd++, pmd_idx++) {
+			pte = page_table_kmap_check(one_page_table_init(pmd), pmd, vaddr, pte);
+			vaddr += PMD_SIZE;
+		}
+		pmd_idx = 0;
+	}
+}
+```
+
+#### 6.7.1.2 kmap()
+
+The kmap() function establishes a permanent kernel mapping.
+
+**NOTE**: The kmap pool is quite small so it is important that users of ```kmap()``` call ```kunmap()``` as quickly as possible because the pressure on this small window grows incrementally worse as the size of high memory grows in comparison to low memory.
+
+该函数定义于arch/x86/mm/highmem_32.c:
+
+```
+void *kmap(struct page *page)
+{
+	might_sleep();
+
+	/*
+	 * If the page is already in low memory and simply
+	 * returns the address if it is.
+	 */
+	if (!PageHighMem(page))
+		return page_address(page);	// 参见page_address()节
+
+	/* If it is a high page to be mapped, kmap_high() is
+	 * called to map a highmem page into memory.
+	 */
+	return kmap_high(page);			// 参见kmap_high()节
+}
+```
+
+##### 6.7.1.2.1 kmap_high()
+
+该函数定义于mm/highmem.c:
+
+```
+/**
+ * kmap_high - map a highmem page into memory
+ * @page: &struct page to map
+ *
+ * Returns the page's virtual memory address.
+ *
+ * We cannot call this from interrupts, as it may block.
+ */
+void *kmap_high(struct page *page)
+{
+	unsigned long vaddr;
+
+	/*
+	 * For highmem pages, we can't trust "virtual" until
+	 * after we have the lock.
+	 */
+	lock_kmap();
+
+	/*
+	 * If the page isn’t mapped yet (vaddr = NULL), call
+	 * map_new_virtual() to provide a mapping for the page.
+	 */
+	vaddr = (unsigned long)page_address(page);	// 参见page_address() in mm/highmem.c节
+	if (!vaddr)
+		vaddr = map_new_virtual(page);		// 参见map_new_virtual()节
+
+	/*
+	 * Once a mapping has been created, the corresponding
+	 * entry in the pkmap_count array is incremented and
+	 * the virtual address in low memory returned.
+	 */
+	pkmap_count[PKMAP_NR(vaddr)]++;
+	BUG_ON(pkmap_count[PKMAP_NR(vaddr)] < 2);
+
+	unlock_kmap();
+	return (void*) vaddr;
+}
+```
+
+###### 6.7.1.2.1.1 map_new_virtual()
+
+该函数定义于mm/highmem.c:
+
+```
+static inline unsigned long map_new_virtual(struct page *page)
+{
+	unsigned long vaddr;
+	int count;
+
+start:
+	count = LAST_PKMAP;
+	/* Find an empty entry */
+	/*
+	 * linearly scan pkmap_count to find an empty entry
+	 * starting at last_pkmap_nr instead of 0
+	 */
+	for (;;) {
+		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
+		if (!last_pkmap_nr) {
+			/*
+			 * flush_all_zero_pkmaps() starts scan of the counters
+			 * that have the value 1. Each counter that has a value
+			 * of 1 denotes an entry in pkmap_page_table that is free
+			 * but cannot be used because the corresponding TLB entry
+			 * has not yet been flushed. flush_all_zero_pkmaps() resets
+			 * their counters to zero, deletes the corresponding elements
+			 * from page_address_htable hash table, and issues TLB flushes
+			 * on all entries of pkmap_page_table.
+			 */
+			flush_all_zero_pkmaps();
+			count = LAST_PKMAP;
+		}
+		if (!pkmap_count[last_pkmap_nr])
+			break;		/* Found a usable entry */
+		if (--count)
+			continue;
+
+		/*
+		 * If cannot find a null counter in pkmap_count, then  blocks the
+		 * current process until some other process releases an entry of
+		 * the pkmap_page_table Page Table. That’s, the process sleeps on
+		 * the pkmap_map_wait wait queue until it’s woken up after next
+		 * kunmap(). 参见kunmap()节
+		 */
+		/*
+		 * Sleep for somebody else to unmap their entries
+		 */
+		{
+			// 参见定义/初始化等待队列/wait_queue_t节
+			DECLARE_WAITQUEUE(wait, current);
+
+			__set_current_state(TASK_UNINTERRUPTIBLE);
+			add_wait_queue(&pkmap_map_wait, &wait);
+			unlock_kmap();
+			schedule();
+			remove_wait_queue(&pkmap_map_wait, &wait);
+			lock_kmap();
+
+			/* Somebody else might have mapped it while we slept */
+			// 参见page_address() in mm/highmem.c节
+			if (page_address(page))
+				return (unsigned long)page_address(page);
+
+			/* Re-start */
+			goto start;
+		}
+	}
+	vaddr = PKMAP_ADDR(last_pkmap_nr);
+	set_pte_at(&init_mm, vaddr, &(pkmap_page_table[last_pkmap_nr]), mk_pte(page, kmap_prot));
+
+	// 设置引用计数，并将该page链接到page_address_htable中的适当位置
+	pkmap_count[last_pkmap_nr] = 1;
+	set_page_address(page, (void *)vaddr);
+
+	return vaddr;
+}
+```
+
+#### 6.7.1.3 kunmap()
+
+The ```kunmap()``` function destroys a permanent kernel mapping established previously by ```kmap()```.
+
+该函数定义于mm/highmem_32.c:
+
+```
+void kunmap(struct page *page)
+{
+	if (in_interrupt())
+		BUG();
+	/*
+	 * If the page already exists in low memory and
+	 * needs no further handling.
+	 */
+	if (!PageHighMem(page))
+		return;
+	kunmap_high(page);	// 参见kunmap_high()节
+}
+```
+
+##### 6.7.1.3.1 kunmap_high()
+
+该函数定义于mm/highmem.c:
+
+```
+/**
+ * kunmap_high - unmap a highmem page into memory
+ * @page: &struct page to unmap
+ *
+ * If ARCH_NEEDS_KMAP_HIGH_GET is not defined then this may be called
+ * only from user context.
+ */
+void kunmap_high(struct page *page)
+{
+	unsigned long vaddr;
+	unsigned long nr;
+	unsigned long flags;
+	int need_wakeup;
+
+	lock_kmap_any(flags);
+	vaddr = (unsigned long)page_address(page);
+	BUG_ON(!vaddr);
+	nr = PKMAP_NR(vaddr);	// pkmap_count[]和pkmap_page_table[]下标
+
+	/*
+	 * A count must never go down to zero without a TLB flush!
+	 */
+	need_wakeup = 0;
+	/*
+	 * Decrement the corresponding element for this page in
+	 * pkmap_count. If it reaches 1, which means no more users
+	 * but a TLB flush is required), any process waiting on
+	 * the pkmap_map_wait is woken up as a slot is now available.
+	 */
+	switch (--pkmap_count[nr]) {
+	case 0:
+		BUG();
+	case 1:
+		/*
+		 * Avoid an unnecessary wake_up() function call.
+		 * The common case is pkmap_count[] == 1, but
+		 * no waiters.
+		 * The tasks queued in the wait-queue are guarded
+		 * by both the lock in the wait-queue-head and by
+		 * the kmap_lock.  As the kmap_lock is held here,
+		 * no need for the wait-queue-head's lock.  Simply
+		 * test if the queue is empty.
+		 */
+		// pkmap_map_wait中的等待进程是由kmap()->kmap_high()->map_new_virtual()设置的
+		need_wakeup = waitqueue_active(&pkmap_map_wait);
+	}
+	unlock_kmap_any(flags);
+
+	/* do wake-up, if needed, race-free outside of the spin lock */
+	if (need_wakeup)
+		wake_up(&pkmap_map_wait);
+}
+```
+
+### 6.7.2 Temporary Kernel Mapping
+
+Temporary kernel mappings are simpler to implement than permanent kernel mappings; moreover, they can be used inside interrupt handlers and deferrable functions, because requesting a temporary kernel mapping never blocks the current process.
+
+Every page frame in high memory can be mapped through a window in the kernel address space — namely, a Page Table entry that is reserved for this purpose. The number of windows reserved for temporary kernel mappings is quite small. Each CPU has its own set of windows, represented by the enum km_type data structure. Each symbol defined in this data structure identifies the linear address of a window. See include/asm-generic/kmap_types.h.
+
+The kernel must ensure that the same window is never used by two kernel control paths at the same time. Thus, each symbol in the km_type structure is dedicated to one kernel component and is named after the component.
+
+Each symbol in km_type, except the last one, is an index of a fix-mapped linear address. The enum fixed_addresses data structure includes the symbols FIX_KMAP_BEGIN and FIX_KMAP_END; the latter is assigned to the index FIX_KMAP_BEGIN + (KM_TYPE_NR * NR_CPUS) - 1. In this manner, there are KM_TYPE_NR fix-mapped linear addresses for each CPU in the system. Furthermore, the kernel initializes the kmap_pte variable with the address of the Page Table entry corresponding to the fix_to_virt(FIX_KMAP_BEGIN) linear address:
+
+```
+start_kernel()
+-> setup_arch()
+   -> paging_init()
+      -> kmap_init()	// 参见early_node_map[]=>node_data[]->node_zones[]节
+```
+
+#### 6.7.2.1 kmap_atomic()
+
+To establish a temporary kernel mapping, the kernel invokes the ```kmap_atomic()``` function.
+
+该宏定义于include/linux/highmem.h:
+
+```
+#define kmap_atomic(page, args...)	__kmap_atomic(page)
+```
+
+其中，函数__kmap_atomic()定义于arch/x86/mm/highmem_32.c:
+
+```
+void *__kmap_atomic(struct page *page)
+{
+	return kmap_atomic_prot(page, kmap_prot);
+}
+
+/*
+ * kmap_atomic/kunmap_atomic is significantly faster than kmap/kunmap because
+ * no global lock is needed and because the kmap code must perform a global TLB
+ * invalidation when the kmap pool wraps.
+ *
+ * However when holding an atomic kmap it is not legal to sleep, so atomic
+ * kmaps are appropriate for short, tight code paths only.
+ */
+void *kmap_atomic_prot(struct page *page, pgprot_t prot)
+{
+	unsigned long vaddr;
+	int idx, type;
+
+	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
+	pagefault_disable();
+
+	if (!PageHighMem(page))
+		return page_address(page);
+
+	type = kmap_atomic_idx_push();
+	idx = type + KM_TYPE_NR*smp_processor_id();
+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+	BUG_ON(!pte_none(*(kmap_pte-idx)));
+	set_pte(kmap_pte-idx, mk_pte(page, prot));
+	arch_flush_lazy_mmu_mode();
+
+	return (void *)vaddr;
+}
+```
+
+#### 6.7.2.2 kunmap_atomic()
+
+To destroy a temporary kernel mapping, the kernel uses the ```kunmap_atomic()``` function.
+
+该宏定义于include/linux/highmem.h:
+
+```
+#define kunmap_atomic(addr, args...)					\
+do {									\
+	BUILD_BUG_ON(__same_type((addr), struct page *));		\
+	__kunmap_atomic(addr);						\
+} while (0)
+```
+
+其中，函数__kunmap_atomic()定义于arch/x86/mm/highmem_32.c:
+
+```
+void __kunmap_atomic(void *kvaddr)
+{
+	unsigned long vaddr = (unsigned long) kvaddr & PAGE_MASK;
+
+	if (vaddr >= __fix_to_virt(FIX_KMAP_END) &&
+		 vaddr <= __fix_to_virt(FIX_KMAP_BEGIN)) {
+		int idx, type;
+
+		type = kmap_atomic_idx();
+		idx = type + KM_TYPE_NR * smp_processor_id();
+
+#ifdef CONFIG_DEBUG_HIGHMEM
+		WARN_ON_ONCE(vaddr != __fix_to_virt(FIX_KMAP_BEGIN + idx));
+#endif
+		/*
+		 * Force other mappings to Oops if they'll try to access this
+		 * pte without first remap it.  Keeping stale mappings around
+		 * is a bad idea also, in case the page changes cacheability
+		 * attributes or becomes a protected page in a hypervisor.
+		 */
+		kpte_clear_flush(kmap_pte-idx, vaddr);
+		kmap_atomic_idx_pop();
+		arch_flush_lazy_mmu_mode();
+	}
+#ifdef CONFIG_DEBUG_HIGHMEM
+	else {
+		BUG_ON(vaddr < PAGE_OFFSET);
+		BUG_ON(vaddr >= (unsigned long)high_memory);
+	}
+#endif
+
+	pagefault_enable();
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

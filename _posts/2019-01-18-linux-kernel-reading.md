@@ -15956,6 +15956,2064 @@ struct vm_struct {
 
 该结构参见错误：引用源未找到.
 
+## 6.3 内存管理的初始化
+
+内存管理的初始化分为如下步骤：
+* 检测内存段及其大小，参见检测内存段及其大小/boot_params.e820_map节；
+* 映射内存页面映射至分区，参见映射内存页面页至分区节。
+
+内存管理的初始化参见mm_init()节。
+
+### 6.3.1 检测内存段及其大小/boot_params.e820_map
+
+系统启动时，将调用arch/x86/boot/main.c中的main()，参见arch/x86/boot/main.c节，其调用关系如下：
+
+```
+main()					// arch/x86/boot/main.c
+-> detect_memory()
+   -> detect_memory_e820()		// Fill boot_params.e820_map by calling BIOS interrupt
+```
+
+函数detect_memory_e820()通过调用BIOS中断来检测当前系统中的内存段及其大小，并将结果保存到boot_params.e820_map中，其结构如下图所示。每个连续的内存空间构成boot_params.e820_map[]中的一个元素，其首地址为addr，大小为size，类型为type。
+
+boot_params.e820_map:
+
+![Memery_Layout_08](/assets/Memery_Layout_08.jpg)
+
+### 6.3.2 映射内存页面页至分区/node_data[]->node_zones[]
+
+由检测内存段及其大小/boot_params.e820_map节可知，系统中的内存状态信息保存到数组boot_params.e820_map[]中。此后，在系统启动过程中，该数组将进行如下转换：
+
+```
+boot_params.e820_map[]
+-> e820 / e820_saved					// 参见boot_params.e820_map[]=>e820节
+   -> memblock.memory					// 参见e820=>memblock.memory节
+      -> early_node_map[]				// 参见memblock.memory=>early_node_map[]节
+         -> node_data[]->node_zones[]			// 参见early_node_map[]=>node_data[]节
+```
+
+#### 6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved
+
+内存状态信息从boot_params.e820_map[]到e820 / e820_saved的转换是在如下函数调用中发生的：
+
+```
+start_kernel()
+-> setup_arch(&command_line)
+   -> setup_memory_map()
+      -> x86_init.resources.memory_setup()		// Call e820.c: default_machine_specific_memory_setup()
+         -> sanitize_e820_map()				// Remove overlaps from boot_params.e820_map
+         -> append_e820_map()
+            -> __append_e820_map()			// boot_params.e820_map => e820
+               -> e820_add_region()
+                  -> __e820_add_region(&e820)
+      -> memcpy(&e820_saved, &e820, ...)		// e820 => e820_saved
+      -> printk(KERN_INFO "BIOS-provided physical RAM map:\n");
+      -> e820_print_map()				// 打印e820，示例参见NOTE 1
+   -> e820_reserve_setup_data()				// Set reserved setup data in e820
+      -> e820_update_range()				// e820 => boot_params.hdr.setup_data, 示例参见NOTE 2
+      -> sanitize_e820_map(e820.map, ...)		// Remove overlaps from e820
+      -> memcpy(&e820_saved, &e820, ...)		// e820 => e820_saved
+      -> printk(KERN_INFO "extended physical RAM map:\n");
+      -> e820_print_map()				// Not comes here!
+   -> finish_e820_parsing()				// Printing memory info of e820 if userdef is True
+```
+
+![Memery_Layout_08.jpg](/assets/Memery_Layout_08.jpg)
+
+**NOTE 1**:
+
+```
+e820: BIOS-provided physical RAM map:
+BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+BIOS-e820: [mem 0x0000000000100000-0x000000001ffeffff] usable
+BIOS-e820: [mem 0x000000001fff0000-0x000000001fffffff] ACPI data
+BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+```
+
+**NOTE 2**:
+
+```
+e820: update [mem 0x00000000-0x0000ffff] usable ==> reserved
+e820: remove [mem 0x000a0000-0x000fffff] usable
+```
+
+#### 6.3.2.2 e820=>memblock.memory
+
+内存状态信息从e820到memblock.memory的转换是在如下函数调用中发生的：
+
+```
+start_kernel()
+-> setup_arch(&command_line)
+   -> Functions in section boot_params.e820_map[]=>e820 / e820_saved
+   -> max_pfn = e820_end_of_ram_pfn()						// max_pfn = last_pfn
+      -> e820_end_pfn(MAX_ARCH_PFN, E820_RAM)					// 查找e820.map[]中类型为E820_RAM的最大页框号
+      -> printk(KERN_INFO "last_pfn = %#lx					// 示例参见NOTE 3
+                max_arch_pfn = %#lx\n", last_pfn, max_arch_pfn);
+   -> find_low_pfn_range()							// 为max_low_pfn赋值
+      -> if (max_pfn <= MAXMEM_PFN)
+            lowmem_pfn_init()
+            -> max_low_pfn = max_pfn;
+         else
+            highmem_pfn_init()
+            -> max_low_pfn = MAXMEM_PFN;
+   -> printk(KERN_DEBUG "initial memory mapped : 0 - %08lx\n", max_pfn_mapped<<PAGE_SHIFT);
+   -> setup_trampolines()							// 示例参见NOTE 4
+   -> max_low_pfn_mapped = init_memory_mapping(0, max_low_pfn<<PAGE_SHIFT);	// 示例参见NOTE 4
+      -> find_early_table_space(...)						// 示例参见NOTE 4
+   -> max_pfn_mapped = max_low_pfn_mapped;
+   -> memblock_x86_fill()							// e820 => memblock.memory
+      -> memblock_add()
+         -> memblock_add_region(&memblock.memory, ...)
+      -> memblock_analyze()							// Update memblock.memory_size
+```
+
+memblock.memory的结构:
+
+![Memery_Layout_09](/assets/Memery_Layout_09.jpg)
+
+**NOTE 3**:
+
+```
+e820: last_pfn = 0x1fff0 max_arch_pfn = 0x1000000
+=> last_pfn表示e820.map[]中类型为E820_RAM的最大页框号
+=> max_arch_pfn为最大页框号，与地址空间有关(注意：此时PAE开启)，其取值参见arch/x86/kernel/e820.c:
+#ifdef CONFIG_X86_32
+# ifdef CONFIG_X86_PAE
+#  define MAX_ARCH_PFN	(1ULL<<(36-PAGE_SHIFT))		// 0x0100,0000
+# else
+#  define MAX_ARCH_PFN	(1ULL<<(32-PAGE_SHIFT))		// 0x0010,0000
+# endif
+#else /* CONFIG_X86_32 */
+# define MAX_ARCH_PFN		MAXMEM>>PAGE_SHIFT
+#endif
+```
+
+**NOTE 4**:
+
+```
+initial memory mapped: [mem 0x00000000-0x01ffffff]
+Base memory trampoline at [c009b000] 9b000 size 16384
+init_memory_mapping: [mem 0x00000000-0x1ffeffff]
+[mem 0x00000000-0x001fffff] page 4k				// 2MB空间，每页面占4KB，共计512个页面
+[mem 0x00200000-0x1fdfffff] page 2M				// 508MB空间，每页面占2MB，共计254个页面
+[mem 0x1fe00000-0x1ffeffff] page 4k				// ~2MB空间，每页面占4KB，共计496个页面
+kernel direct mapping tables up to 0x1ffeffff @ [mem 0x01ffa000-0x01ffffff]
+=> 由此可知，当前映射的内存空间约为512MB，其对应的页面描述符占用0x01ffa000-0x01ffffff的内存空间
+```
+
+#### 6.3.2.3 memblock.memory=>early_node_map[]
+
+内存状态信息从memblock.memory到early_node_map[]的转换是在如下函数调用中发生的：
+
+```
+start_kernel()
+-> setup_arch(&command_line)
+   -> Functions in section e820=>memblock.memory
+   -> initmem_init()							// arch/x86/mm/init_32.c
+      -> memblock_x86_register_active_regions()
+         // Get active region (Physical Frame Number, pfn)
+         -> memblock_x86_find_active_region()
+         -> add_active_range()						// memblock.memory => early_node_map[], mm/page_alloc.c
+      -> printk(KERN_NOTICE "%ldMB HIGHMEM available.\n",		// 示例参见NOTE 5
+                pages_to_mb(highend_pfn - highstart_pfn));
+      -> printk(KERN_NOTICE "%ldMB LOWMEM available.\n",		// 示例参见NOTE 6
+                pages_to_mb(max_low_pfn));
+      -> setup_bootmem_allocator()					// 示例参见NOTE 7
+         // 安装bootmem分配器，此分配器在伙伴系统起来之前用来承担内存的分配等任务
+         -> after_bootmem = 1;
+```
+
+数组early_node_map[]的结构，参见Subjects/Chapter06_Memory_Management/Figures/Memery_Layout_09.jpg，其中
+start_pfn和end_pfn域表示Physical Frame Number，取值为内存地址的高20 bits (12-31 bit)。因为内存页大小为4KB，内存页是4KB对齐的，故内存页地址的低12 bits取值为0。因此只需要内存地址的高20 bits就可以表示内存也的地址了。
+
+**NOTE 5**:
+
+```
+0MB HIGHMEM available.
+```
+
+**NOTE 6**:
+
+```
+511MB LOWMEM available.
+```
+
+**NOTE 7**:
+
+```
+mapped low ram: 0 - 1fff0000
+low ram: 0 – 1fff0000
+```
+
+#### 6.3.2.4 early_node_map[]=>node_data[]->node_zones[]
+
+内存状态信息从early_node_map[]到node_data[]->node_zones[]的转换是在如下函数调用中发生的：
+
+```
+start_kernel()
+-> setup_arch(&command_line)
+   -> Functions in section memblock.memory=>early_node_map[]
+   -> x86_init.paging.pagetable_setup_start(swapper_pg_dir) 	// native_pagetable_setup_start()
+   -> paging_init()
+      -> pagetable_init()
+         // Initialise the page tables necessary to reference all physical memory in
+         // ZONE_DMA and ZONE_NORMAL. High memory in ZONE_HIGHMEM cannot be directly
+         // referenced and mappings are set up for it.
+         -> permanent_kmaps_init(swapper_pg_dir)		// 参见pkmap_page_table的初始化节
+      -> __flush_tlb_all()					// Refresh CR3 register
+      -> kmap_init()						// 参见emporary Kernel Mapping节
+      -> sparse_init()						// mm/sparse.c
+      -> zone_sizes_init()
+         -> free_area_init_nodes()				// early_node_map[] => node_data[]
+            -> sort_node_map()					// Sort early_node_map[] by ->start_pfn
+            -> printk("Zone PFN ranges:\n");			// 示例参见NOTE 8
+               ...
+            -> for_each_online_node(nid) {			//  Set node_data[nid], see 错误：引用源未找到
+               -> free_area_init_node(nid, NULL, find_min_pfn_for_node(nid), NULL)
+                  // find_min_pfn_for_node(nid)从early_node_map[i].start_pfn中查找最小值
+                  -> calculate_node_totalpages()
+                     -> pgdat->node_spanned_pages = totalpages;
+                        // Fill node_data[]->node_spanned_pages
+                     -> pgdat->node_present_pages = realtotalpages;
+                        // Fill node_data[]->node_present_pages
+                     -> printk(KERN_DEBUG "On node %d totalpages: %lu\n",
+                               pgdat->node_id, realtotalpages);
+                        // 示例参见NOTE 9
+                  -> alloc_node_mem_map(pgdat)
+                     // Set mem_map and pgdat->node_mem_map，参见mem_map节，示例参见NOTE 10
+                  -> printk(KERN_DEBUG "free_area_init_node: node %d, pgdat %08lx,
+                            node_mem_map %08lx\n", nid, (unsigned long)pgdat,
+                            (unsigned long)pgdat->node_mem_map);
+                     // 示例参见NOTE 10
+                     // Set node_data[nid]->node_zones[j]
+                  -> free_area_init_core()
+                     -> for (j = 0; j < MAX_NR_ZONES; j++) {
+                        -> printk(KERN_DEBUG ...)		// 示例参见NOTE 11
+                        -> zone_pcp_init()			// 示例参见NOTE 11
+                           -> printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%u\n",
+                                     zone->name, zone→present_pages, zone_batchsize(zone));
+                        -> init_currently_empty_zone()
+                           // 初始化node_data[nid]->node_zones[j]->free_area[*], 此时页面不可用
+                           -> zone_init_free_lists()
+                        -> memmap_init()
+                           -> memmap_init_zone()		// mm/page_alloc.c
+                              -> for (pfn = start_pfn; pfn < end_pfn; pfn++) {
+                                    // Set each page in the range. Get Page Descriptor:
+                                    // page = mem_map + pfn;
+                                 -> page = pfn_to_page(pfn)
+                                    // 设置page->flags中有关zone、node和section的标志位
+                                 -> set_page_links(page, ...)
+                                    // No user: page->_count = 1
+                                 -> init_page_count(page)
+                                    // 清除Buddy标志: page->_mapcount=-1
+                                 -> reset_page_mapcount(page)
+                                    // 置位page->flags中的标志位PG_reserved
+                                 -> SetPageReserved(page)
+                                 -> set_pageblock_migratetype(page, MIGRATE_MOVABLE)
+                                    -> set_pageblock_flags_group()
+                                    // 初始化page->lru
+                                 -> INIT_LIST_HEAD(&page->lru)
+                                    // Set page->virtual
+                                 -> set_page_address()
+                                 }
+                        }
+               -> node_set_state(nid, N_HIGH_MEMORY)
+               -> check_for_regular_memory(pgdat)
+               }
+   // native_pagetable_setup_done()
+   -> x86_init.paging.pagetable_setup_done(swapper_pg_dir)
+-> build_all_zonelists()					// 示例参见NOTE 12
+-> mm_init()							// 参见mm_init()节
+   -> mem_init()						// 参见mem_init()节，示例参见NOTE 13
+      /*
+       * 将低端内存转入Buddy Allocator System中管理，
+       * 参见free_all_bootmem()/free_all_bootmem_core()节
+       */
+      -> free_all_bootmem()
+         // 参见free_all_bootmem()/free_all_bootmem_core()节
+         -> free_all_bootmem_core()
+            -> __free_pages_bootmem()
+               -> __free_page()					// 参见__free_page()/free_page()节
+      // 将高端内存转入Buddy Allocator System中管理，参见set_highmem_pages_init()节
+      -> set_highmem_pages_init()
+         -> add_highpages_with_active_regions()
+            -> __get_free_all_memory_range()
+            -> add_one_highpage_init()
+               -> __free_page()					// 参见__free_page()/free_page()节
+-> rest_init()
+   -> kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+      -> kernel_init()
+         -> init_post()
+            -> free_initmem()
+               /* All initilisation function that are required only during system
+                * start-up are marked __init and put in region __init_begin to
+                * __init_end. The function free_initmem() frees all pages from
+                * __init_begin to __init_end to the Buddy Allocator System.
+                * The region __init_begin to __init_end is defined in vmlinux.lds.
+                * 示例参见NOTE 14
+                */
+               -> printk(KERN_INFO "Freeing %s: %luk freed\n", ...);
+```
+
+**NOTE 8**:
+
+```
+Zone ranges:
+  DMA		[mem 0x00010000-0x00ffffff]	  // 16320 KB, 4080 pages
+  Normal   [mem 0x01000000-0x1ffeffff]	  	// 507840 KB, 126960 pages
+  HighMem  empty
+Movable zone start for each node		  // Print PFNs ZONE_MOVABLE begins at in each node
+Early memory node ranges			  // Print early_node_map[], include DMA and Normal.
+  node   0: [mem 0x00010000-0x0009efff] 	// early_node_map[0].start_pfn - early_node_map[0].end_pfn
+  node   0: [mem 0x00100000-0x1ffeffff] 	// early_node_map[1].start_pfn - early_node_map[1].end_pfn
+```
+
+**NOTE 9**;
+
+```
+On node 0 totalpages: 130943
+=> ((0x0009efff - 0x00010000 + 1) + (0x1ffeffff - 0x00100000 + 1)) / (4 * 1024) = 130943 pages
+=> Total memory: 511 MB, include DMA and Normal.
+```
+
+**NOTE 10**:
+
+```
+free_area_init_node: node 0, pgdat c18a0840, node_mem_map dfbef200
+```
+
+**NOTE 11**:
+
+```
+  DMA zone: 32 pages used for memmap
+  DMA zone: 0 pages reserved
+  DMA zone: 3951 pages, LIFO batch:0
+  Normal zone: 992 pages used for memmap
+  Normal zone: 125968 pages, LIFO batch:31
+=> 32 + 3951 + 992 + 125968 = 130943 pages
+```
+
+**NOTE 12**:
+
+```
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 129919
+```
+
+**NOTE 13**:
+
+```
+Initializing HighMem for node 0 (00000000:00000000)
+Memory: 492840k/524224k available (5956k kernel code, 30932k reserved, 2928k data, 756k init, 0k highmem)
+virtual kernel memory layout:
+    fixmap  : 0xfff15000 - 0xfffff000   ( 936 kB)
+    pkmap   : 0xffc00000 - 0xffe00000   (2048 kB)
+    vmalloc : 0xe07f0000 - 0xffbfe000   ( 500 MB)
+    lowmem  : 0xc0000000 - 0xdfff0000   ( 511 MB)		// [__va(0), high_memory]
+      .init : 0xc18ae000 - 0xc196b000   ( 756 kB)		// [__init_begin, __init_end]
+      .data : 0xc15d1358 - 0xc18ad6c0   (2928 kB)		// [_etext, _edata]
+      .text : 0xc1000000 - 0xc15d1358   (5956 kB)		// [_text, _etext]
+=> 各变量定义于vmlinux.lds
+=> Virtual Kernel Memory Layout参见错误：引用源未找到和Physical Memory Layout节。
+```
+
+**NOTE 14**:
+
+Freeing unused kernel memory: 756k freed
+
+Memory layout on 32-bit kernel:
+
+![Memery_Layout_27](/assets/Memery_Layout_27.jpg)
+
+Memory layout on 64-bit kernel:
+
+![Memery_Layout_28](/assets/Memery_Layout_28.jpg)
+
+Virtual kernel memory layout on 32-bit kernel:
+
+![Memery_Layout_01](/assets/Memery_Layout_01.jpg)
+
+各段内存的用途如下：
+
+**[PAGE_OFFSET, VMALLOC_START - VMALLOC_OFFSET]**
+
+The region is the physical memory map and the size of the region depends on the amount of available RAM. Between the physical memory map and the vmalloc address space, there is a gap of space VMALLOC_OFFSET in size, which on the x86 is 8MB, to guard against out of bounds errors.
+
+**[VMALLOC_START, VMALLOC_END]**
+
+In low memory systems, the remaining amount of the virtual address space, minus a 2 page gap, is used by vmalloc() for representing non-contiguous memory allocations in a contiguous virtual address space. In high-memory systems, the vmalloc area extends as far as PKMAP_BASE minus the two page gap and two extra regions are introduced.
+
+**[PKMAP_BASE, PKMAP_BASE + LAST_PKMAP * PAGE_SIZE]**
+
+This is an area reserved for the mapping of high memory pages into low memory with kmap(), see section kmap(). Refer to arch/x86/include/asm/pgtable_32_types.h:
+
+```
+#ifdef CONFIG_X86_PAE
+#define LAST_PKMAP	512			// PKMAP区占2MB空间
+#else
+#define LAST_PKMAP	1024			// PKMAP区占4MB空间
+#endif
+```
+
+**[FIXADDR_START, FIXADDR_TOP]**
+
+The regain is for fixed virtual address mappings. Fixed virtual addresses are needed for subsystems that need to know the virtual address at compile time such as the Advanced Programmable Interrupt Controller (APIC). FIXADDR_TOP is statically defined to be 0xFFFFE000 on the x86 which is one page before the end of the virtual address space. The size of the fixed mapping region is calculated at compile time in \_\_FIXADDR_SIZE and used to index back from FIXADDR_TOP to give the start of the region FIXADDR_START. See section kmap_atomic().
+
+可通过下列命令查看当前系统的内存布局，其含义参见Documentation/filesystems/proc.txt:
+
+```
+chenwx proc # cat /proc/iomem
+00000000-00000fff : reserved
+00001000-0009fbff : System RAM
+0009fc00-0009ffff : reserved
+000a0000-000bffff : Video RAM area
+000c0000-000c7fff : Video ROM
+000e2000-000eebff : Adapter ROM
+000f0000-000fffff : reserved
+  000f0000-000fffff : System ROM
+00100000-5ffeffff : System RAM
+  01000000-01831996 : Kernel code
+  01831997-01c1c9bf : Kernel data
+  01d12000-01dfbfff : Kernel bss
+5fff0000-5fffffff : ACPI Tables
+e0000000-e3ffffff : 0000:00:02.0
+f0000000-f001ffff : 0000:00:03.0
+  f0000000-f001ffff : e1000
+f0400000-f07fffff : 0000:00:04.0
+  f0400000-f07fffff : vboxguest
+f0800000-f0803fff : 0000:00:04.0
+f0804000-f0804fff : 0000:00:06.0
+  f0804000-f0804fff : ohci_hcd
+f0806000-f0807fff : 0000:00:0d.0
+  f0806000-f0807fff : ahci
+fee00000-fee00fff : Local APIC
+fffc0000-ffffffff : reserved
+```
+
+可通过如何命令查看系统当前的内存信息，其含义参见Documentation/filesystems/proc.txt:
+
+```
+chenwx proc # cat /proc/buddyinfo
+Node 0, zone     DMA       9      5      2      1      8      4      3      2      0      2      0
+Node 0, zone   Normal     98    106     84     63     56     42     12      5      2      4     44
+Node 0, zone  HighMem    280    233    119    122     73     33      6      8      3      1     43
+
+chenwx proc # cat /proc/pagetypeinfo
+Page block order: 9
+Pages per block:  512
+
+Free pages count per migrate type at order       0      1      2      3      4      5      6      7      8      9     10
+Node    0, zone      DMA, type    Unmovable      4      2      1      1      1      1      1      1      0      0      0
+Node    0, zone      DMA, type  Reclaimable      0      1      0      0      0      1      1      1      0      1      0
+Node    0, zone      DMA, type      Movable      3      0      0      0      6      2      1      0      0      0      0
+Node    0, zone      DMA, type      Reserve      0      0      0      0      0      0      0      0      0      1      0
+Node    0, zone      DMA, type          CMA      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone      DMA, type      Isolate      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone   Normal, type    Unmovable      1      1      0      3      0      0      0      0      0      2      0
+Node    0, zone   Normal, type  Reclaimable      8     12      4      2      0      1      1      0      0      1      0
+Node    0, zone   Normal, type      Movable      0    142     65     33     30     39     10      4      1      2     43
+Node    0, zone   Normal, type      Reserve      0      0      0      0      0      0      0      0      0      0      1
+Node    0, zone   Normal, type          CMA      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone   Normal, type      Isolate      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone  HighMem, type    Unmovable      1      0      0      4      8     11      4      5      3      0      1
+Node    0, zone  HighMem, type  Reclaimable      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone  HighMem, type      Movable    115     75     73     81     63     22      2      3      0      1     41
+Node    0, zone  HighMem, type      Reserve      0      0      0      0      0      0      0      0      0      0      1
+Node    0, zone  HighMem, type          CMA      0      0      0      0      0      0      0      0      0      0      0
+Node    0, zone  HighMem, type      Isolate      0      0      0      0      0      0      0      0      0      0      0
+
+Number of blocks type     Unmovable  Reclaimable      Movable      Reserve          CMA      Isolate
+Node 0, zone      DMA            1            2            4            1            0            0
+Node 0, zone   Normal           24           46          366            2            0            0
+Node 0, zone  HighMem            9            0          312            1            0            0
+```
+
+### 6.3.3 Physical Memory Layout
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第2. Memory Addressing章第Physical Memory Layout节:
+
+The kernel considers the following page frames asreserved:
+* Those falling in the unavailable physical address ranges.
+* Those containing the kernel’s code and initialized data structures.
+A page contained in a reserved page frame can never be dynamically assigned or swapped to disk.
+
+As a general rule, the Linux kernel is installed in RAM starting from the physical address 0x00100000 — i.e., from the second megabyte.
+
+Variables describing the kernel’s physical memory layout
+
+| Variable Name | Description |
+| :------------ | :---------- |
+| num_physpages | Page frame number of the highest usable page frame |
+| totalram_pages | Total number of usable page frames |
+| min_low_pfn | Page frame number of the first usable page frame after the kernel image in RAM |
+| max_pfn | Page frame number of the last usable page frame |
+| max_low_pfn | Page frame number of the last page frame directly mapped by the kernel (low memory) |
+| totalhigh_pages | Total number of page frames not directly mapped by the kernel (high memory) |
+| highstart_pfn | Page frame number of the first page frame not directly mapped by the kernel |
+| highend_pfn | Page frame number of the last page frame not directly mapped by the kernel |
+
+<p/>
+
+The symbol ```_text```, which corresponds to physical address 0x00100000, denotes the address of the first byte of kernel code. The end of the kernel code is similarly identified by the symbol ```_etext```. Kernel data is divided into two groups: initialized and uninitialized. The initialized data starts right after ```_etext``` and ends at ```_edata```. The uninitialized data follows and ends up at ```_end```. 这些变量的定义参见内核编译时生成的vmlinux.lds.
+
+#### 6.3.3.1 Process Page Tables
+
+The linear address space of a process is divided into two parts:
+
+1) Linear addresses from 0x00000000 to 0xBFFFFFFF can be addressed when the process runs in either User or Kernel Mode.
+
+2) Linear addresses from 0xC0000000 to 0xFFFFFFFF can be addressed only when the process runs in Kernel Mode.
+
+When a process runs in User Mode, it issues linear addresses smaller than 0xC0000000; when it runs in Kernel Mode, it is executing kernel code and the linear addresses issued are greater than or equal to 0xC0000000. In some cases, however, the kernel must access the User Mode linear address space to retrieve or store data.
+
+#### 6.3.3.2 Kernel Page Tables
+
+## 6.4 分配/释放内存页
+
+The buddy allocator system algorithm adopts the page frame as the basic memory area.
+
+### 6.4.1 分配/释放多个内存页
+
+#### 6.4.1.1 alloc_pages()/alloc_pages_node()
+
+The function allocates 2order (that is, 1 << order) contiguous physical pages and returns a pointer to the first page’s page structure; on error it returns NULL.
+
+该函数定义于include/linux/gfp.h:
+
+```
+/*
+ * IBM-compatible PCs use the Uniform Memory Access model (UMA),
+ * thus the NUMA support is not really required.
+ */
+#ifdef CONFIG_NUMA
+extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);	// 定义于mm/mempolicy.c
+
+static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
+{
+	return alloc_pages_current(gfp_mask, order);
+}
+#else
+// gfp_mask参见gfp_t节
+#define alloc_pages(gfp_mask, order)		alloc_pages_node(numa_node_id(), gfp_mask, order)
+#endif
+```
+
+函数alloc_pages_node()定义于include/linux/gfp.h:
+
+```
+static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order)
+{
+	/* Unknown node is current node */
+	if (nid < 0)
+		nid = numa_node_id();
+
+	// node_zonelist()返回node_data[]->node_zonelists[]，参见错误：引用源未找到
+	return __alloc_pages(gfp_mask, order, node_zonelist(nid, gfp_mask));
+}
+```
+
+其中，函数__alloc_pages()定义于include/linux/gfp.h:
+
+```
+static inline struct page *__alloc_pages(gfp_t gfp_mask, unsigned int order, struct zonelist *zonelist)
+{
+	return __alloc_pages_nodemask(gfp_mask, order, zonelist, NULL);
+}
+```
+
+其中，函数__alloc_pages_nodemask()定义于mm/page_alloc.c:
+
+```
+/*
+ * This is the 'heart' of the zoned buddy allocator.
+ */
+struct page *__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
+				   struct zonelist *zonelist, nodemask_t *nodemask)
+{
+	enum zone_type high_zoneidx = gfp_zone(gfp_mask);
+	struct zone *preferred_zone;
+	struct page *page;
+	int migratetype = allocflags_to_migratetype(gfp_mask);
+
+	gfp_mask &= gfp_allowed_mask;
+
+	lockdep_trace_alloc(gfp_mask);
+
+	// If __GFP_WAIT is set, then here can wait and reschedule.
+	might_sleep_if(gfp_mask & __GFP_WAIT);
+
+	// 通过fail_page_alloc和标志位快速判断是否会分配失败
+	if (should_fail_alloc_page(gfp_mask, order))
+		return NULL;
+
+	/*
+	 * Check the zones suitable for the gfp_mask contain at least one
+	 * valid zone. It's possible to have an empty zonelist as a result
+	 * of GFP_THISNODE and a memoryless node
+	 */
+	if (unlikely(!zonelist->_zonerefs->zone))
+		return NULL;
+
+	get_mems_allowed();
+	/* The preferred zone is used for statistics later */ // 参见first_zones_zonelist()节
+	first_zones_zonelist(zonelist, high_zoneidx,
+					nodemask ? : &cpuset_current_mems_allowed, &preferred_zone);
+	if (!preferred_zone) {
+		put_mems_allowed();
+		return NULL;
+	}
+
+	/* First allocation attempt */	// 参见get_page_from_freelist()节
+	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, nodemask, order, zonelist,
+			high_zoneidx, ALLOC_WMARK_LOW|ALLOC_CPUSET, preferred_zone, migratetype);
+	if (unlikely(!page))		// 参见__alloc_pages_slowpath()节
+		page = __alloc_pages_slowpath(gfp_mask, order, zonelist,
+				high_zoneidx, nodemask, preferred_zone, migratetype);
+	put_mems_allowed();
+
+	trace_mm_page_alloc(page, order, gfp_mask, migratetype);
+	return page;
+}
+```
+
+##### 6.4.1.1.1 first_zones_zonelist()
+
+该函数定义于include/linux/mmzone.h:
+
+```
+/**
+ * first_zones_zonelist - Returns the first zone at or below highest_zoneidx
+ *                        within the allowed nodemask in a zonelist
+ * @zonelist - The zonelist to search for a suitable zone
+ * @highest_zoneidx - The zone index of the highest zone to return
+ * @nodes - An optional nodemask to filter the zonelist with
+ * @zone - The first suitable zone found is returned via this parameter
+ *
+ * This function returns the first zone at or below a given zone index that is
+ * within the allowed nodemask. The zoneref returned is a cursor that can be
+ * used to iterate the zonelist with next_zones_zonelist by advancing it by
+ * one before calling.
+ */
+static inline struct zoneref *first_zones_zonelist(struct zonelist *zonelist,
+		enum zone_type highest_zoneidx, nodemask_t *nodes, struct zone **zone)
+{
+	return next_zones_zonelist(zonelist->_zonerefs, highest_zoneidx, nodes, zone);
+}
+```
+
+其中，函数next_zones_zonelist()定义于mm/mmzone.c:
+
+```
+/* Returns the next zone at or below highest_zoneidx in a zonelist */
+struct zoneref *next_zones_zonelist(struct zoneref *z, enum zone_type highest_zoneidx,
+							nodemask_t *nodes, struct zone **zone)
+{
+	/*
+	 * Find the next suitable zone to use for the allocation.
+	 * Only filter based on nodemask if it's set
+	 */
+	if (likely(nodes == NULL))
+		while (zonelist_zone_idx(z) > highest_zoneidx)		// z->zone_idx > highest_zoneidx
+			z++;
+	else
+		while (zonelist_zone_idx(z) > highest_zoneidx ||	// z->zone_idx > highest_zoneidx
+			(z->zone && !zref_in_nodemask(z, nodes)))
+			z++;
+
+	*zone = zonelist_zone(z);					// *zone = z->zone
+	return z;
+}
+```
+
+##### 6.4.1.1.2 get_page_from_freelist()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * get_page_from_freelist goes through the zonelist trying to allocate
+ * a page.
+ */
+static struct page *get_page_from_freelist(gfp_t gfp_mask, nodemask_t *nodemask,
+					unsigned int order, struct zonelist *zonelist, int high_zoneidx,
+					int alloc_flags, struct zone *preferred_zone, int migratetype)
+{
+	struct zoneref *z;
+	struct page *page = NULL;
+	int classzone_idx;
+	struct zone *zone;
+	nodemask_t *allowednodes = NULL;	/* zonelist_cache approximation */
+	int zlc_active = 0;			/* set if using zonelist_cache */
+	int did_zlc_setup = 0;			/* just call zlc_setup() one time */
+
+	classzone_idx = zone_idx(preferred_zone);
+zonelist_scan:
+	/*
+	 * Scan zonelist, looking for a zone with enough free.
+	 * See also cpuset_zone_allowed() comment in kernel/cpuset.c.
+	 */
+	for_each_zone_zonelist_nodemask(zone, z, zonelist, high_zoneidx, nodemask) {
+		if (NUMA_BUILD && zlc_active && !zlc_zone_worth_trying(zonelist, z, allowednodes))
+			continue;
+		if ((alloc_flags & ALLOC_CPUSET) && !cpuset_zone_allowed_softwall(zone, gfp_mask))
+			continue;
+
+		BUILD_BUG_ON(ALLOC_NO_WATERMARKS < NR_WMARK);
+		if (!(alloc_flags & ALLOC_NO_WATERMARKS)) {
+			unsigned long mark;
+			int ret;
+
+			mark = zone->watermark[alloc_flags & ALLOC_WMARK_MASK];
+			if (zone_watermark_ok(zone, order, mark, classzone_idx, alloc_flags))
+				goto try_this_zone;
+
+			if (NUMA_BUILD && !did_zlc_setup && nr_online_nodes > 1) {
+				/*
+				 * we do zlc_setup if there are multiple nodes
+				 * and before considering the first zone allowed
+				 * by the cpuset.
+				 */
+				allowednodes = zlc_setup(zonelist, alloc_flags);
+				zlc_active = 1;
+				did_zlc_setup = 1;
+			}
+
+			if (zone_reclaim_mode == 0)
+				goto this_zone_full;
+
+			/*
+			 * As we may have just activated ZLC, check if the first
+			 * eligible zone has failed zone_reclaim recently.
+			 */
+			if (NUMA_BUILD && zlc_active && !zlc_zone_worth_trying(zonelist, z, allowednodes))
+				continue;
+
+			ret = zone_reclaim(zone, gfp_mask, order);
+			switch (ret) {
+			case ZONE_RECLAIM_NOSCAN:
+				/* did not scan */
+				continue;
+			case ZONE_RECLAIM_FULL:
+				/* scanned but unreclaimable */
+				continue;
+			default:
+				/* did we reclaim enough */
+				if (!zone_watermark_ok(zone, order, mark, classzone_idx, alloc_flags))
+					goto this_zone_full;
+			}
+		}
+
+try_this_zone:
+		// 参见buffered_rmqueue()节
+		page = buffered_rmqueue(preferred_zone, zone, order, gfp_mask, migratetype);
+		if (page)
+			break;
+this_zone_full:
+		if (NUMA_BUILD)
+			zlc_mark_zone_full(zonelist, z);
+	}
+
+	if (unlikely(NUMA_BUILD && page == NULL && zlc_active)) {
+		/* Disable zlc cache for second zonelist scan */
+		zlc_active = 0;
+		goto zonelist_scan;
+	}
+	return page;
+}
+```
+
+###### 6.4.1.1.2.1 buffered_rmqueue()
+
+Function buffered_rmqueue() returns the page descriptor of the first allocated page frame, or NULL if the memory zone does not include a group of contiguous page frames of the requested size.
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * Really, prep_compound_page() should be called from __rmqueue_bulk().  But
+ * we cheat by calling it from here, in the order > 0 path.  Saves a branch
+ * or two.
+ */
+static inline struct page *buffered_rmqueue(struct zone *preferred_zone,
+			struct zone *zone, int order, gfp_t gfp_flags, int migratetype)
+{
+	unsigned long flags;
+	struct page *page;
+	/*
+	 * 冷页表示该空闲页已经不再高速缓存中了(一般是指L2 Cache)；热页表示该空闲页仍然在高速缓存中。
+	 * 冷热页是针对于每CPU的，在每个zone中，都会针对所有的CPU初始化一个包含冷热页的per-cpu-pageset
+	 */
+	int cold = !!(gfp_flags & __GFP_COLD);
+
+again:
+	if (likely(order == 0)) {				// 分配单个页面(从缓存中分配)
+		struct per_cpu_pages *pcp;
+		struct list_head *list;
+
+		local_irq_save(flags);
+		// Per-CPU Page Frame Cache，参见错误：引用源未找到
+		pcp = &this_cpu_ptr(zone->pageset)->pcp;
+		list = &pcp->lists[migratetype];
+		if (list_empty(list)) {
+			// 若缓存为空，则分配pcp->batch的页来填充缓存。参见rmqueue_bulk()节
+			pcp->count += rmqueue_bulk(zone, 0, pcp->batch, list, migratetype, cold);
+			if (unlikely(list_empty(list)))
+				goto failed;
+		}
+
+		/*
+		 * 冷热页是保存在一条链表上的：热页通过list->next访问，冷页通过list->prev访问。
+		 * 另参见free_hot_cold_page()节
+		 */
+		if (cold)
+			page = list_entry(list->prev, struct page, lru);
+		else
+			page = list_entry(list->next, struct page, lru);
+
+		list_del(&page->lru);
+		pcp->count--;
+	} else {						// 分配2order个连续页面(从Buddy Allocator System中分配)
+		if (unlikely(gfp_flags & __GFP_NOFAIL)) {
+			/*
+			 * __GFP_NOFAIL is not to be used in new code.
+			 *
+			 * All __GFP_NOFAIL callers should be fixed so that they
+			 * properly detect and handle allocation failures.
+			 *
+			 * We most definitely don't want callers attempting to
+			 * allocate greater than order-1 page units with
+			 * __GFP_NOFAIL.
+			 */
+			WARN_ON_ONCE(order > 1);
+		}
+		spin_lock_irqsave(&zone->lock, flags);
+		page = __rmqueue(zone, order, migratetype);	// 参见__rmqueue()节
+		spin_unlock(&zone->lock);
+		if (!page)
+			goto failed;
+		// 更新zone->vm_stat[NR_FREE_PAGES]和vm_stat[NR_FREE_PAGES]
+		__mod_zone_page_state(zone, NR_FREE_PAGES, -(1 << order));
+	}
+
+	__count_zone_vm_events(PGALLOC, zone, 1 << order);
+	zone_statistics(preferred_zone, zone, gfp_flags);
+	local_irq_restore(flags);
+
+	VM_BUG_ON(bad_range(zone, page));
+	if (prep_new_page(page, order, gfp_flags))		// 参见prep_new_page()节
+		goto again;
+	return page;
+
+failed:
+	local_irq_restore(flags);
+	return NULL;
+}
+```
+
+Per-CPU page frame cache:
+
+![Memery_Layout_20](/assets/Memery_Layout_20.jpg)
+
+###### 6.4.1.1.2.1.1 rmqueue_bulk()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * Obtain a specified number of elements from the buddy allocator, all under
+ * a single hold of the lock, for efficiency.  Add them to the supplied list.
+ * Returns the number of new pages which were placed at *list.
+ */
+// 由buffered_rmqueue()节可知，rmqueue_bulk(zone, 0, pcp->batch, list, migratetype, cold);
+static int rmqueue_bulk(struct zone *zone, unsigned int order, unsigned long count,
+				  struct list_head *list, int migratetype, int cold)
+{
+	int i;
+
+	spin_lock(&zone->lock);
+	for (i = 0; i < count; ++i) {
+		struct page *page = __rmqueue(zone, order, migratetype);	// 参见__rmqueue()节
+		if (unlikely(page == NULL))
+			break;
+
+		/*
+		 * Split buddy pages returned by expand() are received here
+		 * in physical page order. The page is added to the callers and
+		 * list and the list head then moves forward. From the callers
+		 * perspective, the linked list is ordered by page number in
+		 * some conditions. This is useful for IO devices that can
+		 * merge IO requests if the physical pages are ordered
+		 * properly.
+		 */
+		if (likely(cold == 0))
+			list_add(&page->lru, list);
+		else
+			list_add_tail(&page->lru, list);
+		// page->private = migratetype
+		set_page_private(page, migratetype);
+		list = &page->lru;
+	}
+	__mod_zone_page_state(zone, NR_FREE_PAGES, -(i << order));
+	spin_unlock(&zone->lock);
+	return i;
+}
+```
+
+###### 6.4.1.1.2.1.1.1 \__rmqueue()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * Do the hard work of removing an element from the buddy allocator.
+ * Call me with the zone->lock already held.
+ */
+static struct page *__rmqueue(struct zone *zone, unsigned int order, int migratetype)
+{
+	struct page *page;
+
+retry_reserve:
+	page = __rmqueue_smallest(zone, order, migratetype);		// 参见__rmqueue_smallest()节
+
+	if (unlikely(!page) && migratetype != MIGRATE_RESERVE) {
+		page = __rmqueue_fallback(zone, order, migratetype);	// 参见__rmqueue_fallback()节
+
+		/*
+		 * Use MIGRATE_RESERVE rather than fail an allocation. goto
+		 * is used because __rmqueue_smallest is an inline function
+		 * and we want just one call site
+		 */
+		if (!page) {
+			migratetype = MIGRATE_RESERVE;
+			goto retry_reserve;
+		}
+	}
+
+	trace_mm_page_alloc_zone_locked(page, order, migratetype);
+	return page;
+}
+```
+
+###### 6.4.1.1.2.1.1.1.1 \__rmqueue_smallest()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * Go through the free lists for the given migratetype and remove
+ * the smallest available page from the freelists
+ */
+static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int order, int migratetype)
+{
+	unsigned int current_order;
+	struct free_area * area;
+	struct page *page;
+
+	/*
+	 * 与__rmqueue_fallback()不同(参见__rmqueue_fallback()节)：
+	 * 此处按order由小到大的顺序分配，且只查找指定的migratetype类型
+	 */
+	/* Find a page of the appropriate size in the preferred list */
+	for (current_order = order; current_order < MAX_ORDER; ++current_order) {
+		area = &(zone->free_area[current_order]);
+		// 若该大小为2order的free_area为空，则从2order+1的free_area里面找
+		if (list_empty(&area->free_list[migratetype]))
+			continue;
+
+		// 获取第一个页面，参见错误：引用源未找到
+		page = list_entry(area->free_list[migratetype].next, struct page, lru);
+		// 将该页面及其后连续的共2order个页面从列表中移出
+		list_del(&page->lru);
+		// 1) 清除Buddy Allocator标志，即page->_mapcount = -1;
+		// 2) 设置page->private = 0. 注：页描述符中的private保存其对应的order值.
+		rmv_page_order(page);
+		area->nr_free--;
+		/*
+		 * When it becomes necessary to use a block of 2k page frames to
+		 * satisfy a request for 2h page frames (k > h), the program
+		 * allocates the first 2h page frames and iteratively reassigns
+		 * the last 2k–2h page frames to the free_area lists that have
+		 * indexes between h and k.
+		 * 此处，current_order >= order，示例参见错误：引用源未找到。
+		 * 另参见struct zone节中free_area[]的注释
+		 */
+		expand(zone, page, order, current_order, area, migratetype);
+		return page;
+	}
+
+	return NULL;
+}
+```
+
+其中，函数expand()定义于mm/slab_alloc.c:
+
+```
+static inline void expand(struct zone *zone, struct page *page, int low,
+							   int high, struct free_area *area, int migratetype)
+{
+	unsigned long size = 1 << high;
+
+	while (high > low) {
+		area--;
+		high--;
+		size >>= 1;
+		VM_BUG_ON(bad_range(zone, &page[size]));
+		// 将2high个页面添加到链表area->free_list[]的头部
+		list_add(&page[size].lru, &area->free_list[migratetype]);
+		area->nr_free++;
+		/*
+		 * 设置&page[size]->private = high. 注：页描述符中的private保存其对应的order值；
+		 * 设置Buddy Allocator标志，即&page[size]->_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE
+		 */
+		set_page_order(&page[size], high);
+	}
+}
+```
+
+当high=4,low=3时，函数expand()的执行结果:
+
+![Memery_Layout_21](/assets/Memery_Layout_21.jpg)
+
+从order=4的free_area中分配1个页面:
+
+![Memery_Layout_29](/assets/Memery_Layout_29.jpg)
+
+###### 6.4.1.1.2.1.1.1.2 \__rmqueue_fallback()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * This array describes the order lists are fallen back to when
+ * the free lists for the desirable migrate type are depleted
+ */
+static int fallbacks[MIGRATE_TYPES][MIGRATE_TYPES-1] = {
+	[MIGRATE_UNMOVABLE]	= { MIGRATE_RECLAIMABLE,	MIGRATE_MOVABLE,		MIGRATE_RESERVE },
+	[MIGRATE_RECLAIMABLE]	= { MIGRATE_UNMOVABLE,		MIGRATE_MOVABLE,		MIGRATE_RESERVE },
+	[MIGRATE_MOVABLE]	= { MIGRATE_RECLAIMABLE,	MIGRATE_UNMOVABLE,		MIGRATE_RESERVE },
+	[MIGRATE_RESERVE]	= { MIGRATE_RESERVE,		MIGRATE_RESERVE,		MIGRATE_RESERVE }, /* Never used */
+};
+
+/* Remove an element from the buddy allocator from the fallback list */
+static inline struct page *__rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
+{
+	struct free_area * area;
+	int current_order;
+	struct page *page;
+	int migratetype, i;
+
+	/*
+	 * 与__rmqueue_smallest()不同(参见__rmqueue_smallest()节)：
+	 * 此处按order由大到小的顺序分配，且查找所有的migratetype类型
+	 */
+	/* Find the largest possible block of pages in the other list */
+	for (current_order = MAX_ORDER-1; current_order >= order; --current_order) {
+		for (i = 0; i < MIGRATE_TYPES - 1; i++) {
+			migratetype = fallbacks[start_migratetype][i];
+
+			/* MIGRATE_RESERVE handled later if necessary */
+			if (migratetype == MIGRATE_RESERVE)
+				continue;
+
+			area = &(zone->free_area[current_order]);
+			if (list_empty(&area->free_list[migratetype]))
+				continue;
+
+			page = list_entry(area->free_list[migratetype].next, struct page, lru);
+			area->nr_free--;
+
+			/*
+			 * If breaking a large block of pages, move all free
+			 * pages to the preferred allocation list. If falling
+			 * back for a reclaimable kernel allocation, be more
+			 * aggressive about taking ownership of free pages
+			 */
+			if (unlikely(current_order >= (pageblock_order >> 1))
+				 || start_migratetype == MIGRATE_RECLAIMABLE
+				 || page_group_by_mobility_disabled) {
+				unsigned long pages;
+				pages = move_freepages_block(zone, page, start_migratetype);
+
+				/* Claim the whole block if over half of it is free */
+				if (pages >= (1 << (pageblock_order-1)) || page_group_by_mobility_disabled)
+					set_pageblock_migratetype(page, start_migratetype);
+
+				migratetype = start_migratetype;
+			}
+
+			/* Remove the page from the freelists */
+			list_del(&page->lru);
+			rmv_page_order(page);
+
+			/* Take ownership for orders >= pageblock_order */
+			if (current_order >= pageblock_order)
+				change_pageblock_range(page, current_order, start_migratetype);
+
+			// 参见__rmqueue_smallest()节
+			expand(zone, page, order, current_order, area, migratetype);
+
+			trace_mm_page_alloc_extfrag(page, order, current_order, start_migratetype, migratetype);
+
+			return page;
+		}
+	}
+
+	return NULL;
+}
+```
+
+###### 6.4.1.1.2.1.2 prep_new_page()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
+{
+	int i;
+
+	for (i = 0; i < (1 << order); i++) {
+		struct page *p = page + i;
+		if (unlikely(check_new_page(p)))			// 判断页面合法性，参见prep_new_page()节
+			return 1;
+	}
+
+	set_page_private(page, 0);					// page->private = 0
+	set_page_refcounted(page);					// page->_count = 1
+
+	arch_alloc_page(page, order);
+	kernel_map_pages(page, 1 << order, 1);
+
+	if (gfp_flags & __GFP_ZERO)
+		prep_zero_page(page, order, gfp_flags);	// Fill the allocated memory area with zeros.
+
+	if (order && (gfp_flags & __GFP_COMP))
+		prep_compound_page(page, order);			// 参见prep_compound_page()节
+
+	return 0;
+}
+```
+
+###### 6.4.1.1.2.1.2.1 check_new_page()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static inline int check_new_page(struct page *page)
+{
+	if (unlikely(page_mapcount(page)				// &(page)->_mapcount) + 1
+		 | (page->mapping != NULL)
+		 | (atomic_read(&page->_count) != 0)
+		 | (page->flags & PAGE_FLAGS_CHECK_AT_PREP)
+		 | (mem_cgroup_bad_page_check(page)))) {
+		bad_page(page);
+		return 1;
+	}
+	return 0;
+}
+```
+
+###### 6.4.1.1.2.1.2.2 prep_compound_page()
+
+该函数定义于mm/page_alloc.c:
+
+```
+void prep_compound_page(struct page *page, unsigned long order)
+{
+	int i;
+	int nr_pages = 1 << order;
+
+	// page[1].lru.next = (void *)free_compound_page;
+	set_compound_page_dtor(page, free_compound_page);
+	// page[1].lru.prev = (void *)order;
+	set_compound_order(page, order);
+	// 设置page->flags中的PG_head标志位，参见include/linux/page-flags.h
+	__SetPageHead(page);
+	for (i = 1; i < nr_pages; i++) {
+		struct page *p = page + i;
+		__SetPageTail(p);		// page->flags |= PG_head_tail_mask;
+		set_page_count(p, 0);		// page->_count = 0
+		p->first_page = page;		// 链接页面
+	}
+}
+```
+
+##### 6.4.1.1.3 \__alloc_pages_slowpath()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static inline struct page *__alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
+	struct zonelist *zonelist, enum zone_type high_zoneidx,
+	nodemask_t *nodemask, struct zone *preferred_zone, int migratetype)
+{
+	const gfp_t wait = gfp_mask & __GFP_WAIT;
+	struct page *page = NULL;
+	int alloc_flags;
+	unsigned long pages_reclaimed = 0;
+	unsigned long did_some_progress;
+	bool sync_migration = false;
+
+	/*
+	 * In the slowpath, we sanity check order to avoid ever trying to
+	 * reclaim >= MAX_ORDER areas which will never succeed. Callers may
+	 * be using allocators in order of preference for an area that is
+	 * too large.
+	 */
+	if (order >= MAX_ORDER) {
+		WARN_ON_ONCE(!(gfp_mask & __GFP_NOWARN));
+		return NULL;
+	}
+
+	/*
+	 * GFP_THISNODE (meaning __GFP_THISNODE, __GFP_NORETRY and
+	 * __GFP_NOWARN set) should not cause reclaim since the subsystem
+	 * (f.e. slab) using GFP_THISNODE may choose to trigger reclaim
+	 * using a larger set of nodes after it has established that the
+	 * allowed per node queues are empty and that nodes are
+	 * over allocated.
+	 */
+	if (NUMA_BUILD && (gfp_mask & GFP_THISNODE) == GFP_THISNODE)
+		goto nopage;
+
+restart:
+	// 参见wake_all_kswapd()节
+	if (!(gfp_mask & __GFP_NO_KSWAPD))
+		wake_all_kswapd(order, zonelist, high_zoneidx, zone_idx(preferred_zone));
+
+	/*
+	 * OK, we're below the kswapd watermark and have kicked background
+	 * reclaim. Now things get more complex, so set up alloc_flags according
+	 * to how we want to proceed.
+	 */
+	alloc_flags = gfp_to_alloc_flags(gfp_mask);
+
+	/*
+	 * Find the true preferred zone if the allocation is unconstrained by
+	 * cpusets.
+	 */
+	if (!(alloc_flags & ALLOC_CPUSET) && !nodemask)
+		first_zones_zonelist(zonelist, high_zoneidx, NULL, &preferred_zone);
+
+rebalance:
+	/* This is the last chance, in general, before the goto nopage. */
+	// 参见get_page_from_freelist()节
+	page = get_page_from_freelist(gfp_mask, nodemask, order, zonelist, high_zoneidx,
+			alloc_flags & ~ALLOC_NO_WATERMARKS, preferred_zone, migratetype);
+	if (page)
+		goto got_pg;
+
+	/* Allocate without watermarks if the context allows */
+	if (alloc_flags & ALLOC_NO_WATERMARKS) {
+		page = __alloc_pages_high_priority(gfp_mask, order, zonelist,
+				high_zoneidx, nodemask, preferred_zone, migratetype);
+		if (page)
+			goto got_pg;
+	}
+
+	/* Atomic allocations - we can't balance anything */
+	if (!wait)
+		goto nopage;
+
+	/* Avoid recursion of direct reclaim */
+	if (current->flags & PF_MEMALLOC)
+		goto nopage;
+
+	/* Avoid allocations with no watermarks from looping endlessly */
+	if (test_thread_flag(TIF_MEMDIE) && !(gfp_mask & __GFP_NOFAIL))
+		goto nopage;
+
+	/*
+	 * Try direct compaction. The first pass is asynchronous. Subsequent
+	 * attempts after direct reclaim are synchronous
+	 */
+	page = __alloc_pages_direct_compact(gfp_mask, order, zonelist, high_zoneidx, nodemask,
+			alloc_flags, preferred_zone, migratetype, &did_some_progress, sync_migration);
+	if (page)
+		goto got_pg;
+	sync_migration = true;
+
+	/* Try direct reclaim and then allocating */
+	page = __alloc_pages_direct_reclaim(gfp_mask, order, zonelist, high_zoneidx,
+			nodemask, alloc_flags, preferred_zone, migratetype, &did_some_progress);
+	if (page)
+		goto got_pg;
+
+	/*
+	 * If we failed to make any progress reclaiming, then we are
+	 * running out of options and have to consider going OOM
+	 */
+	if (!did_some_progress) {
+		if ((gfp_mask & __GFP_FS) && !(gfp_mask & __GFP_NORETRY)) {
+			if (oom_killer_disabled)
+				goto nopage;
+			page = __alloc_pages_may_oom(gfp_mask, order, zonelist,
+					high_zoneidx, nodemask, preferred_zone, migratetype);
+			if (page)
+				goto got_pg;
+
+			if (!(gfp_mask & __GFP_NOFAIL)) {
+				/*
+				 * The oom killer is not called for high-order
+				 * allocations that may fail, so if no progress
+				 * is being made, there are no other options and
+				 * retrying is unlikely to help.
+				 */
+				if (order > PAGE_ALLOC_COSTLY_ORDER)
+					goto nopage;
+				/*
+				 * The oom killer is not called for lowmem
+				 * allocations to prevent needlessly killing
+				 * innocent tasks.
+				 */
+				if (high_zoneidx < ZONE_NORMAL)
+					goto nopage;
+			}
+
+			goto restart;
+		}
+	}
+
+	/* Check if we should retry the allocation */
+	pages_reclaimed += did_some_progress;
+	if (should_alloc_retry(gfp_mask, order, pages_reclaimed)) {
+		/* Wait for some write requests to complete then retry */
+		wait_iff_congested(preferred_zone, BLK_RW_ASYNC, HZ/50);
+		goto rebalance;
+	} else {
+		/*
+		 * High-order allocations do not necessarily loop after
+		 * direct reclaim and reclaim/compaction depends on compaction
+		 * being called after reclaim so call directly if necessary
+		 */
+		page = __alloc_pages_direct_compact(gfp_mask, order, zonelist, high_zoneidx, nodemask,
+				alloc_flags, preferred_zone, migratetype, &did_some_progress, sync_migration);
+		if (page)
+			goto got_pg;
+	}
+
+nopage:
+	warn_alloc_failed(gfp_mask, order, NULL);
+	return page;
+got_pg:
+	if (kmemcheck_enabled)
+		kmemcheck_pagealloc_alloc(page, order, gfp_mask);
+	return page;
+
+}
+```
+
+###### 6.4.1.1.3.1 wake_all_kswapd()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static inline void wake_all_kswapd(unsigned int order, struct zonelist *zonelist,
+				enum zone_type high_zoneidx, enum zone_type classzone_idx)
+{
+	struct zoneref *z;
+	struct zone *zone;
+
+	for_each_zone_zonelist(zone, z, zonelist, high_zoneidx)
+		wakeup_kswapd(zone, order, classzone_idx);	// 参见wakeup_kswapd()节
+}
+```
+
+###### 6.4.1.1.3.1.1 kswapd
+
+###### 6.4.1.1.3.1.1.1 kswapd线程的初始化
+
+结构pg_date_t中的变量kswapd是通过函数kswapd_init()设置的，其定义于mm/vmscan.c:
+
+```
+static int __init kswapd_init(void)
+{
+	int nid;
+
+	swap_setup();
+	for_each_node_state(nid, N_HIGH_MEMORY)
+ 		kswapd_run(nid);
+	hotcpu_notifier(cpu_callback, 0);
+	return 0;
+}
+
+/*
+* 由mm/Makefile可知，vmscan.c被直接编译进内核，因此kswapd_init()在系统启动时执行，参见.initcall*.init节
+* kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+ *                                                ^
+ *                                                +-- 其中的.initcall6.init
+ */
+module_init(kswapd_init)
+```
+
+其中，函数kswapd_run()定义于mm/vmscan.c:
+
+```
+int kswapd_run(int nid)
+{
+	pg_data_t *pgdat = NODE_DATA(nid);
+	int ret = 0;
+
+	if (pgdat->kswapd)
+		return 0;
+
+	// 创建kswapd内核线程，参见kthread_run()节，该线程执行函数kswapd().
+	pgdat->kswapd = kthread_run(kswapd, pgdat, "kswapd%d", nid);
+	if (IS_ERR(pgdat->kswapd)) {
+		/* failure at boot is fatal */
+		BUG_ON(system_state == SYSTEM_BOOTING);
+		printk("Failed to start kswapd on node %d\n",nid);
+		ret = -1;
+	}
+	return ret;
+}
+```
+
+其中，函数kswapd()定义于mm/vmscan.c:
+
+```
+static int kswapd(void *p)
+{
+	unsigned long order, new_order;
+	unsigned balanced_order;
+	int classzone_idx, new_classzone_idx;
+	int balanced_classzone_idx;
+	pg_data_t *pgdat = (pg_data_t*)p;
+	struct task_struct *tsk = current;
+
+	struct reclaim_state reclaim_state = {
+		.reclaimed_slab = 0,
+	};
+	const struct cpumask *cpumask = cpumask_of_node(pgdat->node_id);
+
+	lockdep_set_current_reclaim_state(GFP_KERNEL);
+
+	if (!cpumask_empty(cpumask))
+		set_cpus_allowed_ptr(tsk, cpumask);
+	current->reclaim_state = &reclaim_state;
+
+	/*
+	 * Tell the memory management that we're a "memory allocator",
+	 * and that if we need more memory we should get access to it
+	 * regardless (see "__alloc_pages()"). "kswapd" should
+	 * never get caught in the normal page freeing logic.
+	 *
+	 * (Kswapd normally doesn't need memory anyway, but sometimes
+	 * you need a small amount of memory in order to be able to
+	 * page out something else, and this flag essentially protects
+	 * us from recursively trying to free more memory as we're
+	 * trying to free the first piece of memory in the first place).
+	 */
+	tsk->flags |= PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD;
+	set_freezable();
+
+	order = new_order = 0;
+	balanced_order = 0;
+	classzone_idx = new_classzone_idx = pgdat->nr_zones - 1;
+	balanced_classzone_idx = classzone_idx;
+	for ( ; ; ) {
+		int ret;
+
+		/*
+		 * If the last balance_pgdat was unsuccessful it's unlikely a
+		 * new request of a similar or harder type will succeed soon
+		 * so consider going to sleep on the basis we reclaimed at
+		 */
+		if (balanced_classzone_idx >= new_classzone_idx && balanced_order == new_order) {
+			new_order = pgdat->kswapd_max_order;
+			new_classzone_idx = pgdat->classzone_idx;
+			pgdat->kswapd_max_order =  0;
+			pgdat->classzone_idx = pgdat->nr_zones - 1;
+		}
+
+		if (order < new_order || classzone_idx > new_classzone_idx) {
+			/*
+			 * Don't sleep if someone wants a larger 'order'
+			 * allocation or has tigher zone constraints
+			 */
+			order = new_order;
+			classzone_idx = new_classzone_idx;
+		} else {
+			kswapd_try_to_sleep(pgdat, balanced_order, balanced_classzone_idx);
+			order = pgdat->kswapd_max_order;
+			classzone_idx = pgdat->classzone_idx;
+			new_order = order;
+			new_classzone_idx = classzone_idx;
+			pgdat->kswapd_max_order = 0;
+			pgdat->classzone_idx = pgdat->nr_zones - 1;
+		}
+
+		ret = try_to_freeze();
+		if (kthread_should_stop())
+			break;
+
+		/*
+		 * We can speed up thawing tasks if we don't call balance_pgdat
+		 * after returning from the refrigerator
+		 */
+		if (!ret) {
+			trace_mm_vmscan_kswapd_wake(pgdat->node_id, order);
+			balanced_classzone_idx = classzone_idx;
+			balanced_order = balance_pgdat(pgdat, order, &balanced_classzone_idx);
+		}
+	}
+	return 0;
+}
+```
+
+###### 6.4.1.1.3.1.1.2 wakeup_kswapd()
+
+该函数定义于mm/vmscan.c:
+
+```
+void wakeup_kswapd(struct zone *zone, int order, enum zone_type classzone_idx)
+{
+	pg_data_t *pgdat;
+
+	if (!populated_zone(zone))
+		return;
+
+	if (!cpuset_zone_allowed_hardwall(zone, GFP_KERNEL))
+		return;
+	pgdat = zone->zone_pgdat;
+	if (pgdat->kswapd_max_order < order) {
+		pgdat->kswapd_max_order = order;
+		pgdat->classzone_idx = min(pgdat->classzone_idx, classzone_idx);
+	}
+	if (!waitqueue_active(&pgdat->kswapd_wait))
+		return;
+	if (zone_watermark_ok_safe(zone, order, low_wmark_pages(zone), 0, 0))
+		return;
+
+	trace_mm_vmscan_wakeup_kswapd(pgdat->node_id, zone_idx(zone), order);
+	// 唤醒pgdat->kswapd_wait进程，参见wake_up_xxx()节
+	wake_up_interruptible(&pgdat->kswapd_wait);
+}
+```
+
+#### 6.4.1.2 page_address()
+
+The page_address() function returns the linear address associated with the page frame, or NULL if the page frame is in high memory and is not mapped.
+
+根据编译选项的不同，其定义也不同，如下表所示：
+
+| Macros Definitions<br>WANT_PAGE_VIRTUAL | Macros Definitions<br>CONFIG_HIGHMEM | page_address() |
+|:--------------------------------------- | :----------------------------------- | :------------- |
+| Defined     | -           | #define page_address(page) ((page)->virtual) |
+| Not Defined | Not Defined | #define page_address(page) lowmem_page_address(page)，参见lowmem_page_address()节 |
+| Not Defined | Defined     | 定义于mm/highmem.c，参见page_address() in mm/highmem.c节 |
+
+<p/>
+
+参见include/linux/mm.h:
+
+```
+#if defined(CONFIG_HIGHMEM) && !defined(WANT_PAGE_VIRTUAL)
+#define HASHED_PAGE_VIRTUAL
+#endif
+
+#if defined(WANT_PAGE_VIRTUAL)
+#define page_address(page)		((page)->virtual)
+#define set_page_address(page, address)			\
+	do {						\
+		(page)->virtual = (address);		\
+	} while(0)
+#define page_address_init()		do { } while(0)
+#endif
+
+#if defined(HASHED_PAGE_VIRTUAL)
+void *page_address(const struct page *page);	// mm/highmem.c
+void set_page_address(struct page *page, void *virtual);
+void page_address_init(void);
+#endif
+
+#if !defined(HASHED_PAGE_VIRTUAL) && !defined(WANT_PAGE_VIRTUAL)
+#define page_address(page)			lowmem_page_address(page)
+#define set_page_address(page, address) 	do { } while(0)
+#define page_address_init()			do { } while(0)
+#endif
+```
+
+##### 6.4.1.2.1 lowmem_page_address()
+
+该函数定义于include/linux/mm.h:
+
+```
+static __always_inline void *lowmem_page_address(const struct page *page)
+{
+	// page_to_pfn()参见pte_page()/pte_pfn()节，__va()参见pgd_page_vaddr()节
+	return __va(PFN_PHYS(page_to_pfn(page)));
+}
+```
+
+其中，宏PFN_PHYS()定义于include/linux/pfn.h:
+
+```
+#define PFN_PHYS(x)		((phys_addr_t)(x) << PAGE_SHIFT)
+```
+
+##### 6.4.1.2.2 page_address() in mm/highmem.c
+
+该函数定义于mm/highmem.c:
+
+```
+/**
+ * page_address - get the mapped virtual address of a page
+ * @page: &struct page to get the virtual address of
+ *
+ * Returns the page's virtual address.
+ */
+void *page_address(const struct page *page)
+{
+	unsigned long flags;
+	void *ret;
+	struct page_address_slot *pas;
+
+	// 若不是高端内存，参见lowmem_page_address()节
+	if (!PageHighMem(page))
+		return lowmem_page_address(page);
+
+	/*
+	 * 获取page_address_htable中page所在的表项，
+	 * 参见错误：引用源未找到
+	 */
+	pas = page_slot(page);
+	ret = NULL;
+	spin_lock_irqsave(&pas->lock, flags);
+	if (!list_empty(&pas->lh)) {
+		struct page_address_map *pam;
+
+		list_for_each_entry(pam, &pas->lh, list) {
+			if (pam->page == page) {
+				ret = pam->virtual;
+				goto done;
+			}
+		}
+	}
+done:
+	spin_unlock_irqrestore(&pas->lock, flags);
+	return ret;
+}
+```
+
+变量page_address_htable:
+
+![Memery_Layout_11](/assets/Memery_Layout_11.jpg)
+
+#### 6.4.1.3 \__get_free_pages()
+
+Function that is similar to alloc_pages(), but it returns the linear address of the first allocated page.
+
+该函数定义于mm/page_alloc.c:
+
+```
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+{
+	struct page *page;
+
+	/*
+	 * __get_free_pages() returns a 32-bit address, which cannot represent
+	 * a highmem page
+	 */
+	VM_BUG_ON((gfp_mask & __GFP_HIGHMEM) != 0);
+
+	page = alloc_pages(gfp_mask, order);		// 参见alloc_pages()节
+	if (!page)
+		return 0;
+	return (unsigned long) page_address(page);	// 参见page_address()节
+}
+```
+
+#### 6.4.1.4 \__get_dma_pages()
+
+Macro used to get page frames suitable for DMA; see include/linux/gfp.h:
+
+```
+// 参见__get_free_pages()节
+#define __get_dma_pages(gfp_mask, order)		\
+		 __get_free_pages((gfp_mask) | GFP_DMA, (order))
+```
+
+#### 6.4.1.5 free_pages()/\__free_pages()
+
+```
+void __free_pages(struct page *page, unsigned int order);
+```
+
+The function ```__free_pages()``` checks the page descriptor pointed to by page; if the page frame is not reserved (i.e., if the PG_reserved flag is equal to 0), it decreases the count field of the descriptor. If count becomes 0, it assumes that 2order contiguous page frames starting from the one corresponding to page are no longer used. In this case, the function releases the page frames.
+
+```
+void free_pages(unsigned long addr, unsigned int order);
+```
+
+The function free_pages() is similar to ```__free_pages()```, but it receives as an argument the linear address addr of the first page frame to be released.
+
+函数free_pages()定义于mm/page_alloc.c:
+
+```
+void free_pages(unsigned long addr, unsigned int order)
+{
+	if (addr != 0) {
+		VM_BUG_ON(!virt_addr_valid((void *)addr));
+		__free_pages(virt_to_page((void *)addr), order);
+	}
+}
+```
+
+函数__free_pages()定义于mm/page_alloc.c:
+
+```
+void __free_pages(struct page *page, unsigned int order)
+{
+	// if page->_count-- is 0, then the page has no users, release it!
+	if (put_page_testzero(page)) {
+		if (order == 0)
+			free_hot_cold_page(page, 0);	// 参见free_hot_cold_page()节
+		else
+			__free_pages_ok(page, order);	// 参见__free_pages_ok()节
+	}
+}
+```
+
+##### 6.4.1.5.1 free_hot_cold_page()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * Free a 0-order page
+ * cold == 1 ? free a cold page : free a hot page
+ */
+void free_hot_cold_page(struct page *page, int cold)
+{
+	struct zone *zone = page_zone(page);
+	struct per_cpu_pages *pcp;
+	unsigned long flags;
+	int migratetype;
+	// 判断并清除page->flags中的PG_mlocked标志位
+	int wasMlocked = __TestClearPageMlocked(page);
+
+	// 参见free_pages_prepare()节
+	if (!free_pages_prepare(page, 0))
+		return;
+
+	migratetype = get_pageblock_migratetype(page);
+	// page->private = migratetype
+	set_page_private(page, migratetype);
+	local_irq_save(flags);
+	if (unlikely(wasMlocked))
+		// 更新page->vm_stat[NR_MLOCK]和vm_stat[NR_MLOCK]
+		free_page_mlock(page);
+	// 更新vm_event_states.event[PGFREE]
+	__count_vm_event(PGFREE);
+
+	/*
+	 * We only track unmovable, reclaimable and movable on pcp lists.
+	 * Free ISOLATE pages back to the allocator because they are being
+	 * offlined but treat RESERVE as movable pages so we can get those
+	 * areas back if necessary. Otherwise, we may have to free
+	 * excessively into the page allocator
+	 */
+	if (migratetype >= MIGRATE_PCPTYPES) {
+		if (unlikely(migratetype == MIGRATE_ISOLATE)) {
+			// 参见free_one_page()节
+			free_one_page(zone, page, 0, migratetype);
+			goto out;
+		}
+		migratetype = MIGRATE_MOVABLE;
+	}
+
+	/*
+	 * 将该页面插入Per-CPU Page Frame Cache，
+	 * 参见错误：引用源未找到
+	 */
+	pcp = &this_cpu_ptr(zone->pageset)->pcp;
+	if (cold)
+		list_add_tail(&page->lru, &pcp->lists[migratetype]);
+	else
+		list_add(&page->lru, &pcp->lists[migratetype]);
+	pcp->count++;
+	/*
+	 * 若超过阀值，则释放batch个页面到Buddy Allocator System
+	 * 与buffered_rmqueue()->rmqueue_bulk()对应，
+	 * 参见buffered_rmqueue()节
+	 */
+	if (pcp->count >= pcp->high) {
+		free_pcppages_bulk(zone, pcp->batch, pcp);
+		pcp->count -= pcp->batch;
+	}
+
+out:
+	local_irq_restore(flags);
+}
+```
+
+###### 6.4.1.5.1.1 free_pages_prepare()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static bool free_pages_prepare(struct page *page, unsigned int order)
+{
+	int i;
+	int bad = 0;
+
+	trace_mm_page_free_direct(page, order);
+	kmemcheck_free_shadow(page, order);
+
+	// page->mapping & PAGE_MAPPING_ANON) != 0
+	if (PageAnon(page))
+		page->mapping = NULL;
+	for (i = 0; i < (1 << order); i++)
+		// 与check_new_page()对应，参见prep_new_page()节
+		bad += free_pages_check(page + i);
+	if (bad)
+		return false;
+
+	// 判断是否为高端内存
+	if (!PageHighMem(page)) {
+		debug_check_no_locks_freed(page_address(page),PAGE_SIZE << order);
+		debug_check_no_obj_freed(page_address(page), PAGE_SIZE << order);
+	}
+	arch_free_page(page, order);
+	kernel_map_pages(page, 1 << order, 0);
+
+	return true;
+}
+```
+
+###### 6.4.1.5.1.2 free_one_page()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static void free_one_page(struct zone *zone, struct page *page, int order, int migratetype)
+{
+	spin_lock(&zone->lock);
+	zone->all_unreclaimable = 0;
+	zone->pages_scanned = 0;
+
+	// 参见__free_one_page()节
+	__free_one_page(page, zone, order, migratetype);
+	__mod_zone_page_state(zone, NR_FREE_PAGES, 1 << order);
+	spin_unlock(&zone->lock);
+}
+```
+
+###### 6.4.1.5.1.2.1 \__free_one_page()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static inline void __free_one_page(struct page *page,
+		struct zone *zone, unsigned int order, int migratetype)
+{
+	unsigned long page_idx;
+	unsigned long combined_idx;
+	unsigned long uninitialized_var(buddy_idx);
+	struct page *buddy;
+
+	// 判断是否为复合页：page->flags & ((1L << PG_head) | (1L << PG_tail)
+	if (unlikely(PageCompound(page)))
+		if (unlikely(destroy_compound_page(page, order)))
+			return;
+
+	VM_BUG_ON(migratetype == -1);
+
+	// page_idx取页框号的低11比特位，参见struct zone节中free_area[]的注释
+	page_idx = page_to_pfn(page) & ((1 << MAX_ORDER) - 1);
+
+	VM_BUG_ON(page_idx & ((1 << order) - 1));
+	VM_BUG_ON(bad_range(zone, page));
+
+	// 按order从小到大的顺序，查找该页面对应的最大伙伴页面
+	while (order < MAX_ORDER-1) {
+		// 获得该页对应的伙伴页的索引，其中page[8]对应的伙伴页为page
+		buddy_idx = __find_buddy_index(page_idx, order);
+		// 找到该页对应的伙伴页，并判断其合法性
+		buddy = page + (buddy_idx - page_idx);
+		if (!page_is_buddy(page, buddy, order))
+			break;
+
+		/* Our buddy is free, merge with it and move up one order. */
+		list_del(&buddy->lru);
+		zone->free_area[order].nr_free--;
+		// 1) 清除Buddy Allocator标志，即page->_mapcount = -1;
+		// 2) 设置page->private = 0. 注：页描述符中的private保存其对应的order值.
+		rmv_page_order(buddy);
+		combined_idx = buddy_idx & page_idx;
+		page = page + (combined_idx - page_idx);
+		page_idx = combined_idx;
+		order++;
+	}
+	/*
+	 * 找到最大的伙伴页面后，设置标志：
+	 * 设置page->private = order. 注：页描述符中的private保存其对应的order值；
+	 * 设置Buddy Allocator标志，即page->_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE
+	 */
+	set_page_order(page, order);
+
+	/*
+	 * If this is not the largest possible page, check if the buddy
+	 * of the next-highest order is free. If it is, it's possible
+	 * that pages are being freed that will coalesce soon. In case,
+	 * that is happening, add the free page to the tail of the list
+	 * so it's less likely to be used soon and more likely to be merged
+	 * as a higher order page
+	 */
+	if ((order < MAX_ORDER-2) && pfn_valid_within(page_to_pfn(buddy))) {
+		struct page *higher_page, *higher_buddy;
+		combined_idx = buddy_idx & page_idx;
+		higher_page = page + (combined_idx - page_idx);
+		buddy_idx = __find_buddy_index(combined_idx, order + 1);
+		higher_buddy = page + (buddy_idx - combined_idx);
+		if (page_is_buddy(higher_page, higher_buddy, order + 1)) {
+			list_add_tail(&page->lru, &zone->free_area[order].free_list[migratetype]);
+			goto out;
+		}
+	}
+
+	// 将最大的伙伴页面链接到对应order的空闲链表中，并更新计数
+	list_add(&page->lru, &zone->free_area[order].free_list[migratetype]);
+out:
+	zone->free_area[order].nr_free++;
+}
+```
+
+###### 6.4.1.5.1.3 free_pcppages_bulk()
+
+该函数定义于mm/page_alloc.c:
+
+```
+/*
+ * Frees a number of pages from the PCP lists
+ * Assumes all pages on list are in same zone, and of same order.
+ * count is the number of pages to free.
+ *
+ * If the zone was previously in an "all pages pinned" state then look to
+ * see if this freeing clears that state.
+ *
+ * And clear the zone's pages_scanned counter, to hold off the "all pages are
+ * pinned" detection logic.
+ */
+static void free_pcppages_bulk(struct zone *zone, int count, struct per_cpu_pages *pcp)
+{
+	int migratetype = 0;
+	int batch_free = 0;
+	int to_free = count;
+
+	spin_lock(&zone->lock);
+	zone->all_unreclaimable = 0;
+	zone->pages_scanned = 0;
+
+	while (to_free) {
+		struct page *page;
+		struct list_head *list;
+
+		/*
+		 * Remove pages from lists in a round-robin fashion. A
+		 * batch_free count is maintained that is incremented when an
+		 * empty list is encountered.  This is so more pages are freed
+		 * off fuller lists instead of spinning excessively around empty
+		 * lists
+		 */
+		do {
+			batch_free++;
+			if (++migratetype == MIGRATE_PCPTYPES)
+				migratetype = 0;
+			list = &pcp->lists[migratetype];
+		} while (list_empty(list));
+
+		/* This is the only non-empty list. Free them all. */
+		if (batch_free == MIGRATE_PCPTYPES)
+			batch_free = to_free;
+
+		do {
+			page = list_entry(list->prev, struct page, lru);
+			/* must delete as __free_one_page list manipulates */
+			list_del(&page->lru);
+			/* MIGRATE_MOVABLE list may include MIGRATE_RESERVEs */
+			// 参见__free_one_page()节
+			__free_one_page(page, zone, 0, page_private(page));
+			trace_mm_page_pcpu_drain(page, 0, page_private(page));
+		} while (--to_free && --batch_free && !list_empty(list));
+	}
+	__mod_zone_page_state(zone, NR_FREE_PAGES, count);
+	spin_unlock(&zone->lock);
+}
+```
+
+##### 6.4.1.5.2 \__free_pages_ok()
+
+该函数定义于mm/page_alloc.c:
+
+```
+static void __free_pages_ok(struct page *page, unsigned int order)
+{
+	unsigned long flags;
+	// 判断并清除page->flags中的PG_mlocked标志位
+	int wasMlocked = __TestClearPageMlocked(page);
+
+	// 参见free_pages_prepare()节
+	if (!free_pages_prepare(page, order))
+		return;
+
+	local_irq_save(flags);
+	if (unlikely(wasMlocked))
+		free_page_mlock(page);
+	__count_vm_events(PGFREE, 1 << order);
+	// 参见free_one_page()节
+	free_one_page(page_zone(page), page, order, get_pageblock_migratetype(page));
+	local_irq_restore(flags);
+}
+```
+
+### 6.4.2 分配/释放单个内存页
+
+#### 6.4.2.1 alloc_page()
+
+The macro alloc_page() used to get a single page frame; see include/linux/gfp.h:
+
+```
+// 参见alloc_pages()节
+#define alloc_page(gfp_mask)		alloc_pages(gfp_mask, 0)
+```
+
+It returns the address of the descriptor of the allocated page frame or returns NULL if the allocation failed.
+
+#### 6.4.2.2 get_zeroed_page()
+
+Function get_zeroed_page() used to obtain a page frame filled with zeros; see mm/page_alloc.c:
+
+```
+unsigned long get_zeroed_page(gfp_t gfp_mask)
+{
+	// 参见__get_free_pages()节
+	return __get_free_pages(gfp_mask | __GFP_ZERO, 0);
+}
+```
+
+It returns the linear address of the obtained page frame.
+
+#### 6.4.2.3 \__get_free_page()
+
+The macro ```__get_free_page()``` used to get a single page frame; see include/linux/gfp.h:
+
+```
+// 参见__get_free_pages()节
+#define __get_free_page(gfp_mask)	__get_free_pages((gfp_mask), 0)
+```
+
+#### 6.4.2.4 \__free_page()/free_page()
+
+Macro ```__free_page()``` releases the page frame having the descriptor pointed to by page; Macro free_page() releases the page frame having the linear address addr. See include/linux/gfp.h:
+
+```
+// 参见free_pages()/__free_pages()节
+#define __free_page(page)		__free_pages((page), 0)
+#define free_page(addr)			free_pages((addr), 0)
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

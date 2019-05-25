@@ -19747,6 +19747,800 @@ Stored inside the slab, right before the objects they describe.
 
 ![Slab_with_Internal_Descriptors](/assets/Slab_with_Internal_Descriptors.png)
 
+## 6.6 分配/释放内存区域(memory area)
+
+### 6.6.1 Allocate Physically Contiguous Memory
+
+#### 6.6.1.1 kzalloc()/kmalloc()
+
+该函数定义于include/linux/slab.h:
+
+```
+/**
+ * kzalloc - allocate memory. The memory is set to zero.
+ * @size: how many bytes of memory are required.
+ * @flags: the type of memory to allocate (see kmalloc).
+ */
+static inline void *kzalloc(size_t size, gfp_t flags)
+{
+	return kmalloc(size, flags | __GFP_ZERO);
+}
+```
+
+函数kmalloc()定义于include/linux/slab_def.h:
+
+```
+static __always_inline void *kmalloc(size_t size, gfp_t flags)
+{
+	struct kmem_cache *cachep;
+	void *ret;
+
+	/*
+	 * GCC buitin function __builtin_constant_p():
+	 * returns the integer 1 if the argument is known
+	 * to be a compiletime constant and 0 if it is not
+	 * known to be a compile-time constant.
+	 */
+	if (__builtin_constant_p(size)) {
+		int i = 0;
+
+		if (!size)
+			return ZERO_SIZE_PTR;
+
+		/*
+		 * Use the malloc_sizes table to locate the
+		 * nearest power-of-2 size to the requested size.
+		 */
+#define CACHE(x)				\
+		if (size <= x)			\
+			goto found;		\
+		else				\
+			i++;
+#include <linux/kmalloc_sizes.h>
+#undef CACHE
+
+		return NULL;
+
+found:
+#ifdef CONFIG_ZONE_DMA
+		if (flags & GFP_DMA)
+			cachep = malloc_sizes[i].cs_dmacachep;
+		else
+#endif
+			cachep = malloc_sizes[i].cs_cachep;
+
+		// 参见kmem_cache_alloc_trace()节
+		ret = kmem_cache_alloc_trace(size, cachep, flags);
+
+		return ret;
+	}
+
+	// 参见__kmalloc()节
+	return __kmalloc(size, flags);
+}
+```
+
+##### 6.6.1.1.1 kmem_cache_alloc_trace()
+
+该函数定义于include/linux/slab_def.h:
+
+```
+#ifdef CONFIG_TRACING
+extern void *kmem_cache_alloc_trace(size_t size, struct kmem_cache *cachep, gfp_t flags);
+#else
+static __always_inline void *kmem_cache_alloc_trace(size_t size, struct kmem_cache *cachep, gfp_t flags)
+{
+	// 参见6.5.1.1.3.1 kmem_cache_zalloc()节
+	return kmem_cache_alloc(cachep, flags);
+}
+#endif
+```
+
+##### 6.6.1.1.2 \__kmalloc()
+
+该函数定义于mm/slab.c:
+
+```
+#if defined(CONFIG_DEBUG_SLAB) || defined(CONFIG_TRACING)
+void *__kmalloc(size_t size, gfp_t flags)
+{
+	return __do_kmalloc(size, flags, __builtin_return_address(0));
+}
+#else
+void *__kmalloc(size_t size, gfp_t flags)
+{
+	return __do_kmalloc(size, flags, NULL);
+}
+#endif
+```
+
+#### 6.6.1.2 kcalloc()
+
+该函数定义于include/linux/slab.h:
+
+```
+/**
+ * kcalloc - allocate memory for an array. The memory is set to zero.
+ * @n: number of elements.
+ * @size: element size.
+ * @flags: the type of memory to allocate.
+ */
+static inline void *kcalloc(size_t n, size_t size, gfp_t flags)
+{
+	if (size != 0 && n > ULONG_MAX / size)
+		return NULL;
+
+	// 参见__kmalloc()节
+	return __kmalloc(n * size, flags | __GFP_ZERO);
+}
+```
+
+#### 6.6.1.3 kfree()
+
+该函数定义于mm/slab.c:
+
+```
+/**
+ * kfree - free previously allocated memory
+ * @objp: pointer returned by kmalloc.
+ *
+ * If @objp is NULL, no operation is performed.
+ *
+ * Don't free memory not originally allocated by kmalloc()
+ * or you will run into trouble.
+ */
+void kfree(const void *objp)
+{
+	struct kmem_cache *c;
+	unsigned long flags;
+
+	trace_kfree(_RET_IP_, objp);
+
+	if (unlikely(ZERO_OR_NULL_PTR(objp)))
+		return;
+	local_irq_save(flags);
+	kfree_debugcheck(objp);
+	// 参见virt_to_cache()节
+	c = virt_to_cache(objp);
+	debug_check_no_locks_freed(objp, obj_size(c));
+	debug_check_no_obj_freed(objp, obj_size(c));
+	__cache_free(c, (void *)objp, __builtin_return_address(0));
+	local_irq_restore(flags);
+}
+```
+
+##### 6.6.1.3.1 virt_to_cache()
+
+该函数定义于mm/slab.c:
+
+```
+static inline struct kmem_cache *virt_to_cache(const void *obj)
+{
+	// page = virt_to_page(obj)->first_page
+	struct page *page = virt_to_head_page(obj);
+	// (struct slab *)page->lru.prev; 参见slab_map_pages()节
+	return page_get_cache(page);
+}
+```
+
+### 6.6.2 Allocate Virtually Contiguous Memory
+
+#### 6.6.2.1 vzalloc()/vmalloc()
+
+函数vzalloc()定义于mm/vmalloc.c:
+
+```
+/**
+ *	vzalloc - allocate virtually contiguous memory with zero fill
+ *	@size:	allocation size
+ *	Allocate enough pages to cover @size from the page level
+ *	allocator and map them into contiguous kernel virtual space.
+ *	The memory allocated is set to zero.
+ *
+ *	For tight control over page level allocator and protection flags
+ *	use __vmalloc() instead.
+ */
+void *vzalloc(unsigned long size)
+{
+	return __vmalloc_node_flags(size, -1, GFP_KERNEL | __GFP_HIGHMEM | __GFP_ZERO);
+}
+```
+
+函数vmalloc()定义于mm/vmalloc.c:
+
+```
+/**
+ *	vmalloc  -  allocate virtually contiguous memory
+ *	@size:		allocation size
+ *	Allocate enough pages to cover @size from the page level
+ *	allocator and map them into contiguous kernel virtual space.
+ *
+ *	For tight control over page level allocator and protection flags
+ *	use __vmalloc() instead.
+ */
+void *vmalloc(unsigned long size)
+{
+	return __vmalloc_node_flags(size, -1, GFP_KERNEL | __GFP_HIGHMEM);
+}
+```
+
+其中，函数__vmalloc_node_flags()定义于mm/vmalloc.c:
+
+```
+static inline void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags)
+{
+	return __vmalloc_node(size, 1, flags, PAGE_KERNEL, node, __builtin_return_address(0));
+}
+```
+
+其中，函数__vmalloc_node()定义于mm/vmalloc.c:
+
+```
+/**
+ *	__vmalloc_node  -  allocate virtually contiguous memory
+ *	@size:		allocation size
+ *	@align:		desired alignment
+ *	@gfp_mask:	flags for the page level allocator
+ *	@prot:		protection mask for the allocated pages
+ *	@node:		node to use for allocation or -1
+ *	@caller:	caller's return address
+ *
+ *	Allocate enough pages to cover @size from the page level
+ *	allocator with @gfp_mask flags.  Map them into contiguous
+ *	kernel virtual space, using a pagetable protection of @prot.
+ */
+static void *__vmalloc_node(unsigned long size, unsigned long align,
+			    gfp_t gfp_mask, pgprot_t prot, int node, void *caller)
+{
+	/*
+	 * 函数vmalloc()从区间[VMALLOC_START, VMALLOC_END]中分配内存空间，
+	 * 参见__vmalloc_node_range()节
+	 */
+	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
+					gfp_mask, prot, node, caller);
+}
+```
+
+##### 6.6.2.1.1 \__vmalloc_node_range()
+
+该函数定义于mm/vmalloc.c:
+
+```
+/**
+ *	__vmalloc_node_range  -  allocate virtually contiguous memory
+ *	@size:		allocation size
+ *	@align:		desired alignment
+ *	@start:		vm area range start
+ *	@end:		vm area range end
+ *	@gfp_mask:	flags for the page level allocator
+ *	@prot:		protection mask for the allocated pages
+ *	@node:		node to use for allocation or -1
+ *	@caller:	caller's return address
+ *
+ *	Allocate enough pages to cover @size from the page level
+ *	allocator with @gfp_mask flags.  Map them into contiguous
+ *	kernel virtual space, using a pagetable protection of @prot.
+ */
+void *__vmalloc_node_range(unsigned long size, unsigned long align,
+			unsigned long start, unsigned long end, gfp_t gfp_mask,
+			pgprot_t prot, int node, void *caller)
+{
+	struct vm_struct *area;
+	void *addr;
+	unsigned long real_size = size;
+
+	/*
+	 * Round up the value of the size to a multiple of 4,096
+	 * (the page frame size); The main advantage of this schema
+	 * is to avoid external fragmentation, while the disadvantage
+	 * is that it is necessary to fiddle with the kernel Page
+	 * Tables. Clearly, the size of a noncontiguous memory area
+	 * must be a multiple of 4,096.
+	 */
+	size = PAGE_ALIGN(size);
+	if (!size || (size >> PAGE_SHIFT) > totalram_pages)
+		goto fail;
+
+	// 参见__get_vm_area_node()节
+	area = __get_vm_area_node(size, align, VM_ALLOC | VM_UNLIST,
+				  start, end, node, gfp_mask, caller);
+	if (!area)
+		goto fail;
+
+	// 参见__vmalloc_area_node()节
+	addr = __vmalloc_area_node(area, gfp_mask, prot, node, caller);
+	if (!addr)
+		return NULL;
+
+	/*
+	 * In this function, newly allocated vm_struct is not added
+	 * to vmlist at __get_vm_area_node(). so, it is added here.
+	 */
+	// 参见insert_vmalloc_vmlist()节
+	insert_vmalloc_vmlist(area);
+
+	/*
+	 * A ref_count = 3 is needed because the vm_struct and vmap_area
+	 * structures allocated in the __get_vm_area_node() function contain
+	 * references to the virtual address of the vmalloc'ed block.
+	 */
+	kmemleak_alloc(addr, real_size, 3, gfp_mask);
+
+	return addr;
+
+fail:
+	warn_alloc_failed(gfp_mask, 0, "vmalloc: allocation failure: %lu bytes\n", real_size);
+	return NULL;
+}
+```
+
+函数vmalloc()的返回结果addr:
+
+![Memery_Layout_23](/assets/Memery_Layout_23.jpg)
+
+###### 6.6.2.1.1.1 \__get_vm_area_node()
+
+该函数定义于mm/vmalloc.c:
+
+```
+static struct vm_struct *__get_vm_area_node(unsigned long size,
+		unsigned long align, unsigned long flags, unsigned long start,
+		unsigned long end, int node, gfp_t gfp_mask, void *caller)
+{
+	struct vmap_area *va;
+	struct vm_struct *area;
+
+	BUG_ON(in_interrupt());
+	if (flags & VM_IOREMAP) {
+		int bit = fls(size);
+
+		if (bit > IOREMAP_MAX_ORDER)
+			bit = IOREMAP_MAX_ORDER;
+		else if (bit < PAGE_SHIFT)
+			bit = PAGE_SHIFT;
+
+		align = 1ul << bit;
+	}
+
+	size = PAGE_ALIGN(size);
+	if (unlikely(!size))
+		return NULL;
+
+	// 参见kzalloc_node()节
+	area = kzalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node);
+	if (unlikely(!area))
+		return NULL;
+
+	/*
+	 * We always allocate a guard page.
+	 */
+	size += PAGE_SIZE;
+
+	// 参见alloc_vmap_area()节
+	va = alloc_vmap_area(size, align, start, end, node, gfp_mask);
+	if (IS_ERR(va)) {
+		kfree(area);
+		return NULL;
+	}
+
+	/*
+	 * When this function is called from __vmalloc_node_range,
+	 * we do not add vm_struct to vmlist here to avoid
+	 * accessing uninitialized members of vm_struct such as
+	 * pages and nr_pages fields. They will be set later.
+	 * To distinguish it from others, we use a VM_UNLIST flag.
+	 */
+	if (flags & VM_UNLIST)
+		setup_vmalloc_vm(area, va, flags, caller);	// 参见setup_vmalloc_vm()节
+	else
+		insert_vmalloc_vm(area, va, flags, caller);
+
+	return area;
+}
+```
+
+###### 6.6.2.1.1.1.1 kzalloc_node()
+
+该函数定义于mm/vmalloc.c:
+
+```
+/**
+ * kzalloc_node - allocate zeroed memory from a particular memory node.
+ * @size: how many bytes of memory are required.
+ * @flags: the type of memory to allocate (see kmalloc).
+ * @node: memory node from which to allocate
+ */
+static inline void *kzalloc_node(size_t size, gfp_t flags, int node)
+{
+	/*
+	 * Invoke kmalloc() to request a group of contiguous
+	 * page frames large enough to contain an array of page
+	 * descriptor pointers. 参见kzalloc()/kmalloc()节
+	 */
+	return kmalloc_node(size, flags | __GFP_ZERO, node);
+}
+```
+
+###### 6.6.2.1.1.1.2 alloc_vmap_area()
+
+该函数定义于mm/vmalloc.c:
+
+```
+/*
+ * Allocate a region of KVA of the specified size and alignment, within the
+ * vstart and vend.
+ */
+static struct vmap_area *alloc_vmap_area(unsigned long size, unsigned long align,
+				unsigned long vstart, unsigned long vend, int node, gfp_t gfp_mask)
+{
+	struct vmap_area *va;
+	struct rb_node *n;
+	unsigned long addr;
+	int purged = 0;
+	struct vmap_area *first;
+
+	BUG_ON(!size);
+	BUG_ON(size & ~PAGE_MASK);
+	BUG_ON(!is_power_of_2(align));
+
+	/*
+	 * Invoke kmalloc() to request a group of contiguous
+	 * page frames large enough to contain an array of
+	 * page descriptor pointers. 参见kzalloc()/kmalloc()节
+	 */
+	va = kmalloc_node(sizeof(struct vmap_area), gfp_mask & GFP_RECLAIM_MASK, node);
+	if (unlikely(!va))
+		return ERR_PTR(-ENOMEM);
+
+retry:
+	spin_lock(&vmap_area_lock);
+	/*
+	 * Invalidate cache if we have more permissive parameters.
+	 * cached_hole_size notes the largest hole noticed _below_
+	 * the vmap_area cached in free_vmap_cache: if size fits
+	 * into that hole, we want to scan from vstart to reuse
+	 * the hole instead of allocating above free_vmap_cache.
+	 * Note that __free_vmap_area may update free_vmap_cache
+	 * without updating cached_hole_size or cached_align.
+	 */
+	if (!free_vmap_cache
+		 || size < cached_hole_size
+		 || vstart < cached_vstart
+		 || align < cached_align) {
+nocache:
+		cached_hole_size = 0;
+		free_vmap_cache = NULL;
+	}
+	/* record if we encounter less permissive parameters */
+	cached_vstart = vstart;
+	cached_align = align;
+
+	/* find starting point for our search */
+	if (free_vmap_cache) {
+		first = rb_entry(free_vmap_cache, struct vmap_area, rb_node);
+		addr = ALIGN(first->va_end, align);
+		if (addr < vstart)
+			goto nocache;
+		if (addr + size - 1 < addr)
+			goto overflow;
+
+	} else {
+		addr = ALIGN(vstart, align);
+		if (addr + size - 1 < addr)
+			goto overflow;
+
+		n = vmap_area_root.rb_node;
+		first = NULL;
+
+		while (n) {
+			struct vmap_area *tmp;
+			tmp = rb_entry(n, struct vmap_area, rb_node);
+			if (tmp->va_end >= addr) {
+				first = tmp;
+				if (tmp->va_start <= addr)
+					break;
+				n = n->rb_left;
+			} else
+				n = n->rb_right;
+		}
+
+		if (!first)
+			goto found;
+	}
+
+	/* from the starting point, walk areas until a suitable hole is found */
+	while (addr + size > first->va_start && addr + size <= vend) {
+		if (addr + cached_hole_size < first->va_start)
+			cached_hole_size = first->va_start - addr;
+		addr = ALIGN(first->va_end, align);
+		if (addr + size - 1 < addr)
+			goto overflow;
+
+		n = rb_next(&first->rb_node);
+		if (n)
+			first = rb_entry(n, struct vmap_area, rb_node);
+		else
+			goto found;
+	}
+
+found:
+	if (addr + size > vend)
+		goto overflow;
+
+	va->va_start = addr;
+	va->va_end = addr + size;
+	va->flags = 0;
+	// 将新分配的va插入到红黑树vmap_area_root中
+	__insert_vmap_area(va);
+	free_vmap_cache = &va->rb_node;
+	spin_unlock(&vmap_area_lock);
+
+	BUG_ON(va->va_start & (align-1));
+	BUG_ON(va->va_start < vstart);
+	BUG_ON(va->va_end > vend);
+
+	return va;
+
+overflow:
+	spin_unlock(&vmap_area_lock);
+	if (!purged) {
+		purge_vmap_area_lazy();
+		purged = 1;
+		goto retry;
+	}
+	if (printk_ratelimit())
+		printk(KERN_WARNING "vmap allocation for size %lu failed: "
+			"use vmalloc=<size> to increase size.\n", size);
+	kfree(va);
+	return ERR_PTR(-EBUSY);
+}
+```
+
+###### 6.6.2.1.1.1.3 setup_vmalloc_vm()
+
+该函数定义于mm/vmalloc.c:
+
+```
+static void setup_vmalloc_vm(struct vm_struct *vm, struct vmap_area *va,
+			      unsigned long flags, void *caller)
+{
+	vm->flags = flags;
+	vm->addr = (void *)va->va_start;
+	vm->size = va->va_end - va->va_start;
+	vm->caller = caller;
+	va->private = vm;
+	va->flags |= VM_VM_AREA;
+}
+```
+
+###### 6.6.2.1.1.2 \__vmalloc_area_node()
+
+该函数定义于mm/vmalloc.c:
+
+```
+static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
+				 pgprot_t prot, int node, void *caller)
+{
+	const int order = 0;
+	struct page **pages;
+	unsigned int nr_pages, array_size, i;
+	gfp_t nested_gfp = (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
+
+	nr_pages = (area->size - PAGE_SIZE) >> PAGE_SHIFT;
+	array_size = (nr_pages * sizeof(struct page *));
+
+	area->nr_pages = nr_pages;
+	/* Please note that the recursion is strictly bounded. */
+	if (array_size > PAGE_SIZE) {
+		// 参见vzalloc()/vmalloc()节
+		pages = __vmalloc_node(array_size, 1, nested_gfp|__GFP_HIGHMEM, PAGE_KERNEL, node, caller);
+		area->flags |= VM_VPAGES;
+	} else {
+		/*
+		 * Invoke kmalloc() to request a group of contiguous
+		 * page frames large enough to contain an array of
+		 * page descriptor pointers. 参见kzalloc()/kmalloc()节
+		 */
+		pages = kmalloc_node(array_size, nested_gfp, node);
+	}
+	area->pages = pages;
+	area->caller = caller;
+	if (!area->pages) {
+		remove_vm_area(area->addr);
+		kfree(area);
+		return NULL;
+	}
+
+	for (i = 0; i < area->nr_pages; i++) {
+		struct page *page;
+		gfp_t tmp_mask = gfp_mask | __GFP_NOWARN;
+
+		if (node < 0)
+			page = alloc_page(tmp_mask);				// 参见alloc_page()节
+		else
+			page = alloc_pages_node(node, tmp_mask, order);		// 参见alloc_pages()节
+
+		if (unlikely(!page)) {
+			/* Successfully allocated i pages, free them in __vunmap() */
+			area->nr_pages = i;
+			goto fail;
+		}
+		area->pages[i] = page;
+	}
+
+	if (map_vm_area(area, prot, &pages))
+		goto fail;
+	return area->addr;
+
+fail:
+	warn_alloc_failed(gfp_mask, order,
+			  "vmalloc: allocation failure, allocated %ld of %ld bytes\n",
+			  (area->nr_pages*PAGE_SIZE), area->size);
+	vfree(area->addr);
+	return NULL;
+}
+```
+
+###### 6.6.2.1.1.3 insert_vmalloc_vmlist()
+
+该函数定义于mm/vmalloc.c:
+
+```
+static void insert_vmalloc_vmlist(struct vm_struct *vm)
+{
+	struct vm_struct *tmp, **p;
+
+	vm->flags &= ~VM_UNLIST;
+	write_lock(&vmlist_lock);
+	for (p = &vmlist; (tmp = *p) != NULL; p = &tmp->next) {
+		if (tmp->addr >= vm->addr)
+			break;
+	}
+	vm->next = *p;
+	*p = vm;
+	write_unlock(&vmlist_lock);
+}
+```
+
+#### 6.6.2.2 vmalloc_32()
+
+该函数定义于mm/vmalloc.c:
+
+```
+/**
+ *	vmalloc_32  -  allocate virtually contiguous memory (32bit addressable)
+ *	@size:		allocation size
+ *
+ *	Allocate enough 32bit PA addressable pages to cover @size from the
+ *	page level allocator and map them into contiguous kernel virtual space.
+ */
+void *vmalloc_32(unsigned long size)
+{
+	// 参见vzalloc()/vmalloc()节
+	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL, -1, __builtin_return_address(0));
+}
+```
+
+#### 6.6.2.3 vfree()
+
+The ```vfree()``` function releases noncontiguous memory areas created by ```vmalloc()``` or ```vmalloc_32()```, while the ```vunmap()``` function releases memory areas created by ```vmap()```.
+
+该函数定义于mm/vmalloc.c:
+
+```
+/**
+ *	vfree  -  release memory allocated by vmalloc()
+ *	@addr:		memory base address
+ *
+ *	Free the virtually continuous memory area starting at @addr, as
+ *	obtained from vmalloc(), vmalloc_32() or __vmalloc(). If @addr is
+ *	NULL, no operation is performed.
+ *
+ *	Must not be called in interrupt context.
+ */
+void vfree(const void *addr)
+{
+	BUG_ON(in_interrupt());
+
+	kmemleak_free(addr);
+
+	__vunmap(addr, 1);	// 参见__vunmap()节
+}
+```
+
+##### 6.6.2.3.1 \__vunmap()
+
+该函数定义于mm/vmalloc.c:
+
+```
+static void __vunmap(const void *addr, int deallocate_pages)
+{
+	struct vm_struct *area;
+
+	if (!addr)
+		return;
+
+	if ((PAGE_SIZE-1) & (unsigned long)addr) {
+		WARN(1, KERN_ERR "Trying to vfree() bad address (%p)\n", addr);
+		return;
+	}
+
+	area = remove_vm_area(addr);			// 参见remove_vm_area()节
+	if (unlikely(!area)) {
+		WARN(1, KERN_ERR "Trying to vfree() nonexistent vm area (%p)\n", addr);
+		return;
+	}
+
+	debug_check_no_locks_freed(addr, area->size);
+	debug_check_no_obj_freed(addr, area->size);
+
+	if (deallocate_pages) {
+		int i;
+
+		for (i = 0; i < area->nr_pages; i++) {
+			struct page *page = area->pages[i];
+
+			BUG_ON(!page);
+			__free_page(page);		// 参见__free_page()/free_page()节
+		}
+
+		if (area->flags & VM_VPAGES)
+			vfree(area->pages);		// 参见vfree()节
+		else
+			kfree(area->pages);		// 参见kfree()节
+	}
+
+	kfree(area);					// 参见kfree()节
+	return;
+}
+```
+
+###### 6.6.2.3.1.1 remove_vm_area()
+
+该函数定义于mm/vmalloc.c:
+
+```
+/**
+ *	remove_vm_area  -  find and remove a continuous kernel virtual area
+ *	@addr:		base address
+ *
+ *	Search for the kernel VM area starting at @addr, and remove it.
+ *	This function returns the found VM area, but using it is NOT safe
+ *	on SMP machines, except for its size or flags.
+ */
+struct vm_struct *remove_vm_area(const void *addr)
+{
+	struct vmap_area *va;
+
+	va = find_vmap_area((unsigned long)addr);
+	if (va && va->flags & VM_VM_AREA) {
+		// 将va移出链表vmlist，参见错误：引用源未找到
+		struct vm_struct *vm = va->private;
+
+		if (!(vm->flags & VM_UNLIST)) {
+			struct vm_struct *tmp, **p;
+			/*
+			 * remove from list and disallow access to
+			 * this vm_struct before unmap. (address range
+			 * confliction is maintained by vmap.)
+			 */
+			write_lock(&vmlist_lock);
+			for (p = &vmlist; (tmp = *p) != vm; p = &tmp->next)
+				;
+			*p = tmp->next;
+			write_unlock(&vmlist_lock);
+		}
+
+		vmap_debug_free_range(va->va_start, va->va_end);
+		free_unmap_vmap_area(va);
+		vm->size -= PAGE_SIZE;
+
+		return vm;
+	}
+	return NULL;
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

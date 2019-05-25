@@ -18014,6 +18014,1739 @@ Macro ```__free_page()``` releases the page frame having the descriptor pointed 
 #define free_page(addr)			free_pages((addr), 0)
 ```
 
+## 6.5 Slab Allocator
+
+Running a memory area allocation algorithm on top of the buddy algorithm (参见分配/释放内存页节) is not particularly efficient. A better algorithm is derived from the slab allocator schema that was adopted for the first time in the Sun Microsystems Solaris 2.4 operating system.
+
+The slab allocator groups objects into caches. Each cache is a "store" of objects of the same type.
+
+The area of main memory that contains a cache is divided into slabs; each slab consists of one or more contiguous page frames that contain both allocated and free objects.
+
+Run following command to get a full list of caches available on a running system (参见6.5.1.1.2.1 查看slab的分配信息节):
+
+```
+# cat /proc/slabinfo
+```
+
+![Slab_Cache](/assets/Slab_Cache.png)
+
+### 6.5.0 SLAB/SLUB/SLOB Allocator配置选项
+
+通过如下选项配置SLAB/SLUB/SLOB Allocator:
+
+```
+General setup  --->
+  Choose SLAB allocator (SLAB)  --->
+    (X) SLAB
+    ( ) SLUB (Unqueued Allocator)
+    ( ) SLOB (Simple Allocator)
+```
+
+由此可知，这三个配置选项是互斥的，因而只能选择其中之一！
+
+NOTE: SLAB/SLUB/SLOB allocator的区别
+* SLAB是基础，是最早从Sun OS那引进的；
+* SLUB是在Slab上进行的改进，在大型机上表现出色，据说还被IA-64作为默认；
+* SLOB是针对小型系统设计的，主要是嵌入式。
+
+### 6.5.1 Cache Descriptor/struct kmem_cache
+
+Each cache is described by a structure of type struct kmem_cache. 该结构定义于include/linux/slab_def.h:
+
+```
+struct kmem_cache {
+/* 1) Cache tunables. Protected by cache_chain_mutex */
+	// Number of objects to be transferred in bulk to or from the local caches.
+	unsigned int batchcount;
+	// Maximum number of free objects in the local caches.
+	unsigned int limit;
+	unsigned int shared;
+
+	unsigned int buffer_size;
+	u32 reciprocal_buffer_size;
+
+/* 2) touched by every alloc & free from the backend */
+	// See SLAB_xxx in include/linux/slab.h
+	unsigned int flags;		/* constant flags */
+	// Number of objects packed into a single slab.
+	// All slabs of the cache have the same size.
+	unsigned int num;		/* # of objs per slab */
+
+/* 3) cache_grow/shrink */
+	/* order of pgs per slab (2^n) */
+	// Logarithm of the number of contiguous page frames included in a single slab.
+	unsigned int gfporder;
+
+	/* force GFP flags, e.g. GFP_DMA */
+	// Set of flags passed to the buddy allocator system function when allocating page frames.
+	gfp_t gfpflags;
+
+	// Number of colors for the slabs
+	size_t colour;				/* cache colouring range */
+	unsigned int colour_off;	/* colour offset */
+	/*
+	 * Pointer to the general slab cache containing the slab descriptors.
+	 * NULL if internal slab descriptors are used;
+	 */
+	struct kmem_cache *slabp_cache;
+	// The size of a single slab.
+	unsigned int slab_size;
+	// Set of flags that describe dynamic properties of the cache.
+	unsigned int dflags;		/* dynamic flags */
+
+	/* constructor func */
+	void (*ctor)(void *obj);
+
+/* 4) cache creation/removal */
+	// Character array storing the name of the cache.
+	const char *name;
+	/*
+	 * Pointers for the doubly linked list of cache descriptors.
+	 * 参见Subjects/Chapter06_Memory_Management/Figures/Memery_Layout_15.jpg
+	 */
+	struct list_head next;
+
+/* 5) statistics */
+#ifdef CONFIG_DEBUG_SLAB
+	unsigned long num_active;
+	unsigned long num_allocations;
+	unsigned long high_mark;
+	unsigned long grown;
+	unsigned long reaped;
+	unsigned long errors;
+	unsigned long max_freeable;
+	unsigned long node_allocs;
+	unsigned long node_frees;
+	unsigned long node_overflow;
+	atomic_t allochit;
+	atomic_t allocmiss;
+	atomic_t freehit;
+	atomic_t freemiss;
+
+	/*
+	 * If debugging is enabled, then the allocator can add additional
+	 * fields and/or padding to every object. buffer_size contains the total
+	 * object size including these internal fields, the following two
+	 * variables contain the offset to the user object and its size.
+	 */
+	int obj_offset;
+	int obj_size;
+#endif /* CONFIG_DEBUG_SLAB */
+
+/* 6) per-cpu/per-node data, touched during every alloc/free */
+	/*
+	 * We put array[] at the end of kmem_cache, because we want to size
+	 * this array to nr_cpu_ids slots instead of NR_CPUS (see kmem_cache_init()).
+	 * We still use [NR_CPUS] and not [1] or [0] because cache_cache
+	 * is statically defined, so we reserve the max number of cpus.
+	 */
+	struct kmem_list3 **nodelists;
+	// Per-CPU array of pointers to local caches of free objects.
+	struct array_cache *array[NR_CPUS];
+	/*
+	 * Do not add fields after array[]
+	 */
+};
+
+struct kmem_list3定义于mm/slab.c:
+struct kmem_list3 {
+	// Doubly linked circular list of slab descriptors with both free and nonfree object.
+	struct list_head slabs_partial;	/* partial list first, better asm code */
+	// Doubly linked circular list of slab descriptors with no free objects.
+	struct list_head slabs_full;
+	// Doubly linked circular list of slab descriptors with free objects only.
+	struct list_head slabs_free;
+
+	// Number of free objects in the cache.
+	unsigned long	free_objects;
+	unsigned int	free_limit;
+	unsigned int	colour_next;	/* Per-node cache coloring */
+	spinlock_t		list_lock;
+	// Pointer to a local cache shared by all CPUs.
+	struct array_cache *shared;		/* shared per node */
+	struct array_cache **alien;		/* on other nodes */
+	// Below two variable are used by the slab allocator’s page reclaiming algorithm.
+	unsigned long	next_reap;		/* updated without locking */
+	int			free_touched;	/* updated without locking */
+};
+```
+
+Relationship between cache and slab descriptors:
+
+![Memery_Layout_14](/assets/Memery_Layout_14.jpg)
+
+#### 6.5.1.1 General Cache/Specific Cache
+
+Caches are divided into two types: general and specific.
+* General caches are used only by the slab allocator for its own purposes;
+* Specific caches are used by the remaining parts of the kernel.
+
+The names of all general and specific caches can be obtained at runtime by reading /proc/slabinfo; this file also specifies the number of free objects and the number of allocated objects in each cache.
+
+The general caches are:
+
+1) A first cache called kmem_cache whose objects are the cache descriptors of the remaining caches used by the kernel. The cache_cache variable contains the descriptor of this special cache. See mm/slab.c:
+
+```
+/* internal cache of cache description objs */
+static struct kmem_list3 *cache_cache_nodelists[MAX_NUMNODES];
+static struct kmem_cache cache_cache = {
+	.nodelists	= cache_cache_nodelists,
+	.batchcount	= 1,
+	.limit		= BOOT_CPUCACHE_ENTRIES,	// 1
+	.shared		= 1,
+	.buffer_size	= sizeof(struct kmem_cache),
+	.name			= "kmem_cache",
+};
+```
+
+2) Several additional caches contain general purpose memory areas. The range of the memory area sizes typically includes 13 geometrically distributed sizes. A table called malloc_sizes (whose elements are of type cache_sizes) points to 26 cache descriptors associated with memory areas of size 32, 64, 128, 256, 512, 1,024, 2,048, 4,096, 8,192, 16,384, 32,768, 65,536, and 131,072 bytes. For each size, there are two caches: one suitable for ISA DMA allocations and the other for normal allocations. See mm/slab.c:
+
+```
+struct cache_sizes malloc_sizes[] = {
+#define CACHE(x) { .cs_size = (x) },
+#include <linux/kmalloc_sizes.h>
+	CACHE(ULONG_MAX)
+#undef CACHE
+};
+
+static struct cache_names __initdata cache_names[] = {
+#define CACHE(x) { .name = "size-" #x, .name_dma = "size-" #x "(DMA)" },
+#include <linux/kmalloc_sizes.h>
+	{NULL,}
+#undef CACHE
+};
+```
+
+数组malloc_sizes[]的结构示意图:
+
+![Memery_Layout_15](/assets/Memery_Layout_15.jpg)
+
+其中，数组malloc_sizes[]和cache_names[]被扩展为：
+
+```
+struct cache_sizes malloc_sizes[] = {
+#if (PAGE_SIZE == 4096)
+	{ .cs_size = 32 },
+#endif
+	{ .cs_size = 64 },
+#if L1_CACHE_BYTES < 64
+	{ .cs_size = 96 },
+#endif
+	{ .cs_size = 128 },
+#if L1_CACHE_BYTES < 128
+	{ .cs_size = 192 },
+#endif
+	{ .cs_size = 256 },
+	{ .cs_size = 512 },
+	{ .cs_size = 1024 },
+	{ .cs_size = 2048 },
+	{ .cs_size = 4096 },
+	{ .cs_size = 8192 },
+	{ .cs_size = 16384 },
+	{ .cs_size = 32768 },
+	{ .cs_size = 65536 },
+	{ .cs_size = 131072 },
+#if KMALLOC_MAX_SIZE >= 262144
+	{ .cs_size = 262144 },
+#endif
+#if KMALLOC_MAX_SIZE >= 524288
+	{ .cs_size = 524288 },
+#endif
+#if KMALLOC_MAX_SIZE >= 1048576
+	{ .cs_size = 1048576 },
+#endif
+#if KMALLOC_MAX_SIZE >= 2097152
+	{ .cs_size = 2097152 },
+#endif
+#if KMALLOC_MAX_SIZE >= 4194304
+	{ .cs_size = 4194304 },
+#endif
+#if KMALLOC_MAX_SIZE >= 8388608
+	{ .cs_size = 8388608 },
+#endif
+#if KMALLOC_MAX_SIZE >= 16777216
+	{ .cs_size = 16777216 },
+#endif
+#if KMALLOC_MAX_SIZE >= 33554432
+	{ .cs_size = 33554432 },
+#endif
+	{ .cs_size = ULONG_MAX }
+};
+
+static struct cache_names __initdata cache_names[] = {
+#if (PAGE_SIZE == 4096)
+	{ .name = "size-32", .name_dma = "size-32(MDA)" },
+#endif
+	{ .name = "size-64", .name_dma = "size-64(MDA)" },
+#if L1_CACHE_BYTES < 64
+	{ .name = "size-96", .name_dma = "size-96(MDA)" },
+#endif
+	{ .name = "size-128", .name_dma = "size-128(MDA)" },
+#if L1_CACHE_BYTES < 128
+	{ .name = "size-192", .name_dma = "size-192(MDA)" },
+#endif
+	{ .name = "size-256", .name_dma = "size-256(MDA)" },
+	{ .name = "size-512", .name_dma = "size-512(MDA)" },
+	{ .name = "size-1024", .name_dma = "size-1024(MDA)" },
+	{ .name = "size-2048", .name_dma = "size-2048(MDA)" },
+	{ .name = "size-4096", .name_dma = "size-4096(MDA)" },
+	{ .name = "size-8192", .name_dma = "size-8192(MDA)" },
+	{ .name = "size-16384", .name_dma = "size-16384(MDA)" },
+	{ .name = "size-32768", .name_dma = "size-32768(MDA)" },
+	{ .name = "size-65536", .name_dma = "size-65536(MDA)" },
+	{ .name = "size-131072", .name_dma = "size-131072(MDA)" },
+#if KMALLOC_MAX_SIZE >= 262144
+	{ .name = "size-262144", .name_dma = "size-262144(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 524288
+	{ .name = "size-524288", .name_dma = "size-524288(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 1048576
+	{ .name = "size-1048576", .name_dma = "size-1048576(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 2097152
+	{ .name = "size-2097152", .name_dma = "size-2097152(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 4194304
+	{ .name = "size-4194304", .name_dma = "size-4194304(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 8388608
+	{ .name = "size-8388608", .name_dma = "size-8388608(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 16777216
+	{ .name = "size-16777216", .name_dma = "size-16777216(MDA)" },
+#endif
+#if KMALLOC_MAX_SIZE >= 33554432
+	{ .name = "size-33554432", .name_dma = "size-33554432(MDA)" },
+#endif
+	{ NULL, }
+};
+```
+
+##### 6.5.1.1.1 Initialize General Cache/kmem_cache_init()
+
+The kmem_cache_init() function is invoked during system initialization to set up the general caches.
+
+```
+start_kernel()				// 参见start_kernel()节
+-> mm_init()				// 参见mm_init()节
+   -> kmem_cache_init()
+```
+
+该函数定义于mm/slab.c:
+
+```
+#define NUM_INIT_LISTS (3 * MAX_NUMNODES)
+static struct kmem_list3 __initdata initkmem_list3[NUM_INIT_LISTS];
+static struct list_head cache_chain;
+
+/*
+ * Initialisation.  Called after the page allocator have been initialised and
+ * before smp_init().
+ */
+void __init kmem_cache_init(void)
+{
+	size_t left_over;
+	struct cache_sizes *sizes;
+	struct cache_names *names;
+	int i;
+	int order;
+	int node;
+
+	if (num_possible_nodes() == 1)
+		use_alien_caches = 0;
+
+	for (i = 0; i < NUM_INIT_LISTS; i++) {
+		kmem_list3_init(&initkmem_list3[i]);
+		if (i < MAX_NUMNODES)
+			cache_cache.nodelists[i] = NULL;
+	}
+	// cache_cache->nodelists[i] = &initkmem_list3[i]
+	set_up_list3s(&cache_cache, CACHE_CACHE);
+
+	/*
+	 * Fragmentation resistance on low memory - only use bigger
+	 * page orders on machines with more than 32MB of memory.
+	 */
+	if (totalram_pages > (32 << 20) >> PAGE_SHIFT)
+		slab_break_gfp_order = BREAK_GFP_ORDER_HI;
+
+	/* Bootstrap is tricky, because several objects are allocated
+	 * from caches that do not exist yet:
+	 * 1) initialize the cache_cache cache: it contains the struct
+	 *    kmem_cache structures of all caches, except cache_cache itself:
+	 *    cache_cache is statically allocated.
+	 *    Initially an __init data area is used for the head array and the
+	 *    kmem_list3 structures, it's replaced with a kmalloc allocated
+	 *    array at the end of the bootstrap.
+	 * 2) Create the first kmalloc cache.
+	 *    The struct kmem_cache for the new cache is allocated normally.
+	 *    An __init data area is used for the head array.
+	 * 3) Create the remaining kmalloc caches, with minimally sized
+	 *    head arrays.
+	 * 4) Replace the __init data head arrays for cache_cache and the first
+	 *    kmalloc cache with kmalloc allocated arrays.
+	 * 5) Replace the __init data for kmem_list3 for cache_cache and
+	 *    the other cache's with kmalloc allocated memory.
+	 * 6) Resize the head arrays of the kmalloc caches to their final sizes.
+	 */
+
+	node = numa_mem_id();
+
+	/* 1) create the cache_cache. 并将cache_cache链接到链表cache_chain中 */
+	INIT_LIST_HEAD(&cache_chain);
+	list_add(&cache_cache.next, &cache_chain);
+	cache_cache.colour_off = cache_line_size();
+	cache_cache.array[smp_processor_id()] = &initarray_cache.cache;
+	cache_cache.nodelists[node] = &initkmem_list3[CACHE_CACHE + node];
+
+	/*
+	 * struct kmem_cache size depends on nr_node_ids & nr_cpu_ids
+	 */
+	cache_cache.buffer_size = offsetof(struct kmem_cache, array[nr_cpu_ids]) +
+								    nr_node_ids * sizeof(struct kmem_list3 *);
+#if DEBUG
+	cache_cache.obj_size = cache_cache.buffer_size;
+#endif
+	cache_cache.buffer_size = ALIGN(cache_cache.buffer_size, cache_line_size());
+	cache_cache.reciprocal_buffer_size = reciprocal_value(cache_cache.buffer_size);
+
+	for (order = 0; order < MAX_ORDER; order++) {
+		cache_estimate(order, cache_cache.buffer_size, cache_line_size(), 0,
+						  &left_over, &cache_cache.num);
+		if (cache_cache.num)
+			break;
+	}
+	BUG_ON(!cache_cache.num);
+	cache_cache.gfporder = order;
+	cache_cache.colour = left_over / cache_cache.colour_off;
+	cache_cache.slab_size = ALIGN(cache_cache.num * sizeof(kmem_bufctl_t) + sizeof(struct slab),
+										cache_line_size());
+
+	/* 2+3) create the kmalloc caches */
+	sizes = malloc_sizes;		// 变量malloc_sizes参见General Cache/Specific Cache节
+	names = cache_names;		// 变量cache_names参见General Cache/Specific Cache节
+
+	/*
+	 * Initialize the caches that provide memory for the array cache and the
+	 * kmem_list3 structures first.  Without this, further allocations will bug.
+	 */
+	/*
+	 * 创建一个cache并链接到链表cache_chain中，
+	 * 参见Create a Specific Cache/kmem_cache_create()节
+	 */
+	sizes[INDEX_AC].cs_cachep = kmem_cache_create(names[INDEX_AC].name, sizes[INDEX_AC].cs_size,
+					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_PANIC, NULL);
+
+	if (INDEX_AC != INDEX_L3) {
+		/*
+		 * 创建一个cache并链接到链表cache_chain中，
+		 * 参见Create a Specific Cache/kmem_cache_create()节
+		 */
+		sizes[INDEX_L3].cs_cachep = kmem_cache_create(names[INDEX_L3].name, sizes[INDEX_L3].cs_size,
+					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_PANIC, NULL);
+	}
+
+	slab_early_init = 0;
+
+	while (sizes->cs_size != ULONG_MAX) {
+		/*
+		 * For performance, all the general caches are L1 aligned.
+		 * This should be particularly beneficial on SMP boxes, as it
+		 * eliminates "false sharing".
+		 * Note for systems short on memory removing the alignment will
+		 * allow tighter packing of the smaller caches.
+		 */
+		if (!sizes->cs_cachep) {
+			/*
+			 * 创建一个cache并链接到链表cache_chain中，
+			 * 参见Create a Specific Cache/kmem_cache_create()节
+			 */
+			sizes->cs_cachep = kmem_cache_create(names->name, sizes->cs_size,
+					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_PANIC, NULL);
+		}
+#ifdef CONFIG_ZONE_DMA
+		/*
+		 * 创建一个cache并链接到链表cache_chain中，
+		 * 参见Create a Specific Cache/kmem_cache_create()节
+		 */
+		sizes->cs_dmacachep = kmem_cache_create(names->name_dma, sizes->cs_size,
+					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_CACHE_DMA|SLAB_PANIC, NULL);
+#endif
+		sizes++;
+		names++;
+	}
+	/* 4) Replace the bootstrap head arrays */
+	{
+		struct array_cache *ptr;
+
+		ptr = kmalloc(sizeof(struct arraycache_init), GFP_NOWAIT);
+		BUG_ON(cpu_cache_get(&cache_cache) != &initarray_cache.cache);
+		memcpy(ptr, cpu_cache_get(&cache_cache), sizeof(struct arraycache_init));
+		/*
+		 * Do not assume that spinlocks can be initialized via memcpy:
+		 */
+		spin_lock_init(&ptr->lock);
+		cache_cache.array[smp_processor_id()] = ptr;
+		ptr = kmalloc(sizeof(struct arraycache_init), GFP_NOWAIT);
+		BUG_ON(cpu_cache_get(malloc_sizes[INDEX_AC].cs_cachep) != &initarray_generic.cache);
+		memcpy(ptr, cpu_cache_get(malloc_sizes[INDEX_AC].cs_cachep), sizeof(struct arraycache_init));
+		/*
+		 * Do not assume that spinlocks can be initialized via memcpy:
+		 */
+		spin_lock_init(&ptr->lock);
+		malloc_sizes[INDEX_AC].cs_cachep->array[smp_processor_id()] = ptr;
+	}
+	/* 5) Replace the bootstrap kmem_list3's */
+	{
+		int nid;
+
+		for_each_online_node(nid) {
+			init_list(&cache_cache, &initkmem_list3[CACHE_CACHE + nid], nid);
+			init_list(malloc_sizes[INDEX_AC].cs_cachep, &initkmem_list3[SIZE_AC + nid], nid);
+
+			if (INDEX_AC != INDEX_L3) {
+				init_list(malloc_sizes[INDEX_L3].cs_cachep, &initkmem_list3[SIZE_L3 + nid], nid);
+			}
+		}
+	}
+
+	g_cpucache_up = EARLY;
+}
+```
+
+##### 6.5.1.1.2 Create a Specific Cache/kmem_cache_create()
+
+宏KMEM_CACHE()用于创建cache，其定义于include/linux/slab.h:
+
+```
+/*
+ * Please use this macro to create slab caches. Simply specify the
+ * name of the structure and maybe some flags that are listed above.
+ *
+ * The alignment of the struct determines object alignment. If you
+ * f.e. add ____cacheline_aligned_in_smp to the struct declaration
+ * then the objects will be properly aligned in SMP configurations.
+ */
+#define KMEM_CACHE(__struct, __flags) kmem_cache_create(#__struct,	\
+		sizeof(struct __struct), __alignof__(struct __struct),	\
+		(__flags), NULL)
+```
+
+或者直接调用函数kmem_cache_create()来创建cache，其定义于mm/slab.c:
+
+```
+/**
+ * kmem_cache_create - Create a cache.
+ * @name: A string which is used in /proc/slabinfo to identify this cache.
+ * @size: The size of objects to be created in this cache.
+ * @align: The required alignment for the objects.
+ * @flags: SLAB flags
+ * @ctor: A constructor for the objects.
+ *
+ * Returns a ptr to the cache on success, NULL on failure.
+ * Cannot be called within a int, but can be interrupted.
+ * The @ctor is run when new pages are allocated by the cache.
+ *
+ * @name must be valid until the cache is destroyed. This implies that
+ * the module calling this has to destroy the cache before getting unloaded.
+ *
+ * The flags are
+ *
+ * %SLAB_POISON - Poison the slab with a known test pattern (a5a5a5a5)
+ * to catch references to uninitialised memory.
+ *
+ * %SLAB_RED_ZONE - Insert `Red' zones around the allocated memory to check
+ * for buffer overruns.
+ *
+ * %SLAB_HWCACHE_ALIGN - Align the objects in this cache to a hardware
+ * cacheline.  This can be beneficial if you're counting cycles as closely
+ * as davem.
+ */
+struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
+				unsigned long flags, void (*ctor)(void *))
+{
+	size_t left_over, slab_size, ralign;
+	struct kmem_cache *cachep = NULL, *pc;
+	gfp_t gfp;
+
+	/*
+	 * Sanity checks... these are all serious usage bugs.
+	 */
+	if (!name || in_interrupt() || (size < BYTES_PER_WORD) || size > KMALLOC_MAX_SIZE) {
+		printk(KERN_ERR "%s: Early error in slab %s\n", __func__, name);
+		BUG();
+	}
+
+	/*
+	 * We use cache_chain_mutex to ensure a consistent view of
+	 * cpu_online_mask as well.  Please see cpuup_callback
+	 */
+	if (slab_is_available()) {
+		get_online_cpus();
+		mutex_lock(&cache_chain_mutex);
+	}
+
+	// 检查链表cache_chain中是否已存在该cache
+	list_for_each_entry(pc, &cache_chain, next) {
+		char tmp;
+		int res;
+
+		/*
+		 * This happens when the module gets unloaded and doesn't
+		 * destroy its slab cache and no-one else reuses the vmalloc
+		 * area of the module.  Print a warning.
+		 */
+		res = probe_kernel_address(pc->name, tmp);
+		if (res) {
+			printk(KERN_ERR "SLAB: cache with size %d has lost its name\n", pc->buffer_size);
+			continue;
+		}
+
+		if (!strcmp(pc->name, name)) {
+			printk(KERN_ERR "kmem_cache_create: duplicate cache %s\n", name);
+			dump_stack();
+			goto oops;
+		}
+	}
+
+#if DEBUG
+	WARN_ON(strchr(name, ' '));	/* It confuses parsers */
+#if FORCED_DEBUG
+	/*
+	 * Enable redzoning and last user accounting, except for caches with
+	 * large objects, if the increased size would increase the object size
+	 * above the next power of two: caches with object sizes just above a
+	 * power of two have a significant amount of internal fragmentation.
+	 */
+	if (size < 4096 || fls(size - 1) == fls(size-1 + REDZONE_ALIGN + 2 * sizeof(unsigned long long)))
+		flags |= SLAB_RED_ZONE | SLAB_STORE_USER;
+	if (!(flags & SLAB_DESTROY_BY_RCU))
+		flags |= SLAB_POISON;
+#endif
+	if (flags & SLAB_DESTROY_BY_RCU)
+		BUG_ON(flags & SLAB_POISON);
+#endif
+	/*
+	 * Always checks flags, a caller might be expecting debug support which
+	 * isn't available.
+	 */
+	/* To prevent callers using the wrong flags, a CREATE_MASK is defined
+	 * consisting of all the allowable flags. When a cache is being created,
+	 * the requested flags are compared against the CREATE_MASK and reported
+	 * as a bug if invalid flags are used.
+	 */
+	BUG_ON(flags & ~CREATE_MASK);
+
+	/*
+	 * Check that size is in terms of words.  This is needed to avoid
+	 * unaligned accesses for some archs when redzoning is used, and makes
+	 * sure any on-slab bufctl's are also correctly aligned.
+	 */
+	if (size & (BYTES_PER_WORD - 1)) {
+		size += (BYTES_PER_WORD - 1);
+		size &= ~(BYTES_PER_WORD - 1);
+	}
+
+	/* calculate the final buffer alignment: */
+
+	/*
+	 * The objects managed by the slab allocator are aligned in memory
+	 * - that is, they are stored in memory cells whose initial physical
+	 * addresses are multiples of a given constant, which is usually a
+	 * power of 2. This constant is called the alignment factor.
+	 * The largest alignment factor allowed by the slab allocator
+	 * is 4,096 — the page frame size.
+	 */
+
+	/* 1) arch recommendation: can be overridden for debug */
+	if (flags & SLAB_HWCACHE_ALIGN) {
+		/*
+		 * Default alignment: as specified by the arch code.  Except if
+		 * an object is really small, then squeeze multiple objects into
+		 * one cacheline.
+		 */
+		ralign = cache_line_size();
+		while (size <= ralign / 2)
+			ralign /= 2;
+	} else {
+		/*
+		 * Usually, microcomputers access memory cells more quickly
+		 * if their physical addresses are aligned with respect to
+		 * the word size (that's, to the width of the internal memory
+		 * bus of the computer).
+		 */
+		ralign = BYTES_PER_WORD;
+	}
+
+	/*
+	 * Redzoning and user store require word alignment or possibly larger.
+	 * Note this will be overridden by architecture or caller mandated
+	 * alignment if either is greater than BYTES_PER_WORD.
+	 */
+	if (flags & SLAB_STORE_USER)
+		ralign = BYTES_PER_WORD;
+
+	if (flags & SLAB_RED_ZONE) {
+		ralign = REDZONE_ALIGN;
+		/* If redzoning, ensure that the second redzone is suitably
+		 * aligned, by adjusting the object size accordingly. */
+		size += REDZONE_ALIGN - 1;
+		size &= ~(REDZONE_ALIGN - 1);
+	}
+
+	/* 2) arch mandated alignment */
+	if (ralign < ARCH_SLAB_MINALIGN) {
+		ralign = ARCH_SLAB_MINALIGN;
+	}
+	/* 3) caller mandated alignment */
+	if (ralign < align) {
+		ralign = align;
+	}
+	/* disable debug if necessary */
+	if (ralign > __alignof__(unsigned long long))
+		flags &= ~(SLAB_RED_ZONE | SLAB_STORE_USER);
+	/*
+	 * 4) Store it.
+	 */
+	align = ralign;
+
+	if (slab_is_available())
+		gfp = GFP_KERNEL;
+	else
+		gfp = GFP_NOWAIT;
+
+	/* Get cache's description obj. 参见kmem_cache_zalloc()节 */
+	cachep = kmem_cache_zalloc(&cache_cache, gfp);
+	if (!cachep)
+		goto oops;
+
+	cachep->nodelists = (struct kmem_list3 **)&cachep->array[nr_cpu_ids];
+#if DEBUG
+	cachep->obj_size = size;
+
+	/*
+	 * Both debugging options require word-alignment which is calculated
+	 * into align above.
+	 */
+	if (flags & SLAB_RED_ZONE) {
+		/* add space for red zone words */
+		cachep->obj_offset += sizeof(unsigned long long);
+		size += 2 * sizeof(unsigned long long);
+	}
+	if (flags & SLAB_STORE_USER) {
+		/* user store requires one word storage behind the end of
+		 * the real object. But if the second red zone needs to be
+		 * aligned to 64 bits, we must allow that much space.
+		 */
+		if (flags & SLAB_RED_ZONE)
+			size += REDZONE_ALIGN;
+		else
+			size += BYTES_PER_WORD;
+	}
+#if FORCED_DEBUG && defined(CONFIG_DEBUG_PAGEALLOC)
+	if (size >= malloc_sizes[INDEX_L3 + 1].cs_size &&
+		 cachep->obj_size > cache_line_size() &&
+		 ALIGN(size, align) < PAGE_SIZE) {
+		cachep->obj_offset += PAGE_SIZE - ALIGN(size, align);
+		size = PAGE_SIZE;
+	}
+#endif
+#endif
+
+	/*
+	 * Determine if the slab management is 'on' or 'off' slab.
+	 * (bootstrapping cannot cope with offslab caches so don't do
+	 * it too early on. Always use on-slab management when
+	 * SLAB_NOLEAKTRACE to avoid recursive calls into kmemleak)
+	 */
+	if ((size >= (PAGE_SIZE >> 3)) && !slab_early_init && !(flags & SLAB_NOLEAKTRACE))
+		/*
+		 * Size is large, assume best to place the slab management obj
+		 * off-slab (should allow better packing of objs).
+		 */
+		flags |= CFLGS_OFF_SLAB;
+
+	size = ALIGN(size, align);
+
+	left_over = calculate_slab_order(cachep, size, align, flags);
+
+	if (!cachep->num) {
+		printk(KERN_ERR "kmem_cache_create: couldn't create cache %s.\n", name);
+		kmem_cache_free(&cache_cache, cachep);
+		cachep = NULL;
+		goto oops;
+	}
+	slab_size = ALIGN(cachep->num * sizeof(kmem_bufctl_t) + sizeof(struct slab), align);
+
+	/*
+	 * If the slab has been placed off-slab, and we have enough space then
+	 * move it on-slab. This is at the expense of any extra colouring.
+	 */
+	if (flags & CFLGS_OFF_SLAB && left_over >= slab_size) {
+		flags &= ~CFLGS_OFF_SLAB;
+		left_over -= slab_size;
+	}
+
+	if (flags & CFLGS_OFF_SLAB) {
+		/* really off slab. No need for manual alignment */
+		slab_size = cachep->num * sizeof(kmem_bufctl_t) + sizeof(struct slab);
+
+#ifdef CONFIG_PAGE_POISONING
+		/* If we're going to use the generic kernel_map_pages()
+		 * poisoning, then it's going to smash the contents of
+		 * the redzone and userword anyhow, so switch them off.
+		 */
+		if (size % PAGE_SIZE == 0 && flags & SLAB_POISON)
+			flags &= ~(SLAB_RED_ZONE | SLAB_STORE_USER);
+#endif
+	}
+
+	cachep->colour_off = cache_line_size();
+	/* Offset must be a multiple of the alignment. */
+	if (cachep->colour_off < align)
+		cachep->colour_off = align;
+	cachep->colour = left_over / cachep->colour_off;
+	cachep->slab_size = slab_size;
+	cachep->flags = flags;
+	cachep->gfpflags = 0;
+	if (CONFIG_ZONE_DMA_FLAG && (flags & SLAB_CACHE_DMA))
+		cachep->gfpflags |= GFP_DMA;
+	cachep->buffer_size = size;
+	cachep->reciprocal_buffer_size = reciprocal_value(size);
+
+	if (flags & CFLGS_OFF_SLAB) {
+		cachep->slabp_cache = kmem_find_general_cachep(slab_size, 0u);
+		/*
+		 * This is a possibility for one of the malloc_sizes caches.
+		 * But since we go off slab only for object size greater than
+		 * PAGE_SIZE/8, and malloc_sizes gets created in ascending order,
+		 * this should not happen at all.
+		 * But leave a BUG_ON for some lucky dude.
+		 */
+		BUG_ON(ZERO_OR_NULL_PTR(cachep->slabp_cache));
+	}
+	cachep->ctor = ctor;
+	cachep->name = name;
+
+	// 设置cachep->array[*]
+	if (setup_cpu_cache(cachep, gfp)) {
+		__kmem_cache_destroy(cachep);
+		cachep = NULL;
+		goto oops;
+	}
+
+	if (flags & SLAB_DEBUG_OBJECTS) {
+		/*
+		 * Would deadlock through slab_destroy()->call_rcu()->
+		 * debug_object_activate()->kmem_cache_alloc().
+		 */
+		WARN_ON_ONCE(flags & SLAB_DESTROY_BY_RCU);
+
+		slab_set_debugobj_lock_classes(cachep);
+	}
+
+	/* cache setup completed, link it into the list */
+	list_add(&cachep->next, &cache_chain);
+
+oops:
+	if (!cachep && (flags & SLAB_PANIC))
+		panic("kmem_cache_create(): failed to create slab `%s'\n", name);
+	if (slab_is_available()) {
+		mutex_unlock(&cache_chain_mutex);
+		put_online_cpus();
+	}
+	return cachep;
+}
+```
+
+###### 6.5.1.1.2.1 查看slab的分配信息
+
+调用宏KMEM_CACHE()或者函数kmem_cache_create()来创建specific cache时，若满足如下条件之一，则可以在/proc/slabinfo中显示slab的分配信息：
+* 入参flags中包含SLAB_POISON, SLAB_RED_ZONE等标志，仅包含SLAB_HWCACHE_ALIGN，则不可以；
+* 入参ctor不为NULL；即定义了构造函数，即使该构造函数为空函数。
+
+使用下列命令查看slab的分配信息：
+
+```
+chenwx@chenwx ~ $ sudo cat /proc/slabinfo
+slabinfo - version: 2.1
+# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>
+UDPLITEv6              0      0   1088   15    4 : tunables    0    0    0 : slabdata      0      0      0
+UDPv6                 17     30   1088   15    4 : tunables    0    0    0 : slabdata      2      2      0
+tw_sock_TCPv6          0      0    256   16    1 : tunables    0    0    0 : slabdata      0      0      0
+...
+kmalloc-64         22167  22336     64   64    1 : tunables    0    0    0 : slabdata    349    349      0
+kmalloc-32         10328  10752     32  128    1 : tunables    0    0    0 : slabdata     84     84      0
+kmalloc-16          5888   5888     16  256    1 : tunables    0    0    0 : slabdata     23     23      0
+kmalloc-8           5118   5120      8  512    1 : tunables    0    0    0 : slabdata     10     10      0
+kmem_cache_node      192    192     64   64    1 : tunables    0    0    0 : slabdata      3      3      0
+kmem_cache           112    112    256   16    1 : tunables    0    0    0 : slabdata      7      7      0
+
+chenwx@chenwx ~ $ sudo slabtop
+ Active / Total Objects (% used)    : 654908 / 679233 (96.4%)
+ Active / Total Slabs (% used)      : 26620 / 26620 (100.0%)
+ Active / Total Caches (% used)     : 65 / 95 (68.4%)
+ Active / Total Size (% used)       : 191054.42K / 194205.16K (98.4%)
+ Minimum / Average / Maximum Object : 0.01K / 0.29K / 8.00K
+
+  OBJS ACTIVE  USE OBJ SIZE  SLABS OBJ/SLAB CACHE SIZE NAME                   
+179556 173481  96%    0.10K   4604       39     18416K buffer_head
+174594 174490  99%    0.19K   8314       21     33256K dentry
+ 94736  94736 100%    0.96K   5921       16     94736K ext4_inode_cache
+ 41514  30931  74%    0.04K    407      102      1628K ext4_extent_status
+ 31794  31187  98%    0.55K   2271       14     18168K radix_tree_node
+ 24570  23241  94%    0.19K   1170       21      4680K kmalloc-192
+ 23364  23051  98%    0.11K    649       36      2596K sysfs_dir_cache
+ 22656  21742  95%    0.06K    354       64      1416K kmalloc-64
+ 11102  11065  99%    0.57K    793       14      6344K inode_cache
+ 10752  10016  93%    0.03K     84      128       336K kmalloc-32
+  8576   7744  90%    0.06K    134       64       536K anon_vma
+  8304   7635  91%    0.25K    519       16      2076K kmalloc-256
+  7225   7225 100%    0.05K     85       85       340K shared_policy_node
+  5888   5888 100%    0.02K     23      256        92K kmalloc-16
+  5120   5118  99%    0.01K     10      512        40K kmalloc-8
+...
+
+chenwx@chenwx ~/linux-next $ ll /sys/kernel/slab/
+total 0
+drwxr-xr-x 2 root root 0 Jan 19 21:43 :at-0000016
+drwxr-xr-x 2 root root 0 Jan 19 21:43 :at-0000032
+...
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 Acpi-Namespace -> :t-0000040
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 Acpi-Operand -> :t-0000072
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 Acpi-Parse -> :t-0000048
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 Acpi-ParseExt -> :t-0000072
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 Acpi-State -> :t-0000080
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 PING -> :t-0000896
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 PINGv6 -> :t-0001088
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 RAW -> :t-0000896
+lrwxrwxrwx 1 root root 0 Jan 19 21:43 RAWv6 -> :t-0001088
+...
+```
+
+若系统配置了SLUB，则可用下列命令查看系统中的slab信息：
+
+```
+chenwx@chenwx ~/linux-next/tools/vm $ grep "CONFIG_SLUB" /boot/config-3.13.0-24-generic
+CONFIG_SLUB_DEBUG=y
+CONFIG_SLUB=y
+CONFIG_SLUB_CPU_PARTIAL=y
+# CONFIG_SLUB_DEBUG_ON is not set
+# CONFIG_SLUB_STATS is not set
+
+chenwx@chenwx ~/linux-next/tools/vm $ ./slabinfo -a      
+
+:at-0000104  <- ext4_prealloc_space buffer_head
+:at-0000136  <- ext4_allocation_context ext4_groupinfo_4k
+:at-0000256  <- jbd2_transaction_s dquot
+:t-0000016   <- dm_mpath_io kmalloc-16 ecryptfs_file_cache
+:t-0000024   <- numa_policy fsnotify_event_holder scsi_data_buffer
+:t-0000032   <- ecryptfs_dentry_info_cache kmalloc-32 sd_ext_cdb inotify_event_private_data fanotify_response_event dnotify_struct
+:t-0000040   <- Acpi-Namespace dm_io khugepaged_mm_slot ext4_system_zone
+:t-0000048   <- shared_policy_node ksm_mm_slot ksm_stable_node fasync_cache Acpi-Parse jbd2_inode nsproxy identity ftrace_event_field ip_fib_alias
+:t-0000056   <- ip_fib_trie uhci_urb_priv
+:t-0000064   <- ecryptfs_key_sig_cache fib6_nodes id_kmem_cache secpath_cache dmaengine-unmap-2 kmalloc-64 tcp_bind_bucket anon_vma_chain io ksm_rmap_item fs_cache ecryptfs_global_auth_tok_cache
+:t-0000072   <- ftrace_event_file Acpi-ParseExt Acpi-Operand eventpoll_pwq
+:t-0000104   <- flow_cache blkdev_ioc
+:t-0000112   <- sysfs_dir_cache task_delay_info fsnotify_mark blkdev_integrity
+:t-0000120   <- fsnotify_event dnotify_mark inotify_inode_mark cfq_io_cq
+:t-0000128   <- ecryptfs_key_tfm_cache eventpoll_epi ip6_mrt_cache kmalloc-128 scsi_sense_cache btree_node pid ip_mrt_cache uid_cache kiocb
+:t-0000192   <- kmalloc-192 dmaengine-unmap-16 key_jar cred_jar inet_peer_cache vm_area_struct bio_integrity_payload ip_dst_cache file_lock_cache bio-0
+:t-0000256   <- filp sgpool-8 scsi_cmd_cache skbuff_head_cache biovec-16 kmalloc-256 request_sock_TCP request_sock_TCPv6 pool_workqueue
+:t-0000384   <- ip6_dst_cache blkdev_requests i915_gem_object
+:t-0000512   <- skbuff_fclone_cache kmalloc-512 sgpool-16 task_xstate
+:t-0000640   <- dio kioctx files_cache
+:t-0000896   <- PING UNIX mm_struct ecryptfs_sb_cache RAW
+:t-0001024   <- sgpool-32 kmalloc-1024 biovec-64
+:t-0001088   <- signal_cache dmaengine-unmap-128 PINGv6 RAWv6
+:t-0002048   <- biovec-128 sgpool-64 kmalloc-2048
+:t-0002112   <- idr_layer_cache dmaengine-unmap-256
+:t-0004096   <- names_cache biovec-256 ecryptfs_headers net_namespace kmalloc-4096 ecryptfs_xattr_cache sgpool-128
+```
+
+###### 6.5.1.1.2.2 如何创建和读取文件/proc/slabinfo
+
+1) Create file /proc/slabinfo
+
+```
+slab_proc_init()
+-> proc_create("slabinfo", S_IWUSR|S_IRUSR, NULL, &proc_slabinfo_operations);
+
+static const struct file_operations proc_slabinfo_operations = {
+	.open		= slabinfo_open,
+	.read		= seq_read,
+	.write	= slabinfo_write,
+	.llseek	= seq_lseek,
+	.release	= seq_release,
+};
+```
+
+2) Read from /proc/slabinfo
+
+```
+proc_slabinfo_operations->open()
+-> slabinfo_open()
+   -> seq_open(file, &slabinfo_op);
+      -> p = file->private_data;
+      -> p->op = op;                    // file->private_data->op = &slabinfo_op;
+
+static const struct seq_operations slabinfo_op = {
+	.start	= s_start,
+	.next		= s_next,
+	.stop		= s_stop,
+	.show		= s_show,
+};
+
+proc_slabinfo_operations->read()
+-> seq_read()
+   -> m = file->private_data;
+   -> m->op->start(m, &pos);		// slabinfo_op->start => s_start()
+   -> m->op->show(m, p);		// slabinfo_op->show  => s_show()
+   -> m->op->next(m, p, &pos);		// slabinfo_op->next  => s_next()
+   -> m->op->stop(m, p);		// slabinfo_op->stop  => s_stop()
+   -> ... loop again ...
+
+proc_slabinfo_operations->close()
+-> seq_release()
+   -> m = file->private_data;
+   -> kfree(m->buf);
+   -> kfree(m);
+```
+
+##### 6.5.1.1.3 Allocate an object from Specific Cache
+
+###### 6.5.1.1.3.1 kmem_cache_zalloc()
+
+该函数的调用关系如下：
+
+```
+kmem_cache_zalloc(&cache_cache, gfp)
+-> kmem_cache_alloc(k, flags | __GFP_ZERO)		// 参见6.5.1.1.3.2 kmem_cache_alloc()节
+   -> __cache_alloc(cachep, flags, ..)
+      -> __do_cache_alloc()
+         -> ____cache_alloc()
+            -> cache_alloc_refill()
+               -> cache_grow()
+                  -> kmem_getpages()
+                     -> alloc_pages_exact_node()
+                        -> __alloc_pages()		// 参见alloc_pages()节
+```
+
+该函数定义于include/linux/slab.h:
+
+```
+static inline void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags)
+{
+	// 参见6.5.1.1.3.2 kmem_cache_alloc()节
+	return kmem_cache_alloc(k, flags | __GFP_ZERO);
+}
+```
+
+###### 6.5.1.1.3.2 kmem_cache_alloc()
+
+该函数定义于mm/slab.c:
+
+```
+/**
+ * kmem_cache_alloc - Allocate an object
+ * @cachep: The cache to allocate from.
+ * @flags: See kmalloc().
+ *
+ * Allocate an object from this cache.  The flags are only relevant
+ * if the cache has no available objects.
+ */
+void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
+{
+	void *ret = __cache_alloc(cachep, flags, __builtin_return_address(0));
+
+	trace_kmem_cache_alloc(_RET_IP_, ret, obj_size(cachep), cachep->buffer_size, flags);
+
+	return ret;
+}
+```
+
+其中，函数__cache_alloc()定义于mm/slab.c:
+
+```
+static __always_inline void *__cache_alloc(struct kmem_cache *cachep, gfp_t flags, void *caller)
+{
+	unsigned long save_flags;
+	void *objp;
+
+	flags &= gfp_allowed_mask;
+
+	lockdep_trace_alloc(flags);
+
+	if (slab_should_failslab(cachep, flags))
+		return NULL;
+
+	cache_alloc_debugcheck_before(cachep, flags);
+	local_irq_save(save_flags);
+	objp = __do_cache_alloc(cachep, flags);
+	local_irq_restore(save_flags);
+	objp = cache_alloc_debugcheck_after(cachep, flags, objp, caller);
+	kmemleak_alloc_recursive(objp, obj_size(cachep), 1, cachep->flags, flags);
+	prefetchw(objp);
+
+	if (likely(objp))
+		kmemcheck_slab_alloc(cachep, flags, objp, obj_size(cachep));
+
+	if (unlikely((flags & __GFP_ZERO) && objp))
+		memset(objp, 0, obj_size(cachep));
+
+	return objp;
+}
+```
+
+其中，函数__do_cache_alloc()定义于mm/slab.c:
+
+```
+#ifdef CONFIG_NUMA
+static __always_inline void *__do_cache_alloc(struct kmem_cache *cache, gfp_t flags)
+{
+	void *objp;
+
+	if (unlikely(current->flags & (PF_SPREAD_SLAB | PF_MEMPOLICY))) {
+		objp = alternate_node_alloc(cache, flags);
+		if (objp)
+			goto out;
+	}
+	objp = ____cache_alloc(cache, flags);
+
+	/*
+	 * We may just have run out of memory on the local node.
+	 * ____cache_alloc_node() knows how to locate memory on other nodes
+	 */
+	if (!objp)
+		objp = ____cache_alloc_node(cache, flags, numa_mem_id());
+
+  out:
+	return objp;
+}
+
+#else
+
+static __always_inline void *__do_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
+{
+	return ____cache_alloc(cachep, flags);
+}
+
+#endif /* CONFIG_NUMA */
+```
+
+其中，函数____cache_alloc()定义于mm/slab.c:
+
+```
+static inline void *____cache_alloc(struct kmem_cache *cachep, gfp_t flags)
+{
+	void *objp;
+	struct array_cache *ac;
+
+	check_irq_off();
+
+	// ac = cachep->array[smp_processor_id()];
+	ac = cpu_cache_get(cachep);
+	if (likely(ac->avail)) {
+		STATS_INC_ALLOCHIT(cachep);
+		ac->touched = 1;
+		/*
+		 * The avail field contains the index in the local cache
+		 * of the entry that points to the last freed object.
+		 */
+		objp = ac->entry[--ac->avail];
+	} else {
+		STATS_INC_ALLOCMISS(cachep);
+		// 参见cache_alloc_refill()节
+		objp = cache_alloc_refill(cachep, flags);
+		/*
+		 * the 'ac' may be updated by cache_alloc_refill(),
+		 * and kmemleak_erase() requires its correct value.
+		 */
+		// ac = cachep->array[smp_processor_id()];
+		ac = cpu_cache_get(cachep);
+	}
+	/*
+	 * To avoid a false negative, if an object that is in one of the
+	 * per-CPU caches is leaked, we need to make sure kmemleak doesn't
+	 * treat the array pointers as a reference to the object.
+	 */
+	if (objp)
+		kmemleak_erase(&ac->entry[ac->avail]);
+	return objp;
+}
+```
+
+###### 6.5.1.1.3.2.1 cache_alloc_refill()
+
+该函数定义于mm/slab.c:
+
+```
+static void *cache_alloc_refill(struct kmem_cache *cachep, gfp_t flags)
+{
+	int batchcount;
+	struct kmem_list3 *l3;
+	struct array_cache *ac;
+	int node;
+
+retry:
+	check_irq_off();
+	node = numa_mem_id();
+	ac = cpu_cache_get(cachep);
+	batchcount = ac->batchcount;
+	if (!ac->touched && batchcount > BATCHREFILL_LIMIT) {
+		/*
+		 * If there was little recent activity on this cache, then
+		 * perform only a partial refill.  Otherwise we could generate
+		 * refill bouncing.
+		 */
+		batchcount = BATCHREFILL_LIMIT;
+	}
+	l3 = cachep->nodelists[node];
+
+	BUG_ON(ac->avail > 0 || !l3);
+	spin_lock(&l3->list_lock);
+
+	/* See if we can refill from the shared array */
+	if (l3->shared && transfer_objects(ac, l3->shared, batchcount)) {
+		l3->shared->touched = 1;
+		goto alloc_done;
+	}
+
+	while (batchcount > 0) {
+		struct list_head *entry;
+		struct slab *slabp;
+		/* Get slab alloc is to come from. */
+		// 1) Get slab alloc from ->slabs_parial by default;
+		entry = l3->slabs_partial.next;
+		// 2) Get slab alloc from ->slabs_free is ->slabs_parial is empty;
+		if (entry == &l3->slabs_partial) {
+			l3->free_touched = 1;
+			entry = l3->slabs_free.next;
+			// 3) Alloc new slab even if ->slabs_free is empty.
+			if (entry == &l3->slabs_free)
+				goto must_grow;
+		}
+
+		slabp = list_entry(entry, struct slab, list);
+		check_slabp(cachep, slabp);
+		check_spinlock_acquired(cachep);
+
+		/*
+		 * The slab was either on partial or free list so
+		 * there must be at least one object available for
+		 * allocation.
+		 */
+		BUG_ON(slabp->inuse >= cachep->num);
+
+		while (slabp->inuse < cachep->num && batchcount--) {
+			STATS_INC_ALLOCED(cachep);
+			STATS_INC_ACTIVE(cachep);
+			STATS_SET_HIGH(cachep);
+
+			// 参见slab_get_obj()节
+			ac->entry[ac->avail++] = slab_get_obj(cachep, slabp, node);
+		}
+		check_slabp(cachep, slabp);
+
+		/* move slabp to correct slabp list: */
+		list_del(&slabp->list);
+		if (slabp->free == BUFCTL_END)
+			list_add(&slabp->list, &l3->slabs_full);
+		else
+			list_add(&slabp->list, &l3->slabs_partial);
+	}
+
+must_grow:
+	l3->free_objects -= ac->avail;
+alloc_done:
+	spin_unlock(&l3->list_lock);
+
+	if (unlikely(!ac->avail)) {
+		int x;
+		// 参见cache_grow()节
+		x = cache_grow(cachep, flags | GFP_THISNODE, node, NULL);
+
+		/* cache_grow can reenable interrupts, then ac could change. */
+		ac = cpu_cache_get(cachep);
+		if (!x && ac->avail == 0)	/* no objects in sight? abort */
+			return NULL;
+
+		if (!ac->avail)		/* objects refilled by interrupt? */
+			goto retry;
+	}
+	ac->touched = 1;
+	return ac->entry[--ac->avail];
+}
+```
+
+###### 6.5.1.1.3.2.1.1 slab_get_obj()
+
+该函数定义于mm/slab.c:
+
+```
+static void *slab_get_obj(struct kmem_cache *cachep, struct slab *slabp, int nodeid)
+{
+	// objp = slabp->s_mem + cachep->buffer_size * slabp->free;
+	void *objp = index_to_obj(cachep, slabp, slabp->free);
+	kmem_bufctl_t next;
+
+	slabp->inuse++;
+	// next = (kmem_bufctl_t *)(slabp + 1)[slabp->free];
+	next = slab_bufctl(slabp)[slabp->free];
+#if DEBUG
+	slab_bufctl(slabp)[slabp->free] = BUFCTL_FREE;
+	WARN_ON(slabp->nodeid != nodeid);
+#endif
+	slabp->free = next;
+
+	return objp;
+}
+```
+
+###### 6.5.1.1.3.2.2 cache_grow()
+
+该函数定义于mm/slab.c:
+
+```
+/*
+ * Grow (by 1) the number of slabs within a cache.  This is called by
+ * kmem_cache_alloc() when there are no active objs left in a cache.
+ */
+static int cache_grow(struct kmem_cache *cachep, gfp_t flags, int nodeid, void *objp)
+{
+	struct slab *slabp;
+	size_t offset;
+	gfp_t local_flags;
+	struct kmem_list3 *l3;
+
+	/*
+	 * Be lazy and only check for valid flags here,  keeping it out of the
+	 * critical path in kmem_cache_alloc().
+	 */
+	BUG_ON(flags & GFP_SLAB_BUG_MASK);
+	local_flags = flags & (GFP_CONSTRAINT_MASK|GFP_RECLAIM_MASK);
+
+	/* Take the l3 list lock to change the colour_next on this node */
+	check_irq_off();
+	l3 = cachep->nodelists[nodeid];
+	spin_lock(&l3->list_lock);
+
+	/* Get colour for the slab, and cal the next value. */
+	offset = l3->colour_next;
+	l3->colour_next++;
+	if (l3->colour_next >= cachep->colour)
+		l3->colour_next = 0;
+	spin_unlock(&l3->list_lock);
+
+	offset *= cachep->colour_off;
+
+	if (local_flags & __GFP_WAIT)
+		local_irq_enable();
+
+	/*
+	 * The test for missing atomic flag is performed here, rather than
+	 * the more obvious place, simply to reduce the critical path length
+	 * in kmem_cache_alloc(). If a caller is seriously mis-behaving they
+	 * will eventually be caught here (where it matters).
+	 */
+	kmem_flagcheck(cachep, flags);
+
+	/*
+	 * Get mem for the objs.  Attempt to allocate a physical page from 'nodeid'.
+	 */
+	if (!objp)
+		objp = kmem_getpages(cachep, local_flags, nodeid);	// 参见kmem_getpages()节
+	if (!objp)
+		goto failed;
+
+	/* Get slab management. */
+	slabp = alloc_slabmgmt(cachep, objp, offset, local_flags & ~GFP_CONSTRAINT_MASK, nodeid);
+	if (!slabp)
+		goto opps1;
+
+	slab_map_pages(cachep, slabp, objp);
+
+	// Applies the constructor method (if defined)
+	// to all the objects contained in the new slab.
+	cache_init_objs(cachep, slabp);
+
+	if (local_flags & __GFP_WAIT)
+		local_irq_disable();
+	check_irq_off();
+	spin_lock(&l3->list_lock);
+
+	/* Make slab active. */
+	// Add the newly obtained slab descriptor at the end
+	// of the fully free slab list of the cache descriptor.
+	list_add_tail(&slabp->list, &(l3->slabs_free));
+	STATS_INC_GROWN(cachep);
+	l3->free_objects += cachep->num;
+	spin_unlock(&l3->list_lock);
+	return 1;
+
+opps1:
+	kmem_freepages(cachep, objp);
+failed:
+	if (local_flags & __GFP_WAIT)
+		local_irq_disable();
+	return 0;
+}
+```
+
+###### 6.5.1.1.3.2.2.1 kmem_getpages()
+
+The method obtains from the zoned page frame allocator the group of page frames needed to store a single slab.
+
+该函数定义于mm/slab.c:
+
+```
+/*
+ * Interface to system's page allocator. No need to hold the cache-lock.
+ *
+ * If we requested dmaable memory, we will get it. Even if we
+ * did not request dmaable memory, we might get it, but that
+ * would be relatively rare and ignorable.
+ */
+static void *kmem_getpages(struct kmem_cache *cachep, gfp_t flags, int nodeid)
+{
+	struct page *page;
+	int nr_pages;
+	int i;
+
+#ifndef CONFIG_MMU
+	/*
+	 * Nommu uses slab's for process anonymous memory allocations, and thus
+	 * requires __GFP_COMP to properly refcount higher order allocations
+	 */
+	flags |= __GFP_COMP;
+#endif
+
+	flags |= cachep->gfpflags;
+	if (cachep->flags & SLAB_RECLAIM_ACCOUNT)
+		flags |= __GFP_RECLAIMABLE;
+
+	// 通过调用__alloc_pages()分配2cachep->gfporder个连续物理页面，参见alloc_pages()节
+	page = alloc_pages_exact_node(nodeid, flags | __GFP_NOTRACK, cachep->gfporder);
+	if (!page)
+		return NULL;
+
+	nr_pages = (1 << cachep->gfporder);
+	if (cachep->flags & SLAB_RECLAIM_ACCOUNT)
+		add_zone_page_state(page_zone(page), NR_SLAB_RECLAIMABLE, nr_pages);
+	else
+		add_zone_page_state(page_zone(page), NR_SLAB_UNRECLAIMABLE, nr_pages);
+	for (i = 0; i < nr_pages; i++)
+		__SetPageSlab(page + i);	// 设置page->flags中的标志位PG_slab
+
+	if (kmemcheck_enabled && !(cachep->flags & SLAB_NOTRACK)) {
+		kmemcheck_alloc_shadow(page, cachep->gfporder, flags, nodeid);
+
+		if (cachep->ctor)
+			kmemcheck_mark_uninitialized_pages(page, nr_pages);
+		else
+			kmemcheck_mark_unallocated_pages(page, nr_pages);
+	}
+
+	return page_address(page);
+}
+```
+
+###### 6.5.1.1.3.2.2.2 alloc_slabmgmt()
+
+该函数定义于mm/slab.c:
+
+```
+/*
+ * Get the memory for a slab management obj.
+ * For a slab cache when the slab descriptor is off-slab, slab descriptors
+ * always come from malloc_sizes caches.  The slab descriptor cannot
+ * come from the same cache which is getting created because,
+ * when we are searching for an appropriate cache for these
+ * descriptors in kmem_cache_create, we search through the malloc_sizes array.
+ * If we are creating a malloc_sizes cache here it would not be visible to
+ * kmem_find_general_cachep till the initialization is complete.
+ * Hence we cannot have slabp_cache same as the original cache.
+ */
+static struct slab *alloc_slabmgmt(struct kmem_cache *cachep, void *objp,
+				   int colour_off, gfp_t local_flags, int nodeid)
+{
+	struct slab *slabp;
+
+	/*
+	 * 检测cachep->flags中的标志位CFLGS_OFF_SLAB:
+	 * If the CFLGS_OFF_SLAB flag of the cache descriptor is set,
+	 * the slab descriptor is allocated from the general cache
+	 * pointed to by the slabp_cache field of the cache descriptor;
+	 * Otherwise, the slab descriptor is allocated in the first
+	 * page frame of the slab.
+	 */
+	if (OFF_SLAB(cachep)) {
+		/* Slab management obj is off-slab. */
+		/*
+		 * 通过调用kmem_cache_alloc(cachep, flags)来分配object，
+		 * 参见kmem_cache_zalloc()节
+		 */
+		slabp = kmem_cache_alloc_node(cachep->slabp_cache, local_flags, nodeid);
+		/*
+		 * If the first object in the slab is leaked (it's allocated
+		 * but no one has a reference to it), we want to make sure
+		 * kmemleak does not treat the ->s_mem pointer as a reference
+		 * to the object. Otherwise we will not report the leak.
+		 */
+		kmemleak_scan_area(&slabp->list, sizeof(struct list_head), local_flags);
+		if (!slabp)
+			return NULL;
+	} else {
+		slabp = objp + colour_off;
+		colour_off += cachep->slab_size;
+	}
+	slabp->inuse = 0;
+	slabp->colouroff = colour_off;
+	slabp->s_mem = objp + colour_off;
+	slabp->nodeid = nodeid;
+	slabp->free = 0;
+	return slabp;
+}
+```
+
+###### 6.5.1.1.3.2.2.3 slab_map_pages()
+
+The kernel must be able to determine, given a page frame, whether it is used by the slab allocator and, if so, to derive quickly the addresses of the corresponding cache and slab descriptors. Therefore, slab_map_pages() scans all page descriptors of the page frames assigned to the new slab, and loads the next and prev subfields of the lru fields in the page descriptors with the addresses of, respectively, the cache descriptor and the slab descriptor. This works correctly because the lru field is used by functions of the buddy system only when the page frame is free, while page frames handled by the slab allocator functions have the PG_slab flag set and are not free as far as the buddy allocator system is concerned.
+
+该函数定义于mm/slab.c:
+
+```
+/*
+ * Map pages beginning at addr to the given cache and slab. This is required
+ * for the slab allocator to be able to lookup the cache and slab of a
+ * virtual address for kfree, ksize, and slab debugging.
+ */
+static void slab_map_pages(struct kmem_cache *cache, struct slab *slab, void *addr)
+{
+	int nr_pages;
+	struct page *page;
+
+	page = virt_to_page(addr);
+
+	nr_pages = 1;
+	if (likely(!PageCompound(page)))
+		nr_pages <<= cache->gfporder;
+
+	do {
+		// page->lru.next = (struct list_head *)cache;
+		page_set_cache(page, cache);
+		// page->lru.prev = (struct list_head *)slab;
+		page_set_slab(page, slab);
+		page++;
+	} while (--nr_pages);
+}
+```
+
+##### 6.5.1.1.4 Deallocate an object to Specific Cache/kmem_cache_free()
+
+该函数定义于mm/slab.c:
+
+```
+/**
+ * kmem_cache_free - Deallocate an object
+ * @cachep: The cache the allocation was from.
+ * @objp: The previously allocated object.
+ *
+ * Free an object which was previously allocated from this
+ * cache.
+ */
+void kmem_cache_free(struct kmem_cache *cachep, void *objp)
+{
+	unsigned long flags;
+
+	local_irq_save(flags);
+	debug_check_no_locks_freed(objp, obj_size(cachep));
+	if (!(cachep->flags & SLAB_DEBUG_OBJECTS))
+		debug_check_no_obj_freed(objp, obj_size(cachep));
+	__cache_free(cachep, objp, __builtin_return_address(0));
+	local_irq_restore(flags);
+
+	trace_kmem_cache_free(_RET_IP_, objp);
+}
+```
+
+##### 6.5.1.1.5 Destroy a Specific Cache/kmem_cache_destroy()
+
+该函数定义于mm/slab.c:
+
+```
+/**
+ * kmem_cache_destroy - delete a cache
+ * @cachep: the cache to destroy
+ *
+ * Remove a &struct kmem_cache object from the slab cache.
+ *
+ * It is expected this function will be called by a module when it is
+ * unloaded.  This will remove the cache completely, and avoid a duplicate
+ * cache being allocated each time a module is loaded and unloaded, if the
+ * module doesn't have persistent in-kernel storage across loads and unloads.
+ *
+ * The cache must be empty before calling this function.
+ *
+ * The caller must guarantee that no one will allocate memory from the cache
+ * during the kmem_cache_destroy().
+ */
+void kmem_cache_destroy(struct kmem_cache *cachep)
+{
+	BUG_ON(!cachep || in_interrupt());
+
+	/* Find the cache in the chain of caches. */
+	get_online_cpus();
+	mutex_lock(&cache_chain_mutex);
+	/*
+	 * the chain is never empty, cache_cache is never destroyed
+	 */
+	list_del(&cachep->next);
+	// 参见__cache_shrink()节
+	if (__cache_shrink(cachep)) {
+		slab_error(cachep, "Can't free all objects");
+		list_add(&cachep->next, &cache_chain);
+		mutex_unlock(&cache_chain_mutex);
+		put_online_cpus();
+		return;
+	}
+
+	if (unlikely(cachep->flags & SLAB_DESTROY_BY_RCU))
+		rcu_barrier();
+
+	// 参见__kmem_cache_destroy()节
+	__kmem_cache_destroy(cachep);
+	mutex_unlock(&cache_chain_mutex);
+	put_online_cpus();
+}
+```
+
+###### 6.5.1.1.5.1 \__cache_shrink()
+
+该函数定义于mm/slab.c:
+
+```
+/* Called with cache_chain_mutex held to protect against cpu hotplug */
+static int __cache_shrink(struct kmem_cache *cachep)
+{
+	int ret = 0, i = 0;
+	struct kmem_list3 *l3;
+
+	drain_cpu_caches(cachep);
+
+	check_irq_on();
+	for_each_online_node(i) {
+		l3 = cachep->nodelists[i];
+		if (!l3)
+			continue;
+
+		drain_freelist(cachep, l3, l3->free_objects);
+
+		ret += !list_empty(&l3->slabs_full) || !list_empty(&l3->slabs_partial);
+	}
+	return (ret ? 1 : 0);		// cachep中是否还存在空闲slabs
+}
+```
+
+###### 6.5.1.1.5.2 \__kmem_cache_destroy()
+
+该函数定义于mm/slab.c:
+
+```
+static void __kmem_cache_destroy(struct kmem_cache *cachep)
+{
+	int i;
+	struct kmem_list3 *l3;
+
+	for_each_online_cpu(i)
+	    kfree(cachep->array[i]);
+
+	/* NUMA: free the list3 structures */
+	for_each_online_node(i) {
+		l3 = cachep->nodelists[i];
+		if (l3) {
+			kfree(l3->shared);
+			free_alien_cache(l3->alien);
+			kfree(l3);
+		}
+	}
+	kmem_cache_free(&cache_cache, cachep);
+}
+```
+
+### 6.5.2 Slab Descriptor/struct slab
+
+该结构定义于mm/slab.c:
+
+```
+struct slab {
+	union {
+		struct {
+			/*
+			 * Pointers for one of the three doubly linked list of slab
+			 * descriptors (either the slabs_full, slabs_partial, or slabs_free
+			 * list in the kmem_list3 structure of the cache descriptor)
+			 */
+			struct list_head	list;
+
+			// Offset of the first object in the slab.
+			// The address of the first object is s_mem + colouroff.
+			unsigned long		colouroff;
+
+			// Address of first object (either allocated or free) in the slab.
+			void			*s_mem;	/* including colour offset */
+
+			// Number of objects in the slab that are currently used (not free).
+			unsigned int		inuse;	/* num of objs active in slab */
+
+			// Index of next free object in the slab, or BUFCTL_END
+			// if there are no free objects left.
+			kmem_bufctl_t		free;
+
+			unsigned short		nodeid;
+		};
+		struct slab_rcu			__slab_cover_slab_rcu;
+	};
+};
+```
+
+Slab descriptors can be stored in two possible places:
+
+1) External slab descriptor: Stored outside the slab, in one of the general caches not suitable for ISA DMA pointed to by cache_sizes.
+
+2) Internal slab descriptor: Stored inside the slab, at the beginning of the first page frame assigned to the slab.
+
+The slab allocator chooses the second solution when the size of the objects is smaller than 512MB or when internal fragmentation leaves enough space for the slab descriptor and the object descriptor inside the slab. The CFLGS_OFF_SLAB flag in the flags field of the cache descriptor is set to one if the slab descriptor is stored outside the slab; it is set to zero otherwise. 参见alloc_slabmgmt()节中的alloc_slabmgmt().
+
+### 6.5.3 Object Descriptor/kmem_bufctl_t
+
+该结构定义于mm/slab.c：
+
+```
+typedef unsigned int kmem_bufctl_t;
+
+#define BUFCTL_END	(((kmem_bufctl_t)(~0U))-0)		// 0xFFFF
+#define BUFCTL_FREE	(((kmem_bufctl_t)(~0U))-1)		// 0xFFFE
+#define BUFCTL_ACTIVE	(((kmem_bufctl_t)(~0U))-2)		// 0xFFFD
+#define SLAB_LIMIT	(((kmem_bufctl_t)(~0U))-3)		// 0xFFFC
+```
+
+Each object has a short descriptor of type kmem_bufctl_t. Object descriptors are stored in an array placed right after the corresponding slab descriptor. Thus, like the slab descriptors themselves, the object descriptors of a slab can be stored in two possible ways:
+
+1) External object descriptors
+
+Stored outside the slab, in the general cache pointed to by the slabp_cache field of the cache descriptor. The size of the memory area, and thus the particular general cache used to store object descriptors, depends on the number of objects stored in the slab (num field of the cache descriptor).
+
+![Slab_with_External_Descriptors](/assets/Slab_with_External_Descriptors.png)
+
+2) Internal object descriptors
+
+Stored inside the slab, right before the objects they describe.
+
+![Slab_with_Internal_Descriptors](/assets/Slab_with_Internal_Descriptors.png)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

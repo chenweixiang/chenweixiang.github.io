@@ -27514,6 +27514,697 @@ chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sched_rt_runtime_us
 -1
 ```
 
+### 7.4.4 进程的调度类/struct sched_class
+
+该结构体表示调度类，是对调度器操作的面向对象抽象，协助内核调度程序的各种工作。调度类是调度器的核心，每种调度算法模块需要实现该结构体建议的一组函数。其定义于include/linux/sched.h:
+
+```
+struct sched_class {
+	// 指向下一个调度类。各调度类的链接关系参见pick_next_task()节
+	const struct sched_class *next;
+
+	/*
+	 * 将进程描述符p加入运行队列，p已就绪。会被static void enqueue_task(...)
+	 * 调用，参见kernel/sched.c
+	 */
+	void (*enqueue_task) (struct rq *rq, struct task_struct *p, int flags);
+	/*
+	 * 将进程描述符p移出运行队列，p被阻塞或睡眠。会被static void dequeue_task(...)
+	 * 调用，参见kernel/sched.c
+	 */
+	void (*dequeue_task) (struct rq *rq, struct task_struct *p, int flags);
+	/*
+	 * 任务放弃CPU。对于rt任务，会重新入队列触发调度，cfs任务会把任务放到rb tree
+	 * 的最右端，然后挑选最左边的任务运行。会被系统调用sys_sched_yield()调用
+	 */
+	void (*yield_task) (struct rq *rq);
+	/*
+	 * Yield the current processor to another thread in your thread group, or
+	 * accelerate that thread toward the processor it's on. 会被yield_to()调用
+	 */
+	bool (*yield_to_task) (struct rq *rq, struct task_struct *p, bool preempt);
+
+	// 检查p是否可抢占当前运行任务。会被static void check_preempt_curr()调用
+	void (*check_preempt_curr) (struct rq *rq, struct task_struct *p, int flags);
+
+	/*
+	 * 挑选下一个可运行任务。会被调用
+	 * static inline struct task_struct *pick_next_task(struct rq *rq)
+	 */
+	struct task_struct * (*pick_next_task) (struct rq *rq);
+	// 处理上一次运行的任务p
+	void (*put_prev_task) (struct rq *rq, struct task_struct *p);
+
+#ifdef CONFIG_SMP
+	// 选择任务的运行队列，实际就是挑选合适的CPU运行任务
+	int  (*select_task_rq)(struct task_struct *p, int sd_flag, int flags);
+
+	/*
+	 * 调度前的处理，rt实现：如果本队列之前运行的任务为最高优先级，
+	 * 说明本队列没有高优先级任务抢占当前运行任务，则其他队列有可能存在
+	 * 比本队列的任务高的rt任务，尝试pull过来
+	 */
+	void (*pre_schedule) (struct rq *this_rq, struct task_struct *task);
+	// 调度完成后的处理。rt实现，把就绪任务放入push队列
+	void (*post_schedule) (struct rq *this_rq);
+	// 正在唤醒，准备唤醒任务时的处理。cfs实现，修改任务的vruntime
+	void (*task_waking) (struct task_struct *task);
+	// 唤醒任务后的处理。rt实现，如果没有置调度标志且任务可push，则尝试push到其他CPU上
+	void (*task_woken) (struct rq *this_rq, struct task_struct *task);
+
+	/*
+	 * 设置任务的CPU亲和性在本调度类下特殊实现。
+	 * 用户接口、迁移时使用，rt实现，由set_cpus_allowed_ptr调用，
+	 * dequeue/enqueue可push队列
+	 */
+	void (*set_cpus_allowed)(struct task_struct *p, const struct cpumask *newmask);
+
+	// 任务队列状态active
+	void (*rq_online)(struct rq *rq);
+	// 任务队列状态inactive
+	void (*rq_offline)(struct rq *rq);
+#endif
+
+	// 设置当前的运行任务，当任务被调度运行时
+	void (*set_curr_task) (struct rq *rq);
+	// 时间中断处理，更新任务运行时间，检查时间片是否已到。由scheduler_tick()调用
+	void (*task_tick) (struct rq *rq, struct task_struct *p, int queued);
+	// 任务p被创建时的处理，CFS有实现，把p放入队列的合适位置
+	void (*task_fork) (struct task_struct *p);
+
+	/*
+	 * 任务切换出当前调度算法，当前调度算法需要做的动作。例如：rt任务切换成非实时任务，
+	 * 则rt class需要判断当前队列是否还有实时任务，若没有需要从其他队列pull任务过来
+	 */
+	void (*switched_from) (struct rq *this_rq, struct task_struct *task);
+	// 任务切换到当前调度算法
+	void (*switched_to) (struct rq *this_rq, struct task_struct *task);
+	// 任务更改优先级的处理
+	void (*prio_changed) (struct rq *this_rq, struct task_struct *task, int oldprio);
+
+	// 获取任务时间片
+	unsigned int (*get_rr_interval) (struct rq *rq, struct task_struct *task);
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+	void (*task_move_group) (struct task_struct *p, int on_rq);
+#endif
+};
+```
+
+目前内核中实现了以下四种调度类：
+
+```
+/*
+ * kernel/sched_stoptask.c
+ * 属于这个调度类的任务具有最高调度优先级，可以抢占其他任何任务，
+ * 目前只有迁移任务属于这个调度类
+ */
+static const struct sched_class stop_sched_class = {
+	...
+};
+
+// kernel/sched_rt.c
+static const struct sched_class rt_sched_class  = {
+	...
+};
+
+// kernel/sched_fair.c
+static const struct sched_class fair_sched_class = {
+	...
+};
+
+// kernel/sched_idletask.c
+static const struct sched_class idle_sched_class = {
+	...
+};
+```
+
+#### 7.4.4.1 实时调度类/rt_sched_class
+
+#### 7.4.4.2 完全公平调度类/fair_sched_class
+
+对于CFS调度类，它的运行队列是cfs_rq，其内部使用红黑树组织调度实体。对于RT调度类，它的运行队列是rt_rq，其内部使用优先级bitmap+双向链表组织调度实体。与调度类相关的几个数据结构的关系：
+
+![FCS1](/assets/FCS1.png)
+
+### 7.4.5 schedule()
+
+该函数定义于kernel/sched.c：
+
+```
+asmlinkage void __sched schedule(void)
+{
+	struct task_struct *tsk = current;
+
+	sched_submit_work(tsk); 	// 参见sched_submit_work()节
+	__schedule();			// 参见__schedule()节
+}
+```
+
+#### 7.4.5.1 sched_submit_work()
+
+该函数定义于kernel/sched.c:
+
+```
+static inline void sched_submit_work(struct task_struct *tsk)
+{
+	// tsk->state: -1 unrunnable, 0 runnable, >0 stopped
+	if (!tsk->state)
+		return;
+	/*
+	 * If we are going to sleep and we have plugged IO queued,
+	 * make sure to submit it to avoid deadlocks.
+	 */
+	if (blk_needs_flush_plug(tsk))
+		blk_schedule_flush_plug(tsk);
+}
+```
+
+#### 7.4.5.2 \__schedule()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * __schedule() is the main scheduler function.
+ */
+/*
+ * __sched定义于include/linux/sched.h:
+ * 	#define __sched  __attribute__((__section__(".sched.text")))
+ */
+static void __sched __schedule(void)
+{
+	struct task_struct *prev, *next;
+	unsigned long *switch_count;
+	struct rq *rq;
+	int cpu;
+
+need_resched:
+	preempt_disable();		// 参见preempt_disable()节
+	cpu = smp_processor_id();	// 获得当前CPU的标示符
+	rq = cpu_rq(cpu); 		// 获得当前CPU的变量runqueues，参见运行队列变量/runqueues节
+	rcu_note_context_switch(cpu);
+	prev = rq->curr; 		// prev用于保存当前进程的进程描述符
+
+	schedule_debug(prev);
+
+	/*
+	 * 被扩展为sysctl_sched_features & (1UL << __SCHED_FEAT_HRTICK)
+	 * 用于判断变量sysctl_sched_features中的标志位__SCHED_FEAT_HRTICK
+	 * 是否置位，参见kernel/sched_features.h
+	 * 若置位，则调用hrtick_clear()->hrtimer_cancel()取消rq->hrtick_timer
+	 * 定时器，参见取消定时器/hrtimer_cancel()节
+	 */
+	if (sched_feat(HRTICK))
+		hrtick_clear(rq);
+
+	raw_spin_lock_irq(&rq->lock);
+
+	// 非自愿的上下文切换计数，参见时间节
+	switch_count = &prev->nivcsw;
+	/*
+	 * 若当前进程不在运行状态，内核态没有被抢占，且内核抢占有效，
+	 * 参见struct thread_info->preempt_count节
+	 */
+	// state: -1 unrunnable, 0 runnable, >0 stopped
+	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
+		/*
+		 * 若当前进程状态为TASK_INTERRUPTIBLE / TASK_WAKEKILL，
+		 * 或存在信号SIGKILL，则将当前进程状态设为TASK_RUNNING；
+		 */
+		if (unlikely(signal_pending_state(prev->state, prev))) {
+			prev->state = TASK_RUNNING;
+		} else {
+			/*
+			 * 否则，将当前进程从runqueues中删除:
+			 * 通过调用属于自己调度类的dequeue_task()方法，
+			 * 参见deactivate_task()节
+			 */
+			deactivate_task(rq, prev, DEQUEUE_SLEEP);
+			prev->on_rq = 0; // 标识当前进程不在runqueues中
+
+			/*
+			 * If a worker went to sleep, notify and ask workqueue
+			 * whether it wants to wake up a task to maintain
+			 * concurrency.
+			 */
+			if (prev->flags & PF_WQ_WORKER) {
+				struct task_struct *to_wakeup;
+
+				to_wakeup = wq_worker_sleeping(prev, cpu);
+				if (to_wakeup)
+					try_to_wake_up_local(to_wakeup);
+			}
+		}
+		switch_count = &prev->nvcsw; 	// 自愿的上下文切换计数
+	}
+
+	// 调用对应调度类的pre_schedule()函数
+	pre_schedule(rq, prev);
+
+	// 若runqueues上进程数为0，则从其他CPU上调度进程，进行负载均衡
+	if (unlikely(!rq->nr_running))
+		idle_balance(cpu, rq);
+
+	/*
+	 * 通过调用当前进程所属调度类的put_prev_task()，将当前进程放入运行
+	 * 队列的合适位置。对于CFS而言，将当前进程插入到cfs_rq红黑树的合适位置；
+	 */
+	put_prev_task(rq, prev);
+	// 从runqueues中选择最适合的进程，并保存到next中。参见pick_next_task()节
+	next = pick_next_task(rq);
+	clear_tsk_need_resched(prev); 		// 清除当前进程的重调度标识
+	rq->skip_clock_update = 0;
+
+	// 检查当前进程(prev)与所选进程(next)是否是同一进程，不属于同一进程才需要切换
+	if (likely(prev != next)) {
+		rq->nr_switches++;
+		rq->curr = next; 		// 用所选进程代替当前进程
+		++*switch_count; 		// 增加非自愿上下文切换计数，或者自愿上下文却换计数
+
+		// 切换进程上下文，参见context_switch()节
+		context_switch(rq, prev, next); 	/* unlocks the rq */
+		/*
+		 * The context switch have flipped the stack from under us
+		 * and restored the local variables which were saved when
+		 * this task called schedule() in the past. prev == current
+		 * is still correct, but it can be moved to another cpu/rq.
+		 */
+		cpu = smp_processor_id();	// 获取新CPU的标识符
+		rq = cpu_rq(cpu); 		// 获取新CPU的runqueues变量
+	} else
+		raw_spin_unlock_irq(&rq->lock);	// 若不需要切换进程，则只需要解锁
+
+	// 调用对应调度类的post_schedule()
+	post_schedule(rq);
+
+	// 参见preempt_enable()/preempt_enable_no_resched()节
+	preempt_enable_no_resched();
+	/*
+	 * 测试current->stack->flags中的标志位TIF_NEED_RESCHED
+	 * 是否被置位，若被置位，则重新调度其他进程运行；
+	 * The flag is a message to the kernel that the scheduler
+	 * should be invoked as soon as possible because another
+	 * process deserves to run.
+	 */
+	if (need_resched())
+		goto need_resched;
+}
+```
+
+**1) 内核抢占概念**
+
+当进程位于内核空间，有更高优先级的任务出现时，如果该内核支持抢占的话，则挂起当前任务，执行更高优先级的任务。
+
+**2) 用户抢占的概念**
+
+内核即将返回用户空间时，如果need_resched标志被设置，会导致schedule()被调用，此时就会发生用户抢占。内核无论是在从中断处理程序还是在系统调用后返回，都会检查need_resched标志。如果它被设置了，那么内核会选择一个其他(更合适的)进程投入运行。
+
+**3) 内核抢占好处**
+
+这是实时系统所要求的。如果硬件中断开启了一个实时进程，如果内核不支持抢占的话，被开启的实时进程就要等到当前进程执行完毕才能被调度，这就带来了延时，实时性不好。如果内核支持抢占的话，就可以将当前进程挂起，来执行实时进程，这样实时性好。
+
+**4) 什么情况下不能抢占内核**
+
+* 内核正进行中断处理；
+* 内核正在进行中断上下文的Bottom Half(中断的底半部)处理；
+* 内核的代码段正持有spinlock自旋锁、writelock/readlock读写锁等锁，处于这些锁的保护状态中；
+* 内核正在执行调度程序scheduler，这种情况正对应schedule()函数；
+* 内核正在对每个CPU“私有”的数据结构操作。
+
+##### 7.4.5.2.1 deactivate_task()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * deactivate_task - remove a task from the runqueue.
+ */
+static void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
+{
+	if (task_contributes_to_load(p))
+		rq->nr_uninterruptible++;
+
+	dequeue_task(rq, p, flags);
+}
+
+static void dequeue_task(struct rq *rq, struct task_struct *p, int flags)
+{
+	update_rq_clock(rq);
+	sched_info_dequeued(p);
+	p->sched_class->dequeue_task(rq, p, flags);
+}
+```
+
+##### 7.4.5.2.2 pick_next_task()
+
+该函数定义于kernel/sched.c:
+
+```
+#define sched_class_highest	(&stop_sched_class)
+#define for_each_class(class)	\
+   for (class = sched_class_highest; class; class = class->next)
+
+/*
+ * Pick up the highest-prio task:
+ */
+static inline struct task_struct *pick_next_task(struct rq *rq)
+{
+	const struct sched_class *class;
+	struct task_struct *p;
+
+	/*
+	 * Optimization: we know that if all tasks are in
+	 * the fair class we can call that function directly:
+	 */
+	/*
+	 * 若该运行队列中的进程数与公平调度队列中的进程数相同，则表示
+	 * 没有实时进程，故可以在公平调度队列中选择下一个可运行进程。
+	 */
+	if (likely(rq->nr_running == rq->cfs.h_nr_running)) {
+		p = fair_sched_class.pick_next_task(rq);
+		if (likely(p))
+			return p;
+	}
+
+	/*
+	 * 否则，依次调用如下调度类的pick_next_task()，直到选择出下
+	 * 一个可运行进程。stop_sched_class -> rt_sched_class
+	 * -> fair_sched_class -> idle_sched_class。在调度过程中，
+	 * p永远不会返回NULL，因为至少存在idle进程的进程描述符；
+	 * idle进程的进程描述符是由idle_sched_class返回，idle进程的
+	 * 进程描述符的初始化参见sched_init()节
+	 */
+	for_each_class(class) {
+		p = class->pick_next_task(rq);
+		if (p)
+			return p;
+	}
+
+	BUG(); /* the idle class will always have a runnable task */
+}
+```
+
+##### 7.4.5.2.3 context_switch()
+
+该函数定义于kernel/sched.c:
+
+```
+/*
+ * context_switch - switch to the new MM and the new
+ * thread's register state.
+ */
+static inline void context_switch(struct rq *rq, struct task_struct *prev, struct task_struct *next)
+{
+	struct mm_struct *mm, *oldmm;
+
+	prepare_task_switch(rq, prev, next);
+
+	mm = next->mm;
+	oldmm = prev->active_mm;
+	/*
+	 * For paravirt, this is coupled with an exit in switch_to to
+	 * combine the page table reload and the switch backend into
+	 * one hypercall.
+	 */
+	arch_start_context_switch(prev);
+
+	if (!mm) {
+		next->active_mm = oldmm;
+		atomic_inc(&oldmm->mm_count);
+		enter_lazy_tlb(oldmm, next);
+	} else
+		/*
+		 * Switch the virtual memory mapping from the previous
+		 * process’s to that of the new process. 参见switch_mm()节
+		 */
+		switch_mm(oldmm, mm, next);
+
+	if (!prev->mm) {
+		prev->active_mm = NULL;
+		rq->prev_mm = oldmm;
+	}
+	/*
+	 * Since the runqueue lock will be released by the next
+	 * task (which is an invalid locking op but in the case
+	 * of the scheduler it's an obvious special-case), so we
+	 * do an early lockdep release here:
+	 */
+#ifndef __ARCH_WANT_UNLOCKED_CTXSW
+	spin_release(&rq->lock.dep_map, 1, _THIS_IP_);
+#endif
+
+	/* Here we just switch the register state and the stack. */
+	/*
+	 * Switch the processor state from the previous process’s
+	 * to the current’s. This involves saving and restoring
+	 * stack information and the processor registers and any
+	 * other architecture-specific state that must be managed
+	 * and restored on a per-process basis. 参见switch_to()节
+	 */
+	switch_to(prev, next, prev);
+
+	barrier();
+	/*
+	 * this_rq must be evaluated again because prev may have moved
+	 * CPUs since it called schedule(), thus the 'rq' on its stack
+	 * frame will be invalid.
+	 */
+	finish_task_switch(this_rq(), prev);
+}
+```
+
+###### 7.4.5.2.3.1 switch_mm()
+
+该函数定义于arch/x86/include/asm/mm_context.h:
+
+```
+static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, struct task_struct *tsk)
+{
+	unsigned cpu = smp_processor_id();
+
+	if (likely(prev != next)) {
+#ifdef CONFIG_SMP
+		percpu_write(cpu_tlbstate.state, TLBSTATE_OK);
+		percpu_write(cpu_tlbstate.active_mm, next);
+#endif
+		cpumask_set_cpu(cpu, mm_cpumask(next));
+
+		/* Re-load page tables */
+		/*
+		 * 重新加载页表，即修改CR3寄存器的值。参见分页机制节
+		 * 切换地址空间发生在切换堆栈(参见switch_to()节)之前，
+		 * 不会影响后续代码执行，因为进程的切换发生在内核态，内核
+		 * 态地址空间是共用的。没有修改堆栈指针及其他寄存器的值，
+		 * 即堆栈没有变，栈内值未发生改变。
+		 */
+		load_cr3(next->pgd);
+
+		/* stop flush ipis for the previous mm */
+		cpumask_clear_cpu(cpu, mm_cpumask(prev));
+
+		/*
+		 * load the LDT, if the LDT is different:
+		 */
+		if (unlikely(prev->context.ldt != next->context.ldt))
+			load_LDT_nolock(&next->context);
+	}
+#ifdef CONFIG_SMP
+	else {
+		percpu_write(cpu_tlbstate.state, TLBSTATE_OK);
+		BUG_ON(percpu_read(cpu_tlbstate.active_mm) != next);
+
+		if (!cpumask_test_and_set_cpu(cpu, mm_cpumask(next))) {
+			/* We were in lazy tlb mode and leave_mm disabled
+			 * tlb flush IPI delivery. We must reload CR3
+			 * to make sure to use no freed page tables.
+			 */
+			load_cr3(next->pgd);
+			load_LDT_nolock(&next->context);
+		}
+	}
+#endif
+}
+```
+
+###### 7.4.5.2.3.2 switch_to()
+
+该宏定义于arch/x86/include/asm/system.h:
+
+```
+/*
+ * Saving eflags is important. It switches not only IOPL between tasks,
+ * it also protects other tasks from NT leaking through sysenter etc.
+ */
+/*
+ * prev and next are input parameters that specify the memory locations
+ * containing the descriptor address of the process being replaced and
+ * the descriptor address of the new process, respectively.
+ * last is an output parameter that specifies a memory location in which
+ * the macro writes the descriptor address of process C (of course, this
+ * is done after A resumes its execution).
+ */
+#define switch_to(prev, next, last) 							\
+do {											\
+	/*										\
+	 * Context-switching clobbers all registers, so we clobber			\
+	 * them explicitly, via unused output variables. 				\
+	 * (EAX and EBP is not listed because EBP is saved/restored			\
+	 * explicitly for wchan access and EAX is the return value of			\
+	 * __switch_to())								\
+	 */										\
+	unsigned long ebx, ecx, edx, esi, edi;						\
+											\
+	asm volatile("pushfl\n\t"			/* save    flags */		\
+		     "pushl %%ebp\n\t"			/* save    EBP   */		\
+		     "movl %%esp,%[prev_sp]\n\t"	/* save    ESP   */ 		\
+		     "movl %[next_sp],%%esp\n\t"	/* restore ESP   */ 		\	// NOTE #1
+		     "movl $1f,%[prev_ip]\n\t"		/* save    EIP   */		\	// NOTE #2
+		     "pushl %[next_ip]\n\t"		/* restore EIP   */		\
+		     __switch_canary							\
+		     "jmp __switch_to\n"		/* regparm call  */		\	// NOTE #3
+		     "1:\t"								\	// NOTE #4
+		     "popl %%ebp\n\t"			/* restore EBP   */		\
+		     "popfl\n"				/* restore flags */		\
+											\
+		     /* output parameters */						\
+		     : [prev_sp] "=m" (prev->thread.sp),				\
+		       [prev_ip] "=m" (prev->thread.ip),				\
+		       "=a" (last),							\
+											\
+		       /* clobbered output registers: */				\
+		       "=b" (ebx), "=c" (ecx), "=d" (edx),				\
+		       "=S" (esi), "=D" (edi)						\
+		       									\
+		       __switch_canary_oparam						\
+											\
+		       /* input parameters: */						\
+		     : [next_sp]  "m" (next->thread.sp),				\
+		       [next_ip]  "m" (next->thread.ip),				\
+		       									\
+		       /* regparm parameters for __switch_to(): */			\
+		       [prev]     "a" (prev),						\
+		       [next]     "d" (next)						\
+											\
+		       __switch_canary_iparam						\
+											\
+		     : /* reloaded segment registers */					\
+			   "memory");							\
+} while (0)
+```
+
+**NOTE #1:**
+
+movel %[next_sp],%%esp为修改堆栈指针，使其指向next进程的堆栈。因为在内核态中，栈顶指针减去8K偏移(两页)便可得到thread_info位置，从而在切换后current_thread_info内容为切换后的新进程的thread_info内容。
+
+Loads next->thread.esp in esp. From now on, the kernel operates on the Kernel Mode stack of next, so this instruction performs the actual process switch from prev to next.
+
+**NOTE #2:**
+
+Saves the address labeled 1 (shown later in NOTE #3) in prev->thread.eip. When the process being replaced resumes its execution, the process executes the instruction labeled as 1.
+
+**NOTE #3:**
+
+调用arch/x86/kernel/process_32.c或arch/x86/kernel/process_64.c中的函数__switch_to()，参见_switch_to()节。
+
+###### 7.4.5.2.3.2.1 \__switch_to()
+
+该函数定义于arch/x86/kernel/process_32.c:
+
+```
+__notrace_funcgraph
+struct task_struct *__switch_to(struct task_struct *prev_p, struct task_struct *next_p)
+{
+	struct thread_struct *prev = &prev_p->thread,
+							 *next = &next_p->thread;
+	// get the index of the local CPU, namely the CPU that executes the code.
+	int cpu = smp_processor_id();
+	struct tss_struct *tss = &per_cpu(init_tss, cpu);
+	bool preload_fpu;
+
+	/* never put a printk in __switch_to... printk() calls wake_up*() indirectly */
+
+	/*
+	 * If the task has used fpu the last 5 timeslices, just do a full
+	 * restore of the math state immediately to avoid the trap; the
+	 * chances of needing FPU soon are obviously high now
+	 */
+	preload_fpu = tsk_used_math(next_p) && next_p->fpu_counter > 5;
+
+	// optionally save the contents of the FPU, MMX, and XMM registers of the prev_p process.
+	__unlazy_fpu(prev_p);
+
+	/* we're going to use this soon, after a few expensive things */
+	if (preload_fpu)
+		prefetch(next->fpu.state);
+
+	/*
+	 * Reload esp0.
+	 */
+	load_sp0(tss, next);
+
+	/*
+	 * Save away %gs. No need to save %fs, as it was saved on the
+	 * stack on entry.  No need to save %es and %ds, as those are
+	 * always kernel segments while inside the kernel.  Doing this
+	 * before setting the new TLS descriptors avoids the situation
+	 * where we temporarily have non-reloadable segments in %fs
+	 * and %gs.  This could be an issue if the NMI handler ever
+	 * used %fs or %gs (it does not today), or if the kernel is
+	 * running inside of a hypervisor layer.
+	 */
+	lazy_save_gs(prev->gs);
+
+	/*
+	 * Load the per-thread Thread-Local Storage descriptor.
+	 */
+	load_TLS(next, cpu);
+
+	/*
+	 * Restore IOPL if needed.  In normal use, the flags restore
+	 * in the switch assembly will handle this.  But if the kernel
+	 * is running virtualized at a non-zero CPL, the popf will
+	 * not restore flags, so it must be done in a separate step.
+	 */
+	if (get_kernel_rpl() && unlikely(prev->iopl != next->iopl))
+		set_iopl_mask(next->iopl);
+
+	/*
+	 * Now maybe handle debug registers and/or IO bitmaps
+	 */
+	if (unlikely(task_thread_info(prev_p)->flags & _TIF_WORK_CTXSW_PREV ||
+		 task_thread_info(next_p)->flags & _TIF_WORK_CTXSW_NEXT))
+		__switch_to_xtra(prev_p, next_p, tss);
+
+	/* If we're going to preload the fpu context, make sure clts
+	   is run while we're batching the cpu state updates. */
+	if (preload_fpu)
+		clts();
+
+	/*
+	 * Leave lazy mode, flushing any hypercalls made here.
+	 * This must be done before restoring TLS segments so
+	 * the GDT and LDT are properly updated, and must be
+	 * done before math_state_restore, so the TS bit is up
+	 * to date.
+	 */
+	arch_end_context_switch(next_p);
+
+	if (preload_fpu)
+		__math_state_restore();
+
+	/*
+	 * Restore %gs if needed (which is common)
+	 */
+	if (prev->gs | next->gs)
+		lazy_load_gs(next->gs);
+
+	percpu_write(current_task, next_p);
+
+	return prev_p;
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

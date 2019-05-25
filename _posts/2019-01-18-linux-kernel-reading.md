@@ -21024,6 +21024,990 @@ void __kunmap_atomic(void *kvaddr)
 }
 ```
 
+## 6.8 虚拟内存空间/Virtual Memory Area
+
+与Virtual Memory Area有关的数据结构参见struct vm_area_struct节，其结构参见错误：引用源未找到。
+
+### 6.8.1 Find a Memory Regin
+
+**find_vma_intersection()**
+
+Find the first memory region that overlaps a given linear address interval.
+
+**find_vma_prepare()**
+
+Locate the position of the new leaf in the red-black tree that corresponds to a given linear address and returns the addresses of the preceding memory region and of the parent node of the leaf to be inserted.
+
+**get_unmapped_area()**
+
+Searche the process address space to find an available linear address interval.
+
+#### 6.8.1.1 find_vma()
+
+Function ```find_vma()``` is used to find the closest region to a given address.
+
+该函数定义于mm/mmap.c:
+
+```
+/* Look up the first VMA which satisfies  addr < vm_end,  NULL if none. */
+struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
+{
+	struct vm_area_struct *vma = NULL;
+
+	if (mm) {
+		/* Check the cache first. */
+		/* (Cache hit rate is typically around 35%.) */
+		vma = mm->mmap_cache;
+		if (!(vma && vma->vm_end > addr && vma->vm_start <= addr)) {
+			struct rb_node * rb_node;
+
+			rb_node = mm->mm_rb.rb_node;
+			vma = NULL;
+
+			while (rb_node) {
+				struct vm_area_struct * vma_tmp;
+
+				vma_tmp = rb_entry(rb_node, struct vm_area_struct, vm_rb);
+
+				if (vma_tmp->vm_end > addr) {
+					vma = vma_tmp;
+					if (vma_tmp->vm_start <= addr)
+						break;
+					rb_node = rb_node->rb_left;
+				} else
+					rb_node = rb_node->rb_right;
+			}
+			if (vma)
+				mm->mmap_cache = vma;
+		}
+	}
+	return vma;
+}
+```
+
+#### 6.8.1.2 find_vma_prev()
+
+The ```find_vma_prev()``` function is similar to ```find_vma()```, except that it writes in an additional pprev parameter a pointer to the descriptor of the memory region that precedes the one selected by the function.
+
+该函数定义于mm/mmap.c:
+
+```
+/* Same as find_vma, but also return a pointer to the previous VMA in *pprev. */
+struct vm_area_struct *find_vma_prev(struct mm_struct *mm, unsigned long addr,
+					struct vm_area_struct **pprev)
+{
+	struct vm_area_struct *vma = NULL, *prev = NULL;
+	struct rb_node *rb_node;
+	if (!mm)
+		goto out;
+
+	/* Guard against addr being lower than the first VMA */
+	vma = mm->mmap;
+
+	/* Go through the RB tree quickly. */
+	rb_node = mm->mm_rb.rb_node;
+
+	while (rb_node) {
+		struct vm_area_struct *vma_tmp;
+		vma_tmp = rb_entry(rb_node, struct vm_area_struct, vm_rb);
+
+		if (addr < vma_tmp->vm_end) {
+			rb_node = rb_node->rb_left;
+		} else {
+			prev = vma_tmp;
+			if (!prev->vm_next || (addr < prev->vm_next->vm_end))
+				break;
+			rb_node = rb_node->rb_right;
+		}
+	}
+
+out:
+	*pprev = prev;
+	return prev ? prev->vm_next : vma;
+}
+```
+
+### 6.8.2 Allocate a Linear Address Interval
+
+#### 6.8.2.1 do_mmap()
+
+该函数定义于include/linux/mm.h:
+
+```
+static inline unsigned long do_mmap(struct file *file, unsigned long addr,
+				   unsigned long len, unsigned long prot,
+				   unsigned long flag, unsigned long offset)
+{
+	unsigned long ret = -EINVAL;
+	if ((offset + PAGE_ALIGN(len)) < offset)
+		goto out;
+	if (!(offset & ~PAGE_MASK))
+		ret = do_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
+out:
+	return ret;
+}
+```
+
+##### 6.8.2.1.1 do_mmap_pgoff()
+
+该函数定义于mm/mmap.c:
+
+```
+unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
+				  unsigned long len, unsigned long prot,
+				  unsigned long flags, unsigned long pgoff)
+{
+	struct mm_struct * mm = current->mm;
+	struct inode *inode;
+	vm_flags_t vm_flags;
+	int error;
+	unsigned long reqprot = prot;
+
+	/*
+	 * Does the application expect PROT_READ to imply PROT_EXEC?
+	 *
+	 * (the exception is when the underlying filesystem is noexec
+	 *  mounted, in which case we dont add PROT_EXEC.)
+	 */
+	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
+		if (!(file && (file->f_path.mnt->mnt_flags & MNT_NOEXEC)))
+			prot |= PROT_EXEC;
+
+	if (!len)
+		return -EINVAL;
+
+	if (!(flags & MAP_FIXED))
+		addr = round_hint_to_min(addr);
+
+	/* Careful about overflows.. */
+	len = PAGE_ALIGN(len);
+	if (!len)
+		return -ENOMEM;
+
+	/* offset overflow? */
+	if ((pgoff + (len >> PAGE_SHIFT)) < pgoff)
+               return -EOVERFLOW;
+
+	/* Too many mappings? */
+	if (mm->map_count > sysctl_max_map_count)
+		return -ENOMEM;
+
+	/* Obtain the address to map to. we verify (or select) it and ensure
+	 * that it represents a valid section of the address space.
+	 */
+	// 参见Find a Memory Regin节
+	addr = get_unmapped_area(file, addr, len, pgoff, flags);
+	if (addr & ~PAGE_MASK)
+		return addr;
+
+	/* Do simple checking here so the lower-level routines won't have
+	 * to. we assume access permissions have been handled by the open
+	 * of the memory object, so we don't do any here.
+	 */
+	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
+				 mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+
+	if (flags & MAP_LOCKED)
+		if (!can_do_mlock())
+			return -EPERM;
+
+	/* mlock MCL_FUTURE? */
+	if (vm_flags & VM_LOCKED) {
+		unsigned long locked, lock_limit;
+		locked = len >> PAGE_SHIFT;
+		locked += mm->locked_vm;
+		lock_limit = rlimit(RLIMIT_MEMLOCK);
+		lock_limit >>= PAGE_SHIFT;
+		if (locked > lock_limit && !capable(CAP_IPC_LOCK))
+			return -EAGAIN;
+	}
+
+	inode = file ? file->f_path.dentry->d_inode : NULL;
+
+	if (file) {
+		switch (flags & MAP_TYPE) {
+		case MAP_SHARED:
+			if ((prot & PROT_WRITE) && !(file->f_mode & FMODE_WRITE))
+				return -EACCES;
+
+			/*
+			 * Make sure we don't allow writing to an append-only
+			 * file..
+			 */
+			if (IS_APPEND(inode) && (file->f_mode & FMODE_WRITE))
+				return -EACCES;
+
+			/*
+			 * Make sure there are no mandatory locks on the file.
+			 */
+			if (locks_verify_locked(inode))
+				return -EAGAIN;
+
+			vm_flags |= VM_SHARED | VM_MAYSHARE;
+			if (!(file->f_mode & FMODE_WRITE))
+				vm_flags &= ~(VM_MAYWRITE | VM_SHARED);
+
+			/* fall through */
+		case MAP_PRIVATE:
+			if (!(file->f_mode & FMODE_READ))
+				return -EACCES;
+			if (file->f_path.mnt->mnt_flags & MNT_NOEXEC) {
+				if (vm_flags & VM_EXEC)
+					return -EPERM;
+				vm_flags &= ~VM_MAYEXEC;
+			}
+
+			if (!file->f_op || !file->f_op->mmap)
+				return -ENODEV;
+			break;
+
+		default:
+			return -EINVAL;
+		}
+	} else {
+		switch (flags & MAP_TYPE) {
+		case MAP_SHARED:
+			/*
+			 * Ignore pgoff.
+			 */
+			pgoff = 0;
+			vm_flags |= VM_SHARED | VM_MAYSHARE;
+			break;
+		case MAP_PRIVATE:
+			/*
+			 * Set pgoff according to addr for anon_vma.
+			 */
+			pgoff = addr >> PAGE_SHIFT;
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	error = security_file_mmap(file, reqprot, prot, flags, addr, 0);
+	if (error)
+		return error;
+
+	// 参见mmap_region()节
+	return mmap_region(file, addr, len, flags, vm_flags, pgoff);
+}
+```
+
+###### 6.8.2.1.1.1 mmap_region()
+
+该函数定义于mm/mmap.c:
+
+```
+unsigned long mmap_region(struct file *file, unsigned long addr, unsigned long len,
+			   unsigned long flags, vm_flags_t vm_flags, unsigned long pgoff)
+{
+	struct mm_struct *mm = current->mm;
+	struct vm_area_struct *vma, *prev;
+	int correct_wcount = 0;
+	int error;
+	struct rb_node **rb_link, *rb_parent;
+	unsigned long charged = 0;
+	struct inode *inode =  file ? file->f_path.dentry->d_inode : NULL;
+
+	/* Clear old maps */
+	error = -ENOMEM;
+munmap_back:
+	// 参见Find a Memory Regin节
+	vma = find_vma_prepare(mm, addr, &prev, &rb_link, &rb_parent);
+	if (vma && vma->vm_start < addr + len) {
+		if (do_munmap(mm, addr, len))	// 参见do_munmap()节
+			return -ENOMEM;
+		goto munmap_back;
+	}
+
+	/* Check against address space limit. */
+	if (!may_expand_vm(mm, len >> PAGE_SHIFT))
+		return -ENOMEM;
+
+	/*
+	 * Set 'VM_NORESERVE' if we should not account for the
+	 * memory use of this mapping.
+	 */
+	if ((flags & MAP_NORESERVE)) {
+		/* We honor MAP_NORESERVE if allowed to overcommit */
+		if (sysctl_overcommit_memory != OVERCOMMIT_NEVER)
+			vm_flags |= VM_NORESERVE;
+
+		/* hugetlb applies strict overcommit unless MAP_NORESERVE */
+		if (file && is_file_hugepages(file))
+			vm_flags |= VM_NORESERVE;
+	}
+
+	/*
+	 * Private writable mapping: check memory availability
+	 */
+	if (accountable_mapping(file, vm_flags)) {
+		charged = len >> PAGE_SHIFT;
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		if (security_vm_enough_memory(charged))
+			return -ENOMEM;
+		vm_flags |= VM_ACCOUNT;
+	}
+
+	/*
+	 * Can we just expand an old mapping?
+	 */
+	/*
+	 * Check whether the preceding memory region can be expanded
+	 * in such a way to include the new interval.
+	 * The preceding memory region must have exactly the same flags
+	 * as those memory regions stored in vm_flags.
+	 * 参见节
+	 */
+	vma = vma_merge(mm, prev, addr, addr + len, vm_flags, NULL, file, pgoff, NULL);
+	if (vma)
+		goto out;
+
+	/*
+	 * Determine the object being mapped and call the appropriate
+	 * specific mapper. the address has already been validated, but
+	 * not unmapped, but the maps are removed from the list.
+	 */
+	vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);	// 参见kmem_cache_zalloc()节
+	if (!vma) {
+		error = -ENOMEM;
+		goto unacct_error;
+	}
+
+	vma->vm_mm = mm;
+	vma->vm_start = addr;
+	vma->vm_end = addr + len;
+	vma->vm_flags = vm_flags;
+	vma->vm_page_prot = vm_get_page_prot(vm_flags);
+	vma->vm_pgoff = pgoff;
+	INIT_LIST_HEAD(&vma->anon_vma_chain);
+
+	if (file) {
+		error = -EINVAL;
+		if (vm_flags & (VM_GROWSDOWN|VM_GROWSUP))
+			goto free_vma;
+		if (vm_flags & VM_DENYWRITE) {
+			error = deny_write_access(file);
+			if (error)
+				goto free_vma;
+			correct_wcount = 1;
+		}
+		vma->vm_file = file;
+		get_file(file);
+		error = file->f_op->mmap(file, vma);
+		if (error)
+			goto unmap_and_free_vma;
+		if (vm_flags & VM_EXECUTABLE)
+			added_exe_file_vma(mm);
+
+		/* Can addr have changed??
+		 *
+		 * Answer: Yes, several device drivers can do it in their
+		 *         f_op->mmap method. -DaveM
+		 */
+		addr = vma->vm_start;
+		pgoff = vma->vm_pgoff;
+		vm_flags = vma->vm_flags;
+	} else if (vm_flags & VM_SHARED) {
+		/*
+		 * If MAP_SHARED is set and the new memory region
+		 * doesn’t map a file on disk, it’s a shared anonymous
+		 * region. Shared anonymous regions are mainly used
+		 * for interprocess communications.
+		 */
+		error = shmem_zero_setup(vma);
+		if (error)
+			goto free_vma;
+	}
+
+	if (vma_wants_writenotify(vma)) {
+		pgprot_t pprot = vma->vm_page_prot;
+
+		/* Can vma->vm_page_prot have changed??
+		 *
+		 * Answer: Yes, drivers may have changed it in their
+		 *         f_op->mmap method.
+		 *
+		 * Ensures that vmas marked as uncached stay that way.
+		 */
+		vma->vm_page_prot = vm_get_page_prot(vm_flags & ~VM_SHARED);
+		if (pgprot_val(pprot) == pgprot_val(pgprot_noncached(pprot)))
+			vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	}
+
+	// Insert the new region in the memory region list and red-black tree.
+	vma_link(mm, vma, prev, rb_link, rb_parent);
+	file = vma->vm_file;
+
+	/* Once vma denies write, undo our temporary denial count */
+	if (correct_wcount)
+		atomic_inc(&inode->i_writecount);
+out:
+	perf_event_mmap(vma);
+
+	mm->total_vm += len >> PAGE_SHIFT;
+	vm_stat_account(mm, vm_flags, file, len >> PAGE_SHIFT);
+	/*
+	 * Invoke make_pages_present() to allocate all pages
+	 * of memory region in succession & lock them in RAM
+	 */
+	if (vm_flags & VM_LOCKED) {
+		if (!mlock_vma_pages_range(vma, addr, addr + len))
+			mm->locked_vm += (len >> PAGE_SHIFT);
+	} else if ((flags & MAP_POPULATE) && !(flags & MAP_NONBLOCK))
+		make_pages_present(addr, addr + len);
+
+	// Return the linear address of the new memory region
+	return addr;
+
+unmap_and_free_vma:
+	if (correct_wcount)
+		atomic_inc(&inode->i_writecount);
+	vma->vm_file = NULL;
+	fput(file);
+
+	/* Undo any partial mapping done by a device driver. */
+	unmap_region(mm, vma, prev, vma->vm_start, vma->vm_end);
+	charged = 0;
+free_vma:
+	kmem_cache_free(vm_area_cachep, vma);
+unacct_error:
+	if (charged)
+		vm_unacct_memory(charged);
+	return error;
+}
+```
+
+###### 6.8.2.1.1.1.1 Merge Contiguous Region/vma_merge()
+
+该函数定义于mm/mmap.c:
+
+```
+struct vm_area_struct *vma_merge(struct mm_struct *mm, struct vm_area_struct *prev,
+			unsigned long addr, unsigned long end, unsigned long vm_flags, struct anon_vma *anon_vma,
+			struct file *file, pgoff_t pgoff, struct mempolicy *policy)
+{
+	pgoff_t pglen = (end - addr) >> PAGE_SHIFT;
+	struct vm_area_struct *area, *next;
+	int err;
+
+	/*
+	 * We later require that vma->vm_flags == vm_flags,
+	 * so this tests vma->vm_flags & VM_SPECIAL, too.
+	 */
+	if (vm_flags & VM_SPECIAL)
+		return NULL;
+
+	if (prev)
+		next = prev->vm_next;
+	else
+		next = mm->mmap;
+	area = next;
+	if (next && next->vm_end == end)			/* cases 6, 7, 8 */
+		next = next->vm_next;
+
+	/*
+	 * Can it merge with the predecessor?
+	 */
+	if (prev && prev->vm_end == addr &&
+  		 mpol_equal(vma_policy(prev), policy) &&
+		 can_vma_merge_after(prev, vm_flags, anon_vma, file, pgoff)) {
+		/*
+		 * OK, it can.  Can we now merge in the successor as well?
+		 */
+		if (next && end == next->vm_start &&
+			 mpol_equal(policy, vma_policy(next)) &&
+			 can_vma_merge_before(next, vm_flags, anon_vma, file, pgoff+pglen) &&
+			 is_mergeable_anon_vma(prev->anon_vma, next->anon_vma, NULL)) {	/* cases 1, 6 */
+			err = vma_adjust(prev, prev->vm_start, next->vm_end, prev->vm_pgoff, NULL);
+		} else						/* cases 2, 5, 7 */
+			err = vma_adjust(prev, prev->vm_start, end, prev->vm_pgoff, NULL);
+		if (err)
+			return NULL;
+		khugepaged_enter_vma_merge(prev);
+		return prev;
+	}
+
+	/*
+	 * Can this new request be merged in front of next?
+	 */
+	if (next && end == next->vm_start &&
+ 		 mpol_equal(policy, vma_policy(next)) &&
+		 can_vma_merge_before(next, vm_flags, anon_vma, file, pgoff+pglen)) {
+		if (prev && addr < prev->vm_end)		/* case 4 */
+			err = vma_adjust(prev, prev->vm_start, addr, prev->vm_pgoff, NULL);
+		else						/* cases 3, 8 */
+			err = vma_adjust(area, addr, next->vm_end, next->vm_pgoff - pglen, NULL);
+		if (err)
+			return NULL;
+		khugepaged_enter_vma_merge(area);
+		return area;
+	}
+
+	return NULL;
+}
+```
+
+### 6.8.3 Insert a Memory Region
+
+#### 6.8.3.1 insert_vm_struct()
+
+该函数定义于mm/mmap.c:
+
+```
+/* Insert vm structure into process list sorted by address
+ * and into the inode's i_mmap tree.  If vm_file is non-NULL
+ * then i_mmap_mutex is taken here.
+ */
+int insert_vm_struct(struct mm_struct * mm, struct vm_area_struct * vma)
+{
+	struct vm_area_struct * __vma, * prev;
+	struct rb_node ** rb_link, * rb_parent;
+
+	/*
+	 * The vm_pgoff of a purely anonymous vma should be irrelevant
+	 * until its first write fault, when page's anon_vma and index
+	 * are set.  But now set the vm_pgoff it will almost certainly
+	 * end up with (unless mremap moves it elsewhere before that
+	 * first wfault), so /proc/pid/maps tells a consistent story.
+	 *
+	 * By setting it to reflect the virtual start address of the
+	 * vma, merges and splits can happen in a seamless way, just
+	 * using the existing file pgoff checks and manipulations.
+	 * Similarly in do_mmap_pgoff and in do_brk.
+	 */
+	if (!vma->vm_file) {
+		BUG_ON(vma->anon_vma);
+		vma->vm_pgoff = vma->vm_start >> PAGE_SHIFT;
+	}
+	// 参见Find a Memory Regin节
+	__vma = find_vma_prepare(mm,vma->vm_start,&prev,&rb_link,&rb_parent);
+	if (__vma && __vma->vm_start < vma->vm_end)
+		return -ENOMEM;
+	if ((vma->vm_flags & VM_ACCOUNT) && security_vm_enough_memory_mm(mm, vma_pages(vma)))
+		return -ENOMEM;
+	vma_link(mm, vma, prev, rb_link, rb_parent);
+	return 0;
+}
+```
+
+### 6.8.4 Remap and Move a Memory Region
+
+#### 6.8.4.1 sys_mremap()
+
+该函数定义于mm/mremap.c:
+
+```
+SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
+		unsigned long, new_len, unsigned long, flags, unsigned long, new_addr)
+{
+	unsigned long ret;
+
+	down_write(&current->mm->mmap_sem);
+	ret = do_mremap(addr, old_len, new_len, flags, new_addr);	// 参见do_mremap()节
+	up_write(&current->mm->mmap_sem);
+	return ret;
+}
+```
+
+##### 6.8.4.1.1 do_mremap()
+
+该函数定义于mm/mremap.c:
+
+```
+/*
+ * Expand (or shrink) an existing mapping, potentially moving it at the
+ * same time (controlled by the MREMAP_MAYMOVE flag and available VM space)
+ *
+ * MREMAP_FIXED option added 5-Dec-1999 by Benjamin LaHaise
+ * This option implies MREMAP_MAYMOVE.
+ */
+unsigned long do_mremap(unsigned long addr, unsigned long old_len,
+	unsigned long new_len, unsigned long flags, unsigned long new_addr)
+{
+	struct mm_struct *mm = current->mm;
+	struct vm_area_struct *vma;
+	unsigned long ret = -EINVAL;
+	unsigned long charged = 0;
+
+	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
+		goto out;
+
+	if (addr & ~PAGE_MASK)
+		goto out;
+
+	old_len = PAGE_ALIGN(old_len);
+	new_len = PAGE_ALIGN(new_len);
+
+	/*
+	 * We allow a zero old-len as a special case
+	 * for DOS-emu "duplicate shm area" thing. But
+	 * a zero new-len is nonsensical.
+	 */
+	if (!new_len)
+		goto out;
+
+	if (flags & MREMAP_FIXED) {
+		if (flags & MREMAP_MAYMOVE)
+			ret = mremap_to(addr, old_len, new_addr, new_len);
+		goto out;
+	}
+
+	/*
+	 * Always allow a shrinking remap: that just unmaps
+	 * the unnecessary pages..
+	 * do_munmap does all the needed commit accounting
+	 */
+	if (old_len >= new_len) {
+		ret = do_munmap(mm, addr+new_len, old_len - new_len);	// 参见do_munmap()节
+		if (ret && old_len != new_len)
+			goto out;
+		ret = addr;
+		goto out;
+	}
+
+	/*
+	 * Ok, we need to grow..
+	 */
+	vma = vma_to_resize(addr, old_len, new_len, &charged);
+	if (IS_ERR(vma)) {
+		ret = PTR_ERR(vma);
+		goto out;
+	}
+
+	/* old_len exactly to the end of the area..
+	 */
+	if (old_len == vma->vm_end - addr) {
+		/* can we just expand the current mapping? */
+		if (vma_expandable(vma, new_len - old_len)) {
+			int pages = (new_len - old_len) >> PAGE_SHIFT;
+
+			if (vma_adjust(vma, vma->vm_start, addr + new_len, vma->vm_pgoff, NULL)) {
+				ret = -ENOMEM;
+				goto out;
+			}
+
+			mm->total_vm += pages;
+			vm_stat_account(mm, vma->vm_flags, vma->vm_file, pages);
+			if (vma->vm_flags & VM_LOCKED) {
+				mm->locked_vm += pages;
+				mlock_vma_pages_range(vma, addr + old_len, addr + new_len);
+			}
+			ret = addr;
+			goto out;
+		}
+	}
+
+	/*
+	 * We weren't able to just expand or shrink the area,
+	 * we need to create a new one and move it..
+	 */
+	ret = -ENOMEM;
+	if (flags & MREMAP_MAYMOVE) {
+		unsigned long map_flags = 0;
+		if (vma->vm_flags & VM_MAYSHARE)
+			map_flags |= MAP_SHARED;
+
+		new_addr = get_unmapped_area(vma->vm_file, 0, new_len,
+					vma->vm_pgoff + ((addr - vma->vm_start) >> PAGE_SHIFT), map_flags);
+		if (new_addr & ~PAGE_MASK) {
+			ret = new_addr;
+			goto out;
+		}
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		ret = security_file_mmap(NULL, 0, 0, 0, new_addr, 1);
+		if (ret)
+			goto out;
+		ret = move_vma(vma, addr, old_len, new_len, new_addr);
+	}
+out:
+	if (ret & ~PAGE_MASK)
+		vm_unacct_memory(charged);
+	return ret;
+}
+```
+
+### 6.8.5 Release/Delete a Linear Address Interval
+
+#### 6.8.5.1 do_munmap()
+
+该函数定义于mm/mmap.c:
+
+```
+/* Munmap is split into 2 main parts -- this part which finds
+ * what needs doing, and the areas themselves, which do the
+ * work.  This now handles partial unmappings.
+ * Jeremy Fitzhardinge <jeremy@goop.org>
+ */
+int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
+{
+	unsigned long end;
+	struct vm_area_struct *vma, *prev, *last;
+
+	if ((start & ~PAGE_MASK) || start > TASK_SIZE || len > TASK_SIZE-start)
+		return -EINVAL;
+
+	if ((len = PAGE_ALIGN(len)) == 0)
+		return -EINVAL;
+
+	/* Find the first overlapping VMA */
+	vma = find_vma(mm, start);				// 参见find_vma()节
+	if (!vma)
+		return 0;
+	prev = vma->vm_prev;
+	/* we have  start < vma->vm_end  */
+
+	/* if it doesn't overlap, we have nothing.. */
+	end = start + len;
+	if (vma->vm_start >= end)
+		return 0;
+
+	/*
+	 * If we need to split any vma, do it now to save pain later.
+	 *
+	 * Note: mremap's move_vma VM_ACCOUNT handling assumes a partially
+	 * unmapped vm_area_struct will remain in use: so lower split_vma
+	 * places tmp vma above, and higher split_vma places tmp vma below.
+	 */
+	if (start > vma->vm_start) {
+		int error;
+
+		/*
+		 * Make sure that map_count on return from munmap() will
+		 * not exceed its limit; but let map_count go just above
+		 * its limit temporarily, to help free resources as expected.
+		 */
+		if (end < vma->vm_end && mm->map_count >= sysctl_max_map_count)
+			return -ENOMEM;
+
+		error = __split_vma(mm, vma, start, 0);		// 参见__split_vma()节
+		if (error)
+			return error;
+		prev = vma;
+	}
+
+	/* Does it split the last one? */
+	last = find_vma(mm, end); 				// 参见find_vma()节
+	if (last && end > last->vm_start) {
+		int error = __split_vma(mm, last, end, 1);	// 参见__split_vma()节
+		if (error)
+			return error;
+	}
+	vma = prev? prev->vm_next : mm->mmap;
+
+	/*
+	 * unlock any mlock()ed ranges before detaching vmas
+	 */
+	if (mm->locked_vm) {
+		struct vm_area_struct *tmp = vma;
+		while (tmp && tmp->vm_start < end) {
+			if (tmp->vm_flags & VM_LOCKED) {
+				mm->locked_vm -= vma_pages(tmp);
+				munlock_vma_pages_all(tmp);
+			}
+			tmp = tmp->vm_next;
+		}
+	}
+
+	/*
+	 * Remove the vma's, and unmap the actual pages
+	 */
+	detach_vmas_to_be_unmapped(mm, vma, prev, end);
+	unmap_region(mm, vma, prev, start, end);		// 参见unmap_region()节
+
+	/* Fix up all other VM information */
+	remove_vma_list(mm, vma);
+
+	return 0;
+}
+```
+
+##### 6.8.5.1.1 \__split_vma()
+
+The purpose of the ```split_vma()``` function is to split a memory region that intersects a linear address interval into two smaller regions, one outside of the interval and the other inside. The input parameter new_below specifies whether the intersection occurs at the beginning or at the end of the interval.
+
+该函数定义于mm/mmap.c:
+
+```
+static int __split_vma(struct mm_struct * mm, struct vm_area_struct * vma,
+			unsigned long addr, int new_below)
+{
+	struct mempolicy *pol;
+	struct vm_area_struct *new;
+	int err = -ENOMEM;
+
+	if (is_vm_hugetlb_page(vma) && (addr & ~(huge_page_mask(hstate_vma(vma)))))
+		return -EINVAL;
+
+	// 参见6.5.1.1.3.1 kmem_cache_zalloc()节
+	new = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
+	if (!new)
+		goto out_err;
+
+	/* most fields are the same, copy all, and then fixup */
+	*new = *vma;
+
+	INIT_LIST_HEAD(&new->anon_vma_chain);
+
+	if (new_below)
+		new->vm_end = addr;
+	else {
+		new->vm_start = addr;
+		new->vm_pgoff += ((addr - vma->vm_start) >> PAGE_SHIFT);
+	}
+
+	pol = mpol_dup(vma_policy(vma));
+	if (IS_ERR(pol)) {
+		err = PTR_ERR(pol);
+		goto out_free_vma;
+	}
+	vma_set_policy(new, pol);
+
+	if (anon_vma_clone(new, vma))
+		goto out_free_mpol;
+
+	if (new->vm_file) {
+		get_file(new->vm_file);
+		if (vma->vm_flags & VM_EXECUTABLE)
+			added_exe_file_vma(mm);
+	}
+
+	if (new->vm_ops && new->vm_ops->open)
+		new->vm_ops->open(new);
+
+	if (new_below)
+		err = vma_adjust(vma, addr, vma->vm_end, vma->vm_pgoff +
+				 ((addr - new->vm_start) >> PAGE_SHIFT), new);
+	else
+		err = vma_adjust(vma, vma->vm_start, addr, vma->vm_pgoff, new);
+
+	/* Success. */
+	if (!err)
+		return 0;
+
+	/* Clean everything up if vma_adjust failed. */
+	if (new->vm_ops && new->vm_ops->close)
+		new->vm_ops->close(new);
+	if (new->vm_file) {
+		if (vma->vm_flags & VM_EXECUTABLE)
+			removed_exe_file_vma(mm);
+		fput(new->vm_file);
+	}
+	unlink_anon_vmas(new);
+out_free_mpol:
+	mpol_put(pol);
+out_free_vma:
+	kmem_cache_free(vm_area_cachep, new);
+out_err:
+	return err;
+}
+```
+
+##### 6.8.5.1.2 unmap_region()
+
+The ```unmap_region()``` function walks through a list of memory regions and releases the page frames belonging to them.
+
+该函数定义于mm/mmap.c:
+
+```
+static void unmap_region(struct mm_struct *mm, struct vm_area_struct *vma,
+			  struct vm_area_struct *prev, unsigned long start, unsigned long end)
+{
+	struct vm_area_struct *next = prev? prev->vm_next: mm->mmap;
+	struct mmu_gather tlb;
+	unsigned long nr_accounted = 0;
+
+	lru_add_drain();
+	/*
+	 * Initialize a per-CPU variable named mmu_gathers:
+	 * The contents of mmu_gathers are architecture-dependent:
+	 * generally speaking, the variable should store all
+	 * information required for a successful updating of
+	 * the page table entries of a process.
+	 */
+	tlb_gather_mmu(&tlb, mm, 0);
+	update_hiwater_rss(mm);
+	/*
+	 * Scan all Page Table entries belonging to the linear
+	 * address interval: if only one CPU is available, the
+	 * function invokes free_swap_and_cache() repeatedly to
+	 * release the corresponding page; otherwise, the function
+	 * saves the pointers of the corresponding page descriptors
+	 * in the mmu_gathers local variable.
+	 */
+	unmap_vmas(&tlb, vma, start, end, &nr_accounted, NULL);
+	vm_unacct_memory(nr_accounted);
+	/*
+	 * Try to reclaim the Page Tables of the process that have
+	 * been emptied in the previous step.
+	 */
+	free_pgtables(&tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
+			next ? next->vm_start : 0);
+	/*
+	 * Invokes flush_tlb_mm() to flush the TLB;
+	 * In multiprocessor system, invokes free_pages_and_swap_cache()
+	 * to release the page frames whose pointers have been collected
+	 * in the mmu_gather data structure.
+	 */
+	tlb_finish_mmu(&tlb, start, end);
+}
+```
+
+#### 6.8.5.2 exit_mmap()
+
+该函数定义于mm/mmap.c:
+
+```
+/* Release all mmaps. */
+void exit_mmap(struct mm_struct *mm)
+{
+	struct mmu_gather tlb;
+	struct vm_area_struct *vma;
+	unsigned long nr_accounted = 0;
+	unsigned long end;
+
+	/* mm's last user has gone, and its about to be pulled down */
+	mmu_notifier_release(mm);
+
+	if (mm->locked_vm) {
+		vma = mm->mmap;
+		while (vma) {
+			if (vma->vm_flags & VM_LOCKED)
+				munlock_vma_pages_all(vma);
+			vma = vma->vm_next;
+		}
+	}
+
+	arch_exit_mmap(mm);
+
+	vma = mm->mmap;
+	if (!vma)	/* Can happen if dup_mmap() received an OOM */
+		return;
+
+	lru_add_drain();
+	flush_cache_mm(mm);
+	tlb_gather_mmu(&tlb, mm, 1);
+	/* update_hiwater_rss(mm) here? but nobody should be looking */
+	/* Use -1 here to ensure all VMAs in the mm are unmapped */
+	end = unmap_vmas(&tlb, vma, 0, -1, &nr_accounted, NULL);
+	vm_unacct_memory(nr_accounted);
+
+	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
+	tlb_finish_mmu(&tlb, 0, end);
+
+	/*
+	 * Walk the list again, actually closing and freeing it,
+	 * with preemption enabled, without holding any MM locks.
+	 */
+	while (vma)
+		vma = remove_vma(vma);
+
+	BUG_ON(mm->nr_ptes > (FIRST_USER_ADDRESS+PMD_SIZE-1)>>PMD_SHIFT);
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

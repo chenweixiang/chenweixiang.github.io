@@ -26879,6 +26879,641 @@ repeat:
 }
 ```
 
+## 7.4 进程调度
+
+### 7.4.1 进程调度的初始化
+
+系统启动时的进程调度初始化，参见sched_init()节。
+
+### 7.4.2 与进程调度有关的数据结构
+
+#### 7.4.2.1 运行队列结构/struct rq
+
+该结构定义于kernel/sched.c:
+
+```
+struct rq {
+	/* runqueue lock: */
+	raw_spinlock_t lock;
+
+	/*
+	 * nr_running and cpu_load should be in the same cacheline because
+	 * remote CPUs use both these fields when doing load calculation.
+	 */
+	// Number of runnable processes in the runqueue lists
+	unsigned long nr_running;
+	/*
+	 * CPU load factor based on the average number of processes
+	 * in the runqueue.
+	 * 在每次触发scheduler_tick()时(参见scheduler_tick()节)，会调用函数
+	 * update_cpu_load()更新cpu_load数组； 在系统初始化时，sched_init()
+	 * 把rq的cpu_load数组初始化为0；可以通过函数update_cpu_load()更新
+	 * cpu_load数组，公式如下：
+	 * cpu_load[0]直接等于rq中load.weight的值
+	 * cpu_load[1]=(cpu_load[1]*(2-1)+cpu_load[0])/2
+	 * cpu_load[2]=(cpu_load[2]*(4-1)+cpu_load[0])/4
+	 * cpu_load[3]=(cpu_load[3]*(8-1)+cpu_load[0])/8
+	 * cpu_load[4]=(cpu_load[4]*(16-1)+cpu_load[0]/16
+	 * this_cpu_load()的返回值是cpu_load[0]。
+	 * 在进行cpu blance或migration时，调用source_load()、target_load()
+	 * 取得对该处理器cpu_load数组的index值，来进行计算。
+	 */
+	#define CPU_LOAD_IDX_MAX 5
+	unsigned long cpu_load[CPU_LOAD_IDX_MAX];
+	unsigned long last_load_update_tick;
+#ifdef CONFIG_NO_HZ
+	u64 nohz_stamp;
+	unsigned char nohz_balance_kick;
+#endif
+	int skip_clock_update;
+
+	/* capture load from *all* tasks on this cpu: */
+	struct load_weight load;
+	/*
+	 * scheduler_tick()每次调用update_cpu_load()时，
+	 * 该值加1，用来反映当前cpu_load的更新次数
+	 */
+	unsigned long nr_load_updates;
+	/*
+	 * Number of process switches performed by the CPU.
+	 * 在调用schedule()时累加。可通过nr_context_switches()
+	 * 统计目前所有处理器总共的context switch次数，或着通过查
+	 * 看文件/proc/stat中的ctxt位得知目前整个系统触发context
+	 * switch的次数
+	 */
+	u64 nr_switches;
+
+	/*
+	 * 完全公平调度CFS运行队列。其初始化过程参见start_kernel()
+	 * -> sched_init() -> init_cfs_rq()
+	 * 参见完全公平调度(CFS)运行队列结构/struct cfs_rq节
+	 */
+	struct cfs_rq cfs;
+	/*
+	 * 实时任务运行队列。其初始化过程参见start_kernel()
+	 * -> sched_init() -> init_rt_rq()
+	 * 参见实时调度运行队列结构/struct rt_rq节
+	 */
+	struct rt_rq rt;
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+	/* list of leaf cfs_rq on this cpu: */
+	struct list_head leaf_cfs_rq_list;
+#endif
+#ifdef CONFIG_RT_GROUP_SCHED
+	struct list_head leaf_rt_rq_list;
+#endif
+
+	/*
+	 * This is part of a global counter where only the total sum
+	 * over all CPUs matters. A task can increase this counter on
+	 * one CPU and if it got migrated afterwards it may decrease
+	 * it on another CPU. Always updated under the runqueue lock:
+	 */
+	/*
+	 * Number of processes that were previously in the runqueue
+	 * lists and are now sleeping in TASK_UNINTERRUPTIBLE state
+	 * (only the sum of these fields across all runqueues is
+	 * meaningful)
+	 */
+	unsigned long nr_uninterruptible;
+
+	/*
+	 * curr：指向本CPU上的当前运行进程的进程描述符，即current。schedule()
+	 * 	-> __schedule() –> rq->curr = next;
+	 * idle：指向本CPU上的idle进程；start_kernel() -> sched_init()
+	 * 	-> init_idle()，参见sched_init()节
+	 * stop：指向本CPU上的stop进程；cpu_stop_init() -> cpu_stop_cpu_callback()
+	 *	-> sched_set_stop_task()
+	 */
+	struct task_struct *curr, *idle, *stop;
+	// 基于处理器的jiffies值，用以记录下次进行cpu balancing的时间点
+	unsigned long next_balance;
+	/*
+	 * Used during a process switch to store the address of the
+	 * memory descriptor of the process being replaced
+	 */
+	struct mm_struct *prev_mm;
+
+	u64 clock; 	// 当前CPU的时钟值
+	u64 clock_task;
+
+	atomic_t nr_iowait;
+
+#ifdef CONFIG_SMP
+	struct root_domain *rd;
+	struct sched_domain *sd;
+
+	unsigned long cpu_power;
+
+	unsigned char idle_balance;
+	/* For active balancing */
+	int post_schedule;
+	int active_balance;
+	int push_cpu;
+	struct cpu_stop_work active_balance_work;
+	/* cpu of this runqueue: */
+	int cpu;
+	int online;
+
+	u64 rt_avg;
+	u64 age_stamp;
+	u64 idle_stamp;
+	u64 avg_idle;
+#endif
+
+#ifdef CONFIG_IRQ_TIME_ACCOUNTING
+	u64 prev_irq_time;
+#endif
+#ifdef CONFIG_PARAVIRT
+	u64 prev_steal_time;
+#endif
+#ifdef CONFIG_PARAVIRT_TIME_ACCOUNTING
+	u64 prev_steal_time_rq;
+#endif
+
+	/* calc_load related fields */
+	unsigned long calc_load_update;
+	long calc_load_active;
+
+#ifdef CONFIG_SCHED_HRTICK
+#ifdef CONFIG_SMP
+	int hrtick_csd_pending;
+	struct call_single_data hrtick_csd;
+#endif
+	struct hrtimer hrtick_timer;
+#endif
+
+#ifdef CONFIG_SCHEDSTATS
+	/* latency stats */
+	struct sched_info rq_sched_info;
+	unsigned long long rq_cpu_time;
+	/* could above be rq->cfs_rq.exec_clock + rq->rt_rq.rt_runtime ? */
+
+	/* sys_sched_yield() stats */
+	unsigned int yld_count;
+
+	/* schedule() stats */
+	unsigned int sched_switch;
+	unsigned int sched_count;
+	unsigned int sched_goidle;
+
+	/* try_to_wake_up() stats */
+	unsigned int ttwu_count;
+	unsigned int ttwu_local;
+#endif
+
+#ifdef CONFIG_SMP
+	struct llist_head wake_list;
+#endif
+};
+```
+
+##### 7.4.2.1.1 完全公平调度(CFS)运行队列结构/struct cfs_rq
+
+该结构定义于kernel/sched.c:
+
+```
+/* CFS-related fields in a runqueue */
+struct cfs_rq {
+	struct load_weight load; 	// 运行负载
+	unsigned long nr_running, h_nr_running;
+
+	u64 exec_clock;
+	u64 min_vruntime; 		// 最小运行时间
+#ifndef CONFIG_64BIT
+	u64 min_vruntime_copy;
+#endif
+
+	// CFS运行队列红黑树的根节点
+	struct rb_root tasks_timeline;
+	/*
+	 * 保存红黑树最左侧的节点，该节点是最小运行时间的节点。
+	 * 当选择下一个进程来运行时，就可以直接选择该节点
+	 */
+	struct rb_node *rb_leftmost;
+
+	struct list_head tasks;
+	struct list_head *balance_iterator;
+
+	/*
+	 * 'curr' points to currently running entity on this cfs_rq.
+	 * It is set to NULL otherwise (i.e when none are currently running).
+	 */
+	struct sched_entity *curr, *next, *last, *skip;
+
+#ifdef	CONFIG_SCHED_DEBUG
+	unsigned int nr_spread_over;
+#endif
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+	struct rq *rq;	/* cpu runqueue to which this cfs_rq is attached */
+
+	/*
+	 * leaf cfs_rqs are those that hold tasks (lowest schedulable entity in
+	 * a hierarchy). Non-leaf lrqs hold other higher schedulable entities
+	 * (like users, containers etc.)
+	 *
+	 * leaf_cfs_rq_list ties together list of leaf cfs_rq's in a cpu. This
+	 * list is used during load balance.
+	 */
+	int on_list;
+	struct list_head leaf_cfs_rq_list;
+	struct task_group *tg;	/* group that "owns" this runqueue */
+
+#ifdef CONFIG_SMP
+	/*
+	 * the part of load.weight contributed by tasks
+	 */
+	unsigned long task_weight;
+
+	/*
+	 *   h_load = weight * f(tg)
+	 *
+	 * Where f(tg) is the recursive weight fraction assigned to
+	 * this group.
+	 */
+	unsigned long h_load;
+
+	/*
+	 * Maintaining per-cpu shares distribution for group scheduling
+	 *
+	 * load_stamp is the last time we updated the load average
+	 * load_last is the last time we updated the load average and saw load
+	 * load_unacc_exec_time is currently unaccounted execution time
+	 */
+	u64 load_avg;
+	u64 load_period;
+	u64 load_stamp, load_last, load_unacc_exec_time;
+
+	unsigned long load_contribution;
+#endif
+#ifdef CONFIG_CFS_BANDWIDTH
+	int runtime_enabled;
+	u64 runtime_expires;
+	s64 runtime_remaining;
+
+	u64 throttled_timestamp;
+	int throttled, throttle_count;
+	struct list_head throttled_list;
+#endif
+#endif
+};
+```
+
+CFS运行队列的红黑树结构如下：
+
+![CFS](/assets/CFS.png)
+
+##### 7.4.2.1.2 实时调度运行队列结构/struct rt_rq
+
+#### 7.4.2.2 运行队列变量/runqueues
+
+每个CPU有且只有一个运行队列runqueues，该变量定义与kernel/sched.c:
+
+```
+static DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
+```
+
+若未定义CONFIG_SMP，则该定义被扩展为：
+
+```
+__typeof__(struct rq) runqueues;
+```
+
+若定义了CONFIG_SMP，则该定义被扩展为：
+
+```
+__percpu __attribute__((section(".data..percpu" "..shared_aligned"))) __typeof__(struct rq) runqueues __attribute__((__aligned__(32)));
+```
+
+如下宏用来操纵runqueues变量：
+
+```
+#define cpu_rq(cpu) 	(&per_cpu(runqueues, (cpu)))		// 获取指定CPU上的运行队列
+#define this_rq()	(&__get_cpu_var(runqueues))		// 获取本CPU上的运行队列，与raw_rq()相同
+#define task_rq(p) 	cpu_rq(task_cpu(p))			// 获取指定进程描述符p所在的运行队列
+#define cpu_curr(cpu)	(cpu_rq(cpu)->curr)			// 获取指定CPU上正在运行进程的进程描述符
+#define raw_rq()	(&__raw_get_cpu_var(runqueues))		// 获取本CPU上的运行队列，与this_rq()相同
+```
+
+#### 7.4.2.3 增加/删除运行队列中的进程描述符
+
+在执行```fork()```时，将新创建的进程描述符增加到运行队列中，参见activate_task()节。
+
+在执行```schedule()```时，将指定的进程描述符从运行队列中删除，参见deactivate_task()节。
+
+#### 7.4.2.4 等待队列/wait_queue_head_t/wait_queue_t
+
+wait_queue_head_t为等待队列头，其定义于include/linux/wait.h:
+
+```
+struct __wait_queue_head {
+	spinlock_t lock;			// 等待队列的自旋锁锁
+	struct list_head task_list;		// 将等待队列连接成双向循环链表
+};
+
+typedef struct __wait_queue_head wait_queue_head_t;
+```
+
+wait_queue_t为等待队列，其定义于include/linux/wait.h:
+
+```
+typedef struct __wait_queue	wait_queue_t;
+
+struct __wait_queue {
+	/*
+	 * A process waiting for a resource that can be granted to
+	 * just one process at a time is a typical exclusive process.
+	 * Processes waiting for an event that may concern any of
+	 * them are nonexclusive process. 而flags表示进程是否为互斥进程，
+	 * 取值为1 (WQ_FLAG_EXCLUSIVE)或0：
+	 * 1: exclusive processes, are selectively woken up by the kernel;
+	 * 0: nonexclusive processes, are always woken up by the kernel
+	 *    when an event occurs.
+	 */
+	unsigned int		flags;
+#define WQ_FLAG_EXCLUSIVE	0x01
+	void			*private;	// 指向struct task_struct对象的指针
+	wait_queue_func_t	func;		// 该进程的唤醒函数
+	struct list_head	task_list;	// 用于将该进程链接成双向循环链表
+};
+```
+
+等待队列:
+
+![Wait_Queue](/assets/Wait_Queue.jpg)
+
+##### 7.4.2.4.1 定义/初始化等待队列头/wait_queue_head_t
+
+通过如下宏或函数定义初始化等待队列头，参见include/linux/wait.h:
+
+```
+#define DECLARE_WAIT_QUEUE_HEAD(name)						\
+	wait_queue_head_t name = __WAIT_QUEUE_HEAD_INITIALIZER(name)
+
+#define __WAIT_QUEUE_HEAD_INITIALIZER(name) {					\
+	.lock		= __SPIN_LOCK_UNLOCKED(name.lock),			\
+	.task_list	= { &(name).task_list, &(name).task_list } }
+
+#define init_waitqueue_head(q)								\
+	do {									\
+		static struct lock_class_key __key;				\
+		__init_waitqueue_head((q), &__key);				\
+	} while (0)
+
+#ifdef CONFIG_LOCKDEP
+# define __WAIT_QUEUE_HEAD_INIT_ONSTACK(name)					\
+	({ init_waitqueue_head(&name); name; })
+# define DECLARE_WAIT_QUEUE_HEAD_ONSTACK(name)					\
+	wait_queue_head_t name = __WAIT_QUEUE_HEAD_INIT_ONSTACK(name)
+#else
+# define DECLARE_WAIT_QUEUE_HEAD_ONSTACK(name)		DECLARE_WAIT_QUEUE_HEAD(name)
+#endif
+
+// 判断等待队列是否为空
+static inline int waitqueue_active(wait_queue_head_t *q)
+{
+	return !list_empty(&q->task_list);
+}
+```
+
+A wait queue head can be defined and initialized statically with:
+
+```
+DECLARE_WAIT_QUEUE_HEAD(name);
+```
+
+or dynamically as follows:
+
+```
+wait_queue_head_t my_queue;
+init_waitqueue_head(&my_queue);
+```
+
+##### 7.4.2.4.2 定义/初始化等待队列/wait_queue_t
+
+通过如下宏或函数定义初始化等待队列，参见include/linux/wait.h:
+
+```
+#define DECLARE_WAITQUEUE(name, tsk)					\
+	wait_queue_t name = __WAITQUEUE_INITIALIZER(name, tsk)
+
+#define __WAITQUEUE_INITIALIZER(name, tsk) {				\
+	.private		= tsk,					\
+	.func			= default_wake_function,		\	// 参见default_wake_function()节
+	.task_list	= { NULL, NULL } }
+
+#define DEFINE_WAIT(name)						\
+	DEFINE_WAIT_FUNC(name, autoremove_wake_function)			// 参见autoremove_wake_function()节
+
+#define DEFINE_WAIT_FUNC(name, function)				\
+	wait_queue_t name = {						\
+		.private	= current,				\
+		.func		= function,				\
+		.task_list	= LIST_HEAD_INIT((name).task_list),	\
+	}
+
+#define init_wait(wait)							\
+	do {								\
+		(wait)->private = current;				\
+		(wait)->func = autoremove_wake_function;		\	// 参见autoremove_wake_function()节
+		INIT_LIST_HEAD(&(wait)->task_list);			\
+		(wait)->flags = 0;					\
+	} while (0)
+
+static inline void init_waitqueue_entry(wait_queue_t *q, struct task_struct *p)
+{
+	q->flags = 0;
+	q->private = p;
+	q->func = default_wake_function;					// 参见default_wake_function()节
+}
+
+static inline void init_waitqueue_func_entry(wait_queue_t *q, wait_queue_func_t func)
+{
+	q->flags = 0;
+	q->private = NULL;
+	q->func = func;
+}
+```
+
+### 7.4.3 进程的调度策略/policy
+
+struct task_struct中的policy域表示进程的调度策略。include/linux/sched.h中定义了如下五种调度策略：
+
+```
+/*
+ * Scheduling policies
+ */
+#define SCHED_NORMAL		0
+#define SCHED_FIFO		1
+#define SCHED_RR		2
+#define SCHED_BATCH		3
+/* SCHED_ISO: reserved but not implemented yet */
+#define SCHED_IDLE		5
+/* Can be ORed in to make sure the process is reverted back to SCHED_NORMAL on fork */
+#define SCHED_RESET_ON_FORK     0x40000000
+```
+
+#### 7.4.3.1 实时进程的调度
+
+对于实时进程，Linux采用了如下两种调度策略：
+
+**SCHED_FIFO**
+
+A First-In, First-Out real-time process. When the scheduler assigns the CPU to the process, it leaves the process descriptor in its current position in the runqueue list. If no other higher-priority real-time process is runnable, the process continues to use the CPU as long as it wishes, even if other real-time processes that have the same priority are runnable.
+
+**SCHED_RR**
+
+A Round Robin real-time process. When the scheduler assigns the CPU to the process, it puts the process descriptor at the end of the runqueue list. This policy ensures a fair assignment of CPU time to all SCHED_RR real-time processes that have the same priority.
+
+struct task_struct中与实时进程的调度有关的域包括：
+
+```
+unsigned int rt_priority;
+```
+
+其取值范围为[0, MAX_RT_PRIO)，即[0, 100)，参见进程优先级节。
+
+The scheduler always favors a higher priority runnable process over a lower priority one; in other words, a real-time process inhibits the execution of every lower-priority process while it remains runnable.
+
+#### 7.4.3.2 普通进程的调度
+
+对于普通进程，Linux采用了如下三种调度策略：
+
+**SCHED_NORMAL**
+
+A conventional, time-shared process. 通过CFS调度器(Completely Fair Scheduler，完全公平调度)实现，这是默认的调度策略。
+
+**SCHED_BATCH**
+
+除了不能抢占外与常规任务一样，允许任务运行更长时间，更好地使用高速缓存，适合于非交互的批处理任务。
+
+**SCHED_IDLE**
+
+在系统负载很低时使用。
+
+struct task_struct中与实时进程的调度有关的域包括：
+
+```
+int prio, static_prio, normal_prio;
+```
+
+其中，prio为动态优先级，static_prio为静态优先级。这二者的取值范围均为[MAX_RT_PRIO, MAX_RT_PRIO)，即[100, 140)，参见进程优先级节。
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第7. Process Scheduling章第Scheduling of Conventional Processes节。
+
+#### 7.4.3.3 更改进程调度策略的命令
+
+可以使用命令chrt来更改进程的调度策略:
+
+```
+chenwx@chenwx ~/linux $ chrt --help
+Show or change the real-time scheduling attributes of a process.
+
+Set policy:
+ chrt [options] <priority> <command> [<arg>...]
+ chrt [options] -p <priority> <pid>
+
+Get policy:
+ chrt [options] -p <pid>
+
+Policy options:
+ -b, --batch          set policy to SCHED_BATCH
+ -f, --fifo           set policy to SCHED_FIFO
+ -i, --idle           set policy to SCHED_IDLE
+ -o, --other          set policy to SCHED_OTHER
+ -r, --rr             set policy to SCHED_RR (default)
+
+Scheduling flag:
+ -R, --reset-on-fork  set SCHED_RESET_ON_FORK for FIFO or RR
+
+Other options:
+ -a, --all-tasks      operate on all the tasks (threads) for a given pid
+ -m, --max            show min and max valid priorities
+ -p, --pid            operate on existing given pid
+ -v, --verbose        display status information
+
+ -h, --help		display this help and exit
+ -V, --version		output version information and exit
+
+For more details see chrt(1).
+
+chenwx@chenwx ~/linux $ chrt -m
+SCHED_OTHER min/max priority	: 0/0
+SCHED_FIFO min/max priority		: 1/99
+SCHED_RR min/max priority		: 1/99
+SCHED_BATCH min/max priority	: 0/0
+SCHED_IDLE min/max priority		: 0/0
+
+chenwx@chenwx ~/linux $ gedit &
+[2] 6152
+[1]   Done                    gedit
+chenwx@chenwx ~/linux $ chrt -p 6152
+pid 6152's current scheduling policy: SCHED_OTHER
+pid 6152's current scheduling priority: 0
+
+chenwx@chenwx ~/linux $ sudo chrt -p -r 99 6152
+
+chenwx@chenwx ~/linux $ chrt -p 6152
+pid 6152's current scheduling policy: SCHED_RR
+pid 6152's current scheduling priority: 99
+```
+
+#### 7.4.3.4 RT Throttling
+
+参见文档：
+* <<Linux内核精髓：精通Linux内核必会的75个绝技 / LINUX KERNEL HACKS>>
+  * HACK #9:  RT Group Scheduling与RT Throttling
+  * HACK #10: Fair Group Scheduling
+* Documentation/scheduler/sched-rt-group.txt
+
+RT Throttling是对分配给实时进程的CPU时间进行限制的功能。使用实时调度策略的进程由于bug等出现不可控错误时，完全不调度其他进程，系统就会无响应。通过限制分配给实时进程的每个单位时间的CPU时间，就可以防止因使用实时调度策略的进程出现bug而系统无相应。Linux kernel 2.6.25后的版本可以使用该功能。
+
+分配给实时进程的CPU时间可使用sysctl来获取、设置:
+
+```
+// 默认设置：单位时间为1秒
+chenwx@chenwx ~/linux $ sysctl -n kernel.sched_rt_period_us
+1000000
+chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sched_rt_period_us
+1000000
+
+/*
+ * 默认设置：单位时间内，为实时进程分配的CPU时间为0.95秒，
+ * 为非实时进程分配的CPU时间为0.05秒
+ */
+chenwx@chenwx ~/linux $ sysctl -n kernel.sched_rt_runtime_us
+950000
+chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sched_rt_runtime_us
+950000
+
+/*
+ * 更改设置：单位时间内，为实时进程分配的CPU时间改为0.9秒，
+ * 为非实时进程分配的CPU时间为0.1秒
+ */
+chenwx@chenwx ~/linux $ sudo sysctl -w kernel.sched_rt_runtime_us=900000
+[sudo] password for chenwx:
+kernel.sched_rt_runtime_us = 900000
+
+chenwx@chenwx ~/linux $ sysctl -n kernel.sched_rt_runtime_us
+900000
+chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sched_rt_runtime_us
+900000
+
+/*
+ * 如果将为实时进程分配的CPU时间设置为-1，则会取消对实时进程分配CPU时间的限制.
+ * => 这种情况下，若某实时进程进入死循环，则系统将会无响应！
+ */
+chenwx@chenwx ~/linux $ sysctl -w kernel.sched_rt_runtime_us=-1
+kernel.sched_rt_runtime_us = -1
+
+chenwx@chenwx ~/linux $ sysctl -n kernel.sched_rt_runtime_us
+-1
+chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sched_rt_runtime_us
+-1
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

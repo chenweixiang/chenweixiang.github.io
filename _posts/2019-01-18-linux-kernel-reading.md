@@ -33040,7 +33040,7 @@ DEFINE_PER_CPU(struct hrtimer_cpu_base, hrtimer_bases) =
  * @mode:	timer mode abs/rel
  */
 void hrtimer_init(struct hrtimer *timer, clockid_t clock_id,
-			   enum hrtimer_mode mode)
+		  enum hrtimer_mode mode)
 {
 	debug_init(timer, clock_id, mode);
 	__hrtimer_init(timer, clock_id, mode);
@@ -33086,7 +33086,7 @@ static void __hrtimer_init(struct hrtimer *timer, clockid_t clock_id,
 ```
 #ifdef CONFIG_DEBUG_OBJECTS_TIMERS
 extern void hrtimer_init_on_stack(struct hrtimer *timer, clockid_t which_clock,
-					 enum hrtimer_mode mode);
+				  enum hrtimer_mode mode);
 #else
 static inline void hrtimer_init_on_stack(struct hrtimer *timer,
 					 clockid_t which_clock,
@@ -34193,6 +34193,1383 @@ chenwx@chenwx ~/alex/hrtimer $ dmesg | tail
 [ 3447.649363] *** Hrtimer started succeed.
 [ 3449.650737] *** Hrtimer time out, function: e0e05000
 [ 3476.841762] *** Hrtimer exit ***
+```
+
+# 8 进程间通信/IPC
+
+所有System V IPC对象权限都包含在数据结构ipc_perm中，参见include/linux/ipc.h。System V消息是在ipc/msg.c中实现，共享内存在ipc/shm.c中，信号量在ipc/sem.c中，管道在fs/pipe.c中实现。
+
+## 8.1 Linux进程间通信简介
+
+Linux的进程间通信机制基本上是从Unix平台的进程间通信机制继承而来的。而对Unix发展做出重大贡献的两大主力：AT&T的贝尔实验室和BSD(加州大学伯克利分校的伯克利软件发布中心)在进程间通信方面的侧重点有所不同。前者对Unix早期的进程间通信机制进行了系统地改进和扩充，形成了system V IPC，通信进程被局限在单个计算机内；而后者则跳过了这个限制，形成了基于套接字socket的进程间通信机制。Linux则把两者继承了下来，参见：
+
+![IPC_01](/assets/IPC_01.jpg)
+
+* 最初的Unix IPC包括：管道、FIFO、信号；
+* System V IPC包括：System V消息队列、System V信号灯、System V共享内存区；
+* Posix IPC包括：Posix消息队列、Posix信号灯、Posix共享内存区。
+
+由于Unix版本的多样性，电子电气工程协会(IEEE)开发了一个独立的Unix标准，这个新的ANSI Unix标准被称为计算机环境的可移植性操作系统界面(PSOIX)。现有大部分Unix和流行版本都是遵循POSIX标准的，而Linux从一开始就遵循POSIX标准。
+
+Linux系统的进程间通信主要包括如下几种：
+
+* **管道(pipe)、命名管道(named pipe)**
+
+	管道可用于具有亲属关系进程间的通信，命名管道克服了管道没有名字的限制，因此，除具有管道所具有的功能外，它还允许无亲属关系进程间的通信。
+
+* **信号(signal)**
+
+	信号用于通知接收进程有某种事件发生，除了用于进程间通信外，进程还可以发送信号给进程本身；Linux除了支持Unix早期信号函数sigal()外，还支持语义符合Posix.1标准的信号函数sigaction(实际上，该函数是基于BSD的，BSD为了实现可靠信号机制，又能够统一对外接口，用sigaction()函数重新实现了signal()函数)。
+
+* **消息队列(message)**
+
+	消息队列是消息的链表，包括Posix消息队列、system V消息队列。有足够权限的进程可以向队列中添加消息，被赋予读权限的进程则可以读走队列中的消息。消息队列克服了信号承载信息量少，管道只能承载无格式字节流以及缓冲区大小受限等缺点。
+
+* **共享内存(share memory)**
+
+	共享内存使多个进程可以访问同一块内存空间，它是最快的可用IPC形式。它是针对其他通信机制运行效率较低而设计的。往往与其它通信机制，如信号量，结合使用，来达到进程间的同步及互斥。
+
+* **信号量(semaphore)**
+
+	信号量主要作为进程间以及同一进程不同线程之间的同步手段。
+
+* **套接字(socket)**
+
+	套接字是更为一般的进程间通信机制，可用于不同机器之间的进程间通信。起初是由Unix系统的BSD分支开发出来的，但现在一般可以移植到其它类Unix系统上：Linux和System V的变种都支持套接字。
+
+使用下列命令查看系统中进程间通信情况：
+
+```
+$ ipcs
+```
+
+## 8.2 管道(pipe)/命名管道(named pipe)
+
+### 8.2.1 管道(pipe)
+
+管道(pipe)具有以下特点：
+* 管道是半双工的，只支持数据的单向流动。两进程间通信时需要建立起两个管道；
+* 管道使用pipe()函数创建，只能用于父子进程或者兄弟进程之间的通信；
+* 管道对于两端的进程而言，实质上是一种独立的文件，只存在于内存中；
+* 数据的读写操作：一个进程向管道中写数据，所写的数据添加到管道缓冲区的尾部；另一个进程在管道中缓冲区的头部读数据。
+
+与管道有关的系统调用为sys_pipe()，参见fs/pipe.c:
+
+```
+/*
+ * sys_pipe() is the normal C calling standard for creating
+ * a pipe. It's not the way Unix traditionally does this, though.
+ */
+SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
+{
+	int fd[2];
+	int error;
+
+	error = do_pipe_flags(fd, flags);
+	if (!error) {
+		if (copy_to_user(fildes, fd, sizeof(fd))) {
+			sys_close(fd[0]);
+			sys_close(fd[1]);
+			error = -EFAULT;
+		}
+	}
+	return error;
+}
+
+/*
+ * filedes为包含两个元素的数组，其中filedes[0]
+ * 为管道的读取端，filedes[1]为管道的写入端
+ */
+SYSCALL_DEFINE1(pipe, int __user *, fildes)
+{
+	return sys_pipe2(fildes, 0);
+}
+```
+
+其中，主函数do_pipe_flags()定义如下，参见fs/pipe.c:
+
+```
+int do_pipe_flags(int *fd, int flags)
+{
+	struct file *fw, *fr;
+	int error;
+	int fdw, fdr;
+
+	if (flags & ~(O_CLOEXEC | O_NONBLOCK))
+		return -EINVAL;
+
+	fw = create_write_pipe(flags);
+	if (IS_ERR(fw))
+		return PTR_ERR(fw);
+	fr = create_read_pipe(fw, flags);
+	error = PTR_ERR(fr);
+	if (IS_ERR(fr))
+		goto err_write_pipe;
+
+	error = get_unused_fd_flags(flags);
+	if (error < 0)
+		goto err_read_pipe;
+	fdr = error;
+
+	error = get_unused_fd_flags(flags);
+	if (error < 0)
+		goto err_fdr;
+	fdw = error;
+
+	audit_fd_pair(fdr, fdw);
+	fd_install(fdr, fr);
+	fd_install(fdw, fw);
+	fd[0] = fdr;
+	fd[1] = fdw;
+
+	return 0;
+
+ err_fdr:
+	put_unused_fd(fdr);
+ err_read_pipe:
+	path_put(&fr->f_path);
+	put_filp(fr);
+ err_write_pipe:
+	free_write_pipe(fw);
+	return error;
+}
+```
+
+### 8.2.2 命名管道(named pipe)
+
+命名管道也是半双工的，不过它允许没有亲属关系的进程间进行通信。也就是说，命名管道提供了一个路径名与之关联，以FIFO(先进先出)的形式存在于文件系统中。这样即使是不相干的进程也可以通过FIFO相互通信，只要它们能访问所提供的路径即可。
+
+值得注意的是，只有在管道有读端时，向管道中写数据才有意义。否则，向管道中写数据的进程会收到内核发出来的SIGPIPE信号，应用程序可以自定义该信号处理函数，或者直接忽略该信号。
+
+创建命名管道:
+
+```
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int main(void)
+{
+	char buf[80];
+	int fd;
+
+	unlink("zieckey_fifo");
+	mkfifo("zieckey_fifo", 0777);
+}
+```
+
+写命名管道:
+
+```
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int main(void)
+{
+	int fd;
+	char s[] = "Hello!\n";
+	fd = open("zieckey_fifo", O_WRONLY);
+	while(1)
+	{
+		write(fd, s, sizeof(s));
+		sleep(1);
+	}
+	return 0;
+}
+```
+
+读命名管道:
+
+```
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int main(void)
+{
+	int fd;
+	char buf[80];
+	fd = open("zieckey_fifo", O_RDONLY);
+	while(1)
+	{
+		read(fd, buf, sizeof(buf));
+		printf("%s\n", buf);
+		sleep(1);
+	}
+	return 0;
+}
+```
+
+### 8.2.3 管道模块被编译进内核时的初始化过程
+
+在fs/pipe.c中包含如下代码：
+
+```
+static int __init init_pipe_fs(void)
+{
+	int err = register_filesystem(&pipe_fs_type);
+
+	if (!err) {
+		pipe_mnt = kern_mount(&pipe_fs_type);
+		if (IS_ERR(pipe_mnt)) {
+			err = PTR_ERR(pipe_mnt);
+			unregister_filesystem(&pipe_fs_type);
+		}
+	}
+	return err;
+}
+
+static void __exit exit_pipe_fs(void)
+{
+	// 参见卸载文件系统(1)/kern_unmount()节
+	kern_unmount(pipe_mnt);
+	unregister_filesystem(&pipe_fs_type);
+}
+
+fs_initcall(init_pipe_fs);
+module_exit(exit_pipe_fs);
+```
+
+其中，fs_initcall()和module_exit()参见module被编译进内核时的初始化过程节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                           ^
+                                           +-- 其中的.initcall5.init
+```
+
+## 8.3 信号/signal
+
+### 8.3.1 信号简介
+
+信号机制是进程间相互传递消息的一种方法，信号又被称为软中断信号，或软中断。从其命名可知，它的实质和使用很象中断。所以，信号可以说是进程控制的一部分。
+
+软中断信号(signal)用来通知进程发生了异步事件。进程间可以互相通过系统调用kill发送软中断信号。内核也可以因为内部事件而给进程发送信号，通知进程发生了某个事件。注意：信号只是用来通知某进程发生了什么事件，并不给该进程传递任何数据(信号是一个整数，不包含额外的参数)。
+
+收到信号的进程对各种信号有不同的处理方法，基本可以分为三类：
+* 第一种方法：类似中断的处理程序，对于需要处理的信号，进程可以指定处理函数，由该函数来处理。
+* 第二种方法：忽略某个信号，对该信号不做任何处理，就象未发生过一样。
+* 第三种方法：对该信号的处理保留系统的默认值，这是缺省操作。注意，SIGKILL和SIGSTOP信号不能被忽略，不能被阻塞，也不能使用用户自定义的函数处理，所以总是执行它们的默认行为。
+
+在进程表的表项中有一个软中断信号域(struct sigpending pending –> signal，参见信号处理节)，该域中每一位对应一个信号，当有信号发送给该进程时，对应位被置位。由此可知，进程对不同的信号可以同时保留，但对于同一个信号，进程并不知道在处理之前来过多少个。
+
+有两个特殊情况需要注意：
+* 1) 任何进程都不能给进程0(即swapper进程)发送信号；
+* 2) 发给进程1的信号都会被丢弃，除非它们被捕获。所以进程0不会死亡，进程1仅在int程序结束时死亡。
+
+### 8.3.2 与信号有关的数据结构
+
+struct task_struct包含与信号有关的域参见信号处理节:
+
+![IPC_02](/assets/IPC_02.jpg)
+
+#### 8.3.2.1 信号的种类及取值
+
+信号分为两类：
+* 非实时信号：信号取值范围为[1, 31]
+* 实时信号：信号取值范围为[32, 64]
+
+注：0不是有效的信号值，只用于检查是当前进程否有发送信号的权限，并不真正发送，参见group_send_sig_info()节。
+
+POSIX定义的信号，参见<<IEEE Std 1003.1-2008 POSIX.Base Specifications, Issue 7>> 第Vol. 2: System Interfaces卷第Chapter 3: System Interfaces章第signal节。
+
+##### 8.3.2.1.1 非实时信号/Regular Signal
+
+Linux系统包含如下非实时信号，定义于arch/x86/include/asm/signal.h:
+
+```
+#define SIGHUP		 1
+#define SIGINT		 2
+#define SIGQUIT		 3
+#define SIGILL		 4
+#define SIGTRAP		 5
+#define SIGABRT		 6
+#define SIGIOT		 6
+#define SIGBUS		 7
+#define SIGFPE		 8
+#define SIGKILL		 9
+#define SIGUSR1		10
+#define SIGSEGV		11
+#define SIGUSR2		12
+#define SIGPIPE		13
+#define SIGALRM		14
+#define SIGTERM		15
+#define SIGSTKFLT	16
+#define SIGCHLD		17
+#define SIGCONT		18
+#define SIGSTOP		19
+#define SIGTSTP		20
+#define SIGTTIN		21
+#define SIGTTOU		22
+#define SIGURG		23
+#define SIGXCPU		24
+#define SIGXFSZ		25
+#define SIGVTALRM	26
+#define SIGPROF		27
+#define SIGWINCH	28
+#define SIGIO		29
+#define SIGPOLL		SIGIO
+/*
+#define SIGLOST		29
+*/
+#define SIGPWR		30
+#define SIGSYS		31
+#define SIGUNUSED	31
+
+/* These should not be considered constants from userland.  */
+#define SIGRTMIN	32
+#define SIGRTMAX	_NSIG
+```
+
+信号的默认处理方法及注释如下表所示：
+
+The first 31 signals in Linux/i386
+
+|   #   | Signal Name | Default Action | Comment | POSIX |
+| :---: | :---------- | :------------- | :------ | :---- |
+| 1     | SIGHUP      | Terminate      | Hang up controlling terminal or process | Yes |
+| 2     | SIGINT      | Terminate      | Interrupt from keyboard | Yes |
+| 3     | SIGQUIT     | Dump           | Quit from keyboard | Yes |
+| 4     | SIGILL      | Dump           | Illegal instruction | Yes |
+| 5     | SIGTRAP     | Dump           | Breakpoint for debugging | No |
+| 6     | SIGABRT     | Dump           | Abnormal termination | Yes |
+| 6     | SIGIOT      | Dump           | Equivalent to SIGABRT | No |
+| 7     | SIGBUS      | Dump           | Bus error | No |
+| 8     | SIGFPE      | Dump           | Floating-point exception | Yes |
+| 9     | SIGKILL     | Terminate      | Forced-process termination | Yes |
+| 10    | SIGUSR1     | Terminate      | Available to processes | Yes |
+| 11    | SIGSEGV     | Dump           | Invalid memory reference | Yes |
+| 12    | SIGUSR2     | Terminate      | Available to processes | Yes |
+| 13    | SIGPIPE     | Terminate      | Write to pipe with no readers | Yes |
+| 14    | SIGALRM     | Terminate      | Real-timerclock | Yes |
+| 15    | SIGTERM     | Terminate      | Process termination | Yes |
+| 16    | SIGSTKFLT   | Terminate      | Coprocessor stack error | No |
+| 17    | SIGCHLD     | Ignore         | Child process stopped or terminated, or got signal if traced | Yes |
+| 18    | SIGCONT     | Continue       | Resume execution, if stopped | Yes |
+| 19    | SIGSTOP     | Stop           | Stop process execution | Yes |
+| 20    | SIGTSTP     | Stop           | Stop process issued from tty | Yes |
+| 21    | SIGTTIN     | Stop           | Background process requires input | Yes |
+| 22    | SIGTTOU     | Stop           | Background process requires output | Yes |
+| 23    | SIGURG      | Ignore         | Urgent condition on socket | No |
+| 24    | SIGXCPU     | Dump           | CPU time limit exceeded | No |
+| 25    | SIGXFSZ     | Dump           | File size limit exceeded | No |
+| 26    | SIGVTALRM   | Terminate      | Virtual timer clock | No |
+| 27    | SIGPROF     | Terminate      | Profile timer clock | No |
+| 28    | SIGWINCH    | Ignore         | Window resizing | No |
+| 29    | SIGIO       | Terminate      | I/O now possible | No |
+| 29    | SIGPOLL     | Terminate      | Equivalent to SIGIO | No |
+| 30    | SIGPWR      | Terminate      | Power supply failure | No |
+| 31    | SIGSYS      | Dump           | Bad system call | No |
+| 31    | SIGUNUSED   | Dump           | Equivalent to SIGSYS | No |
+
+<p/>
+
+可以在终端中执行下列命令获得信号列表：
+
+```
+chenwx@chenwx /usr/src/linux $ kill -l
+ 1) SIGHUP	 2) SIGINT	 	 3) SIGQUIT	 4) SIGILL	 5) SIGTRAP
+ 6) SIGABRT	7) SIGBUS	 	 8) SIGFPE	 9) SIGKILL	10) SIGUSR1
+11) SIGSEGV	12) SIGUSR2		13) SIGPIPE	14) SIGALRM	15) SIGTERM
+16) SIGSTKFLT	17) SIGCHLD		18) SIGCONT	19) SIGSTOP	20) SIGTSTP
+21) SIGTTIN	22) SIGTTOU		23) SIGURG	24) SIGXCPU	25) SIGXFSZ
+26) SIGVTALRM	27) SIGPROF		28) SIGWINCH	29) SIGIO	30) SIGPWR
+31) SIGSYS	34) SIGRTMIN		35) SIGRTMIN+1	36) SIGRTMIN+2	37) SIGRTMIN+3
+38) SIGRTMIN+4	39) SIGRTMIN+5		40) SIGRTMIN+6	41) SIGRTMIN+7	42) SIGRTMIN+8
+43) SIGRTMIN+9	44) SIGRTMIN+10		45) SIGRTMIN+11	46) SIGRTMIN+12	47) SIGRTMIN+13
+48) SIGRTMIN+14	49) SIGRTMIN+15		50) SIGRTMAX-14	51) SIGRTMAX-13	52) SIGRTMAX-12
+53) SIGRTMAX-11	54) SIGRTMAX-10		55) SIGRTMAX-9	56) SIGRTMAX-8	57) SIGRTMAX-7
+58) SIGRTMAX-6	59) SIGRTMAX-5		60) SIGRTMAX-4	61) SIGRTMAX-3	62) SIGRTMAX-2
+63) SIGRTMAX-1	64) SIGRTMAX	
+```
+
+##### 8.3.2.1.2 实时信号/Real-time Signal
+
+Besides the regular signals described in previous section, the POSIX standard has introduced a new class of signals denoted as real-time signals; their signal numbers range from 32 to 64 on Linux. They mainly differ from regular signals because they are always queued so that multiple signals sent will be received. On the other hand, regular signals of the same kind are not queued: if a regular signal is sent many times in a row, just one of them is delivered to the receiving process. Although the Linux kernel does not use real-time signals, it fully supports the POSIX standard by means of several specific system calls.
+
+Linux内核通过如下系统调用支持实时信号，参见kernel/signal.c：
+
+```
+SYSCALL_DEFINE4(rt_sigaction, int, sig, const struct sigaction __user *, act,
+struct sigaction __user *, oact, size_t, sigsetsize)
+
+SYSCALL_DEFINE2(rt_sigpending, sigset_t __user *, set, size_t, sigsetsize)
+
+SYSCALL_DEFINE4(rt_sigprocmask, int, how, sigset_t __user *, nset,
+sigset_t __user *, oset, size_t, sigsetsize)
+
+SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, pid, int, sig, siginfo_t __user *, uinfo)
+
+SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
+
+SYSCALL_DEFINE4(rt_sigtimedwait, const sigset_t __user *, uthese, siginfo_t __user *, uinfo, 
+const struct timespec __user *, uts, size_t, sigsetsize)
+```
+
+### 8.3.2.2 sigset_t
+
+sigset_t占64 bits，被当作Bit Array来使用，每一比特对应一种信号。其定义于arch/x86/include/asm/signal.h:
+
+```
+#ifndef __ASSEMBLY__
+#include <linux/types.h>
+#include <linux/time.h>
+#include <linux/compiler.h>
+
+/* Avoid too many header ordering problems.  */
+struct siginfo;
+
+#ifdef __KERNEL__
+#include <linux/linkage.h>
+
+/* Most things should be clean enough to redefine this
+   at will, if care is taken to make libc match.  */
+
+#define _NSIG			64
+
+#ifdef __i386__
+# define _NSIG_BPW		32
+#else
+# define _NSIG_BPW		64
+#endif
+
+#define _NSIG_WORDS		(_NSIG / _NSIG_BPW)
+
+typedef unsigned long		old_sigset_t;	/* at least 32 bits */
+
+typedef struct {
+	unsigned long		sig[_NSIG_WORDS];
+} sigset_t;
+
+#else
+/* Here we must cater to libcs that poke about in kernel headers.  */
+
+#define NSIG			32
+typedef unsigned long		sigset_t;
+
+#endif /* __KERNEL__ */
+#endif /* __ASSEMBLY__ */
+```
+
+#### 8.3.2.3 sigpending
+
+该结构定义于include/linux/signal.h:
+struct sigpending {
+	struct list_head list;
+	sigset_t signal; 	// 参见sigset_t节
+};
+
+8.3.2.4 siginfo_t
+
+siginfo_t结构定义于include/asm-generic/siginfo.h:
+
+```
+typedef struct siginfo {
+	int si_signo; 	// signal ID，参见信号的种类及取值节
+	int si_errno; 	// 导致该信号被发出的错误码，0：不是因为错误才发出该信号
+	int si_code; 	// 标识谁发出了该信号，其取值参见下文
+
+	union {
+		int _pad[SI_PAD_SIZE];
+
+		/* kill() */
+		struct {
+			__kernel_pid_t _pid;	/* sender's pid */
+			__ARCH_SI_UID_T _uid;	/* sender's uid */
+		} _kill;
+
+		/* POSIX.1b timers */
+		struct {
+			__kernel_timer_t _tid;	/* timer id */
+			int _overrun;		/* overrun count */
+			char _pad[sizeof( __ARCH_SI_UID_T) - sizeof(int)];
+			sigval_t _sigval;	/* same as below */
+			int _sys_private;	/* not to be passed to user */
+		} _timer;
+
+		/* POSIX.1b signals */
+		struct {
+			__kernel_pid_t _pid;	/* sender's pid */
+			__ARCH_SI_UID_T _uid;	/* sender's uid */
+			sigval_t _sigval;
+		} _rt;
+
+		/* SIGCHLD */
+		struct {
+			__kernel_pid_t _pid;	/* which child */
+			__ARCH_SI_UID_T _uid;	/* sender's uid */
+			int _status;		/* exit code */
+			__kernel_clock_t _utime;
+			__kernel_clock_t _stime;
+		} _sigchld;
+
+		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS */
+		struct {
+			void __user *_addr;	/* faulting insn/memory ref. */
+#ifdef __ARCH_SI_TRAPNO
+			int _trapno;		/* TRAP # which caused the signal */
+#endif
+			short _addr_lsb; 	/* LSB of the reported address */
+		} _sigfault;
+
+		/* SIGPOLL */
+		struct {
+			__ARCH_SI_BAND_T _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
+			int _fd;
+		} _sigpoll;
+	} _sifields; 	// union字段，其中哪个成员有效取决于信号
+} siginfo_t;
+```
+
+si_code的可能取值参见include/asm-generic/siginfo.h:
+
+```
+/*
+ * si_code values
+ * Digital reserves positive values for kernel-generated signals.
+ */
+#define SI_USER			0	/* sent by kill, sigsend, raise */
+#define SI_KERNEL		0x80	/* sent by the kernel from somewhere */
+#define SI_QUEUE		-1	/* sent by sigqueue */
+#define SI_TIMER		__SI_CODE(__SI_TIMER,-2) 	/* sent by timer expiration */
+#define SI_MESGQ		__SI_CODE(__SI_MESGQ,-3) 	/* sent by real time mesq state change */
+#define SI_ASYNCIO		-4	/* sent by AIO completion */
+#define SI_SIGIO		-5	/* sent by queued SIGIO */
+#define SI_TKILL		-6	/* sent by tkill, tgkill system call */
+#define SI_DETHREAD		-7	/* sent by execve() killing subsidiary threads */
+
+#define SI_FROMUSER(siptr)		((siptr)->si_code <= 0)
+#define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
+```
+
+#### 8.3.2.5 sigqueue
+
+该结构定义于include/linux/signal.h:
+
+```
+/*
+ * Real Time signals may be queued.
+ */
+struct sigqueue {
+	struct list_head	list; 	// 信号链表
+	int			flags;
+	siginfo_t 		info; 	// 参见siginfo_t节
+	struct user_struct	*user;
+};
+```
+
+#### 8.3.2.6 signal_struct
+
+该结构定义于include/linux/sched.h:
+
+```
+struct signal_struct {
+	atomic_t		sigcnt; 	// Usage counter of the signal descriptor
+	atomic_t		live; 		// Number of live processes in the thread group
+	int			nr_threads;
+
+	wait_queue_head_t	wait_chldexit;	/* for wait4() */
+
+	/* current thread group signal load-balancing target: */
+	struct task_struct	*curr_target;
+
+	/* shared signal handling: */
+	struct sigpending	shared_pending;
+
+	/* thread group exit support */
+	int			group_exit_code;
+	/* overloaded:
+	 * - notify group_exit_task when ->count is equal to notify_count
+	 * - everyone except group_exit_task is stopped during signal delivery
+	 *   of fatal signals, group_exit_task processes the signal.
+	 */
+	int			notify_count;
+	struct task_struct	*group_exit_task;
+
+	/* thread group stop support, overloads group_exit_code too */
+	int			group_stop_count;
+	unsigned int		flags; 		/* see SIGNAL_* flags below */
+
+	...
+};
+```
+
+#### 8.3.2.7 sighand_struct/k_sigaction/sigaction
+
+sighand_struct结构定义于include/linux/sched.h:
+
+```
+struct sighand_struct {
+	atomic_t		count; 		// Usage counter of the signal handler descriptor
+	struct k_sigaction	action[_NSIG]; 	// 描述每一种信号对应的处理函数
+	spinlock_t		siglock;
+	wait_queue_head_t	signalfd_wqh;
+};
+```
+
+k_sigaction结构定义于arch/x86/include/asm/signal.h:
+
+```
+struct k_sigaction {
+	struct sigaction sa;
+};
+```
+
+sigaction结构定义于arch/x86/include/asm/signal.h:
+
+```
+struct sigaction {
+	// 指向信号处理函数，其类型为void __signalfn_t(int);
+	__sighandler_t	sa_handler;
+	unsigned long	sa_flags;
+
+	// 其类型为void __restorefn_t(void);
+	__sigrestore_t	sa_restorer;
+
+	// 当该信号对应的处理函数被执行时，sa_mask中指定的信号必须屏蔽
+	sigset_t	sa_mask;		/* mask last for extensibility */
+};
+```
+
+sa_handler指向信号处理函数，其取值还可以为：
+
+```
+#define SIG_DFL	((__force __sighandler_t)0)	/* default signal handling */
+#define SIG_IGN	((__force __sighandler_t)1)	/* ignore signal */
+#define SIG_ERR	((__force __sighandler_t)-1)	/* error return from signal */
+```
+
+sa_flags取值参见arch/x86/include/asm/signal.h：
+
+```
+#define SA_NOCLDSTOP	0x00000001u
+#define SA_NOCLDWAIT	0x00000002u
+#define SA_SIGINFO	0x00000004u
+#define SA_ONSTACK	0x08000000u
+#define SA_RESTART	0x10000000u
+#define SA_NODEFER	0x40000000u
+#define SA_RESETHAND	0x80000000u
+
+#define SA_NOMASK	SA_NODEFER
+#define SA_ONESHOT	SA_RESETHAND
+
+#define SA_RESTORER	0x04000000
+```
+
+### 8.3.3 信号的发送
+
+无论信号从内核还是从另外一个进程被发送给另一个线程(目标进程)，内核会调用下列函数之一来发送信号，参见sys_tkill()/sys_tgkill()节至force_sig()/force_sig_info()节。
+
+Kernel functions that generate a signal for a process
+
+| Name | Description |
+| :--- | :---------- |
+| send_sig() | Sends a signal to a single process |
+| send_sig_info() | Like send_sig(), with extended information in a siginfo_t structure |
+| force_sig() | Sends a signal that cannot be explicitly ignored or blocked by the process |
+| force_sig_info() | Like force_sig(), with extended information in a siginfo_t structure |
+| sys_tkill() | System call handler of tkill() |
+| sys_tgkill() | System call handler of tgkill() |
+
+<p/>
+
+无论信号从内核还是从另外一个进程被发送给另一个线程组(目标进程)，内核会调用下列函数之一来发送信号，参见sys_kill()节至group_send_sig_info()节。
+
+Kernel functions that generate a signal for a thread group
+
+| Name | Description |
+| :--- | :---------- |
+| kill_pid() | Sends a signal to all thread groups in a process group |
+| kill_pid_info() | Like kill_pid(), with extended information in a siginfo_t structure |
+| kill_proc_info() | Sends a signal to a single thread group identified by the PID of one of its members, with extended information in a siginfo_t structure |
+| sys_kill() | System call handler of kill() |
+| sys_rt_sigqueueinfo() | System call handler of rt_sigqueueinfo() |
+| group_send _sig_info() | Sends a signal to a single thread group identified by the process descriptor of one of its members |
+
+<p/>
+
+#### 8.3.3.1 sys_tkill()/sys_tgkill()
+
+函数调用关系如下：
+
+```
+sys_tkill() / sys_tgkill()
+-> do_tkill()
+   -> do_send_specific()
+      -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
+         -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+/**
+ *  sys_tgkill - send signal to one specific thread
+ *  @tgid: the thread group ID of the thread
+ *  @pid: the PID of the thread
+ *  @sig: signal to be sent
+ *
+ *  This syscall also checks the @tgid and returns -ESRCH even if the PID
+ *  exists but it's not belonging to the target process anymore. This
+ *  method solves the problem of threads exiting and PIDs getting reused.
+ */
+SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid_t, pid, int, sig)
+{
+	/* This is only valid for single tasks */
+	if (pid <= 0 || tgid <= 0)
+		return -EINVAL;
+
+	return do_tkill(tgid, pid, sig);
+}
+
+/**
+ *  sys_tkill - send signal to one specific task
+ *  @pid: the PID of the task
+ *  @sig: signal to be sent
+ *
+ *  Send a signal to only one task, even if it's a CLONE_THREAD task.
+ */
+SYSCALL_DEFINE2(tkill, pid_t, pid, int, sig)
+{
+	/* This is only valid for single tasks */
+	if (pid <= 0)
+		return -EINVAL;
+
+	return do_tkill(0, pid, sig);
+}
+```
+
+其中，函数do_tkill()定义于kernel/signal.c:
+
+```
+static int do_tkill(pid_t tgid, pid_t pid, int sig)
+{
+	struct siginfo info;
+
+	info.si_signo = sig;
+	info.si_errno = 0;
+	info.si_code = SI_TKILL;
+	info.si_pid = task_tgid_vnr(current);
+	info.si_uid = current_uid();
+
+	// 参见do_send_specific()节
+	return do_send_specific(tgid, pid, sig, &info);
+}
+```
+
+##### 8.3.3.1.1 do_send_specific()/do_send_sig_info()
+
+该函数定义于kernel/signal.c:
+
+```
+static int do_send_specific(pid_t tgid, pid_t pid, int sig, struct siginfo *info)
+{
+	struct task_struct *p;
+	int error = -ESRCH;
+
+	rcu_read_lock();
+	p = find_task_by_vpid(pid);
+	if (p && (tgid <= 0 || task_tgid_vnr(p) == tgid)) {
+		error = check_kill_permission(sig, info, p);
+		/*
+		 * The null signal is a permissions and process existence
+		 * probe.  No signal is actually delivered.
+		 */
+		if (!error && sig) {
+			error = do_send_sig_info(sig, info, p, false);
+			/*
+			 * If lock_task_sighand() failed we pretend the task
+			 * dies after receiving the signal. The window is tiny,
+			 * and the signal is private anyway.
+			 */
+			if (unlikely(error == -ESRCH))
+				error = 0;
+		}
+	}
+	rcu_read_unlock();
+
+	return error;
+}
+```
+
+其中，函数do_send_sig_info()定义于kernel/signal.c:
+
+```
+int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p, bool group)
+{
+	unsigned long flags;
+	int ret = -ESRCH;
+
+	if (lock_task_sighand(p, &flags)) {
+		ret = send_signal(sig, info, p, group);	// 参见send_signal()节
+		unlock_task_sighand(p, &flags);
+	}
+
+	return ret;
+}
+```
+
+#### 8.3.3.2 send_sig()/send_sig_info()
+
+函数调用关系如下：
+
+```
+send_sig()
+-> send_sig_info()	
+   -> do_send_sig_info()	// 参见do_send_specific()/do_send_sig_info()节
+      -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+int send_sig(int sig, struct task_struct *p, int priv)
+{
+	return send_sig_info(sig, __si_special(priv), p);
+}
+
+int send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
+{
+	/*
+	 * Make sure legacy kernel users don't send in bad values
+	 * (normal paths check this in check_kill_permission).
+	 */
+	if (!valid_signal(sig))
+		return -EINVAL;
+
+	// 参见do_send_specific()/do_send_sig_info()节
+	return do_send_sig_info(sig, info, p, false);
+}
+```
+
+#### 8.3.3.3 force_sig()/force_sig_info()
+
+相对于send_sig()/send_sig_info()而言，force_sig()/force_sig_info()函数发送的信号不能被目标进程忽略或阻塞。
+
+函数调用关系如下：
+
+```
+force_sig()
+-> force_sig_info()
+   -> specific_send_sig_info()
+      -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+void force_sig(int sig, struct task_struct *p)
+{
+	force_sig_info(sig, SEND_SIG_PRIV, p);
+}
+
+/*
+ * Force a signal that the process can't ignore: if necessary
+ * we unblock the signal and change any SIG_IGN to SIG_DFL.
+ *
+ * Note: If we unblock the signal, we always reset it to SIG_DFL,
+ * since we do not want to have a signal handler that was blocked
+ * be invoked when user space had explicitly blocked it.
+ *
+ * We don't want to have recursive SIGSEGV's etc, for example,
+ * that is why we also clear SIGNAL_UNKILLABLE.
+ */
+int force_sig_info(int sig, struct siginfo *info, struct task_struct *t)
+{
+	unsigned long int flags;
+	int ret, blocked, ignored;
+	struct k_sigaction *action;
+
+	spin_lock_irqsave(&t->sighand->siglock, flags);
+	action = &t->sighand->action[sig-1]; 			// 该信号对应的处理函数
+	ignored = action->sa.sa_handler == SIG_IGN; 		// 该信号是否被目标进程忽略
+	blocked = sigismember(&t->blocked, sig); 		// 该信号是否被目标进程阻塞
+	if (blocked || ignored) {
+		action->sa.sa_handler = SIG_DFL; 		// 若该信号被忽略或阻塞，则使用该信号的默认处理函数
+		if (blocked) {
+			sigdelset(&t->blocked, sig); 		// 若该信号被阻塞，则取消对该信号的阻塞
+			recalc_sigpending_and_wake(t);
+		}
+	}
+	if (action->sa.sa_handler == SIG_DFL)
+		t->signal->flags &= ~SIGNAL_UNKILLABLE;
+	ret = specific_send_sig_info(sig, info, t); 		// 向目标进程t发送信号sig
+	spin_unlock_irqrestore(&t->sighand->siglock, flags);
+
+	return ret;
+}
+```
+
+其中，函数specific_send_sig_info()定义于kernel/signal.c:
+
+```
+static int specific_send_sig_info(int sig, struct siginfo *info, struct task_struct *t)
+{
+	return send_signal(sig, info, t, 0);	// 参见send_signal()节
+}
+```
+
+#### 8.3.3.4 sys_kill()
+
+函数调用关系如下：
+
+```
+sys_kill()
+-> kill_something_info()
+   -> group_send_sig_info()
+      -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
+         -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+/**
+ *  sys_kill - send a signal to a process
+ *  @pid: the PID of the process
+ *  @sig: signal to be sent
+ */
+SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
+{
+	struct siginfo info;
+
+	info.si_signo = sig;
+	info.si_errno = 0;
+	info.si_code = SI_USER;
+	info.si_pid = task_tgid_vnr(current);
+	info.si_uid = current_uid();
+
+	return kill_something_info(sig, &info, pid);
+}
+
+/*
+ * kill_something_info() interprets pid in interesting ways just like kill(2).
+ *
+ * POSIX specifies that kill(-1,sig) is unspecified, but what we have
+ * is probably wrong.  Should make it like BSD or SYSV.
+ */
+
+static int kill_something_info(int sig, struct siginfo *info, pid_t pid)
+{
+	int ret;
+
+	// for pid == n (n > 0), The process with pid n will be signaled
+	if (pid > 0) {
+		rcu_read_lock();
+		ret = kill_pid_info(sig, info, find_vpid(pid));
+		rcu_read_unlock();
+		return ret;
+	}
+
+	read_lock(&tasklist_lock);
+	/*
+	 * for pid == 0, All processes in the current process group are signaled
+	 * for pid == -n (n > 1), All processes in the process group n are signaled
+	 */
+	if (pid != -1) {
+		ret = __kill_pgrp_info(sig, info, pid ? find_vpid(-pid) : task_pgrp(current));
+	} else {	// for pid == -1, All processes with pid larger than 1 will be signaled
+		int retval = 0, count = 0;
+		struct task_struct * p;
+
+		for_each_process(p) {
+			if (task_pid_vnr(p) > 1 && !same_thread_group(p, current)) {
+				// 参见group_send_sig_info()节
+				int err = group_send_sig_info(sig, info, p);
+				++count;
+				if (err != -EPERM)
+					retval = err;
+			}
+		}
+		ret = count ? retval : -ESRCH;
+	}
+	read_unlock(&tasklist_lock);
+
+	return ret;
+}
+```
+
+#### 8.3.3.5  sys_rt_sigqueueinfo()
+
+函数调用关系如下：
+
+```
+sys_rt_sigqueueinfo()
+-> kill_proc_info()			// 参见kill_pid()/kill_proc_info()/kill_pid_info()节
+   -> kill_pid_info()			// 参见kill_pid()/kill_proc_info()/kill_pid_info()节
+      -> group_send_sig_info()		// 参见group_send_sig_info()节
+         -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
+            -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+/**
+ *  sys_rt_sigqueueinfo - send signal information to a signal
+ *  @pid: the PID of the thread
+ *  @sig: signal to be sent
+ *  @uinfo: signal info to be sent
+ */
+SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, pid, int, sig, siginfo_t __user *, uinfo)
+{
+	siginfo_t info;
+
+	if (copy_from_user(&info, uinfo, sizeof(siginfo_t)))
+		return -EFAULT;
+
+	/* Not even root can pretend to send signals from the kernel.
+	 * Nor can they impersonate a kill()/tgkill(), which adds source info.
+	 */
+	if (info.si_code >= 0 || info.si_code == SI_TKILL) {
+		/* We used to allow any < 0 si_code */
+		WARN_ON_ONCE(info.si_code < 0);
+		return -EPERM;
+	}
+	info.si_signo = sig;
+
+	/* POSIX.1b doesn't mention process groups.  */
+	// 参见kill_pid()/kill_proc_info()/kill_pid_info()节
+	return kill_proc_info(sig, &info, pid);
+}
+```
+
+#### 8.3.3.6 kill_pid()/kill_proc_info()/kill_pid_info()
+
+函数调用关系如下：
+
+```
+kill_pid() / kill_proc_info()
+-> kill_pid_info()
+   -> group_send_sig_info()		// 参见group_send_sig_info()节
+      -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
+         -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+int kill_pid(struct pid *pid, int sig, int priv)
+{
+	return kill_pid_info(sig, __si_special(priv), pid);
+}
+
+int kill_proc_info(int sig, struct siginfo *info, pid_t pid)
+{
+	int error;
+	rcu_read_lock();
+	error = kill_pid_info(sig, info, find_vpid(pid));
+	rcu_read_unlock();
+	return error;
+}
+
+int kill_pid_info(int sig, struct siginfo *info, struct pid *pid)
+{
+	int error = -ESRCH;
+	struct task_struct *p;
+
+	rcu_read_lock();
+retry:
+	p = pid_task(pid, PIDTYPE_PID);
+	if (p) {
+		// 参见group_send_sig_info()节
+		error = group_send_sig_info(sig, info, p);
+		if (unlikely(error == -ESRCH))
+			/*
+			 * The task was unhashed in between, try again.
+			 * If it is dead, pid_task() will return NULL,
+			 * if we race with de_thread() it will find the
+			 * new leader.
+			 */
+			goto retry;
+	}
+	rcu_read_unlock();
+
+	return error;
+}
+```
+
+#### 8.3.3.7 group_send_sig_info()
+
+函数调用关系如下：
+
+```
+group_send_sig_info()
+-> check_kill_permission()
+-> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
+   -> send_signal()		// 参见send_signal()节
+```
+
+该函数定义于kernel/signal.c:
+
+```
+/*
+ * send signal info to all the members of a group
+ */
+int group_send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
+{
+	int ret;
+
+	rcu_read_lock();
+	ret = check_kill_permission(sig, info, p);
+	rcu_read_unlock();
+
+	// 0不是有效的信号取值，不会发送
+	if (!ret && sig)
+		// 参见do_send_specific()/do_send_sig_info()节
+		ret = do_send_sig_info(sig, info, p, true);
+
+	return ret;
+}
+```
+
+#### 8.3.3.8 send_signal()
+
+上述几节中的函数/系统调用最终都通过调用send_signal()向指定的进程/进程组发送信号，其定义于kernel/signal.c:
+
+```
+static int send_signal(int sig, struct siginfo *info, struct task_struct *t, int group)
+{
+	int from_ancestor_ns = 0;
+
+#ifdef CONFIG_PID_NS
+	from_ancestor_ns = si_fromuser(info) && !task_pid_nr_ns(current, task_active_pid_ns(t));
+#endif
+
+	return __send_signal(sig, info, t, group, from_ancestor_ns);
+}
+```
+
+其中，函数__send_signal()定义于kernel/signal.c:
+
+```
+static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
+			 int group, int from_ancestor_ns)
+{
+	struct sigpending *pending;
+	struct sigqueue *q;
+	int override_rlimit;
+
+	trace_signal_generate(sig, info, t);
+
+	assert_spin_locked(&t->sighand->siglock);
+
+	// Special process for signal SIGCONT, SIGSTOP
+	if (!prepare_signal(sig, t, from_ancestor_ns))
+		return 0;
+
+	// 根据入参group来选择pending signal queue，参见与信号有关的数据结构节中的图
+	pending = group ? &t->signal->shared_pending : &t->pending;
+	/*
+	 * Short-circuit ignored signals and support queuing
+	 * exactly one non-rt signal, so that we can get more
+	 * detailed information about the cause of the signal.
+	 */
+	// 非实时信号在pending signal queue队列中最多存在一个
+	if (legacy_queue(pending, sig))
+		return 0;
+	/*
+	 * fast-pathed signals for kernel-internal things like SIGSTOP or SIGKILL.
+	 */
+	if (info == SEND_SIG_FORCED)
+		goto out_set;
+
+	/*
+	 * Real-time signals must be queued if sent by sigqueue, or
+	 * some other real-time mechanism.  It is implementation
+	 * defined whether kill() does so.  We attempt to do so, on
+	 * the principle of least surprise, but since kill is not
+	 * allowed to fail with EAGAIN when low on memory we just
+	 * make sure at least one signal gets delivered and don't
+	 * pass on the info struct.
+	 */
+	if (sig < SIGRTMIN)
+		override_rlimit = (is_si_special(info) || info->si_code >= 0);
+	else
+		override_rlimit = 0;
+
+	// Allocate a new signal queue record, 参见信号的初始化节
+	q = __sigqueue_alloc(sig, t, GFP_ATOMIC | __GFP_NOTRACK_FALSE_POSITIVE, override_rlimit);
+	if (q) {
+		// 将分配的sigqueue结构链接到选中的pending signal queue队列尾部
+		list_add_tail(&q->list, &pending->list);
+		switch ((unsigned long) info) {
+		case (unsigned long) SEND_SIG_NOINFO:
+			q->info.si_signo = sig;
+			q->info.si_errno = 0;
+			q->info.si_code = SI_USER;
+			q->info.si_pid = task_tgid_nr_ns(current, task_active_pid_ns(t));
+			q->info.si_uid = current_uid();
+			break;
+		case (unsigned long) SEND_SIG_PRIV:
+			q->info.si_signo = sig;
+			q->info.si_errno = 0;
+			q->info.si_code = SI_KERNEL;
+			q->info.si_pid = 0;
+			q->info.si_uid = 0;
+			break;
+		default:
+			copy_siginfo(&q->info, info);
+			if (from_ancestor_ns)
+				q->info.si_pid = 0;
+			break;
+		}
+	} else if (!is_si_special(info)) {
+		if (sig >= SIGRTMIN && info->si_code != SI_USER) {
+			/*
+			 * Queue overflow, abort.  We may abort if the
+			 * signal was rt and sent by user using something
+			 * other than kill().
+			 */
+			trace_signal_overflow_fail(sig, group, info);
+			return -EAGAIN;
+		} else {
+			/*
+			 * This is a silent loss of information.  We still
+			 * send the signal, but the *info bits are lost.
+			 */
+			trace_signal_lose_info(sig, group, info);
+		}
+	}
+
+out_set:
+	signalfd_notify(t, sig);
+	// Sets the bit corresponding to the signal in the bit mask of the queue
+	sigaddset(&pending->signal, sig);
+	complete_signal(sig, t, group); 	// 参见通知目标进程接收信号节
+	return 0;
+}
+```
+
+##### 8.3.3.8.1 通知目标进程接收信号/complete_signal()
+
+该函数将设置目标进程的状态，以告知目标进程有新的信号到达。其定义于kernel/signal.c:
+
+```
+static void complete_signal(int sig, struct task_struct *p, int group)
+{
+	struct signal_struct *signal = p->signal;
+	struct task_struct *t;
+
+	/*
+	 * Now find a thread we can wake up to take the signal off the queue.
+	 *
+	 * If the main thread wants the signal, it gets first crack.
+	 * Probably the least surprising to the average bear.
+	 */
+	if (wants_signal(sig, p))
+		t = p;
+	else if (!group || thread_group_empty(p))
+		/*
+		 * There is just one thread and it does not need to be woken.
+		 * It will dequeue unblocked signals before it runs again.
+		 */
+		return;
+	else {
+		/*
+		 * Otherwise try to find a suitable thread.
+		 */
+		t = signal->curr_target;
+		while (!wants_signal(sig, t)) {
+			t = next_thread(t);
+			if (t == signal->curr_target)
+				/*
+				 * No thread needs to be woken.
+				 * Any eligible threads will see
+				 * the signal in the queue soon.
+				 */
+				return;
+		}
+		signal->curr_target = t;
+	}
+
+	/*
+	 * Found a killable thread.  If the signal will be fatal,
+	 * then start taking the whole group down immediately.
+	 */
+	if (sig_fatal(p, sig) &&
+	     !(signal->flags & (SIGNAL_UNKILLABLE | SIGNAL_GROUP_EXIT)) &&
+	     !sigismember(&t->real_blocked, sig) &&
+	     (sig == SIGKILL || !t->ptrace)) {
+		/*
+		 * This signal will be fatal to the whole group.
+		 */
+		if (!sig_kernel_coredump(sig)) {
+			/*
+			 * Start a group exit and wake everybody up.
+			 * This way we don't have other threads
+			 * running and doing things after a slower
+			 * thread has the fatal signal pending.
+			 */
+			signal->flags = SIGNAL_GROUP_EXIT;
+			signal->group_exit_code = sig;
+			signal->group_stop_count = 0;
+			t = p;
+			do {
+				task_clear_jobctl_pending(t, JOBCTL_PENDING_MASK);
+				sigaddset(&t->pending.signal, SIGKILL);
+				signal_wake_up(t, 1);
+			} while_each_thread(p, t);
+			return;
+		}
+	}
+
+	/*
+	 * The signal is already in the shared-pending queue.
+	 * Tell the chosen thread to wake up and dequeue it.
+	 */
+	signal_wake_up(t, sig == SIGKILL);
+	return;
+}
+```
+
+其中，函数signal_wake_up()定义于kernel/signal.c:
+
+```
+/*
+ * Tell a process that it has a new active signal..
+ *
+ * NOTE! we rely on the previous spin_lock to
+ * lock interrupts for us! We can only be called with
+ * "siglock" held, and the local interrupt must
+ * have been disabled when that got acquired!
+ *
+ * No need to set need_resched since signal event passing
+ * goes through ->blocked
+ */
+void signal_wake_up(struct task_struct *t, int resume)
+{
+	unsigned int mask;
+
+	// 设置目标进程的t->stack->flags为TIF_SIGPENDING
+	set_tsk_thread_flag(t, TIF_SIGPENDING);
+
+	/*
+	 * For SIGKILL, we want to wake it up in the stopped/traced/killable
+	 * case. We don't check t->state here because there is a race with it
+	 * executing another processor and just now entering stopped state.
+	 * By using wake_up_state, we ensure the process will wake up and
+	 * handle its death signal.
+	 */
+	mask = TASK_INTERRUPTIBLE;
+	if (resume)
+		mask |= TASK_WAKEKILL;
+	if (!wake_up_state(t, mask))
+		kick_process(t);		// 仅在CONFIG_SMP定义时才有意义
+}
+```
+
+其中，函数wake_up_state()定义于kernel/sched.c:
+
+```
+int wake_up_state(struct task_struct *p, unsigned int state)
+{
+	return try_to_wake_up(p, state, 0);	// 参见try_to_wake_up()节
+}
 ```
 
 # Appendixes

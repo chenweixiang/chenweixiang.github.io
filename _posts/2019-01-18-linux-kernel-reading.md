@@ -38312,6 +38312,1211 @@ ipc_init()		// 参见消息队列的初始化节
    -> ipc_init_proc_interface()
 ```
 
+## 8.6 信号量/sem
+
+### 8.6.1 信号量简介
+
+1965年，荷兰学者Dijkstra提出了利用信号量机制解决进程同步问题，信号量正式成为有效的进程同步工具。现在信号量机制被广泛的用于单处理机和多处理机系统以及计算机网络中。
+
+信号量S是一个整数，当S大于等于零时代表可供并发进程使用的资源实体数，当S小于零时则表示正在等待使用临界区的进程数。
+
+Dijkstra同时提出了对信号量操作的PV原语。
+
+* P原语操作的动作是：
+	* 1) S减1；
+	* 2) 若S减1后仍大于等于零，则进程继续执行；
+	* 3) 若S减1后小于零，则该进程被阻塞后进入与该信号相对应的队列中，然后转进程调度。
+
+* V原语操作的动作是：
+	* 1) S加1；
+	* 2) 若相加结果大于零，则进程继续执行；
+	* 3) 若相加结果小于或等于零，则从该信号的等待队列中唤醒一等待进程，然后再返回原进程继续执行或转进程调度。
+
+PV操作对于每一个进程来说，都只能进行一次，而且必须成对使用。在PV原语行期间不允许有中断的发生。
+
+信号量机制分为：
+* 整型信号量机制
+* 记录型信号量机制
+* AND型信号量机制
+* 信号量集
+
+### 8.6.2 与信号量有关的数据结构
+
+#### 8.6.2.1 struct idr
+
+该结构示意图:
+
+![IPC_03](/assets/IPC_03.jpg)
+
+#### 8.6.2.2 struct sem_array
+
+该结构示意图:
+
+![IPC_10](/assets/IPC_10.jpg)
+
+##### 8.6.2.2.1 struct sembuf
+
+在sembuf结构中：
+* sem_num是对应信号量集中的某一个资源，其取值范围是从0到对应信号量集的资源总数(semarray.sem_nsems)之间的整数。
+* sem_op指明想要进行的操作。其取值为一个整数：
+	* sem_op > 0：释放相应的资源数，如果有两个信号量，释放信号量1，则其semval+1；
+	* sem_op = 0：进程阻塞直到信号量的取值为0，当信号量的取值已经为0，则函数立即返回；
+	* sem_op < 0：请求sem_op的绝对值的资源数；
+* sem_flg指明sys_semop()的行为。
+
+该参数可设置为IPC_NOWAIT或SEM_UNDO两种状态。只有将sem_flg指定为SEM_UNDO标志后，semadj(所指定信号量针对调用进程的调整值)才会更新。此外，如果此操作指定SEM_UNDO，系统更新过程中会撤消此信号量的计数(semadj)。此操作可以随时进行(它永远不会强制等待的过程)。调用进程必须有改变信号量集的权限。
+
+### 8.6.3 创建/打开信号量集
+
+#### 8.6.3.1 sys_semget()
+
+系统调用sys_semget()用于创建新的信号量，或者打开已有的信号量。其定义于ipc/sem.c:
+
+```
+/*
+ * key	– 其值一般是由系统调用sys_ftok()返回的
+ * nsems	– 取值大于等于0，用于指明该信号量集中可用资源数。当打开一个已
+ * 		  存在的信号量集时，该参数取值为0
+ * semflg	– IPC_CREAT: 如果信号量集在系统内核中不存在，则创建信号量集；
+ *           IPC_EXCL：与IPC_CREAT一同使用时，如果信号量集已经存在，
+ * 		  则调用失败。注意：单独使用IPC_EXCL标志没有意义
+ */
+SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
+{
+	struct ipc_namespace *ns;
+	struct ipc_ops sem_ops;
+	struct ipc_params sem_params;
+
+	ns = current->nsproxy->ipc_ns;
+
+	if (nsems < 0 || nsems > ns->sc_semmsl)
+		return -EINVAL;
+
+	/*
+	 * 设置newary()函数指针，该函数在ipcget_new()或ipcget_public()
+	 * 中被调用，参见ipcget_new()/ipcget_public()节
+	 */
+	sem_ops.getnew = newary;
+	sem_ops.associate = sem_security;
+	sem_ops.more_checks = sem_more_checks;
+
+	sem_params.key = key;
+	sem_params.flg = semflg;
+	sem_params.u.nsems = nsems;
+
+	/*
+	 * 与消息队列类似，参见ipcget()节，返回值为新创建的信号量集的句柄，
+	 * 参见newary()节
+	 */
+	return ipcget(ns, &sem_ids(ns), &sem_ops, &sem_params);
+}
+```
+
+##### 8.6.3.1.1 newary()
+
+函数newary()用于创建新的信号量，其定义于ipc/sem.c:
+
+```
+/**
+ * newary - Create a new semaphore set
+ * @ns: namespace
+ * @params: ptr to the structure that contains key, semflg and nsems
+ *
+ * Called with sem_ids.rw_mutex held (as a writer)
+ */
+
+static int newary(struct ipc_namespace *ns, struct ipc_params *params)
+{
+	int id;
+	int retval;
+	struct sem_array *sma;
+	int size;
+	key_t key = params->key;
+	int nsems = params->u.nsems;
+	int semflg = params->flg;
+	int i;
+
+	if (!nsems)
+		return -EINVAL;
+	if (ns->used_sems + nsems > ns->sc_semmns)
+		return -ENOSPC;
+
+	// 由此可知，信号量数组结尾处紧接着数个信号量，参见struct sem_array节
+	size = sizeof (*sma) + nsems * sizeof (struct sem);
+	sma = ipc_rcu_alloc(size);
+	if (!sma) {
+		return -ENOMEM;
+	}
+	memset(sma, 0, size);
+
+	sma->sem_perm.mode = (semflg & S_IRWXUGO);
+	// 为q_perm.key赋值，后续为q_perm.id赋值，因而key与id建立了映射关系
+	sma->sem_perm.key = key;
+
+	sma->sem_perm.security = NULL;
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	retval = security_sem_alloc(sma);
+	if (retval) {
+		ipc_rcu_putref(sma);
+		return retval;
+	}
+
+	/*
+	 * ipc_addid()为sem_perm.id赋值，先前已为sem_perm.key赋值，因而key
+	 * 与id建立了映射关系；另外，通过ipc_addid() -> idr_get_new() ->
+	 * idr_get_new_above_int() -> rcu_assign_pointer()将
+	 * pa[0]->ary[id & IDR_MASK]指向msq->sem_perm，参见struct idr节
+	 */
+	id = ipc_addid(&sem_ids(ns), &sma->sem_perm, ns->sc_semmni);
+	if (id < 0) {
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		security_sem_free(sma);
+		ipc_rcu_putref(sma);
+		return id;
+	}
+	ns->used_sems += nsems;
+
+	sma->sem_base = (struct sem *) &sma[1];
+
+	for (i = 0; i < nsems; i++)
+		INIT_LIST_HEAD(&sma->sem_base[i].sem_pending);
+
+	sma->complex_count = 0;
+	INIT_LIST_HEAD(&sma->sem_pending);
+	INIT_LIST_HEAD(&sma->list_id);
+	sma->sem_nsems = nsems;
+	sma->sem_ctime = get_seconds();
+	sem_unlock(sma);
+
+	// 返回值为信号量集的句柄，参见struct sem_array节
+	return sma->sem_perm.id;
+}
+```
+
+### 8.6.4 操纵信号量集
+
+#### 8.6.4.1 sys_semctl()
+
+系统调用sys_semctl()用于操纵信号量，其定义于ipc/sem.c:
+
+```
+SYSCALL_DEFINE(semctl)(int semid, int semnum, int cmd, union semun arg)
+{
+	int err = -EINVAL;
+	int version;
+	struct ipc_namespace *ns;
+
+	if (semid < 0)
+		return -EINVAL;
+
+	version = ipc_parse_version(&cmd);
+	ns = current->nsproxy->ipc_ns;
+
+	switch(cmd) {
+	case IPC_INFO:
+	case SEM_INFO:
+	case IPC_STAT:
+	case SEM_STAT:
+		err = semctl_nolock(ns, semid, cmd, version, arg);
+		return err;
+	case GETALL:
+	case GETVAL:
+	case GETPID:
+	case GETNCNT:
+	case GETZCNT:
+	case SETVAL:
+	case SETALL:
+		err = semctl_main(ns,semid,semnum,cmd,version,arg);
+		return err;
+	case IPC_RMID:
+	case IPC_SET:
+		err = semctl_down(ns, semid, cmd, version, arg);
+		return err;
+	default:
+		return -EINVAL;
+	}
+}
+
+#ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
+asmlinkage long SyS_semctl(int semid, int semnum, int cmd, union semun arg)
+{
+	return SYSC_semctl((int) semid, (int) semnum, (int) cmd, arg);
+}
+SYSCALL_ALIAS(sys_semctl, SyS_semctl);
+#endif
+```
+
+#### 8.6.4.2 sys_semop()/sys_semtimedop()
+
+系统调用sys_semop()与sys_semctl()的区别与联系：
+
+sys_semop()用于操作一个信号量集，其实质是通过修改sem_op指定对资源要进行的操作；而sys_semctl()则是对信号量本身的值进行操作，可以修改信号量的值或者删除一个信号量。
+
+系统调用sys_semop()用于操作用信号量，其定义于ipc/sem.c:
+
+```
+/*
+ * semid – 信号量集的句柄，即sys_semget()的返回值，参见sys_semget()节
+ * tsops – 用户指定的操作
+ * nsops – tsops指定的空间中包含sembuf结构的个数
+ */
+SYSCALL_DEFINE3(semop, int, semid, struct sembuf __user *, tsops, unsigned, nsops)
+{
+	return sys_semtimedop(semid, tsops, nsops, NULL);
+}
+```
+
+semtimedop() behaves identically to semop() except that in those cases where the calling thread would sleep, the duration of that sleep is limited by the amount of elapsed time specified by the timespec structure whose address is passed in the timeout argument. (This sleep interval will be rounded up to the system clock granularity, and kernel scheduling delays mean that the interval may overrun by a small amount.) If the specified time limit has been reached, semtimedop() fails with errno set to EAGAIN (and none of the operations in sops is performed). If the timeout argument is NULL, then semtimedop() behaves exactly like semop().
+
+sys_semtimeop()的定义于ipc/sem.c:
+
+```
+SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
+		unsigned, nsops, const struct timespec __user *, timeout)
+{
+	int error = -EINVAL;
+	struct sem_array *sma;
+	struct sembuf fast_sops[SEMOPM_FAST]; 	// SEMOPM_FAST取值为64
+	struct sembuf* sops = fast_sops, *sop;
+	struct sem_undo *un;
+	int undos = 0, alter = 0, max;
+	struct sem_queue queue;
+	unsigned long jiffies_left = 0;
+	struct ipc_namespace *ns;
+	struct list_head tasks;
+
+	ns = current->nsproxy->ipc_ns;
+
+	if (nsops < 1 || semid < 0)
+		return -EINVAL;
+	if (nsops > ns->sc_semopm)
+		return -E2BIG;
+	if(nsops > SEMOPM_FAST) {
+		sops = kmalloc(sizeof(*sops)*nsops,GFP_KERNEL);
+		if(sops == NULL)
+			return -ENOMEM;
+	}
+	if (copy_from_user(sops, tsops, nsops * sizeof(*tsops))) {
+		error =- EFAULT;
+		goto out_free;
+	}
+	if (timeout) {
+		struct timespec _timeout;
+		if (copy_from_user(&_timeout, timeout, sizeof(*timeout))) {
+			error = -EFAULT;
+			goto out_free;
+		}
+		if (_timeout.tv_sec < 0 || _timeout.tv_nsec < 0 ||
+			 _timeout.tv_nsec >= 1000000000L) {
+			error = -EINVAL;
+			goto out_free;
+		}
+		jiffies_left = timespec_to_jiffies(&_timeout);
+	}
+
+	// 循环所有用户指定的操作，以得到如下三个参数：max, undos, alter
+	max = 0;
+	for (sop = sops; sop < sops + nsops; sop++) {
+		if (sop->sem_num >= max)
+			max = sop->sem_num;
+		if (sop->sem_flg & SEM_UNDO)
+			undos = 1;
+		if (sop->sem_op != 0)
+			alter = 1;
+	}
+
+	if (undos) {
+		un = find_alloc_undo(ns, semid);
+		if (IS_ERR(un)) {
+			error = PTR_ERR(un);
+			goto out_free;
+		}
+	} else
+		un = NULL;
+
+	INIT_LIST_HEAD(&tasks);
+
+	// 获取信号量队列
+	sma = sem_lock_check(ns, semid);
+	if (IS_ERR(sma)) {
+		if (un)
+			rcu_read_unlock();
+		error = PTR_ERR(sma);
+		goto out_free;
+	}
+
+	/*
+	 * semid identifiers are not unique - find_alloc_undo may have
+	 * allocated an undo structure, it was invalidated by an RMID
+	 * and now a new array with received the same id. Check and fail.
+	 * This case can be detected checking un->semid. The existence of
+	 * "un" itself is guaranteed by rcu.
+	 */
+	error = -EIDRM;
+	if (un) {
+		if (un->semid == -1) {
+			rcu_read_unlock();
+			goto out_unlock_free;
+		} else {
+			/*
+			 * rcu lock can be released, "un" cannot disappear:
+			 * - sem_lock is acquired, thus IPC_RMID is
+			 *   impossible.
+			 * - exit_sem is impossible, it always operates on
+			 *   current (or a dead task).
+			 */
+
+			rcu_read_unlock();
+		}
+	}
+
+	error = -EFBIG;
+	if (max >= sma->sem_nsems)
+		goto out_unlock_free;
+
+	error = -EACCES;
+	if (ipcperms(ns, &sma->sem_perm, alter ? S_IWUGO : S_IRUGO))
+		goto out_unlock_free;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	error = security_sem_semop(sma, sops, nsops, alter);
+	if (error)
+		goto out_unlock_free;
+
+	// 对信号量集中的进行指定的操作
+	error = try_atomic_semop(sma, sops, nsops, un, task_tgid_vnr(current));
+	if (error <= 0) {
+		if (alter && error == 0)
+			do_smart_update(sma, sops, nsops, 1, &tasks);
+
+		goto out_unlock_free;
+	}
+
+	/* We need to sleep on this operation, so we put the current
+	 * task into the pending queue and go to sleep.
+	 */
+	queue.sops = sops;
+	queue.nsops = nsops;
+	queue.undo = un;
+	queue.pid = task_tgid_vnr(current);
+	queue.alter = alter;
+	if (alter)
+		list_add_tail(&queue.list, &sma->sem_pending);
+	else
+		list_add(&queue.list, &sma->sem_pending);
+
+	if (nsops == 1) {
+		struct sem *curr;
+		curr = &sma->sem_base[sops->sem_num];
+
+		if (alter)
+			list_add_tail(&queue.simple_list, &curr->sem_pending);
+		else
+			list_add(&queue.simple_list, &curr->sem_pending);
+	} else {
+		INIT_LIST_HEAD(&queue.simple_list);
+		sma->complex_count++;
+	}
+
+	queue.status = -EINTR;
+	queue.sleeper = current;
+
+sleep_again:
+	current->state = TASK_INTERRUPTIBLE;
+	sem_unlock(sma);
+
+	if (timeout)
+		// 参见schedule_timeout()节
+		jiffies_left = schedule_timeout(jiffies_left);
+	else
+		schedule();
+
+	error = get_queue_result(&queue);
+
+	if (error != -EINTR) {
+		/* fast path: update_queue already obtained all requested
+		 * resources.
+		 * Perform a smp_mb(): User space could assume that semop()
+		 * is a memory barrier: Without the mb(), the cpu could
+		 * speculatively read in user space stale data that was
+		 * overwritten by the previous owner of the semaphore.
+		 */
+		smp_mb();
+
+		goto out_free;
+	}
+
+	sma = sem_lock(ns, semid);
+
+	/*
+	 * Wait until it's guaranteed that no wakeup_sem_queue_do() is ongoing.
+	 */
+	error = get_queue_result(&queue);
+
+	/*
+	 * Array removed? If yes, leave without sem_unlock().
+	 */
+	if (IS_ERR(sma)) {
+		goto out_free;
+	}
+
+
+	/*
+	 * If queue.status != -EINTR we are woken up by another process.
+	 * Leave without unlink_queue(), but with sem_unlock().
+	 */
+
+	if (error != -EINTR) {
+		goto out_unlock_free;
+	}
+
+	/*
+	 * If an interrupt occurred we have to clean up the queue
+	 */
+	if (timeout && jiffies_left == 0)
+		error = -EAGAIN;
+
+	/*
+	 * If the wakeup was spurious, just retry
+	 */
+	if (error == -EINTR && !signal_pending(current))
+		goto sleep_again;
+
+	unlink_queue(sma, &queue);
+
+out_unlock_free:
+	sem_unlock(sma);
+	// 唤醒某些进程
+	wake_up_sem_queue_do(&tasks);
+out_free:
+	if(sops != fast_sops)
+		kfree(sops);
+	return error;
+}
+```
+
+### 8.6.5 信号量的初始化
+
+信号量的初始化过程与消息队列的初始化过程类似，参见消息队列的初始化节。函数调用关系如下：
+
+```
+ipc_init()
+-> sem_init()
+   -> sem_init_ns()
+   -> ipc_init_proc_interface()
+```
+
+## 8.7 套接字/socket
+
+### 8.7.1 套接字简介
+
+socket起源于Unix，而Unix/Linux基本哲学之一就是"一切皆文件"，都可以用“打开open –> 读写write/read -> 关闭close的模式来操作。socket就是该模式的一个实现，socket是一种特殊的文件，一些socket函数就是对其进行操作(读/写IO、打开、关闭)。
+
+socket是应用层与TCP/IP协议族通信的中间软件抽象层，它是一组接口。在设计模式中，socket其实就是一个门面模式，它把复杂的TCP/IP协议族隐藏在socket接口后面，对用户来说，一组简单的接口就是全部，让socket去组织数据，以符合指定的协议。
+
+注意：其实socket也没有层的概念，它只是一个facade设计模式的应用，让编程变的更简单。
+
+![Socket_Layer](/assets/Socket_Layer.png)
+
+### 8.7.2 与套接字有关的数据结构
+
+#### 8.7.2.1 struct sockaddr
+
+该结构定义于include/linux/socket.h
+
+#### 8.7.2.2 struct mmsghdr
+
+该结构定义于include/linux/socket.h
+
+#### 8.7.2.3 struct socket
+
+![Socket_Struct](/assets/Socket_Struct.png)
+
+#### 8.7.2.4 struct net_proto_family
+
+数组net_families的定义于net/socket.c:
+
+```
+static DEFINE_SPINLOCK(net_family_lock);
+static const struct net_proto_family __rcu *net_families[NPROTO] __read_mostly;
+```
+
+数组net_families，参见:
+
+![IPC_12](/assets/IPC_12.jpg)
+
+该数组包含了注册到系统中的所有网络协议族的信息，数组元素个数为NPROTO，每个元素对应的协议族参见include/linux/socket.h:
+
+```
+/* Protocol families, same as address families. */
+#define PF_UNSPEC		AF_UNSPEC
+#define PF_UNIX			AF_UNIX
+#define PF_LOCAL		AF_LOCAL
+#define PF_INET			AF_INET
+#define PF_AX25			AF_AX25
+#define PF_IPX			AF_IPX
+#define PF_APPLETALK		AF_APPLETALK
+#define PF_NETROM		AF_NETROM
+#define PF_BRIDGE		AF_BRIDGE
+#define PF_ATMPVC		AF_ATMPVC
+#define PF_X25			AF_X25
+#define PF_INET6		AF_INET6
+#define PF_ROSE			AF_ROSE
+#define PF_DECnet		AF_DECnet
+#define PF_NETBEUI		AF_NETBEUI
+#define PF_SECURITY		AF_SECURITY
+#define PF_KEY			AF_KEY
+#define PF_NETLINK		AF_NETLINK
+#define PF_ROUTE		AF_ROUTE
+#define PF_PACKET		AF_PACKET
+#define PF_ASH			AF_ASH
+#define PF_ECONET		AF_ECONET
+#define PF_ATMSVC		AF_ATMSVC
+#define PF_RDS			AF_RDS
+#define PF_SNA			AF_SNA
+#define PF_IRDA			AF_IRDA
+#define PF_PPPOX		AF_PPPOX
+#define PF_WANPIPE		AF_WANPIPE
+#define PF_LLC			AF_LLC
+#define PF_CAN			AF_CAN
+#define PF_TIPC			AF_TIPC
+#define PF_BLUETOOTH		AF_BLUETOOTH
+#define PF_IUCV			AF_IUCV
+#define PF_RXRPC		AF_RXRPC
+#define PF_ISDN			AF_ISDN
+#define PF_PHONET		AF_PHONET
+#define PF_IEEE802154		AF_IEEE802154
+#define PF_CAIF			AF_CAIF
+#define PF_ALG			AF_ALG
+#define PF_NFC			AF_NFC
+#define PF_MAX			AF_MAX
+```
+
+##### 8.7.2.4.1 网络协议族的注册与取消
+
+net_families数组的各元素是通过sock_register()和sock_unregister()注册和取消的，参见net/socket.c。
+
+```
+/**
+ *	sock_register - add a socket protocol handler
+ *	@ops: description of protocol
+ *
+ *	This function is called by a protocol handler that wants to
+ *	advertise its address family, and have it linked into the
+ *	socket interface. The value ops->family coresponds to the
+ *	socket system call protocol family.
+ */
+int sock_register(const struct net_proto_family *ops)
+{
+	int err;
+
+	if (ops->family >= NPROTO) {
+		printk(KERN_CRIT "protocol %d >= NPROTO(%d)\n", ops->family, NPROTO);
+		return -ENOBUFS;
+	}
+
+	spin_lock(&net_family_lock);
+	if (rcu_dereference_protected(net_families[ops->family], lockdep_is_held(&net_family_lock)))
+		err = -EEXIST;
+	else {
+		RCU_INIT_POINTER(net_families[ops->family], ops); // 注册指定的协议族
+		err = 0;
+	}
+	spin_unlock(&net_family_lock);
+
+	printk(KERN_INFO "NET: Registered protocol family %d\n", ops->family);
+	return err;
+}
+
+/**
+ *	sock_unregister - remove a protocol handler
+ *	@family: protocol family to remove
+ *
+ *	This function is called by a protocol handler that wants to
+ *	remove its address family, and have it unlinked from the
+ *	new socket creation.
+ *
+ *	If protocol handler is a module, then it can use module reference
+ *	counts to protect against new references. If protocol handler is not
+ *	a module then it needs to provide its own protection in
+ *	the ops->create routine.
+ */
+void sock_unregister(int family)
+{
+	BUG_ON(family < 0 || family >= NPROTO);
+
+	spin_lock(&net_family_lock);
+	RCU_INIT_POINTER(net_families[family], NULL); 		// 取消指定的协议族
+	spin_unlock(&net_family_lock);
+
+	synchronize_rcu();
+
+	printk(KERN_INFO "NET: Unregistered protocol family %d\n", family);
+}
+```
+
+sock_register()和sock_unregister()会被实现协议族功能的模块调用，用于注册指定的协议族。以IP协议为例，在net/ipv4/af_inet.c中，包含如下代码：
+
+```
+static const struct net_proto_family inet_family_ops = {
+	// Internet IP Protocol
+	.family	= PF_INET,
+	/*
+	 * 该函数用于创建对应协议族的socket，被sock_create()/__sock_create()调用，
+	 * 参见sock_create()/__sock_create()节。同时，该函数还会为sock->ops赋值，
+	 * 用于实现struct proto_ops中与本协议族有关的接口，参见sys_bind()节至
+	 * sys_shutdown()/sys_close()节
+	 */
+	.create	= inet_create,
+	/*
+	 * 指定包含本协议族的模块，被sock_create()/__sock_create()调用，
+	 * 参见sock_create()/__sock_create()节
+	 */
+	.owner	= THIS_MODULE,
+};
+
+static int __init inet_init(void)
+{
+	...
+	(void)sock_register(&inet_family_ops);
+	...
+}
+
+/*
+ * 当本模块被编译进内核时，fs_initcall()的定义，参见module被编译进内核时的初始化过程节，
+ * 即__define_initcall("5",fn,5)。在系统启动时，该协议族会被注册到系统中；
+ * 当本模块被编译成module时，在执行insmod xxx时，该协议族被注册到系统中
+ */
+fs_initcall(inet_init);
+```
+
+### 8.7.3 套接字接口
+
+基本的socket接口函数如下图所示：
+
+![Socket_Interface](/assets/Socket_Interface.png)
+
+#### 8.7.3.1 sys_socket()
+
+该系统调用定义于net/socket.c:
+
+```
+/*
+ * family – 协议族，其取值为PF_xxx，参见include/linux/socket.h
+ * type – 协议类型，其取值为SOCK_xxx，参见include/linux/net.h中的类型enum sock_type
+ * protocol – 协议，其取值为IPPROTO_xxx，参见include/linux/in.h
+ * 返回值为文件描述符fd
+ */
+SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+{
+	int retval;
+	struct socket *sock;
+	int flags;
+
+	/* Check the SOCK_* constants for consistency.  */
+	BUILD_BUG_ON(SOCK_CLOEXEC != O_CLOEXEC);
+	BUILD_BUG_ON((SOCK_MAX | SOCK_TYPE_MASK) != SOCK_TYPE_MASK);
+	BUILD_BUG_ON(SOCK_CLOEXEC & SOCK_TYPE_MASK);
+	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
+
+	flags = type & ~SOCK_TYPE_MASK;
+	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
+		return -EINVAL;
+	type &= SOCK_TYPE_MASK;
+
+	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
+		flags = (flags & ~SOCK_NONBLOCK) | O_NONBLOCK;
+
+	// 为sock分配空间并初始化
+	retval = sock_create(family, type, protocol, &sock);
+	if (retval < 0)
+		goto out;
+
+	// 为sock分配文件描述符
+	retval = sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
+	if (retval < 0)
+		goto out_release;
+
+out:
+	/* It may be already another descriptor 8) Not kernel problem. */
+	return retval;
+
+out_release:
+	sock_release(sock);
+	return retval;
+}
+```
+
+##### 8.7.3.1.1 sock_create()/__sock_create()
+
+系统调用sys_socket()调用sock_create()创建socket，其定义于net/socket.c:
+
+```
+int sock_create(int family, int type, int protocol, struct socket **res)
+{
+	return __sock_create(current->nsproxy->net_ns, family, type, protocol, res, 0);
+}
+
+int __sock_create(struct net *net, int family, int type, int protocol,
+		  struct socket **res, int kern)
+{
+	int err;
+	struct socket *sock;
+	const struct net_proto_family *pf;
+
+	/*
+	 *      Check protocol is in range
+	 */
+	if (family < 0 || family >= NPROTO)
+		return -EAFNOSUPPORT;
+	if (type < 0 || type >= SOCK_MAX)
+		return -EINVAL;
+
+	/* Compatibility.
+	   This uglymoron is moved from INET layer to here to avoid
+	   deadlock in module load.
+	 */
+	if (family == PF_INET && type == SOCK_PACKET) {
+		static int warned;
+		if (!warned) {
+			warned = 1;
+			printk(KERN_INFO "%s uses obsolete (PF_INET,SOCK_PACKET)\n",
+			       current->comm);
+		}
+		family = PF_PACKET;
+	}
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	err = security_socket_create(family, type, protocol, kern);
+	if (err)
+		return err;
+
+	/*
+	 *	Allocate the socket and allow the family to set things up. if
+	 *	the protocol is 0, the family is instructed to select an appropriate
+	 *	default.
+	 */
+	sock = sock_alloc();
+	if (!sock) {
+		if (net_ratelimit())
+			printk(KERN_WARNING "socket: no more sockets\n");
+		return -ENFILE;	/* Not exactly a match, but it’s the closest posix thing */
+	}
+
+	sock->type = type;
+
+#ifdef CONFIG_MODULES
+	/* Attempt to load a protocol module if the find failed.
+	 *
+	 * 12/09/1996 Marcin: But! this makes REALLY only sense, if the user
+	 * requested real, full-featured networking support upon configuration.
+	 * Otherwise module support will break!
+	 */
+	if (rcu_access_pointer(net_families[family]) == NULL)
+		request_module("net-pf-%d", family);
+#endif
+
+	rcu_read_lock();
+	pf = rcu_dereference(net_families[family]);
+	err = -EAFNOSUPPORT;
+	if (!pf)
+		goto out_release;
+
+	/*
+	 * We will call the ->create function, that possibly is in a loadable
+	 * module, so we have to bump that loadable module refcnt first.
+	 */
+	if (!try_module_get(pf->owner))
+		goto out_release;
+
+	/* Now protected by module ref count */
+	rcu_read_unlock();
+
+	// 调用对应协议族的创建函数，参见网络协议族的注册与取消节
+	err = pf->create(net, sock, protocol, kern);
+	if (err < 0)
+		goto out_module_put;
+
+	/*
+	 * Now to bump the refcnt of the [loadable] module that owns this
+	 * socket at sock_release time we decrement its refcnt.
+	 */
+	if (!try_module_get(sock->ops->owner))
+		goto out_module_busy;
+
+	/*
+	 * Now that we're done with the ->create function, the [loadable]
+	 * module can have its refcnt decremented
+	 */
+	module_put(pf->owner);
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	err = security_socket_post_create(sock, family, type, protocol, kern);
+	if (err)
+		goto out_sock_release;
+	*res = sock;
+
+	return 0;
+
+out_module_busy:
+	err = -EAFNOSUPPORT;
+out_module_put:
+	sock->ops = NULL;
+	module_put(pf->owner);
+out_sock_release:
+	sock_release(sock);
+	return err;
+
+out_release:
+	rcu_read_unlock();
+	goto out_sock_release;
+}
+```
+
+#### 8.7.3.2 sys_bind()
+
+系统调用sys_socket()创建了一个socket，但并未分配一个具体的地址。如果要为它分配一个地址，就必须调用sys_bind()把一个地址族中的特定地址赋给socket；否则，当调用sys_connect()、sys_listen()时系统会自动随机分配一个端口。
+
+系统调用sys_bind()定义于net/socket.c:
+
+```
+/*
+ *	Bind a name to a socket. Nothing much to do here since it's
+ *	the protocol's responsibility to handle the local address.
+ *
+ *	We move the socket address to kernel space before we call
+ *	the protocol layer (having also checked the address is ok).
+ */
+/*
+ * fd		- socket描述字，由sys_socket()，唯一标识一个socket。
+ * 		  sys_bind()就是将给这个描述字绑定一个名字
+ * umyaddr - 指向要绑定给fd的协议地址
+ * addrlen - umyaddr对应的地址长度
+ */
+SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
+{
+	struct socket *sock;
+	struct sockaddr_storage address;
+	int err, fput_needed;
+
+	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+	if (sock) {
+		err = move_addr_to_kernel(umyaddr, addrlen, (struct sockaddr *)&address);
+		if (err >= 0) {
+			// 调用变量security_ops中的对应函数，参见security_xxx()节
+			err = security_socket_bind(sock, (struct sockaddr *)&address, addrlen);
+
+			// 参见网络协议族的注册与取消节
+			if (!err)
+				err = sock->ops->bind(sock, (struct sockaddr *)&address, addrlen);
+		}
+		fput_light(sock->file, fput_needed);
+	}
+	return err;
+}
+```
+
+Q：为什么服务器端要调用bind()，而客户端不需要呢？
+
+A：通常服务器在启动时都会绑定一个众所周知的地址(如IP地址和端口号)，用于提供服务，客户就可以通过它来接连服务器；而客户端就不用指定，由系统自动分配一个端口号和自身的IP地址组合。这就是为什么通常服务器端在listen()之前会调用bind()，而客户端就不会调用，而是在connect()时由系统随机生成一个。
+
+#### 8.7.3.3 sys_listen()
+
+作为服务器，在调用socket()、bind()后会调用listen()来监听这个socket，如果客户端这时调用connect()发出连接请求，服务器端就会接收到这个请求。
+
+系统调用sys_listen()定义于net/socket.c:
+
+```
+/*
+ *	Perform a listen. Basically, we allow the protocol to do anything
+ *	necessary for a listen, and if that works, we mark the socket as
+ *	ready for listening.
+ */
+/*
+ * sys_socket()系统调用创建的socket默认是一个主动类型的，sys_listen()
+ * 将该socket变为被动类型的，等待客户的连接请求
+ * backlog - 指定socket(即fd)可以排队的最大连接个数
+ */
+SYSCALL_DEFINE2(listen, int, fd, int, backlog)
+{
+	struct socket *sock;
+	int err, fput_needed;
+	int somaxconn;
+
+	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+	if (sock) {
+		somaxconn = sock_net(sock->sk)->core.sysctl_somaxconn;
+		if ((unsigned)backlog > somaxconn)
+			backlog = somaxconn;
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_socket_listen(sock, backlog);
+
+		// 参见网络协议族的注册与取消节
+		if (!err)
+			err = sock->ops->listen(sock, backlog);
+
+		fput_light(sock->file, fput_needed);
+	}
+	return err;
+}
+```
+
+#### 8.7.3.4 sys_connect()
+
+该系统调用定义于net/socket.c:
+
+```
+/*
+ *	Attempt to connect to a socket with the server address.  The address
+ *	is in user space so we verify it is OK and move it to kernel space.
+ *
+ *	For 1003.1g we need to add clean support for a bind to AF_UNSPEC to
+ *	break bindings
+ *
+ *	NOTE: 1003.1g draft 6.3 is broken with respect to AX.25/NetROM and
+ *	other SEQPACKET protocols that take time to connect() as it doesn't
+ *	include the -EINPROGRESS status for such sockets.
+ */
+
+SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr, int, addrlen)
+{
+	struct socket *sock;
+	struct sockaddr_storage address;
+	int err, fput_needed;
+
+	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+	if (!sock)
+		goto out;
+	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
+	if (err < 0)
+		goto out_put;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	err = security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
+	if (err)
+		goto out_put;
+
+	// 参见网络协议族的注册与取消节
+	err = sock->ops->connect(sock, (struct sockaddr *)&address, addrlen, sock->file->f_flags);
+out_put:
+	fput_light(sock->file, fput_needed);
+out:
+	return err;
+}
+```
+
+#### 8.7.3.5 sys_accept()
+
+服务器段调用accept()来接受客户端的连接。如果accept()成功返回，则服务器与客户已经正确建立连接了，此时服务器通过accept()返回的套接字来完成与客户的通信。
+
+系统调用sys_accept()定义参见net/socket.c:
+
+```
+SYSCALL_DEFINE3(accept, int, fd, struct sockaddr __user *, upeer_sockaddr,
+		int __user *, upeer_addrlen)
+{
+	return sys_accept4(fd, upeer_sockaddr, upeer_addrlen, 0);
+}
+
+/*
+ *	For accept, we attempt to create a new socket, set up the link
+ *	with the client, wake up the client, then return the new
+ *	connected fd. We collect the address of the connector in kernel
+ *	space and move it to user at the very end. This is unclean because
+ *	we open the socket then return an error.
+ *
+ *	1003.1g adds the ability to recvmsg() to query connection pending
+ *	status to recvmsg. We need to add that support in a way thats
+ *	clean when we restucture accept also.
+ */
+SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
+		int __user *, upeer_addrlen, int, flags)
+{
+	struct socket *sock, *newsock;
+	struct file *newfile;
+	int err, len, newfd, fput_needed;
+	struct sockaddr_storage address;
+
+	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
+		return -EINVAL;
+
+	if (SOCK_NONBLOCK != O_NONBLOCK && (flags & SOCK_NONBLOCK))
+		flags = (flags & ~SOCK_NONBLOCK) | O_NONBLOCK;
+
+	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+	if (!sock)
+		goto out;
+
+	err = -ENFILE;
+	newsock = sock_alloc();
+	if (!newsock)
+		goto out_put;
+
+	newsock->type = sock->type;
+	newsock->ops = sock->ops;
+
+	/*
+	 * We don't need try_module_get here, as the listening socket (sock)
+	 * has the protocol module (sock->ops->owner) held.
+	 */
+	__module_get(newsock->ops->owner);
+
+	newfd = sock_alloc_file(newsock, &newfile, flags);
+	if (unlikely(newfd < 0)) {
+		err = newfd;
+		sock_release(newsock);
+		goto out_put;
+	}
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	err = security_socket_accept(sock, newsock);
+	if (err)
+		goto out_fd;
+
+	// 参见网络协议族的注册与取消节
+	err = sock->ops->accept(sock, newsock, sock->file->f_flags);
+	if (err < 0)
+		goto out_fd;
+
+	if (upeer_sockaddr) {
+		if (newsock->ops->getname(newsock, (struct sockaddr *)&address, &len, 2) < 0) {
+			err = -ECONNABORTED;
+			goto out_fd;
+		}
+		err = move_addr_to_user((struct sockaddr *)&address, len, upeer_sockaddr, upeer_addrlen);
+		if (err < 0)
+			goto out_fd;
+	}
+
+	/* File flags are not inherited via accept() unlike another OSes. */
+
+	fd_install(newfd, newfile);
+	err = newfd;
+
+out_put:
+	fput_light(sock->file, fput_needed);
+out:
+	return err;
+out_fd:
+	fput(newfile);
+	put_unused_fd(newfd);
+	goto out_put;
+}
+```
+
+注意：accept()默认会阻塞进程，直到有一个客户端连接建立后返回，它返回的是一个新的可用的套接字，这个套接字是连接套接字。此时我们需要区分两种套接字：
+
+* 监听套接字：监听套接字正如accept()的参数sockfd，它是监听套接字。在调用listen()函数后，服务器调用socket()函数生成的套接字，被称为监听socket描述字(监听套接字)
+
+* 连接套接字：一个套接字会从主动连接的套接字变为一个监听套接字；而accept()函数返回的是已连接socket描述字(连接套接字)，它代表着一个网络已经存在的点点连接。
+
+一个服务器通常通常仅仅只创建一个监听套接字，它在该服务器的生命周期内一直存在。内核为每个由服务器进程接受的客户连接创建了一个连接套接字，当服务器完成了对某个客户的服务，相应的连接套接字就被关闭。
+
+为什么要有两种套接字？原因很简单，如果只使用一种描述字的话，那么它的功能太多，使用不方便。此外，连接套接字并没有占用新的端口与客户端通信，依然使用与监听套接字相同的端口号。
+
+#### 8.7.3.6 发送与接收消息
+
+![Socket_Send_Receive](/assets/Socket_Send_Receive.png)
+
+其中，sendmsg()/recvmsg()是最通用的I/O函数。
+
+#### 8.7.3.7 操纵套接字
+
+参见net/socket.c:
+* sys_getsockname() / sys_getpeername()
+* sys_getsockopt() / sys_setsockopt()
+
+#### 8.7.3.8 sys_shutdown()/sys_close()
+
+系统调用sys_shutdown()定义于net/socket.c:
+
+```
+/*
+ *	Shutdown a socket.
+ */
+SYSCALL_DEFINE2(shutdown, int, fd, int, how)
+{
+	int err, fput_needed;
+	struct socket *sock;
+
+	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+	if (sock != NULL) {
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_socket_shutdown(sock, how);
+
+		// 参见网络协议族的注册与取消节
+		if (!err)
+			err = sock->ops->shutdown(sock, how);
+		fput_light(sock->file, fput_needed);
+	}
+	return err;
+}
+```
+
+系统调用sys_close()定义于fs/open.c:
+
+```
+/*
+ * Careful here! We test whether the file pointer is NULL before
+ * releasing the fd. This ensures that one clone task can't release
+ * an fd while another clone is opening it.
+ */
+SYSCALL_DEFINE1(close, unsigned int, fd)
+{
+	struct file * filp;
+	struct files_struct *files = current->files;
+	struct fdtable *fdt;
+	int retval;
+
+	spin_lock(&files->file_lock);
+	fdt = files_fdtable(files);
+	if (fd >= fdt->max_fds)
+		goto out_unlock;
+	filp = fdt->fd[fd];
+	if (!filp)
+		goto out_unlock;
+	rcu_assign_pointer(fdt->fd[fd], NULL);
+	FD_CLR(fd, fdt->close_on_exec);
+	__put_unused_fd(files, fd);
+	spin_unlock(&files->file_lock);
+	retval = filp_close(filp, files);
+
+	/* can't restart close syscall because file table entry was cleared */
+	if (unlikely(retval == -ERESTARTSYS ||
+		     retval == -ERESTARTNOINTR ||
+		     retval == -ERESTARTNOHAND ||
+		     retval == -ERESTART_RESTARTBLOCK))
+		retval = -EINTR;
+
+	return retval;
+
+out_unlock:
+	spin_unlock(&files->file_lock);
+	return -EBADF;
+}
+```
+
+### 8.7.4 套接字的初始化
+
+在net/socket.c中，包含如下定义：
+
+```
+static int __init sock_init(void)
+{
+	// ...
+}
+
+core_initcall(sock_init);	/* early initcall */
+```
+
+其中，core_initcall()的定义参见module被编译进内核时的初始化过程节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall1.init
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

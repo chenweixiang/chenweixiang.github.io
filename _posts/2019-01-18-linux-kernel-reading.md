@@ -32895,6 +32895,1306 @@ chenwx@chenwx ~/alex/timer $ dmesg | tail
 [ 1053.784719] *** Timer exit ***
 ```
 
+## 7.8 高分辨率定时器/hrtimer
+
+### 7.8.1 hrtimer简介
+
+阅读如下文档：
+* Documentation/timers
+
+内核使用红黑树rbtree(参见Red-Black Tree (rbtree节)来组织hrtimer。
+
+### 7.8.2 与hrtimer有关的数据结构
+
+#### 7.8.2.1 struct hrtimer
+
+该结构定义于include/linux/hrtimer.h:
+
+```
+struct hrtimer {
+	/*
+	 * 链接红黑树的节点，其中node.expires取值域_softexpires相同，
+	 * 参见函数hrtimer_set_expires_range_ns()
+	 */
+	struct timerqueue_node	node;
+	// 本定时器的超时时间，与node.expires取值相同
+	ktime_t				_softexpires;
+	/*
+	 * 定时器超时处理函数，入参为指向本定时器的指针；返回值为枚举类型，
+	 * 用于确定该hrtimer是否需要被重新激活
+	 */
+	enum hrtimer_restart		(*function)(struct hrtimer *);
+	// 指向时间基准的指针
+	struct hrtimer_clock_base	*base;
+	/*
+	 * 表示hrtimer当前的状态，取值为include/linux/hrtimer.h中
+	 * 以HRTIMER_STATE_打头的宏
+	 */
+	unsigned long			state;
+#ifdef CONFIG_TIMER_STATS
+	int				start_pid;
+	void				*start_site;
+	char				start_comm[16];
+#endif
+};
+```
+
+#### 7.8.2.2 struct hrtimer_clock_base
+
+该结构定义于include/linux/hrtimer.h:
+
+```
+struct hrtimer_clock_base {
+	struct hrtimer_cpu_base		*cpu_base;
+	// 取值参见类型enum hrtimer_base_type
+	int				index;
+	/*
+	 * clockid到index的转换参见kernel/hrtimer.c中的数组
+	 * hrtimer_clock_to_base_table[MAX_CLOCKS]
+	 */
+	clockid_t			lockid;
+	// 红黑树根节点，该树包含了所有使用该时间基准系统的hrtimer
+	struct timerqueue_head		active;
+	// 时间基准系统的精度
+	ktime_t				resolution;
+	// 获取该基准系统时间的函数
+	ktime_t				(*get_time)(void);
+	// 当前jiffies
+	ktime_t				softirq_time;
+	ktime_t				offset;
+};
+```
+
+#### 7.8.2.3 struct hrtimer_cpu_base
+
+该结构定义于include/linux/hrtimer.h:
+
+```
+struct hrtimer_cpu_base {
+	raw_spinlock_t			lock;
+	/*
+	 * 本域为bitmap，由1左移struct hrtimer_clock_base -> index位构成，
+	 * 用于表示clock_base[]数组中哪些处于激活状态，参见函数enqueue_hrtimer()
+	 */
+	unsigned long			active_bases;
+#ifdef CONFIG_HIGH_RES_TIMERS
+	ktime_t				expires_next;
+	int				hres_active;
+	int				hang_detected;
+	unsigned long			nr_events;
+	unsigned long			nr_retries;
+	unsigned long			nr_hangs;
+	ktime_t				max_hang_time;
+#endif
+	struct hrtimer_clock_base	clock_base[HRTIMER_MAX_CLOCK_BASES];
+};
+```
+
+在kernel/hrtimer.c中，内核为每个CPU定义了一个该类型的变量hrtimer_bases:
+
+```
+DEFINE_PER_CPU(struct hrtimer_cpu_base, hrtimer_bases) =
+{
+
+	.clock_base =
+	{
+		{
+			.index = HRTIMER_BASE_MONOTONIC,
+			.clockid = CLOCK_MONOTONIC,
+			.get_time = &ktime_get,
+			.resolution = KTIME_LOW_RES,
+		},
+		{
+			.index = HRTIMER_BASE_REALTIME,
+			.clockid = CLOCK_REALTIME,
+			.get_time = &ktime_get_real,
+			.resolution = KTIME_LOW_RES,
+		},
+		{
+			.index = HRTIMER_BASE_BOOTTIME,
+			.clockid = CLOCK_BOOTTIME,
+			.get_time = &ktime_get_boottime,
+			.resolution = KTIME_LOW_RES,
+		},
+	}
+};
+```
+
+各结构之间的关系:
+
+![Hrtimer](/assets/Hrtimer.jpg)
+
+### 7.8.3 hrtimer定时器操作
+
+#### 7.8.3.1 初始化定时器/hrtimer_init()/hrtimer_init_on_stack()
+
+##### 7.8.3.1.1 hrtimer_init()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+/**
+ * hrtimer_init - initialize a timer to the given clock
+ * @timer:	the timer to be initialized
+ * @clock_id:	the clock to be used
+ * @mode:	timer mode abs/rel
+ */
+void hrtimer_init(struct hrtimer *timer, clockid_t clock_id,
+			   enum hrtimer_mode mode)
+{
+	debug_init(timer, clock_id, mode);
+	__hrtimer_init(timer, clock_id, mode);
+}
+```
+
+###### 7.8.3.1.1.1 \__hrtimer_init()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+static void __hrtimer_init(struct hrtimer *timer, clockid_t clock_id,
+			   enum hrtimer_mode mode)
+{
+	struct hrtimer_cpu_base *cpu_base;
+	int base;
+
+	memset(timer, 0, sizeof(struct hrtimer));
+
+	// 获得当前CPU对应的全局变量hrtimer_bases
+	cpu_base = &__raw_get_cpu_var(hrtimer_bases);
+
+	if (clock_id == CLOCK_REALTIME && mode != HRTIMER_MODE_ABS)
+		clock_id = CLOCK_MONOTONIC;
+
+	// 翻译CLOCK_XXX => HRTIMER_BASE_XXX
+	base = hrtimer_clockid_to_base(clock_id);
+	timer->base = &cpu_base->clock_base[base];
+	timerqueue_init(&timer->node);	// 初始化定时器的红黑树
+
+#ifdef CONFIG_TIMER_STATS
+	timer->start_site = NULL;
+	timer->start_pid = -1;
+	memset(timer->start_comm, 0, TASK_COMM_LEN);
+#endif
+}
+```
+
+##### 7.8.3.1.2 hrtimer_init_on_stack()
+
+在include/linux/hrtimer.h中，包含如下定义：
+
+```
+#ifdef CONFIG_DEBUG_OBJECTS_TIMERS
+extern void hrtimer_init_on_stack(struct hrtimer *timer, clockid_t which_clock,
+					 enum hrtimer_mode mode);
+#else
+static inline void hrtimer_init_on_stack(struct hrtimer *timer,
+					 clockid_t which_clock,
+					 enum hrtimer_mode mode)
+{
+	hrtimer_init(timer, which_clock, mode);
+}
+#endif
+```
+
+在kernel/hrtimer.c中，包含如下定义：
+
+```
+#ifdef CONFIG_DEBUG_OBJECTS_TIMERS
+void hrtimer_init_on_stack(struct hrtimer *timer, clockid_t clock_id,
+			   enum hrtimer_mode mode)
+{
+	debug_object_init_on_stack(timer, &hrtimer_debug_descr);
+	__hrtimer_init(timer, clock_id, mode);
+}
+#endif
+```
+
+#### 7.8.3.2 启动定时器/hrtimer_start()/hrtimer_start_expires()
+
+##### 7.8.3.2.1 hrtimer_start()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+/**
+ * hrtimer_start - (re)start an hrtimer on the current CPU
+ * @timer:	the timer to be added
+ * @tim:	expiry time
+ * @mode:	expiry mode: absolute (HRTIMER_ABS) or relative (HRTIMER_REL)
+ *
+ * Returns:
+ *  0 on success
+ *  1 when the timer was active
+ */
+int hrtimer_start(struct hrtimer *timer, ktime_t tim, const enum hrtimer_mode mode)
+{
+	return __hrtimer_start_range_ns(timer, tim, 0, mode, 1);
+}
+```
+
+###### 7.8.3.2.1.1 __hrtimer_start_range_ns()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+int __hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
+		unsigned long delta_ns, const enum hrtimer_mode mode, int wakeup)
+{
+	struct hrtimer_clock_base *base, *new_base;
+	unsigned long flags;
+	int ret, leftmost;
+
+	base = lock_hrtimer_base(timer, &flags);
+
+	/* Remove an active timer from the queue: */
+	ret = remove_hrtimer(timer, base);
+
+	/* Switch the timer base, if necessary: */
+	new_base = switch_hrtimer_base(timer, base, mode & HRTIMER_MODE_PINNED);
+
+	// 如果mode使用相对时间，则需要加上当前时间，因为hrtimer内部使用绝对时间
+	if (mode & HRTIMER_MODE_REL) {
+		tim = ktime_add_safe(tim, new_base->get_time());
+		/*
+		 * CONFIG_TIME_LOW_RES is a temporary way for architectures
+		 * to signal that they simply return xtime in
+		 * do_gettimeoffset(). In this case we want to round up by
+		 * resolution when starting a relative timer, to avoid short
+		 * timeouts. This will go away with the GTOD framework.
+		 */
+#ifdef CONFIG_TIME_LOW_RES
+		tim = ktime_add_safe(tim, base->resolution);
+#endif
+	}
+	// 设置超时时间，即timer->_softexpires, timer->node.expires
+	hrtimer_set_expires_range_ns(timer, tim, delta_ns);
+	// 设置timer->start_site, timer->start_pid, timer->start_comm
+	timer_stats_hrtimer_set_start_info(timer);
+	// 将timer插入到红黑树的适当位置，其中红黑树的最左边的叶子节点是最早超时的定时器
+	leftmost = enqueue_hrtimer(timer, new_base);
+
+	/*
+	 * Only allow reprogramming if the new base is on this CPU.
+	 * (it might still be on another CPU if the timer was pending)
+	 *
+	 * XXX send_remote_softirq() ?
+	 */
+	if (leftmost && new_base->cpu_base == &__get_cpu_var(hrtimer_bases))
+		hrtimer_enqueue_reprogram(timer, new_base, wakeup);
+
+	unlock_hrtimer_base(timer, &flags);
+
+	return ret;
+}
+```
+
+##### 7.8.3.2.2 hrtimer_start_expires()
+
+该函数定义于include/linux/hrtimer.h:
+
+```
+static inline int hrtimer_start_expires(struct hrtimer *timer, enum hrtimer_mode mode)
+{
+	unsigned long delta;
+	ktime_t soft, hard;
+	soft = hrtimer_get_softexpires(timer);
+	hard = hrtimer_get_expires(timer);
+	delta = ktime_to_ns(ktime_sub(hard, soft));
+	return hrtimer_start_range_ns(timer, soft, delta, mode);
+}
+```
+
+#### 7.8.3.3 取消定时器/hrtimer_cancel()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+/**
+ * hrtimer_cancel - cancel a timer and wait for the handler to finish.
+ * @timer:	the timer to be cancelled
+ *
+ * Returns:
+ *  0 when the timer was not active
+ *  1 when the timer was active
+ */
+int hrtimer_cancel(struct hrtimer *timer)
+{
+	for (;;) {
+		int ret = hrtimer_try_to_cancel(timer);
+
+		if (ret >= 0)
+			return ret;
+		cpu_relax();
+	}
+}
+```
+
+##### 7.8.3.3.1 hrtimer_try_to_cancel()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+/**
+ * hrtimer_try_to_cancel - try to deactivate a timer
+ * @timer:	hrtimer to stop
+ *
+ * Returns:
+ *  0 when the timer was not active
+ *  1 when the timer was active
+ * -1 when the timer is currently excuting the callback function and
+ *    cannot be stopped
+ */
+int hrtimer_try_to_cancel(struct hrtimer *timer)
+{
+	struct hrtimer_clock_base *base;
+	unsigned long flags;
+	int ret = -1;
+
+	base = lock_hrtimer_base(timer, &flags);
+
+	if (!hrtimer_callback_running(timer))
+		ret = remove_hrtimer(timer, base);
+
+	unlock_hrtimer_base(timer, &flags);
+
+	return ret;
+}
+```
+
+#### 7.8.3.4 推迟定时器/hrtimer_forward()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+/**
+ * hrtimer_forward - forward the timer expiry
+ * @timer:	hrtimer to forward
+ * @now:	forward past this time
+ * @interval:	the interval to forward
+ *
+ * Forward the timer expiry so it will expire in the future.
+ * Returns the number of overruns.
+ */
+u64 hrtimer_forward(struct hrtimer *timer, ktime_t now, ktime_t interval)
+{
+	u64 orun = 1;
+	ktime_t delta;
+
+	delta = ktime_sub(now, hrtimer_get_expires(timer));
+
+	if (delta.tv64 < 0)
+		return 0;
+
+	if (interval.tv64 < timer->base->resolution.tv64)
+		interval.tv64 = timer->base->resolution.tv64;
+
+	if (unlikely(delta.tv64 >= interval.tv64)) {
+		s64 incr = ktime_to_ns(interval);
+
+		orun = ktime_divns(delta, incr);
+		hrtimer_add_expires_ns(timer, incr * orun);
+		if (hrtimer_get_expires_tv64(timer) > now.tv64)
+			return orun;
+		/*
+		 * This (and the ktime_add() below) is the
+		 * correction for exact:
+		 */
+		orun++;
+	}
+	hrtimer_add_expires(timer, interval);
+
+	return orun;
+}
+```
+
+### 7.8.4 hrtimer的编译及初始化
+
+由kernel/Makefile中的如下变量可知，hrtimer不是被编译成模块，而是直接被编译进内核：
+
+```
+obj-y  = sched.o fork.o exec_domain.o panic.o printk.o \
+	    cpu.o exit.o itimer.o time.o softirq.o resource.o \
+	    sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o \
+	    signal.o sys.o kmod.o workqueue.o pid.o \
+	    rcupdate.o extable.o params.o posix-timers.o \
+	    kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o \
+	    hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
+	    notifier.o ksysfs.o sched_clock.o cred.o \
+	    async.o range.o
+```
+
+在kernel/hrtimer.c中，包含初始化函数hrtimers_init()：
+
+```
+static struct notifier_block __cpuinitdata hrtimers_nb = {
+	.notifier_call = hrtimer_cpu_notify,
+};
+
+...
+void __init hrtimers_init(void)
+{
+	// 参见hrtimer_cpu_notify()节
+	hrtimer_cpu_notify(&hrtimers_nb, (unsigned long)CPU_UP_PREPARE,
+				  (void *)(long)smp_processor_id());
+	register_cpu_notifier(&hrtimers_nb);
+#ifdef CONFIG_HIGH_RES_TIMERS
+	/*
+	 * 设置软中断HRTIMER_SOFTIRQ的处理程序为run_hrtimer_softirq()，
+	 * 参见struct softirq_节；该处理程序在函数__do_softirq()中被调用，
+	 * 参见__do_softirq()节；由此可知，定时器超时处理函数是在软中断上下文
+	 * 中执行的；处理程序run_hrtimer_softirq()
+	 * 参见HRTIMER_SOFTIRQ软中断/run_hrtimer_softirq()节
+	 */
+	open_softirq(HRTIMER_SOFTIRQ, run_hrtimer_softirq);
+#endif
+}
+```
+
+hrtimers_init()的调用关系如下：
+
+```
+start_kernel()		// 参见start_kernel()节
+-> hrtimers_init()
+```
+
+#### 7.8.4.1 hrtimer_cpu_notify()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+static int __cpuinit hrtimer_cpu_notify(struct notifier_block *self,
+					unsigned long action, void *hcpu)
+{
+	int scpu = (long)hcpu;
+
+	switch (action) {
+
+	case CPU_UP_PREPARE:
+	case CPU_UP_PREPARE_FROZEN:
+		init_hrtimers_cpu(scpu);
+		break;
+
+#ifdef CONFIG_HOTPLUG_CPU
+	case CPU_DYING:
+	case CPU_DYING_FROZEN:
+		clockevents_notify(CLOCK_EVT_NOTIFY_CPU_DYING, &scpu);
+		break;
+	case CPU_DEAD:
+	case CPU_DEAD_FROZEN:
+	{
+		clockevents_notify(CLOCK_EVT_NOTIFY_CPU_DEAD, &scpu);
+		migrate_hrtimers(scpu);
+		break;
+	}
+#endif
+
+	default:
+		break;
+	}
+
+	return NOTIFY_OK;
+}
+```
+
+##### 7.8.4.1.1 init_hrtimers_cpu()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+static void __cpuinit init_hrtimers_cpu(int cpu)
+{
+	struct hrtimer_cpu_base *cpu_base = &per_cpu(hrtimer_bases, cpu);
+	int i;
+
+	raw_spin_lock_init(&cpu_base->lock);
+
+	for (i = 0; i < HRTIMER_MAX_CLOCK_BASES; i++) {
+		cpu_base->clock_base[i].cpu_base = cpu_base;
+		timerqueue_init_head(&cpu_base->clock_base[i].active);
+	}
+
+	hrtimer_init_hres(cpu_base);
+}
+```
+
+### 7.8.5 hrtimer的超时处理
+
+内核中有如下3个入口对hrtimer系统的超时定时器进行处理：
+* 未切换到高精度模式时，在每个jiffie的tick事件中断中进行查询和处理；
+* 在HRTIMER_SOFTIRQ软中断中进行查询和处理；
+* 切换到高精度模式后，在每个clock_event_device的到期事件中断中进行查询和处理；
+
+#### 7.8.5.1 低精度模式/hrtimer_run_queues()
+
+系统并不是一开始就会支持高精度模式，而是在系统启动后的某个阶段，等所有的条件都满足后，才会切换到高精度模式。当系统还没有切换到高精度模式时，所有的高精度定时器运行在低精度模式下，在每个jiffie的tick事件中断中进行超时定时器的查询和处理，显然此时的精度和低分辨率定时器是一样的(HZ级别)。
+
+低精度模式下，每个tick事件中断中，函数```hrtimer_run_queues()```会被调用，由它完成定时器的超时处理，参见run_local_timers()节。该函数定义于kernel/hrtimer.c:
+
+```
+void hrtimer_run_queues(void)
+{
+	struct timerqueue_node *node;
+	struct hrtimer_cpu_base *cpu_base = &__get_cpu_var(hrtimer_bases);
+	struct hrtimer_clock_base *base;
+	int index, gettime = 1;
+
+	// 若当前处于高精度模式，则直接返回
+	if (hrtimer_hres_active())
+		return;
+
+	// 若当前处于低精度模式，则遍历每种时间基准系统
+	for (index = 0; index < HRTIMER_MAX_CLOCK_BASES; index++) {
+		base = &cpu_base->clock_base[index];
+		// 该时间基准系统是否存在红黑树
+		if (!timerqueue_getnext(&base->active))
+			continue;
+
+		if (gettime) {
+			// 设置每种时间基准系统的base->clock_base[*].softirq_time
+			hrtimer_get_softirq_time(cpu_base);
+			gettime = 0;
+		}
+
+		raw_spin_lock(&cpu_base->lock);
+
+		/*
+		 * 函数timerqueue_getnext()返回base->active->next，
+		 * 即红黑树中的左下节点(最早超时的定时器)；之所以能在
+		 * while循环中使用该函数，是因为__run_hrtimer()会在移除
+		 * 旧的左下节点时，	新的左下节点会被更新到base->active->next
+		 * 域中，使得循环可以继续执行，直到没有新的超时定时器为止
+		 */
+		while ((node = timerqueue_getnext(&base->active))) {
+			struct hrtimer *timer;
+
+			timer = container_of(node, struct hrtimer, node);
+			// 若最早超时的定时器还未超时，则无需处理，直接返回；
+			if (base->softirq_time.tv64 <= hrtimer_get_expires_tv64(timer))
+				break;
+			// 否则，调用该超时定时器的处理函数，参见__run_hrtimer()节
+			__run_hrtimer(timer, &base->softirq_time);
+		}
+		raw_spin_unlock(&cpu_base->lock);
+	}
+}
+```
+
+此时，函数hrtimer_run_queues()的调用关系如下：
+？？？
+
+##### 7.8.5.1.1 \__run_hrtimer()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+static void __run_hrtimer(struct hrtimer *timer, ktime_t *now)
+{
+	struct hrtimer_clock_base *base = timer->base;
+	struct hrtimer_cpu_base *cpu_base = base->cpu_base;
+	enum hrtimer_restart (*fn)(struct hrtimer *);
+	int restart;
+
+	WARN_ON(!irqs_disabled());
+
+	debug_deactivate(timer);
+	// 将该定时器从红黑树中移出，并更新base->active->next域
+	__remove_hrtimer(timer, base, HRTIMER_STATE_CALLBACK, 0);
+	timer_stats_account_hrtimer(timer);
+	fn = timer->function;
+
+	/*
+	 * Because we run timers from hardirq context, there is no chance
+	 * they get migrated to another cpu, therefore its safe to unlock
+	 * the timer base.
+	 */
+	raw_spin_unlock(&cpu_base->lock);
+	trace_hrtimer_expire_entry(timer, now);
+	restart = fn(timer);		// 调用定时器的超时处理函数
+	trace_hrtimer_expire_exit(timer);
+	raw_spin_lock(&cpu_base->lock);
+
+	/*
+	 * Note: We clear the CALLBACK bit after enqueue_hrtimer and
+	 * we do not reprogramm the event hardware. Happens either in
+	 * hrtimer_start_range_ns() or in hrtimer_interrupt()
+	 */
+	if (restart != HRTIMER_NORESTART) {
+		BUG_ON(timer->state != HRTIMER_STATE_CALLBACK);
+		// 将该定时器重新插入红黑树，并更新base->active->next域
+		enqueue_hrtimer(timer, base);
+	}
+
+	WARN_ON_ONCE(!(timer->state & HRTIMER_STATE_CALLBACK));
+
+	timer->state &= ~HRTIMER_STATE_CALLBACK;
+}
+```
+
+#### 7.8.5.2 高精度模式/hrtimer_interrupt()
+
+切换到高精度模式后，原来给CPU提供tick事件的```tick_device(clock_event_device)```会被高精度定时器系统接管，它的中断事件回调函数被设置为```hrtimer_interrupt()```，红黑树中最左下节点的定时器的超时时间被编程到该clock_event_device中，这样每次clock_event_device的中断意味着至少有一个高精度定时器超时。另外，当timekeeper系统中的时间需要修正，或者clock_event_device的到期事件时间被重新编程时，系统会发出HRTIMER_SOFTIRQ软中断，软中断的处理函数```run_hrtimer_softirq()```最终也会调用函数```hrtimer_interrupt()```对超时定时器进行处理，所以在这里只要讨论函数```hrtimer_interrupt()```的实现即可。
+
+该函数定义于kernel/hrtimer.c:
+
+```
+void hrtimer_interrupt(struct clock_event_device *dev)
+{
+	struct hrtimer_cpu_base *cpu_base = &__get_cpu_var(hrtimer_bases);
+	ktime_t expires_next, now, entry_time, delta;
+	int i, retries = 0;
+
+	BUG_ON(!cpu_base->hres_active);
+	cpu_base->nr_events++;
+	dev->next_event.tv64 = KTIME_MAX;
+
+	entry_time = now = ktime_get();
+retry:
+	expires_next.tv64 = KTIME_MAX;
+
+	raw_spin_lock(&cpu_base->lock);
+	/*
+	 * We set expires_next to KTIME_MAX here with cpu_base->lock
+	 * held to prevent that a timer is enqueued in our queue via
+	 * the migration code. This does not affect enqueueing of
+	 * timers which run their callback and need to be requeued on
+	 * this CPU.
+	 */
+	cpu_base->expires_next.tv64 = KTIME_MAX;
+
+	// 与函数hrtimer_run_queues()类似
+	for (i = 0; i < HRTIMER_MAX_CLOCK_BASES; i++) {
+		struct hrtimer_clock_base *base;
+		struct timerqueue_node *node;
+		ktime_t basenow;
+
+		if (!(cpu_base->active_bases & (1 << i)))
+			continue;
+
+		base = cpu_base->clock_base + i;
+		basenow = ktime_add(now, base->offset);
+
+		while ((node = timerqueue_getnext(&base->active))) {
+			struct hrtimer *timer;
+
+			timer = container_of(node, struct hrtimer, node);
+
+			/*
+			 * The immediate goal for using the softexpires is
+			 * minimizing wakeups, not running timers at the
+			 * earliest interrupt after their soft expiration.
+			 * This allows us to avoid using a Priority Search
+			 * Tree, which can answer a stabbing querry for
+			 * overlapping intervals and instead use the simple
+			 * BST we already have.
+			 * We don't add extra wakeups by delaying timers that
+			 * are right-of a not yet expired timer, because that
+			 * timer will have to trigger a wakeup anyway.
+			 */
+			if (basenow.tv64 < hrtimer_get_softexpires_tv64(timer)) {
+				ktime_t expires;
+
+				expires = ktime_sub(hrtimer_get_expires(timer), base->offset);
+				if (expires.tv64 < expires_next.tv64)
+					expires_next = expires;
+				break;
+			}
+
+			__run_hrtimer(timer, &basenow);
+		}
+	}
+
+	/*
+	 * Store the new expiry value so the migration code can verify
+	 * against it.
+	 */
+	cpu_base->expires_next = expires_next;
+	raw_spin_unlock(&cpu_base->lock);
+
+	/* Reprogramming necessary ? */
+	if (expires_next.tv64 == KTIME_MAX || !tick_program_event(expires_next, 0)) {
+		cpu_base->hang_detected = 0;
+		return;
+	}
+
+	/*
+	 * The next timer was already expired due to:
+	 * - tracing
+	 * - long lasting callbacks
+	 * - being scheduled away when running in a VM
+	 *
+	 * We need to prevent that we loop forever in the hrtimer
+	 * interrupt routine. We give it 3 attempts to avoid
+	 * overreacting on some spurious event.
+	 */
+	now = ktime_get();
+	cpu_base->nr_retries++;
+	if (++retries < 3)
+		goto retry;
+	/*
+	 * Give the system a chance to do something else than looping
+	 * here. We stored the entry time, so we know exactly how long
+	 * we spent here. We schedule the next event this amount of
+	 * time away.
+	 */
+	cpu_base->nr_hangs++;
+	cpu_base->hang_detected = 1;
+	delta = ktime_sub(now, entry_time);
+	if (delta.tv64 > cpu_base->max_hang_time.tv64)
+		cpu_base->max_hang_time = delta;
+	/*
+	 * Limit it to a sensible value as we enforce a longer
+	 * delay. Give the CPU at least 100ms to catch up.
+	 */
+	if (delta.tv64 > 100 * NSEC_PER_MSEC)
+		expires_next = ktime_add_ns(now, 100 * NSEC_PER_MSEC);
+	else
+		expires_next = ktime_add(now, delta);
+	tick_program_event(expires_next, 1);
+	printk_once(KERN_WARNING "hrtimer: interrupt took %llu ns\n",
+		    ktime_to_ns(delta));
+}
+```
+
+##### 7.8.5.2.1 切换到高精度模式
+
+函数```hrtimer_run_pending()```定义于kernel/hrtimer.c:
+
+```
+/*
+ * 该函数被run_timer_softirq()调用，
+ * 参见定时器的超时处理/run_timer_softirq()节
+ */
+void hrtimer_run_pending(void)
+{
+	// 若当前已处于高精度模式，则直接返回
+	if (hrtimer_hres_active())
+		return;
+
+	/*
+	 * This _is_ ugly: We have to check in the softirq context,
+	 * whether we can switch to highres and / or nohz mode. The
+	 * clocksource switch happens in the timer interrupt with
+	 * xtime_lock held. Notification from there only sets the
+	 * check bit in the tick_oneshot code, otherwise we might
+	 * deadlock vs. xtime_lock.
+	 */
+	// 否则，切换到高精度模式(判断hrtimer_hres_enabled)
+	if (tick_check_oneshot_change(!hrtimer_is_hres_enabled()))
+		hrtimer_switch_to_hres();
+}
+```
+
+函数```hrtimer_switch_to_hres()```定义于kernel/hrtimer.c:
+
+```
+/*
+ * Switch to high resolution mode
+ */
+static int hrtimer_switch_to_hres(void)
+{
+	int i, cpu = smp_processor_id();
+	struct hrtimer_cpu_base *base = &per_cpu(hrtimer_bases, cpu);
+	unsigned long flags;
+
+	if (base->hres_active)
+		return 1;
+
+	local_irq_save(flags);
+
+	/*
+	 * 设置tick_cpu_device->evtdev->event_handler = hrtimer_interrupt，
+	 * 参见tick_init_highres()节。在高精度模式下，调用hrtimer_interrupt()
+	 * 进行处理
+	 */
+	if (tick_init_highres()) {
+		local_irq_restore(flags);
+		printk(KERN_WARNING "Could not switch to high resolution "
+				    "mode on CPU %d\n", cpu);
+		return 0;
+	}
+	base->hres_active = 1;
+	for (i = 0; i < HRTIMER_MAX_CLOCK_BASES; i++)
+		base->clock_base[i].resolution = KTIME_HIGH_RES;
+
+	// 创建模拟tick事件的定时器，参见tick_setup_sched_timer()节
+	tick_setup_sched_timer();
+
+	/* "Retrigger" the interrupt to get things going */
+	retrigger_next_event(NULL);
+	local_irq_restore(flags);
+	return 1;
+}
+```
+
+###### 7.8.5.2.1.1 tick_init_highres()
+
+该函数定义于kernel/time/tick-oneshot.c:
+
+```
+#ifdef CONFIG_HIGH_RES_TIMERS
+/**
+ * tick_init_highres - switch to high resolution mode
+ *
+ * Called with interrupts disabled.
+ */
+int tick_init_highres(void)
+{
+	return tick_switch_to_oneshot(hrtimer_interrupt);
+}
+#endif
+
+...
+int tick_switch_to_oneshot(void (*handler)(struct clock_event_device *))
+{
+	struct tick_device *td = &__get_cpu_var(tick_cpu_device);
+	struct clock_event_device *dev = td->evtdev;
+
+	if (!dev || !(dev->features & CLOCK_EVT_FEAT_ONESHOT) || !tick_device_is_functional(dev)) {
+		printk(KERN_INFO "Clockevents: could not switch to one-shot mode:");
+		if (!dev) {
+			printk(" no tick device\n");
+		} else {
+			if (!tick_device_is_functional(dev))
+				printk(" %s is not functional.\n", dev->name);
+			else
+				printk(" %s does not support one-shot mode.\n", dev->name);
+		}
+		return -EINVAL;
+	}
+
+	td->mode = TICKDEV_MODE_ONESHOT;
+	dev->event_handler = handler;
+	clockevents_set_mode(dev, CLOCK_EVT_MODE_ONESHOT);
+	tick_broadcast_switch_to_oneshot();
+	return 0;
+}
+```
+
+###### 7.8.5.2.1.2 tick_setup_sched_timer()
+
+当系统切换到高精度模式后，tick_device被高精度定时器系统接管，不再定期地产生tick事件。到kernel v3.4为止，内核还没有彻底废除jiffies机制，系统还要依赖定期到来的tick事件，供进程调度系统和时间更新等操作，大量存在的低精度定时器也仍然依赖于jiffies的计数，所以尽管tick_device被接管，高精度定时器系统还是要想办法继续提供定期的tick事件。为了达到这一目的，内核使用了一个取巧的办法：既然高精度模式已经启用，可以定义一个hrtimer，把它的到期时间设定为一个jiffy的时间，当这个hrtimer到期时，在这个hrtimer的超时处理函数中，进行和原来的tick_device同样的操作，然后把该hrtimer的到期时间顺延一个jiffy周期，如此反复循环，完美地模拟了原有tick_device的功能。
+
+该函数定义于kernel/time/tick-sched.c:
+
+```
+static DEFINE_PER_CPU(struct tick_sched, tick_cpu_sched);
+
+#ifdef CONFIG_HIGH_RES_TIMERS
+void tick_setup_sched_timer(void)
+{
+	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
+	ktime_t now = ktime_get();
+
+	/*
+	 * Emulate tick processing via per-CPU hrtimers:
+	 */
+	hrtimer_init(&ts->sched_timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
+	/*
+	 * 定时器超时处理函数设为tick_sched_timer()，
+	 * 入参为ts->sched_timer，参见tick_sched_timer()节
+	 */
+	ts->sched_timer.function = tick_sched_timer;
+
+	/* Get the next period (per cpu) */
+	hrtimer_set_expires(&ts->sched_timer, tick_init_jiffy_update());
+
+	for (;;) {
+		// 定时器超时时刻设为下一个jiffy时刻
+		hrtimer_forward(&ts->sched_timer, now, tick_period);
+		hrtimer_start_expires(&ts->sched_timer, HRTIMER_MODE_ABS_PINNED);
+		/* Check, if the timer was already in the past */
+		if (hrtimer_active(&ts->sched_timer))
+			break;
+		now = ktime_get();
+	}
+
+#ifdef CONFIG_NO_HZ
+	if (tick_nohz_enabled)
+		ts->nohz_mode = NOHZ_MODE_HIGHRES;
+#endif
+}
+#endif /* HIGH_RES_TIMERS */
+```
+
+###### 7.8.5.2.1.2.1 tick_sched_timer()
+
+该函数定义于kernel/time/tick-sched.c:
+
+```
+static enum hrtimer_restart tick_sched_timer(struct hrtimer *timer)
+{
+	struct tick_sched *ts = container_of(timer, struct tick_sched, sched_timer);
+	struct pt_regs *regs = get_irq_regs();
+	ktime_t now = ktime_get();
+	int cpu = smp_processor_id();
+
+#ifdef CONFIG_NO_HZ
+	/*
+	 * Check if the do_timer duty was dropped. We don't care about
+	 * concurrency: This happens only when the cpu in charge went
+	 * into a long sleep. If two cpus happen to assign themself to
+	 * this duty, then the jiffies update is still serialized by
+	 * xtime_lock.
+	 */
+	if (unlikely(tick_do_timer_cpu == TICK_DO_TIMER_NONE))
+		tick_do_timer_cpu = cpu;
+#endif
+
+	/* Check, if the jiffies need an update */
+	if (tick_do_timer_cpu == cpu)
+		tick_do_update_jiffies64(now);
+
+	/*
+	 * Do not call, when we are not in irq context and have
+	 * no valid regs pointer
+	 */
+	if (regs) {
+		/*
+		 * When we are idle and the tick is stopped, we have to touch
+		 * the watchdog as we might not schedule for a really long
+		 * time. This happens on complete idle SMP systems while
+		 * waiting on the login prompt. We also increment the "start of
+		 * idle" jiffy stamp so the idle accounting adjustment we do
+		 * when we go busy again does not account too much ticks.
+		 */
+		if (ts->tick_stopped) {
+			touch_softlockup_watchdog();
+			ts->idle_jiffies++;
+		}
+		update_process_times(user_mode(regs));
+		profile_tick(CPU_PROFILING);
+	}
+
+	// 把本定时器的超时时刻推迟一个tick周期
+	hrtimer_forward(timer, now, tick_period);
+	// 该hrtimer定时器需要再次启动，以便产生下一个tick事件
+	return HRTIMER_RESTART;
+}
+```
+
+#### 7.8.5.3 HRTIMER_SOFTIRQ软中断/run_hrtimer_softirq()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+static void run_hrtimer_softirq(struct softirq_action *h)
+{
+	hrtimer_peek_ahead_timers();
+}
+
+...
+void hrtimer_peek_ahead_timers(void)
+{
+	unsigned long flags;
+
+	local_irq_save(flags);
+	__hrtimer_peek_ahead_timers();
+	local_irq_restore(flags);
+}
+
+...
+static void __hrtimer_peek_ahead_timers(void)
+{
+	struct tick_device *td;
+
+	/*
+	 * 若当前未处于高精度模式，则直接返回；在低精度模式下，
+	 * 调用hrtimer_run_queues()进行处理，
+	 * 参见低精度模式/hrtimer_run_queues()节
+	 */
+	if (!hrtimer_hres_active())
+		return;
+
+	/*
+	 * 若处于高精度模式，则调用hrtimer_interrupt()进行处理，
+	 * 参见高精度模式/hrtimer_interrupt()节
+	 */
+	td = &__get_cpu_var(tick_cpu_device);
+
+	// 参见切换到高精度模式节
+	if (td && td->evtdev)
+		hrtimer_interrupt(td->evtdev);
+}
+```
+
+### 7.8.6 与hrtimer有关的系统调用
+
+#### 7.8.6.1 sys_nanosleep()
+
+该系统调用定义于kernel/hrtimer.c:
+
+```
+SYSCALL_DEFINE2(nanosleep, struct timespec __user *, rqtp, struct timespec __user *, rmtp)
+{
+	struct timespec tu;
+
+	if (copy_from_user(&tu, rqtp, sizeof(tu)))
+		return -EFAULT;
+
+	if (!timespec_valid(&tu))
+		return -EINVAL;
+
+	return hrtimer_nanosleep(&tu, rmtp, HRTIMER_MODE_REL, CLOCK_MONOTONIC);
+}
+```
+
+##### 7.8.6.1.1 hrtimer_nanosleep()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+long hrtimer_nanosleep(struct timespec *rqtp, struct timespec __user *rmtp,
+		       const enum hrtimer_mode mode, const clockid_t clockid)
+{
+	struct restart_block *restart;
+	struct hrtimer_sleeper t;
+	int ret = 0;
+	unsigned long slack;
+
+	slack = current->timer_slack_ns;
+	if (rt_task(current))
+		slack = 0;
+
+	// 参见hrtimer_init_on_stack()节
+	hrtimer_init_on_stack(&t.timer, clockid, mode);
+	hrtimer_set_expires_range_ns(&t.timer, timespec_to_ktime(*rqtp), slack);
+	/*
+	 * 将当前进程休眠指定时间，参见do_nanosleep()节
+	 * 若休眠时长等于指定时间，则直接退出；否则，需要设置
+	 * current->stack->restart_block
+	 */
+	if (do_nanosleep(&t, mode))
+		goto out;
+
+	/* Absolute timers do not update the rmtp value and restart: */
+	if (mode == HRTIMER_MODE_ABS) {
+		ret = -ERESTARTNOHAND;
+		goto out;
+	}
+
+	if (rmtp) {
+		// 因为定时器未超时而退出，需要将其剩余时长保存到rmtp
+		ret = update_rmtp(&t.timer, rmtp);
+		if (ret <= 0)
+			goto out;
+	}
+
+	restart = &current_thread_info()->restart_block;
+	/*
+	 * 该函数在sys_restart_syscall()中被调用，
+	 * 参见hrtimer_nanosleep_restart()节和sys_restart_syscall()节
+	 */
+	restart->fn = hrtimer_nanosleep_restart;
+	restart->nanosleep.clockid = t.timer.base->clockid;
+	restart->nanosleep.rmtp = rmtp;
+	restart->nanosleep.expires = hrtimer_get_expires_tv64(&t.timer);
+
+	/*
+	 * 返回该错误码，表示要重新执行该系统调用，参见do_signal()节
+	 * 参见<<Understanding the Linux Kernel, 3rd Edition>>
+	 * Chaper 11: Reexecution of System Calls
+	 */
+	ret = -ERESTART_RESTARTBLOCK;
+out:
+	destroy_hrtimer_on_stack(&t.timer);
+	return ret;
+}
+```
+
+###### 7.8.6.1.1.1 do_nanosleep()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+static int __sched do_nanosleep(struct hrtimer_sleeper *t, enum hrtimer_mode mode)
+{
+	/*
+	 * 设置定时器的超时处理函数为hrtimer_wakeup()；函数hrtimer_wakeup()
+	 * 用于唤醒当前进程，并将t->task = NULL，用于退出下面的do-while循环
+	 */
+	hrtimer_init_sleeper(t, current);
+
+	do {
+		// 设置当前进程为可中断状态
+		set_current_state(TASK_INTERRUPTIBLE);
+		// 启动定时器，此时t->timer->state取值为HRTIMER_STATE_ENQUEUED
+		hrtimer_start_expires(&t->timer, mode);
+		// 检查定时器是否启动。若定时器未启动，则不挂起当前进程；
+		if (!hrtimer_active(&t->timer))
+			t->task = NULL;
+
+		// 若定时器已启动，则调度其他进程运行，当前进程被挂起，并等待唤醒
+		if (likely(t->task))
+			schedule();
+
+		hrtimer_cancel(&t->timer);
+		mode = HRTIMER_MODE_ABS;
+	/*
+	 * 退出while循环的两个条件：
+	 * 1) 定时器超时，此时t->task = NULL，参见定时器超时处理函数hrtimer_wakeup()；
+	 * 2) 其他事件唤醒当前进程，此时current->stack->flags中的标志位TIF_SIGPENDING被置位
+	 */
+	} while (t->task && !signal_pending(current));
+
+	__set_current_state(TASK_RUNNING);
+
+	/*
+	 * 若因为定时器超时而退出，则返回true，表示休眠了指定的时间长度；
+	 * 否则，返回false，表示被其他进程唤醒，休眠时长小于指定的时间长度
+	 */
+	return t->task == NULL;
+}
+```
+
+###### 7.8.6.1.1.2 hrtimer_nanosleep_restart()
+
+该函数定义于kernel/hrtimer.c:
+
+```
+long __sched hrtimer_nanosleep_restart(struct restart_block *restart)
+{
+	struct hrtimer_sleeper t;
+	struct timespec __user  *rmtp;
+	int ret = 0;
+
+	hrtimer_init_on_stack(&t.timer, restart->nanosleep.clockid, HRTIMER_MODE_ABS);
+	hrtimer_set_expires_tv64(&t.timer, restart->nanosleep.expires);
+
+	// 此处与hrtimer_nanosleep()的调用类似，参见hrtimer_nanosleep()节
+	if (do_nanosleep(&t, HRTIMER_MODE_ABS))
+		goto out;
+
+	rmtp = restart->nanosleep.rmtp;
+	if (rmtp) {
+		ret = update_rmtp(&t.timer, rmtp);
+		if (ret <= 0)
+			goto out;
+	}
+
+	/* The other values in restart are already filled in */
+	ret = -ERESTART_RESTARTBLOCK;
+out:
+	destroy_hrtimer_on_stack(&t.timer);
+	return ret;
+}
+```
+
+### 7.8.7 hrtimer编程示例
+
+源文件test_hrtimer.c如下：
+
+```
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/hrtimer.h>
+
+MODULE_LICENSE("GPL");
+
+struct hrtimer hrt;
+
+enum hrtimer_restart hrtimer_func(struct hrtimer *hrt)
+{
+	printk("*** Hrtimer time out, function: %p\n", hrt->function);
+
+	return HRTIMER_NORESTART;
+}
+
+static int __init timer_init(void)
+{
+	ktime_t now;
+
+	printk("*** Hrtimer init ***\n");
+	printk("*** hrtimer_func() add: %p\n", hrtimer_func);
+
+	now = ktime_get();
+
+	hrtimer_init(&hrt, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
+	hrt.function = hrtimer_func;
+	hrtimer_set_expires(&hrt, now);
+	hrtimer_forward(&hrt, now, ktime_set(2, 100));
+	hrtimer_start_expires(&hrt, HRTIMER_MODE_ABS);
+
+	if (hrtimer_active(&hrt))
+		printk("*** Hrtimer started succeed.\n");
+	else
+		printk("*** Hrtimer started failed.\n");
+
+	return 0;
+}
+
+static void __exit timer_exit(void)
+{
+    printk("*** Hrtimer exit ***\n");
+}
+
+module_init(timer_init);
+module_exit(timer_exit);
+```
+
+编译test_hrtimer.c所用的Makefile如下：
+
+```
+obj-m := test_hrtimer.o
+
+# 'uname -r' print kernel release
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	rm *.o *.ko *.mod.c Modules.symvers modules.order -f
+```
+
+执行命令的过程如下：
+
+```
+chenwx@chenwx ~/alex/hrtimer $ make
+make -C /lib/modules/3.5.0-17-generic/build M=/home/chenwx/alex/hrtimer modules
+make[1]: Entering directory `/usr/src/linux-headers-3.5.0-17-generic'
+  CC [M]  /home/chenwx/alex/hrtimer/test_hrtimer.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/chenwx/alex/hrtimer/test_hrtimer.mod.o
+  LD [M]  /home/chenwx/alex/hrtimer/test_hrtimer.ko
+make[1]: Leaving directory `/usr/src/linux-headers-3.5.0-17-generic'
+chenwx@chenwx ~/alex/hrtimer $ ll
+total 100
+drwxr-xr-x 3 chenwx chenwx  4096 Dec  8 11:36 .
+drwxr-xr-x 9 chenwx chenwx  4096 Dec  8 11:09 ..
+-rw-r--r-- 1 chenwx chenwx   233 Dec  8 11:10 Makefile
+-rw-r--r-- 1 chenwx chenwx    49 Dec  8 11:36 modules.order
+-rw-r--r-- 1 chenwx chenwx     0 Dec  8 11:36 Module.symvers
+-rw-r--r-- 1 chenwx chenwx   921 Dec  8 11:33 test_hrtimer.c
+-rw-r--r-- 1 chenwx chenwx  3851 Dec  8 11:36 test_hrtimer.ko
+-rw-r--r-- 1 chenwx chenwx   279 Dec  8 11:36 .test_hrtimer.ko.cmd
+-rw-r--r-- 1 chenwx chenwx   832 Dec  8 11:36 test_hrtimer.mod.c
+-rw-r--r-- 1 chenwx chenwx  2088 Dec  8 11:36 test_hrtimer.mod.o
+-rw-r--r-- 1 chenwx chenwx 26139 Dec  8 11:36 .test_hrtimer.mod.o.cmd
+-rw-r--r-- 1 chenwx chenwx  3160 Dec  8 11:36 test_hrtimer.o
+-rw-r--r-- 1 chenwx chenwx 26189 Dec  8 11:36 .test_hrtimer.o.cmd
+drwxr-xr-x 2 chenwx chenwx  4096 Dec  8 11:36 .tmp_versions
+chenwx@chenwx ~/alex/hrtimer $ sudo insmod test_hrtimer.ko
+chenwx@chenwx ~/alex/hrtimer $ lsmod | grep test_hrtimer
+test_hrtimer           12413  0 
+chenwx@chenwx ~/alex/hrtimer $ dmesg | tail
+...
+[ 3447.649338] *** Hrtimer init ***
+[ 3447.649352] *** hrtimer_func() add: e0e05000
+[ 3447.649363] *** Hrtimer started succeed.
+[ 3449.650737] *** Hrtimer time out, function: e0e05000
+chenwx@chenwx ~/alex/hrtimer $ sudo rmmod test_hrtimer
+chenwx@chenwx ~/alex/hrtimer $ dmesg | tail
+...
+[ 3447.649338] *** Hrtimer init ***
+[ 3447.649352] *** hrtimer_func() add: e0e05000
+[ 3447.649363] *** Hrtimer started succeed.
+[ 3449.650737] *** Hrtimer time out, function: e0e05000
+[ 3476.841762] *** Hrtimer exit ***
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

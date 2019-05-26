@@ -52531,6 +52531,2312 @@ PCI Standards
 * [The PCI ID Repository (new site)](http://pci-ids.ucw.cz/)
 * [The PCI ID Repository (GitHub)](https://github.com/pciutils/pciids)
 
+# 11 文件系统/fs
+
+## 11.1 文件系统简介
+
+![File_System_Structure](/assets/File_System_Structure.png)
+
+虚拟文件系统又称虚拟文件系统转换(Virual Filesystem Switch, VFS)。说它虚拟，是因为它所有的数据结构都是在系统运行以后才建立，并在卸载时删除，而在磁盘上并没有存储这些数据结构。显然，如果只有VFS系统是无法工作的，因为它的这些数据结构不能凭空而来，只有与实际的文件系统，如Ext2、Minix、MSDOS、VFAT等相结合，才能开始工作，所以VFS并不是一个真正的文件系统。与VFS相对的Ext2、Minix、MSDOS等为具体文件系统(Individual file systems)。
+
+VFS是内核的一个子系统，其它子系统只与VFS打交道，而并不与具体文件系统发生联系。对具体文件系统来说，VFS是一个管理者，而对内核的其它子系统来说，VFS是它们与具体文件系统的一个接口。Its main strength is providing a common interface to several kinds of filesystems.
+
+VFS提供一个统一的接口(即file_operatoin结构，参见文件操作/struct file_operations节)，一个具体文件系统要想被Linux支持，就必须按照这个接口编写自己的操作函数，而将自己的细节对内核其它子系统隐藏起来。因而，对内核其它子系统以及运行在操作系统之上的用户程序而言，所有的文件系统都是一样的。实际上，要支持一个新的文件系统，主要任务就是编写这些接口函数。
+
+概括来说，VFS主要有以下几个作用：
+* 对具体文件系统的数据结构进行抽象，以一种统一的数据结构进行管理。
+* 接受用户层的系统调用，如open、write、stat、link等。
+* 支持多种具体文件系统之间相互访问。
+* 接受内核其他子系统的操作请求，特别是内存管理子系统。
+
+### 11.1.1 Filesystem Hierarchy Standard (FHS)
+
+参见如下网站：
+* [Filesystem Hierarchy Standard (Specifications Archive)](http://refspecs.linuxfoundation.org/fhs.shtml)
+* [Filesystem Hierarchy Standard](http://www.pathname.com/fhs/)
+* [Wikipedia: Filesystem Hierarchy Standard](http://en.wikipedia.org/wiki/Filesystem_Hierarchy_Standard)
+
+File System Hierarchy (FHS) releases:
+
+| Version | Release Date | Notes |
+| v1.0    | 1994-02-14   | FSSTND (File System STaNDard) |
+| v1.1    | 1994-10-09   | FSSTND (File System STaNDard) |
+| v1.2    | 1995-03-28   | FSSTND (File System STaNDard) |
+| v2.0    | 1997-10-26   | FHS 2.0 is the direct successor for FSSTND 1.2. Name of the standard was changed to Filesystem Hierarchy Standard. |
+| v2.1    | 2000-04-12   | FHS (Filesystem Hierarchy Standard) |
+| v2.2    | 2001-05-23   | FHS (Filesystem Hierarchy Standard) |
+| v2.3    | 2004-01-29   | FHS (Filesystem Hierarchy Standard) |
+| v3.0    | 2015-06-03   | FHS (Filesystem Hierarchy Standard) |
+
+<p/>
+
+Run following commands to check man page of file system hierarchy (FHS):
+
+```
+$ man hier
+```
+
+## 11.2 虚拟文件系统(VFS)
+
+### 11.2.1 虚拟文件系统(VFS)相关数据结构
+
+VFS数据结构之间的关系，参见:
+
+![Filesystem_15](/assets/Filesystem_15.jpg)
+
+#### 11.2.1.1 文件系统类型/struct file_system_type
+
+该结构定义于include/linux/fs.h:
+
+```
+struct file_system_type {
+	// 文件系统的名字
+	const char *name; 
+
+	// 标志位，参见下文
+	int fs_flags;
+
+	/*
+	 * Read the superblock off the disk. 该函数的调用关系如下:
+	 * do_kern_mount() / kern_mount_data()	// 参见11.2.2.2 安装文件系统(1)/kern_mount()节
+	 * -> vfs_kern_mount(type, ..)		// 参见11.2.2.2.1 vfs_kern_mount()节
+	 *    -> mount_fs(type, ..)		// 参见11.2.2.2.1.2 mount_fs()节
+	 *       -> type->mount()
+	 */
+	struct dentry *(*mount) (struct file_system_type *, int, const char *, void *);
+
+	/*
+	 * Terminate access to the superblock. 该函数的调用关系如下:
+	 * sys_umount()				// 参见11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()节
+	 * -> mntput_no_expire()
+	 *    -> mntfree()
+	 *       -> deactivate_super()
+	 *          -> deactivate_locked_super()
+	 *             -> fs->kill_sb()
+	 */
+	void (*kill_sb) (struct super_block *);
+
+	/*
+	 * Pointer to the module implementing the filesystem.
+	 * 若该文件系统被编译进内核，则该字段为NULL，参见与模块有关的结构体节
+	 */
+	struct module *owner;
+
+	// 将系统支持的所有文件系统形成一个单链表file_systems
+	struct file_system_type *next;
+	/*
+	 * Head of a list of superblock objectshaving the same filesystem type.
+	 * 该链表是由sget()函数链接起来的，参见注册/注销文件系统节。
+	 * 注：在kernel v3.3中，变量fs_supers的类型改为struct hlist_head，
+	 * 参见15.2 哈希链表/struct hlist_head/struct hlist_node节
+	 */
+	struct list_head fs_supers;
+
+	/*
+	 * The remaining fields are used for runtime lock validation.
+	 */
+	struct lock_class_key s_lock_key;
+	struct lock_class_key s_umount_key;
+	struct lock_class_key s_vfs_rename_key;
+
+	struct lock_class_key i_lock_key;
+	struct lock_class_key i_mutex_key;
+	struct lock_class_key i_mutex_dir_key;
+};
+```
+
+其中，标志位fs_flags的取值如下:
+
+```
+/* public flags for file_system_type */
+#define FS_REQUIRES_DEV        1      /* 任何文件系统必须位于物理磁盘设备上 */
+#define FS_BINARY_MOUNTDATA    2      /* 文件系统使用二进制安装数据 */
+#define FS_HAS_SUBTYPE         4      /* 参见get_fs_type()节 */
+#define FS_REVAL_DOT	       16384  /* Check the paths ".", ".." for staleness */
+#define FS_RENAME_DOES_D_MOVE  32768  /* FS will handle d_move() during rename() internally. */
+```
+
+**NOTE**: There is only one file_system_type per filesystem, regardless of how many instances of the filesystem are mounted on the system, or whether the filesystem is even mounted at all.
+
+##### 11.2.1.1.1 文件系统链表/file_systems
+
+系统中存在一个struct file_system_type类型的全局变量file_systems，其定义于fs/filesystem.c：
+
+```
+static struct file_system_type *file_systems;
+static DEFINE_RWLOCK(file_systems_lock);
+```
+
+file_systems单链表，参见:
+
+![Filesystem_15](/assets/Filesystem_15.jpg)
+
+###### 11.2.1.1.1.1 如何向file_systems注册文件系统及其先后顺序
+
+通过函数register_filesystem()/unregister_filesystem()向单链表file_systems中注册/注销指定的文件系统，参见注册/注销文件系统节。其调用关系如下：
+
+```
+<source-code-of-specific-filesystem>
+-> fs_install(<fs-init-func>), or			// pipefs等
+   fs_install_sync(<fs-init-func>), or
+   rootfs_initcall(<fs-init-func>), or			// initramfs等，参见Initramfs编译与初始化节
+   module_init(<fs-init-func>), or			// ext2, ext3, ext4, efs, fat等
+   <fs-init-func> is called during system init		// sysfs, ramfs等
+   -> <fs-init-func>
+      -> register_filesystem(<fs-object-ptr>)		// 参见注册/注销文件系统节
+         -> <fs-object-ptr> is appended into list file_systems
+```
+
+在单链表file_systems中注册的文件系统参见查看系统中注册的文件系统节，其先后顺序是如何确定的呢？由.initcall*.init节可知，宏fs_install(), fs_install_sync(), rootfs_initcall()和module_init()分别被扩展为__early_initcall_end和__initcall_end之间的*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)，如下所示(另参见__initcall_start[], __early_initcall_end[], __initcall_end[]节):
+
+```
+.init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
+```
+
+因而，可根据如下方法来确定某文件系统在单链表file_systems中的位置：
+* 1) 该文件系统的初始化函数是被哪个宏调用的: fs_install(), fs_install_sync(), rootfs_initcall(), or module_init()
+* 2) 链接目标文件vmlinux时各.o文件的先后顺序，参见Subjects/Chapter03_Compile/Figures/Targets_Tree.jpg和bzImage.jpg
+
+##### 11.2.1.1.2 查看系统中注册的文件系统
+
+**NOTE**: 内核中file_systems为单链表，所以通过单链表file_systems来获取文件系统只能按照注册的先后顺序来查找！
+
+###### 11.2.1.1.2.1 通过/proc/filesystems查看
+
+通过下列命令显示在链表file_systems中注册的文件系统：
+
+```
+/*
+ * 按照文件系统在单链表file_systems中的顺序排列，
+ * 即按照文件系统注册的先后顺序来排列
+ */
+chenwx@chenwx ~ $ cat /proc/filesystems 
+nodev	sysfs
+nodev	rootfs
+nodev	ramfs
+nodev	bdev
+nodev	proc
+nodev	cgroup
+nodev	cpuset
+nodev	tmpfs
+nodev	devtmpfs
+nodev	debugfs
+nodev	securityfs
+nodev	sockfs
+nodev	pipefs
+nodev	devpts
+	ext3
+	ext2
+	ext4
+nodev	hugetlbfs
+	vfat
+nodev	ecryptfs
+	fuseblk
+nodev	fuse
+nodev	fusectl
+nodev	pstore
+nodev	mqueue
+nodev	binfmt_misc
+nodev	vboxsf
+
+// check the file system type of your system
+chenwx@chenwx ~ $ df -T 
+Filesystem     Type     1K-blocks      Used Available Use% Mounted on 
+/dev/sdb5      ext4      54351300  44295312   7271988  86% / 
+none           tmpfs            4         0         4   0% /sys/fs/cgroup 
+udev           devtmpfs   1972792         4   1972788   1% /dev 
+tmpfs          tmpfs       397448      1400    396048   1% /run 
+none           tmpfs         5120         0      5120   0% /run/lock 
+none           tmpfs      1987220       788   1986432   1% /run/shm 
+none           tmpfs       102400        20    102380   1% /run/user 
+/dev/sda1      fuseblk  312568828 227924832  84643996  73% /media/chenwx/Work 
+
+chenwx@chenwx ~ $ df -T -t ext4 
+Filesystem     Type 1K-blocks     Used Available Use% Mounted on 
+/dev/sdb5      ext4  54351300 44295328   7271972  86% / 
+
+chenwx@chenwx ~ $ df -T -x ext4 
+Filesystem     Type     1K-blocks      Used Available Use% Mounted on 
+none           tmpfs            4         0         4   0% /sys/fs/cgroup 
+udev           devtmpfs   1972792         4   1972788   1% /dev 
+tmpfs          tmpfs       397448      1400    396048   1% /run 
+none           tmpfs         5120         0      5120   0% /run/lock 
+none           tmpfs      1987220       788   1986432   1% /run/shm 
+none           tmpfs       102400        20    102380   1% /run/user 
+/dev/sda1      fuseblk  312568828 227924832  84643996  73% /media/chenwx/Work 
+```
+
+###### 11.2.1.1.2.2 通过编写内核模块查看
+
+编写模块showfs.c:
+
+```
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/mm_types.h>
+#include <linux/gfp.h>
+#include <linux/fs.h>
+#include <linux/kallsyms.h>
+#include <linux/string.h>
+
+MODULE_LICENSE("GPL"); 
+MODULE_AUTHOR("Chen Weixiang");
+MODULE_DESCRIPTION("Check Filesystem Module");
+
+static void mod_main(void)
+{
+	struct file_system_type *fs;
+	char *sym_name = "file_systems";
+	unsigned long sym_addr;
+	unsigned long sum = 0;
+
+	sym_addr = kallsyms_lookup_name(sym_name);
+
+	fs = (struct file_system_type *)(*(unsigned long *)sym_addr);
+	while (fs != NULL)
+	{
+		printk("fs: %s \t\tfs_flags: 0x%08X\n", fs->name, fs->fs_flags);
+		fs = fs->next;
+		sum++;
+	}
+	printk("=== total %d elements in list file_systems ===\n", sum);
+}
+
+static int __init mod_init(void)
+{
+	printk("=== insmod module ===\n");
+	mod_main();
+	return 0;
+}
+
+static void __exit mod_exit(void)
+{
+	printk("=== rmmod module ===\n\n");
+}
+
+module_init(mod_init);
+module_exit(mod_exit);
+```
+
+编写Makefile:
+
+```
+#
+# Usage: make o=<source-file-name-without-extension>
+#
+obj-m := $(o).o
+
+# 'uname –r' print kernel release
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
+```
+
+执行下列命令编译并执行：
+
+```
+chenwx@chenwx ~/test-kernel $ make o=showfs
+make -C /lib/modules/3.15.0-eudyptula-00054-g783e9e8-dirty/build M=/home/chenwx/test modules
+make[1]: Entering directory `/home/chenwx/linux'
+  Building modules, stage 2.
+  MODPOST 1 modules
+make[1]: Leaving directory `/home/chenwx/linux'
+chenwx@chenwx ~/test-kernel $ sudo insmod showfs.ko
+chenwx@chenwx ~/test-kernel $ sudo rmmod showfs
+chenwx@chenwx ~/test-kernel $ dmesg
+[ 8977.106267] === insmod module ===
+[ 8977.116806] fs: sysfs 		fs_flags: 0x00000028
+[ 8977.116810] fs: rootfs 		fs_flags: 0x00000000
+[ 8977.116811] fs: ramfs 		fs_flags: 0x00000008
+[ 8977.116813] fs: bdev 		fs_flags: 0x00000000
+[ 8977.116814] fs: proc 		fs_flags: 0x00000028
+[ 8977.116816] fs: cpuset 		fs_flags: 0x00000000
+[ 8977.116817] fs: cgroup 		fs_flags: 0x00000008
+[ 8977.116819] fs: tmpfs 		fs_flags: 0x00000008
+[ 8977.116820] fs: devtmpfs 		fs_flags: 0x00000000
+[ 8977.116821] fs: debugfs 		fs_flags: 0x00000000
+[ 8977.116823] fs: tracefs 		fs_flags: 0x00000000
+[ 8977.116824] fs: securityfs 		fs_flags: 0x00000000
+[ 8977.116826] fs: sockfs 		fs_flags: 0x00000000
+[ 8977.116827] fs: bpf 			fs_flags: 0x00000008
+[ 8977.116829] fs: pipefs 		fs_flags: 0x00000000
+[ 8977.116830] fs: devpts 		fs_flags: 0x00000018
+[ 8977.116832] fs: ext3 		fs_flags: 0x00000009
+[ 8977.116833] fs: ext2 		fs_flags: 0x00000009
+[ 8977.116834] fs: ext4 		fs_flags: 0x00000009
+[ 8977.116836] fs: hugetlbfs 		fs_flags: 0x00000000
+[ 8977.116837] fs: vfat 		fs_flags: 0x00000001
+[ 8977.116839] fs: ecryptfs 		fs_flags: 0x00000000
+[ 8977.116840] fs: fuseblk 		fs_flags: 0x0000000D
+[ 8977.116842] fs: fuse 		fs_flags: 0x0000000C
+[ 8977.116843] fs: fusectl 		fs_flags: 0x00000000
+[ 8977.116844] fs: pstore 		fs_flags: 0x00000000
+[ 8977.116845] fs: mqueue 		fs_flags: 0x00000008
+[ 8977.116847] fs: btrfs 		fs_flags: 0x00000003
+[ 8977.116848] fs: autofs 		fs_flags: 0x00000000
+[ 8977.116850] fs: binfmt_misc 		fs_flags: 0x00000000
+[ 8977.116851] === total 30 elements in list file_systems ===
+[22500.116960] === rmmod module ===
+```
+
+#### 11.2.1.2 超级块结构/struct super_block
+
+The superblock object is implemented by each filesystem and is used to store information describing that specific filesystem. This object usually corresponds to the filesystem superblock or the filesystem control block, which is stored in a special sector on disk (hence the object's name). Filesystems that are not disk-based (a virtual memory–based filesystem, such as sysfs, for example) generate the superblock on-the-fly and store it in memory.
+
+该结构定义于include/linux/fs.h:
+
+```
+struct super_block {
+	// list of all superblocks. 将所有超级块链接起来，形成双向链表super_blocks
+	struct list_head			s_list;			/* Keep this first */
+
+	/*
+	 * 包含该具体文件系统的块设备号，通过MAJOR(s_dev)和MINOR(s_dev)获得主次设备号；
+	 * 另外，可通过命令 "ls -l /dev" 查看系统中各设备的主次设备号
+	 */
+	dev_t					s_dev;			/* search index; _not_ kdev_t */ 
+
+	/*
+	 * Modified (dirty) flag, which specifies whether the superblock
+	 * is dirty, that’s, whether the data on the disk must be updated.
+	 */
+	unsigned char				s_dirt;
+
+	/*
+	 * s_blocksize_bits: block size in bits
+	 * s_blocksize: block size in bytes
+	 * => s_blocksize = 2 ^ s_blocksize_bits
+	 */
+	unsigned char				s_blocksize_bits;
+	unsigned long				s_blocksize;
+	loff_t					s_maxbytes;		/* Max file size */
+
+	/*
+	 * 本超级块所属的文件系统，参见文件系统类型/struct file_system_type节和
+	 * Subjects/Chapter11_Filesystem/Figures/Filesystem_15.jpg
+	 */
+	struct file_system_type			*s_type;
+
+	/*
+	 * 指向某个特定文件系统的、用于超级块操作的函数集合，参见超级块操作/struct super_operations节。
+	 * 通过11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值节的方式为s_op指针赋值
+	 */
+	const struct super_operations		*s_op;
+	// 指向某个特定文件系统的、用于限额操作的函数集合
+	const struct dquot_operations		*dq_op;
+	// Disk quota administration methods
+	const struct quotactl_ops		*s_qcop;
+	// Export operations used by network filesystems
+	const struct export_operations		*s_export_op;
+
+	// mount flags, refer to MS_xxx in include/linux/fs.h
+	unsigned long				s_flags;
+	/*
+	 * filesystem’s magic number，是区分不同文件系统的标志，
+	 * 参见include/linux/magic.h中的宏xxx_MAGIC
+	 */
+	unsigned long				s_magic;
+
+	/*
+	 * Dentry object of the filesystem’s root directory.
+	 * 参见目录项/struct dentry节
+	 */
+	struct dentry				*s_root;
+	struct rw_semaphore			s_umount;		// unmount semaphore
+	struct mutex				s_lock;			// 锁标志位，若被置位，则其它进程不能对该超级块操作
+	int					s_count;		// superblock reference count
+	atomic_t				s_active;		// active reference count
+
+#ifdef CONFIG_SECURITY
+	// security module
+	void					*s_security;
+#endif
+
+	// extended attribute handlers
+	const struct xattr_handler		**s_xattr;
+
+	/*
+	 * struct super_block通过s_inodes域链接到所有的
+	 * inodes (that’s struct inode->i_sb_list).
+	 * struct inode通过i_sb域链接到其所属的super_block.
+	 */
+	struct list_head			s_inodes;		/* all inodes */
+	struct hlist_bl_head			s_anon;			/* anonymous dentries for (nfs) exporting */
+
+	// list of assigned files，参见alloc_super()节
+#ifdef CONFIG_SMP
+	struct list_head __percpu 		*s_files;
+#else
+	struct list_head			s_files;
+#endif
+
+	/*
+	 * s_dentry_lru是由struct dentry->i_lru组成的链表，
+	 * s_nr_dentry_unused表示该链表中元素的个数，参见目录项/struct dentry节
+	 */
+	/* s_dentry_lru, s_nr_dentry_unused protected by dcache.c lru locks */
+	struct list_head			s_dentry_lru;		/* unused dentry lru */
+	int					s_nr_dentry_unused; 	/* # of dentry on lru */
+
+	/*
+	 * s_inode_lru是由struct inode->d_lru组成的链表
+	 * s_nr_inodes_unused表示该链表中元素的个数，参见索引节点/struct inode节
+	 */
+	/* s_inode_lru_lock protects s_inode_lru and s_nr_inodes_unused */
+	spinlock_t				s_inode_lru_lock ____cacheline_aligned_in_smp;
+	struct list_head			s_inode_lru;		/* unused inode lru */
+	int					s_nr_inodes_unused;	/* # of inodes on lru */
+
+	struct block_device			*s_bdev;		// associated block device
+	struct backing_dev_info 		*s_bdi;			// block device information
+	struct mtd_info				*s_mtd;			// memory disk information
+
+	/*
+	 * 同一种文件系统可能存在多个超级块，并通过s_instances域链接起来，
+	 * 组成双向链表file_systems->fs_supers，参见文件系统链表/file_systems节；
+	 * s_instances域会被sget()函数引用，参见注册/注销文件系统节
+	 */
+	struct list_head			s_instances;
+	struct quota_info			s_dquot;		/* Diskquota specific options */
+
+	int					s_frozen;		// frozen status
+	wait_queue_head_t			s_wait_unfrozen;	// wait queue on freeze
+
+	// 函数sget()将struct file_system_type->name拷贝到s_id[]，参见alloc_super()节
+	char 					s_id[32];		/* Informational name */
+	u8 					s_uuid[16];		/* UUID */
+
+	void 					*s_fs_info;		/* Filesystem private info */
+	// mount permissions, refer to FMODE_xxx in include/linux/fs.h
+	fmode_t					s_mode;
+
+	/* Granularity of c/m/atime in ns. Cannot be worse than a second */
+	u32					s_time_gran;
+
+	/*
+	 * The next field is for VFS *only*. No filesystems have any business
+	 * even looking at it. You had been warned. Rename semaphore.
+	 */
+	struct mutex 				s_vfs_rename_mutex;	/* Kludge */
+
+	/*
+	 * Filesystem subtype. If non-empty the filesystem type field
+	 * in /proc/mounts will be "type.subtype"
+	 */
+	char					*s_subtype;
+
+	/*
+	 * Saved mount options for lazy filesystems using generic_show_options()
+	 */
+	char __rcu				*s_options;
+	/*
+	 * 其作为默认值赋给struct dentry->d_op，
+	 * 参见如何分配dentry并为struct dentry->d_op赋值节
+	 */
+	const struct dentry_operations  	*s_d_op; 		/* default d_op for dentries */
+
+	/*
+	 * Saved pool identifier for cleancache (-1 means none)
+	 */
+	int 					cleancache_poolid;
+
+	struct shrinker				s_shrink; 		/* per-sb shrinker handle */
+};
+```
+
+##### 11.2.1.2.1 超级块链表/super_blocks
+
+struct super_block类型的全局变量为super_blocks，其定义于fs/super.c:
+
+```
+LIST_HEAD(super_blocks);
+DEFINE_SPINLOCK(sb_lock);
+```
+
+每种具体的文件系统都存在一个或多个超级块，其s_list域被链接到super_blocks链表中，参见fs/super.c:
+
+```
+/*
+ * 在安装文件系统时，调用sget()函数，参见安装文件系统(1)/kern_mount()节
+ * 和安装文件系统(2)/sys_mount()节
+ */
+struct super_block *sget(struct file_system_type *type,
+			 int (*test)(struct super_block *,void *),
+			 int (*set)(struct super_block *,void *),
+			 void *data);
+```
+
+super_blocks双向链表，参见:
+
+![Filesystem_15](/assets/Filesystem_15.jpg)
+
+##### 11.2.1.2.2 分配/注销超级块
+
+###### 11.2.1.2.2.1 分配超级块/sget()
+
+该函数为指定的文件系统分配超级块，其定义于fs/super.c:
+
+```
+/**
+ *	sget	-	find or create a superblock
+ *	@type:	filesystem type superblock should belong to
+ *	@test:	comparison callback
+ *	@set:	setup callback
+ *	@data:	argument to each of them, that’s test() and set()
+ */
+struct super_block *sget(struct file_system_type *type,
+			 int (*test)(struct super_block *, void *),
+			 int (*set)(struct super_block *, void *),
+			 void *data)
+{
+	struct super_block *s = NULL;
+	struct super_block *old;
+	int err;
+
+retry:
+	spin_lock(&sb_lock);
+	if (test) {
+		/*
+		 * 遍历双向链表type->fs_supers，检查该文件系统是否已存在满足条件的超级块，
+		 * 参见11.2.1.1.1 文件系统链表/file_systems节中的元素fs_supers
+		 */
+		list_for_each_entry(old, &type->fs_supers, s_instances) {
+			/*
+			 * 检测该文件系统是否已存在满足条件的超级块：
+			 * - 若不存在满足条件的超级块，则继续查找；
+			 */
+			if (!test(old, data))
+				continue;
+			/*
+			 * - 若已存在满足条件的超级块，则增加该超级块的引用计数，
+			 *   即old->s_active++
+			 */
+			if (!grab_super(old))
+				goto retry;
+			/*
+			 * 由下文中的b)处跳转至此处时，s指向已创建的超级块，则注销该超级块
+			 */
+			if (s) {
+				up_write(&s->s_umount);
+				// 注销该超级块，参见destroy_super()节
+				destroy_super(s);
+				s = NULL;
+			}
+			down_write(&old->s_umount);
+			if (unlikely(!(old->s_flags & MS_BORN))) {
+				deactivate_locked_super(old);
+				goto retry;
+			}
+			// 若该文件系统已存在满足条件的超级块，则直接返回该超级块
+			return old;
+		}
+	}
+	if (!s) {
+		spin_unlock(&sb_lock);
+		/*
+		 * a) 否则，分配一个新的超级块，并进行初始化，
+		 *    参见alloc_super()节
+		 */
+		s = alloc_super(type);
+		if (!s)
+			return ERR_PTR(-ENOMEM);
+		/*
+		 * b) 创建超级块的过程中，链表type->fs_supers
+		 *    中可能出现满足条件的超级块，故再次检查
+		 */
+		goto retry;
+	}
+
+	/*
+	 * 若在链表type->fs_supers中未找到满足条件的超级块，
+	 * 则使用a)处新创建的超级块，并设置该超级块的私有信息
+	 */
+	err = set(s, data);
+	if (err) {
+		spin_unlock(&sb_lock);
+		up_write(&s->s_umount);
+		// 注销该超级块，参见destroy_super()节
+		destroy_super(s);
+		return ERR_PTR(err);
+	}
+	s->s_type = type;					// 将超级块链接到其所属的文件系统
+	strlcpy(s->s_id, type->name, sizeof(s->s_id));		// s_id[]保存了文件系统的名字
+	list_add_tail(&s->s_list, &super_blocks);		// 将该超级块链接到super_blocks链表中
+	list_add(&s->s_instances, &type->fs_supers);		// 将该超级块链接到该文件系统的fs_supers链表中
+	spin_unlock(&sb_lock);
+	get_filesystem(type);					// 加载该文件系统所在的模块type->owner
+	/*
+	 * alloc_super()为s->s_shrink赋值，参见alloc_super()节；
+	 * register_shrinker()初始化s->s_shrink->nr_in_batch，
+	 * 并将s->s_shrink->list链接到链表shrinker_list的末尾
+	 */
+	register_shrinker(&s->s_shrink);
+	return s;
+}
+```
+
+函数sget()的调用关系，参见11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值节。
+
+链表shrinker_list，参见:
+
+![Filesystem_26](/assets/Filesystem_26.jpg)
+
+###### 11.2.1.2.2.1.1 alloc_super()
+
+该函数用于分配并初始化一个超级块，其定义于fs/super.c:
+
+```
+struct backing_dev_info default_backing_dev_info = {
+	.name		= "default",
+	.ra_pages	= VM_MAX_READAHEAD * 1024 / PAGE_CACHE_SIZE,
+	.state		= 0,
+	.capabilities	= BDI_CAP_MAP_COPY,
+};
+
+/**
+ *	alloc_super -	create new superblock
+ *	@type:		filesystem type superblock should belong to
+ *
+ *	Allocates and initializes a new &struct super_block.  alloc_super()
+ *	returns a pointer new superblock or %NULL if allocation had failed.
+ */
+static struct super_block *alloc_super(struct file_system_type *type)
+{
+	struct super_block *s = kzalloc(sizeof(struct super_block), GFP_USER);
+	static const struct super_operations default_op;
+
+	if (s) {
+		if (security_sb_alloc(s)) {
+			kfree(s);
+			s = NULL;
+			goto out;
+		}
+#ifdef CONFIG_SMP
+		s->s_files = alloc_percpu(struct list_head);
+		if (!s->s_files) {
+			security_sb_free(s);
+			kfree(s);
+			s = NULL;
+			goto out;
+		} else {
+			int i;
+
+			for_each_possible_cpu(i)
+				INIT_LIST_HEAD(per_cpu_ptr(s->s_files, i));
+		}
+#else
+		INIT_LIST_HEAD(&s->s_files);
+#endif
+		s->s_bdi = &default_backing_dev_info;
+		INIT_LIST_HEAD(&s->s_instances);
+		INIT_HLIST_BL_HEAD(&s->s_anon);
+		INIT_LIST_HEAD(&s->s_inodes);
+		INIT_LIST_HEAD(&s->s_dentry_lru);
+		INIT_LIST_HEAD(&s->s_inode_lru);
+		spin_lock_init(&s->s_inode_lru_lock);
+		init_rwsem(&s->s_umount);
+		mutex_init(&s->s_lock);
+		lockdep_set_class(&s->s_umount, &type->s_umount_key);
+		/*
+		 * The locking rules for s_lock are up to the
+		 * filesystem. For example ext3fs has different
+		 * lock ordering than usbfs:
+		 */
+		lockdep_set_class(&s->s_lock, &type->s_lock_key);
+		/*
+		 * sget() can have s_umount recursion.
+		 *
+		 * When it cannot find a suitable sb, it allocates a new
+		 * one (this one), and tries again to find a suitable old
+		 * one.
+		 *
+		 * In case that succeeds, it will acquire the s_umount
+		 * lock of the old one. Since these are clearly distrinct
+		 * locks, and this object isn't exposed yet, there's no
+		 * risk of deadlocks.
+		 *
+		 * Annotate this by putting this lock in a different
+		 * subclass.
+		 */
+		down_write_nested(&s->s_umount, SINGLE_DEPTH_NESTING);
+		s->s_count = 1;
+		atomic_set(&s->s_active, 1);
+		mutex_init(&s->s_vfs_rename_mutex);
+		lockdep_set_class(&s->s_vfs_rename_mutex, &type->s_vfs_rename_key);
+		mutex_init(&s->s_dquot.dqio_mutex);
+		mutex_init(&s->s_dquot.dqonoff_mutex);
+		init_rwsem(&s->s_dquot.dqptr_sem);
+		init_waitqueue_head(&s->s_wait_unfrozen);
+		s->s_maxbytes = MAX_NON_LFS;
+		s->s_op = &default_op;
+		s->s_time_gran = 1000000000;
+		s->cleancache_poolid = -1;
+
+		// 参见Subjects/Chapter11_Filesystem/Figures/Filesystem_26.jpg
+		s->s_shrink.seeks = DEFAULT_SEEKS;
+		s->s_shrink.shrink = prune_super;	// 该函数定义于fs/super.c
+		s->s_shrink.batch = 1024;
+	}
+out:
+	return s;
+}
+```
+
+###### 11.2.1.2.2.2 注销超级块/put_super()
+
+该函数用于注销超级块，其定义于fs/super.c:
+
+```
+/**
+ *	put_super -	drop a temporary reference to superblock
+ *	@sb: 		superblock in question
+ *
+ *	Drops a temporary reference, frees superblock if there's no
+ *	references left.
+ */
+void put_super(struct super_block *sb)
+{
+	spin_lock(&sb_lock);
+	__put_super(sb);
+	spin_unlock(&sb_lock);
+}
+
+/*
+ * Drop a superblock's refcount. The caller must hold sb_lock.
+ */
+void __put_super(struct super_block *sb)
+{
+	// 若该超级块不再被引用，则注销之
+	if (!--sb->s_count) {
+		/*
+		 * 将该超级块从链表super_blocks中移除并初始化，
+		 * 参见11.2.1.2.1 超级块链表/super_blocks节
+		 */
+		list_del_init(&sb->s_list);
+		// 注销该超级块，参见destroy_super()节
+		destroy_super(sb);
+	}
+}
+```
+
+###### 11.2.1.2.2.2.1 destroy_super()
+
+该函数用于注销超级块，其定义于fs/super.c:
+
+```
+/**
+ *	destroy_super -	frees a superblock
+ *	@s: 		superblock to free
+ *
+ *	Frees a superblock.
+ */
+static inline void destroy_super(struct super_block *s)
+{
+#ifdef CONFIG_SMP
+	free_percpu(s->s_files);
+#endif
+	security_sb_free(s);
+	kfree(s->s_subtype);
+	kfree(s->s_options);
+	kfree(s);
+}
+```
+
+##### 11.2.1.2.3 超级块操作/struct super_operations
+
+该结构用于struct super_block中的s_op域，其定义于include/linux/fs.h:
+
+```
+struct super_operations {
+	/*
+	 * Creates and initializes a new inode object under the
+	 * given superblock
+	 */
+   	struct inode *(*alloc_inode)(struct super_block *sb);
+	/*
+	 * Deallocates the given inode
+	 */
+	void (*destroy_inode)(struct inode *);
+
+	/*
+	 * Invoked by the VFS when an inode is dirtied (modified).
+	 * Journaling filesystems (such as ext3) use this function
+	 * to perform journal updates.
+	 */
+   	void (*dirty_inode) (struct inode *, int flags);
+	/*
+	 * Writes the given inode to disk.
+	 * The wbc parameter specifies whether the operation should
+	 * be synchronous.
+	 */
+	int (*write_inode) (struct inode *, struct writeback_control *wbc);
+	/*
+	 * Called by the VFS when the last reference to an inode is
+	 * dropped. Normal Unix filesystems do not define this function,
+	 * in which case the VFS simply deletes the inode. The caller
+	 * must hold the inode_lock.
+	 */
+	int (*drop_inode) (struct inode *);
+	void (*evict_inode) (struct inode *);
+
+	/*
+	 * Called by the VFS on unmount to release the given superblock
+	 * object.
+	 */
+	void (*put_super) (struct super_block *);
+	/*
+	 * Updates the on-disk superblock with the specified superblock.
+	 * The VFS uses this function to synchronize a modified in-memory
+	 * superblock with the disk. The caller must hold the s_lock lock.
+	 */
+	void (*write_super) (struct super_block *);
+
+	/*
+	 * Synchronizes filesystem metadata with the on-disk filesystem.
+	 * The wait parameter specifies whether the operation is synchronous.
+	 */
+	int (*sync_fs)(struct super_block *sb, int wait);
+	int (*freeze_fs) (struct super_block *);
+	int (*unfreeze_fs) (struct super_block *);
+	/*
+	 * Called by the VFS to obtain filesystem statistics. The statistics
+	 * related to the given filesystem are placed in kstatfs.
+	 */
+	int (*statfs) (struct dentry *, struct kstatfs *);
+	/*
+	 * Called by the VFS when the filesystem is remounted with new
+	 * mount options.
+	 */
+	int (*remount_fs) (struct super_block *, int *, char *);
+	/*
+	 * Called by the VFS to interrupt a mount operation. It's used
+	 * by network filesystems, such as NFS.
+	 */
+	void (*umount_begin) (struct super_block *);
+
+	int (*show_options)(struct seq_file *, struct vfsmount *);
+	int (*show_devname)(struct seq_file *, struct vfsmount *);
+	int (*show_path)(struct seq_file *, struct vfsmount *);
+	int (*show_stats)(struct seq_file *, struct vfsmount *);
+#ifdef CONFIG_QUOTA
+	ssize_t (*quota_read)(struct super_block *, int, char *, size_t, loff_t);
+	ssize_t (*quota_write)(struct super_block *, int, const char *, size_t, loff_t);
+#endif
+	int (*bdev_try_to_free_page)(struct super_block*, struct page*, gfp_t);
+	int (*nr_cached_objects)(struct super_block *);
+	void (*free_cached_objects)(struct super_block *, int);
+};
+```
+
+Some of these functions are optional; a specific filesystem can then set its value in the superblock operations structure to NULL. If the associated pointer is NULL, the VFS either calls a generic function or does nothing, depending on the operation.
+
+###### 11.2.1.2.3.1 具体文件系统的struct super_operations对象
+
+每种具体的文件系统都定义了自己的struct super_operations对象:
+
+EXT3 in fs/ext3/super.c
+
+```
+static const struct super_operations ext3_sops = {
+	.alloc_inode	= ext3_alloc_inode,
+	.destroy_inode	= ext3_destroy_inode,
+	.write_inode	= ext3_write_inode,
+	.dirty_inode	= ext3_dirty_inode,
+	.drop_inode	= ext3_drop_inode,
+	.evict_inode	= ext3_evict_inode,
+	.put_super	= ext3_put_super,
+	.sync_fs	= ext3_sync_fs,
+	.freeze_fs	= ext3_freeze,
+	.unfreeze_fs	= ext3_unfreeze,
+	.statfs		= ext3_statfs,
+	.remount_fs	= ext3_remount,
+	.show_options	= ext3_show_options,
+#ifdef CONFIG_QUOTA
+	.quota_read	= ext3_quota_read,
+	.quota_write	= ext3_quota_write,
+#endif
+	.bdev_try_to_free_page = bdev_try_to_free_page,
+};
+```
+
+NFS in fs/nfs/super.c
+
+```
+static const struct super_operations nfs_sops = {
+	.alloc_inode	= nfs_alloc_inode,
+	.destroy_inode	= nfs_destroy_inode,
+	.write_inode	= nfs_write_inode,
+	.put_super	= nfs_put_super,
+	.statfs		= nfs_statfs,
+	.evict_inode	= nfs_evict_inode,
+	.umount_begin	= nfs_umount_begin,
+	.show_options	= nfs_show_options,
+	.show_devname	= nfs_show_devname,
+	.show_path	= nfs_show_path,
+	.show_stats	= nfs_show_stats,
+	.remount_fs	= nfs_remount,
+};
+```
+
+###### 11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值
+
+每种具体文件系统的struct super_operations对象是通过如下方式赋值给super_blocks[x]->s_op的:
+
+```
+/* 手动(参见安装文件系统(2)/sys_mount()节)或自动(参见文件系统的自动安装节)调用如下函数 */
+kern_mount() / do_kern_mount()		// 参见do_kern_mount()节
+-> vfs_kern_mount()			// 参见vfs_kern_mount()节
+   -> mount_fs()			// 参见mount_fs()节
+      -> type->mount()			// 其中type为某种具体的文件系统类型，参见mount_fs()节
+         -> 方式1: 该具体文件系统的mount()函数直接或间接地调用sget()以分配超级块sb. 参见分配超级块/sget()节
+         -> 方式2: 该具体文件系统的mount()函数直接或间接地为超级块sb->s_op赋值
+```
+
+以EXT3为例，其调用过程如下：
+
+```
+/* 手动(参见安装文件系统(2)/sys_mount()节)或自动(参见文件系统的自动安装节)调用如下函数 */
+kern_mount(ext3_fs_type, ...) / do_kern_mount(ext3_fs_type, ...)
+-> vfs_kern_mount()				// 参见do_kern_mount()节
+   -> mount_fs()				// 参见mount_fs()节
+      -> &ext3_fs_type->mount()			// that’s ext3_mount()
+         -> ext3_mount()			// 参见fs/ext3/super.c
+            -> mount_bdev(..., ext3_fill_super)		
+               -> s = sget(...)			// 参见分配超级块/sget()节
+               -> ext3_fill_super(s, ...)
+                  -> s->s_op = &ext3_sops;	// 参见具体文件系统的struct super_operations对象节
+```
+
+#### 11.2.1.3 目录项/struct dentry
+
+The VFS treats directories as a type of file. In the path /bin/vi, both bin and vi are files — bin being the special directory file and vi being a regular file. An inode object represents each of these components. Despite this useful unification, the VFS often needs to perform directory-specific operations, such as path name lookup. Path name lookup involves translating each component of a path, ensuring it is valid, and following it to the next component.
+
+To facilitate this, the VFS employs the concept of a directory entry (dentry). A dentry is a specific component in a path. Using the previous example, /, bin, and vi are all dentry objects. The first two are directories and the last is a regular file. This is an important point: Dentry objects are all components in a path, including files. Resolving a path and walking its components is a nontrivial exercise, time-consuming and heavy on string operations, which are expensive to execute and cumbersome to code. The dentry object makes the whole process easier.
+
+Dentries might also include mount points. In the path /mnt/cdrom/foo, the components /, mnt, cdrom, and foo are all dentry objects. The VFS constructs dentry objects on-the-fly, as needed, when performing directory operations. Because the dentry object is not physically stored on the disk, no flag in struct dentry specifies whether the object is modified (that is, whether it is dirty and needs to be written back to disk).
+
+该结构定义于include/linux/dcache.h:
+
+```
+struct dentry {
+	/* RCU lookup touched fields */
+	// dentry flags, 其取值为include/linux/dcache.h中的宏DCACHE_XXX
+	unsigned int			d_flags;	/* protected by d_lock */
+	seqcount_t 			d_seq;		/* per dentry seqlock */
+
+	/*
+	 * 链接成哈希链表dentry_hashtable，参见fs/dcache.c
+	 * 链表类型struct hlist_bl_node，
+	 * 参见加锁哈希链表/struct hlist_bl_head/struct hlist_bl_node节
+	 */
+	struct hlist_bl_node 		d_hash;		/* lookup hash list */
+
+	// dentry object of parent
+	struct dentry 			*d_parent;	/* parent directory */
+
+	/*
+	 * dentry name, used by d_op->d_compare()
+	 * 参见目录项操作/struct dentry_operations节
+	 */
+	struct qstr 			d_name;
+
+	/*
+	 * 一个有效的dentry必定对应一个inode，因为一个dentry
+	 * 要么代表着一个文件，要么代表着一个目录(实际上目录也是文件)，
+	 * 故只要dentry有效，则其d_inode域必定指向一个inode；
+	 *
+	 * 反之则不然，一个inode可能对应着不止一个dentry:
+	 * 因为一个文件可能有不止一个文件名或路径名(一个文件可被link到其他文件名)，
+	 * 故链表struct inode->i_dentry将同一个文件的所有目录项
+	 * (通过struct dentry->d_alias域)链接到一起，
+	 * 而struct inode->i_nlink表示该链表中元素的个数
+	 */
+	struct inode 			*d_inode;	/* Where the name belongs to - NULL is negative */
+
+	// short name. d_name.name points to d_iname[]
+	unsigned char 			d_iname[DNAME_INLINE_LEN];	/* small names */
+
+	/* Ref lookup also touches following */
+	unsigned int			d_count;	/* protected by d_lock */ // usage count
+	spinlock_t			d_lock;		/* per dentry lock */
+
+	// 目录项操作，参见目录项操作/struct dentry_operations节
+	const struct dentry_operations *d_op; 
+	// 目录项树的根，即文件的超级块
+	struct super_block 		*d_sb;		/* The root of the dentry tree */
+	// 参见目录项操作/struct dentry_operations节
+	unsigned long 			d_time;		/* used by d_op->d_revalidate(). */
+	// 特定文件系统的数据，参见sysfs_open_file()节
+	void 				*d_fsdata;	/* fs-specific data */
+
+	/*
+	 * Unused list. 各d_lru链接成链表struct super_block->s_dentry_lru，
+	 * 而struct super_block->s_nr_dentry_unused表示该链表中元素的个数；
+	 * 参见超级块结构/struct super_block节
+	 */
+	struct list_head 		d_lru;		/* LRU list */
+	/*
+	 * d_child and d_rcu can share memory
+	 */
+	union {
+		// list of dentries within the same directory
+		struct list_head	d_child;	/* child of parent list */
+	 	struct rcu_head 	d_rcu;		// RCU locking
+	} d_u;
+	// subdirectories of this directory
+	struct list_head 		d_subdirs;	/* our children */
+
+	/*
+	 * list of alias inodes，同一个文件的所有目录项都通过该域链接到
+	 * 链表struct dentry->d_inode->i_dentry中，参见d_inode域的注释
+	 */
+	struct list_head 		d_alias;	/* inode alias list */
+};
+```
+
+dentry父子关系示意图:
+
+![Filesystem_16](/assets/Filesystem_16.jpg)
+
+dentry与inode关系示意图:
+
+![Filesystem_18](/assets/Filesystem_18.jpg)
+
+![Filesystem_18_dentry_inode_structure](/assets/Filesystem_18_dentry_inode_structure.png)
+
+##### 11.2.1.3.1 目录项操作/struct dentry_operations
+
+该结构用于struct dentry中的d_op域，其定义于include/linux/dcache.h:
+
+```
+struct dentry_operations {
+	/*
+	 * Determines whether the given dentry object is valid.
+	 * The VFS calls this function whenever it is preparing
+	 * to use a dentry from the dcache. Most filesystems set
+	 * this method to NULL because their dentry objects in
+	 * the dcache are always valid.
+	 */
+	int (*d_revalidate)(struct dentry *, struct nameidata *);
+	/*
+	 * Creates a hash value from the given dentry. The VFS
+	 * calls this function whenever it adds a dentry to the
+	 * hash table.
+	 */
+	int (*d_hash)(const struct dentry *, const struct inode *, struct qstr *);
+	/*
+	 * Called by the VFS to compare two filenames, name1 and
+	 * name2. Most filesystems leave this at the VFS default,
+	 * which is a simple string compare. For some filesystems,
+	 * such as FAT, a simple string compare is insufficient.
+	 * The FAT filesystem is not case sensitive and therefore
+	 * needs to implement a comparison function that disregards
+	 * case. This function requires the dcache_lock.
+	 */
+	int (*d_compare)(const struct dentry *, const struct inode *, const struct dentry *,
+			 const struct inode *, unsigned int, const char *, const struct qstr *);
+	/*
+	 * Called by the VFS when the specified dentry object's
+	 * d_count reaches zero. This function requires the
+	 * dcache_lock.
+	 */
+	int (*d_delete)(const struct dentry *);
+	/*
+	 * Called by the VFS when the specified dentry is going
+	 * to be freed. The default function does nothing.
+	 */
+	void (*d_release)(struct dentry *);
+	void (*d_prune)(struct dentry *);
+	/*
+	 * Called by the VFS when a dentry object loses its associated
+	 * inode: (say, because the entry was deleted from the disk).
+	 * By default, the VFS simply calls the iput() function to
+	 * release the inode. If a filesystem overrides this function,
+	 * it must also call iput() in addition to performing whatever
+	 * filesystem-specific work it requires.
+	 */
+	void (*d_iput)(struct dentry *, struct inode *);
+	char *(*d_dname)(struct dentry *, char *, int);
+	struct vfsmount *(*d_automount)(struct path *);
+	int (*d_manage)(struct dentry *, bool);
+} ____cacheline_aligned;
+```
+
+##### 11.2.1.3.2 如何分配dentry并为struct dentry->d_op赋值
+
+函数d_alloc()和d_delete()分别用于分配和注销dentry，其定义于fs/dcache.c:
+
+```
+struct dentry *d_alloc(struct dentry * parent, const struct qstr *name)
+{
+	/*
+	 * 从缓存dentry_cache中分配dentry，并为dentry->d_op赋默认值，
+	 * 参见__d_alloc()节: dentry->d_op = parent->d_sb->s_d_op;
+	 * 即: struct dentry->d_op来自于struct super_block->s_d_op
+	 */
+	struct dentry *dentry = __d_alloc(parent->d_sb, name);
+	if (!dentry)
+		return NULL;
+
+	spin_lock(&parent->d_lock);
+	/*
+	 * don't need child lock because it is not subject
+	 * to concurrency here.
+	 */
+	__dget_dlock(parent);
+	dentry->d_parent = parent;
+	list_add(&dentry->d_u.d_child, &parent->d_subdirs);
+	spin_unlock(&parent->d_lock);
+
+	return dentry;
+}
+
+void d_delete(struct dentry * dentry)
+{
+	struct inode *inode;
+	int isdir = 0;
+	/*
+	 * Are we the only user?
+	 */
+again:
+	spin_lock(&dentry->d_lock);
+	inode = dentry->d_inode;
+	isdir = S_ISDIR(inode->i_mode);
+	if (dentry->d_count == 1) {
+		if (inode && !spin_trylock(&inode->i_lock)) {
+			spin_unlock(&dentry->d_lock);
+			cpu_relax();
+			goto again;
+		}
+		dentry->d_flags &= ~DCACHE_CANT_MOUNT;
+		dentry_unlink_inode(dentry);
+		fsnotify_nameremove(dentry, isdir);
+		return;
+	}
+
+	if (!d_unhashed(dentry))
+		__d_drop(dentry);
+
+	spin_unlock(&dentry->d_lock);
+
+	fsnotify_nameremove(dentry, isdir);
+}
+```
+
+#### 11.2.1.4 索引节点/struct inode
+
+The inode (index node) object represents all the information needed by the kernel to manipulate a file or directory. For Unix-style filesystems, this information is simply read from the on-disk inode. If a filesystem does not have inodes, however, the filesystem must obtain the information from wherever it is stored on the disk. Filesystems without inodes generally store file-specific information as part of the file; unlike Unix-style filesystems, they do not separate file data from its control information. Some modern filesystems do neither and store file metadata as part of an on-disk database. Whatever the case, the inode object is constructed in memory in whatever manner is applicable to the filesystem.
+
+文件系统处理文件所需要的所有信息都放在称为索引节点的数据结构中。文件名可以随时更改，但是索引节点对文件是唯一的，并且随文件的存在而存在。具体文件系统的索引节点是存储在磁盘上的，是一种静态结构，要使用它，必须调入内存，填写VFS的索引节点，因此也称VFS索引节点是动态节点。
+
+An inode represents each file on a filesystem, but the inode object is constructed in memory only as files are accessed.
+
+该结构定义于include/linux/fs.h:
+
+```
+struct inode {
+	/*
+	 * 文件的类型与访问权限，可取下列值，其定义于include/linux/stat.h:
+	 * S_IFLNK, S_IFREG, S_IFDIR, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK
+	 */
+	umode_t				i_mode;
+	/*
+	 * inode的标志位，可取下列值，其定义于include/linux/fs.h:
+	 * IOP_FASTPERM, IOP_LOOKUP, IOP_NOFOLLOW
+	 */
+	unsigned short			i_opflags;
+
+	uid_t				i_uid; 		// user id of owner
+	gid_t				i_gid; 		// group id of owner
+	unsigned int			i_flags; 	// 文件系统的安装标志
+
+#ifdef CONFIG_FS_POSIX_ACL
+	struct posix_acl		*i_acl;
+	struct posix_acl		*i_default_acl;
+#endif
+
+	/*
+	 * 索引节点操作，参见索引节点操作/struct inode_operations节，
+	 * 其值根据i_mode的取值不同而不同，参见如何分配inode并为struct inode->i_op赋值节
+	 */
+	const struct inode_operations	*i_op;
+	/*
+	 * associated superblock.
+	 * struct super_block通过s_inodes域链接到所有的inodes (that’s struct inode->i_sb_list).
+	 * struct inode通过i_sb域链接到其所属的super_block.
+	 */
+	struct super_block		*i_sb;
+	/*
+	 * 链接所有可交换的页面，associated mapping.
+	 * 参见6.2.7 struct vm_area_struct和struct address_space节
+	 */
+	struct address_space		*i_mapping;
+
+	// security module
+#ifdef CONFIG_SECURITY
+	void				*i_security;
+#endif
+
+	/* Stat data, not accessed from path walking */
+	unsigned long			i_ino; 		// inode number
+
+	/*
+	 * Filesystems may only read i_nlink directly.  They shall use the
+	 * following functions for modification:
+	 *
+	 *    (set|clear|inc|drop)_nlink
+	 *    inode_(inc|dec)_link_count
+	 */
+	union {
+		// number of hard links. 表示链表i_dentry中元素的个数
+		const unsigned int 	i_nlink;
+		unsigned int 		__i_nlink;
+	};
+	dev_t				i_rdev; 	// real device node
+
+	struct timespec			i_atime; 	// last access time
+	struct timespec			i_mtime; 	// last modify time
+	struct timespec			i_ctime; 	// last change time
+
+	spinlock_t			i_lock;		/* i_bytes, i_blocks, maybe i_size */
+	unsigned short			i_bytes;	// bytes consumed
+	blkcnt_t			i_blocks; 	// file size in blocks
+	loff_t				i_size; 	// file size in bytes
+
+	// serializer for i_size
+#ifdef __NEED_I_SIZE_ORDERED
+	seqcount_t			i_size_seqcount;
+#endif
+
+	/* Misc */
+	unsigned long			i_state; 	// 索引节点的状态标志
+	struct mutex			i_mutex;
+
+	unsigned long			dirtied_when;	/* jiffies of first dirtying */
+
+	struct hlist_node		i_hash; 	// 指向哈希链表的指针
+	struct list_head		i_wb_list;	/* backing dev IO list */
+
+	/*
+	 * Unused list.
+	 * struct inode->i_lru链接成链表struct super_block->s_inode_lru;
+	 * struct super_block->s_nr_inodes_unused表示该链表中元素的个数，
+	 * 参见超级块结构/struct super_block节
+	 */
+	struct list_head		i_lru;		/* inode LRU list */
+
+	// 链接到struct super_block->s_inodes
+	struct list_head		i_sb_list;
+
+	/*
+	 * 参见目录项/struct dentry节:
+	 * struct inode->i_dentry将属于同一文件的dentry(通过struct dentry->d_alias)链接到一起;
+	 * struct dentry->d_inode指向该目录项所属的inode.
+	 */
+	union {
+	struct list_head		i_dentry;
+		struct rcu_head		i_rcu;
+	};
+	atomic_t			i_count; 	// reference counter，若为0，表明该节点可丢弃或被重新使用
+	unsigned int			i_blkbits;	// block size in bits
+	u64				i_version; 	// versioning number
+	atomic_t			i_dio_count;
+	atomic_t			i_writecount;	// 写进程的引用计数
+	// 文件操作，参见文件操作/struct file_operations节
+	const struct file_operations	*i_fop;		/* former ->i_op->default_file_ops */
+	struct file_lock		*i_flock;	// file lock list
+	struct address_space		i_data;		// mapping for device
+#ifdef CONFIG_QUOTA
+	struct dquot			*i_dquot[MAXQUOTAS];	// disk quotas for inode
+#endif
+	struct list_head		i_devices; 	// list of block devices
+	// These three pointers are stored in a union because a given inode can represent only
+	// one of these (or none of them) at a time.
+	union {
+		struct pipe_inode_info *i_pipe; 	// pipe information
+		struct block_device	*i_bdev; 	// block device driver
+		struct cdev		*i_cdev; 	// character device driver
+	};
+
+	__u32				i_generation;	// 为以后的开发保留
+
+#ifdef CONFIG_FSNOTIFY
+	__u32				i_fsnotify_mask; /* all events this inode cares about */
+	struct hlist_head		i_fsnotify_marks;
+#endif
+
+#ifdef CONFIG_IMA
+	atomic_t			i_readcount;	/* struct files open RO */
+#endif
+	void				*i_private;	/* fs or device private pointer */
+};
+```
+
+struct inode->i_mode域的取值:
+
+![Filesystem_25](/assets/Filesystem_25.jpg)
+
+dentry与inode关系示意图:
+
+![Filesystem_18](/assets/Filesystem_18.jpg)
+
+![Filesystem_18_dentry_inode_structure](/assets/Filesystem_18_dentry_inode_structure.png)
+
+##### 11.2.1.4.1 索引节点操作/struct inode_operations
+
+该结构定义于include/linux/fs.h:
+
+```
+struct inode_operations {
+	/*
+	 * Searches a directory for an inode corresponding to
+	 * a filename specified in the given dentry.
+	 */
+	struct dentry * (*lookup) (struct inode *,struct dentry *, struct nameidata *);
+	/*
+	 * Called by the VFS to translate a symbolic link to the
+	 * inode to which it points. The link pointed at by dentry
+	 * is translated and the result is stored in the nameidata
+	 * structure.
+	 */
+	void * (*follow_link) (struct dentry *, struct nameidata *);
+	/*
+	 * Checks whether the specified access mode is allowed for
+	 * the file referenced by inode. This function returns zero
+	 * if the access is allowed and a negative error code otherwise.
+	 * Most filesystems set this field to NULL and use the generic
+	 * VFS method, which simply compares the mode bits in the inode's
+	 * objects to the given mask. More complicated filesystems, such
+	 * as those supporting access control lists (ACLs), have a specific
+	 * permission() method.
+	 */
+	int (*permission) (struct inode *, int);
+	struct posix_acl * (*get_acl)(struct inode *, int);
+
+	/*
+	 * Called by the readlink() system call to copy at most buflen
+	 * bytes of the full path associated with the symbolic link
+	 * specified by dentry into the specified buffer.
+	 */
+	int (*readlink) (struct dentry *, char __user *, int);
+	/*
+	 * Called by the VFS to clean up after a call to follow_link().
+	 */
+	void (*put_link) (struct dentry *, struct nameidata *, void *);
+
+	/*
+	 * VFS calls this function from the creat() and open() system
+	 * calls to create a new inode associated with the given dentry
+	 * object with the specified initial mode.
+	 */
+	int (*create) (struct inode *, struct dentry *,int, struct nameidata *);
+
+	/*
+	 * Invoked by the link() system call to create a hard link of the
+	 * file old_dentry in the directory dir with the new filename dentry.
+	 */
+	int (*link) (struct dentry *, struct inode *, struct dentry *);
+	/*
+	 * Called from the unlink() system call to remove the inode
+	 * specified by the directory entry dentry from the directory dir.
+	 */
+	int (*unlink) (struct inode *, struct dentry *);
+	/*
+	 * Called from the symlink() system call to create a symbolic link
+	 * named symname to the file represented by dentry in the directory dir.
+	 */
+	int (*symlink) (struct inode *, struct dentry *, const char *);
+
+	/*
+	 * Called from the mkdir() system call to create a new directory with
+	 * the given initial mode.
+	 */
+	int (*mkdir) (struct inode *, struct dentry *, int);
+	/*
+	 * Called by the rmdir() system call to remove the directory
+	 * referenced by dentry from the directory dir.
+	 */
+	int (*rmdir) (struct inode *, struct dentry *);
+
+	/*
+	 * Called by the mknod() system call to create a special file
+	 * (device file, named pipe, or socket). The file is referenced
+	 * by the device rdev and the directory entry dentry in the
+	 * directory dir. The initial permissions are given via mode.
+	 */
+	int (*mknod) (struct inode *, struct dentry *, int, dev_t);
+	/*
+	 * Called by the VFS to move the file specified by old_dentry
+	 * from the old_dir directory to the directory new_dir, with
+	 * the filename specified by new_dentry.
+	 */
+	int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *);
+	/*
+	 * Called by the VFS to modify the size of the given file.
+	 * Before invocation, the inode's i_size field must be set
+	 * to the desired new size.
+	 */
+	void (*truncate) (struct inode *);
+
+	/*
+	 * Called from notify_change() to notify a "change event" after
+	 * an inode has been modified.
+	 */
+	int (*setattr) (struct dentry *, struct iattr *);
+	/*
+	 * Invoked by the VFS upon noticing that an inode needs to be
+	 * refreshed from disk.
+	 */
+	int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *);
+
+	/*
+	 * Used by the VFS to set the extended attribute name to the
+	 * value value on the file referenced by dentry.
+	 */
+	int (*setxattr) (struct dentry *, const char *, const void *, size_t, int);
+	/*
+	 * Used by the VFS to copy into value the value of
+	 * the extended attribute name for the specified file.
+	 */
+	ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t);
+	/*
+	 * Copies the list of all attributes for the specified file
+	 * into the buffer list.
+	 */
+	ssize_t (*listxattr) (struct dentry *, char *, size_t);
+	/*
+	 * Removes the given attribute from the given file.
+	 */
+	int (*removexattr) (struct dentry *, const char *);
+
+	void (*truncate_range)(struct inode *, loff_t, loff_t);
+	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start, u64 len);
+} ____cacheline_aligned;
+```
+
+##### 11.2.1.4.2 如何分配inode并为struct inode->i_op赋值
+
+struct super_operations->alloc_inode/destroy_inode分别用于分配和注销inode，并分别通过alloc_inode()和destroy_inode()调用，其定义于fs/inode.c:
+
+```
+static struct inode *alloc_inode(struct super_block *sb)
+{
+	struct inode *inode;
+
+	/*
+	 * 若该超级块存在函数alloc_inode()，则调用该函数为inode分配空间；
+	 * 否则，从缓存inode_cachep中为inode分配空间，参见inode_init()节和
+	 * 6.5.1.1.3.1 kmem_cache_zalloc()节
+	 */
+	if (sb->s_op->alloc_inode)
+		inode = sb->s_op->alloc_inode(sb);
+	else
+		inode = kmem_cache_alloc(inode_cachep, GFP_KERNEL);
+
+	if (!inode)
+		return NULL;
+
+	/*
+	 * perform inode structure intialisation.
+	 * 若初始化成功，则返回分配的inode节点；
+	 * 否则，注销分配的inode空间，并返回NULL
+	 */
+	if (unlikely(inode_init_always(sb, inode))) {
+		if (inode->i_sb->s_op->destroy_inode)
+			inode->i_sb->s_op->destroy_inode(inode);
+		else
+			kmem_cache_free(inode_cachep, inode);
+		return NULL;
+	}
+
+	return inode;
+}
+
+static void destroy_inode(struct inode *inode)
+{
+	BUG_ON(!list_empty(&inode->i_lru));
+	__destroy_inode(inode);
+
+	/* 
+	 * 若该超级块存在函数destroy_inode()，则调用该函数收回inode占用的空间；
+	 * 否则，调用函数i_callback()将inode占用的空间返回到缓存inode_cachep中
+	 */
+	if (inode->i_sb->s_op->destroy_inode)
+		inode->i_sb->s_op->destroy_inode(inode);
+	else
+		call_rcu(&inode->i_rcu, i_callback);
+}
+```
+
+以EXT3为例，分配inode并为struct inode->i_op赋值的过程如下：
+
+```
+/* 手动(参见安装文件系统(2)/sys_mount()节)或自动(参见文件系统的自动安装节)调用如下函数 */
+kern_mount(ext3_fs_type, ...) / do_kern_mount(ext3_fs_type, ...)
+-> vfs_kern_mount()				// 参见do_kern_mount()节
+   -> mount_fs()				// 参见mount_fs()节
+      -> &ext3_fs_type->mount()			// that’s ext3_mount()
+         -> ext3_mount()			// 参见fs/ext3/super.c
+            -> mount_bdev(..., ext3_fill_super)
+               -> s = sget(...)			// 参见分配超级块/sget()节和11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值节
+               -> ext3_fill_super(s, ...)
+                  -> s->s_op = &ext3_sops;	// 参见具体文件系统的struct super_operations对象节
+                  -> root = ext3_iget(sb, EXT3_ROOT_INO);
+                     /* 1) 分配ext3文件系统的inode */
+                     -> inode = iget_locked(sb, ino);
+                        -> inode = alloc_inode(sb);
+                     /* 2) 根据inode->i_mode的取值，为inode->i_op赋值 */
+                     -> if (S_ISREG(inode->i_mode)) {
+                            inode->i_op = &ext3_file_inode_operations;
+                        } else if (S_ISDIR(inode->i_mode)) {
+                            inode->i_op = &ext3_dir_inode_operations;
+                        } else if (S_ISLNK(inode->i_mode)) {
+                            if (ext3_inode_is_fast_symlink(inode)) {
+                                inode->i_op = &ext3_fast_symlink_inode_operations;
+                            } else {
+                                inode->i_op = &ext3_symlink_inode_operations;
+                        } else {
+                            inode->i_op = &ext3_special_inode_operations;
+                        }
+```
+
+##### 11.2.1.4.3 如何查看inode信息
+
+###### 11.2.1.4.3.1 inode的内容
+
+inode包含文件的元信息，具体来说有以下内容:
+* 文件的字节数
+* 文件拥有者的User ID
+* 文件的Group ID
+* 文件的读、写、执行权限
+* 文件的时间戳，共有三个：
+	* ctime指inode上一次变动的时间
+	* mtime指文件内容上一次变动的时间
+	* atime指文件上一次打开的时间
+* 链接数，即有多少文件名指向这个inode
+* 文件数据block的位置
+
+即，除了文件名以外的所有文件信息，都保存在inode中。
+
+可使用stat命令查看某文件的inode信息:
+
+```
+chenwx@chenwx ~ $ stat README.Alex 
+  File: 'README.Alex'
+  Size: 2571      	Blocks: 8          IO Block: 4096   regular file
+Device: 815h/2069d	Inode: 787323      Links: 1
+Access: (0600/-rw-------)  Uid: ( 1000/  chenwx)   Gid: ( 1000/  chenwx)
+Access: 2016-10-26 22:25:35.834554345 +0800
+Modify: 2015-06-24 21:07:06.384638316 +0800
+Change: 2015-06-24 21:07:06.400638396 +0800
+ Birth: -
+```
+
+###### 11.2.1.4.3.2 inode的大小
+
+inode也会消耗硬盘空间，所以硬盘格式化的时候，操作系统自动将硬盘分成两个区域:
+* 数据区，用于存放文件数据
+* inode区(inode table)，用于存放inode所包含的信息
+
+每个inode节点的大小，一般是128字节或256字节。inode节点的总数，在硬盘格式化时就给定，一般是每1KB或每2KB就设置一个inode。假定在一块1GB的硬盘中，每个inode节点的大小为128字节，每1KB就设置一个inode，那么inode table的大小就会达到128MB，占整块硬盘的12.8%。
+
+由于每个文件都必须有一个对应的inode，因此有可能发生inode已经用光，但是硬盘还未存满的情况。此时，就无法在该硬盘上创建新文件了。
+
+可以使用df命令查看每个硬盘分区的inode总数和已经使用的数量:
+
+```
+chenwx@chenwx ~ $ df -i
+Filesystem       Inodes  IUsed    IFree IUse% Mounted on
+udev             491108    552   490556    1% /dev
+tmpfs            496451    834   495617    1% /run
+/dev/sdb5       3465216 895891  2569325   26% /
+tmpfs            496451     11   496440    1% /dev/shm
+tmpfs            496451      5   496446    1% /run/lock
+tmpfs            496451     18   496433    1% /sys/fs/cgroup
+cgmfs            496451     14   496437    1% /run/cgmanager/fs
+tmpfs            496451     20   496431    1% /run/user/1000
+/dev/sda1      40467436 140535 40326901    1% /media/chenwx/Work
+```
+
+查看每个inode节点的大小，可以用如下命令:
+
+```
+chenwx@chenwx ~ $ mount | grep sdb5
+/dev/sdb5 on / type ext4 (rw,relatime,errors=remount-ro,data=ordered)
+
+chenwx@chenwx ~ $ sudo dumpe2fs -h /dev/sdb5 | grep "Inode size"
+dumpe2fs 1.42.13 (17-May-2015)
+Inode size:	          256
+```
+
+###### 11.2.1.4.3.3 inode号码
+
+每个inode都有一个号码，操作系统用inode号码来识别不同的文件。
+
+注: Unix/Linux系统内部不使用文件名，而使用inode号码来识别文件。对于系统来说，文件名只是inode号码便于识别的别称或者绰号。
+
+表面上，用户通过文件名打开文件。实际上，系统内部这个过程分成三步：
+* 1) 首先，系统找到该文件名对应的inode号码；
+* 2) 其次，通过inode号码获取inode信息；
+* 3) 最后，根据inode信息找到文件数据所在的block，即可读出数据。
+
+通过ls -i命令可以查看文件名对应的inode号码:
+
+```
+chenwx@chenwx ~ $ ls -i README.Alex
+787323 README.Alex
+
+chenwx@chenwx ~ $ ls -i linux
+1580793 COPYING			1604857 block	  	2251773 mm
+1573039 CREDITS			1604945 crypto	  	2251883 net
+1580797 Documentation		1605093 drivers   	2253602 samples
+1582342 Kbuild			1605876 firmware  	2253723 scripts
+1600649 Kconfig			1606062 fs	  	2254036 security
+1574290 MAINTAINERS		1989201 include   	2254234 sound
+1574304 Makefile		1990451 init	  	1622467 tools
+1582343 README			1990465 ipc	  	2266507 usr
+1582344 REPORTING-BUGS		1990480 kernel	  	2266513 virt
+1600659 arch			2251467 lib
+```
+
+###### 11.2.1.4.3.4 硬链接
+
+一般情况下，文件名和inode号码是"一一对应"的关系，即每个inode号码对应一个文件名。但是，Unix/Linux系统允许多个文件名指向同一个inode号码。这就意味着:
+* 可以用不同的文件名访问同样的内容；
+* 对文件内容进行修改，会影响到所有文件名；
+* 删除一个文件名，不会影响另一个文件名的访问。
+
+这种情况就被称为"硬链接"(hard link)，例如:
+
+```
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 1 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+
+chenwx@chenwx ~ $ ln update_repo.sh update_repo.sh.ln1
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 2 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+788014 -rwx--x--x 2 chenwx chenwx 1277 Oct 27  2014 update_repo.sh.ln1
+
+chenwx@chenwx ~ $ ln update_repo.sh update_repo.sh.ln2
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 3 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+788014 -rwx--x--x 3 chenwx chenwx 1277 Oct 27  2014 update_repo.sh.ln1
+788014 -rwx--x--x 3 chenwx chenwx 1277 Oct 27  2014 update_repo.sh.ln2
+
+chenwx@chenwx ~ $ rm -rf update_repo.sh.ln2
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 2 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+788014 -rwx--x--x 2 chenwx chenwx 1277 Oct 27  2014 update_repo.sh.ln1
+
+chenwx@chenwx ~ $ rm -rf update_repo.sh.ln1
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 1 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+```
+
+创建了硬链接后，源文件与目标文件的inode号码相同，都指向同一个inode。inode信息中有一项叫做"链接数"，用于记录指向该inode的文件名总数，此时就会增加1。反之，删除一个文件名，就会使得inode节点中的"链接数"减1。当这个值减到0，表明没有文件名指向这个inode，系统就会回收这个inode号码，以及其所对应block区域。
+
+这里顺便说一下目录文件的"链接数"。创建目录时，默认会生成两个目录项: "."和".."。前者的inode号码就是当前目录的inode号码，等同于当前目录的"硬链接"；后者的inode号码就是当前目录的父目录的inode号码，等同于父目录的"硬链接"。所以，任何一个目录的"硬链接"总数，总是等于2加上它的子目录总数(含隐藏目录)。
+
+###### 11.2.1.4.3.4 软链接
+
+文件A和文件B的inode号码虽然不一样，但是文件A的内容是文件B的路径。读取文件A时，系统会自动将访问者导向文件B。因此，无论打开哪一个文件，最终读取的都是文件B。这时，文件A就称为文件B的"软链接"(soft link)或者"符号链接"(symbolic link)。
+
+这意味着，文件A依赖于文件B而存在，如果删除了文件B，打开文件A就会报错: "No such file or directory"。这是软链接与硬链接最大的不同: 文件A指向文件B的文件名，而不是文件B的inode号码，文件B的inode"链接数"不会因此发生变化。
+
+```
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 1 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+
+chenwx@chenwx ~ $ ln -s update_repo.sh update_repo.sh.ln1
+chenwx@chenwx ~ $ ls -li update_repo.sh*
+788014 -rwx--x--x 1 chenwx chenwx 1277 Oct 27  2014 update_repo.sh
+787836 lrwxrwxrwx 1 chenwx chenwx   14 Dec  1 20:46 update_repo.sh.ln1 -> update_repo.sh
+```
+
+###### 11.2.1.4.3.5 inode的特殊作用
+
+由于inode号码与文件名的分离，这种机制导致了一些Unix/Linux系统特有的现象:
+* 1) 若文件名包含特殊字符，则该文件无法正常删除。此时，直接删除inode节点，就能起到删除文件的作用。
+* 2) 移动文件或重命名文件，只是改变文件名，不影响inode号码。
+* 3) 打开一个文件以后，系统就以inode号码来识别这个文件，不再考虑文件名。因此，通常来说，系统无法根据inode号码得知文件名。
+
+第3点使得软件更新变得简单，可以在不关闭软件的情况下进行更新，不需要重启。因为系统通过inode号码，识别运行中的文件，不通过文件名。更新的时候，新版文件以同样的文件名，生成一个新的inode，不会影响到运行中的文件。等到下一次运行这个软件的时候，文件名就自动指向新版文件，旧版文件的inode则被回收。
+
+#### 11.2.1.5 文件/struct file
+
+The file object is used to represent a file opened by a process. Processes deal directly with files, not superblocks, inodes, or dentries.
+
+The file object is the in-memory representation of an open file. The object (but not the physical file) is created in response to the open() system call and destroyed in response to the close() system call. All these file-related calls are actually methods defined in the file operations table. Because multiple processes can open and manipulate a file at the same time, there can be multiple file objects in existence for the same file. The file object merely represents a process’s view of an open file. The object points back to the dentry (which in turn points back to the inode) that actually represents the open file. The inode and dentry objects, of course, are unique.
+
+Similar to the dentry object, the file object does not actually correspond to any on-disk data. Therefore, no flag in the object represents whether the object is dirty and needs to be written back to disk. The file object does point to its associated dentry object via the f_dentry pointer. The dentry in turn points to the associated inode, which reflects whether the file itself is dirty.
+
+在Linux中，进程是通过文件描述符(file descriptors，fd)而不是文件名来访问文件的，文件描述符实际上是一个整数。Linux中规定每个进程能最多能同时使用NR_OPEN个文件描述符，其定义于include/linux/limits.h:
+
+```
+#define NR_OPEN		1024
+```
+
+每个文件都有一个32位的数字来表示下一个读写的字节位置，该数字叫做文件位置。每次打开一个文件，除非明确要求，文件位置都被置为0，即文件的开始处，此后的读或写操作都将从文件的开始处执行，但可以通过执行系统调用struct file_operations->lseek(随机存储)对这个文件位置进行修改。Linux中专门用struct file来保存打开文件的文件位置，该结构被称为打开的文件描述(open file description)。这个数据结构的设置是煞费苦心的，因为它与进程的联系非常紧密，可以说这是VFS中一个比较难于理解的数据结构。
+
+首先，为什么不把文件位置干脆存放在索引节点中，而要多此一举，设一个新的数据结构呢？Linux中的文件是能够共享的，假如把文件位置存放在索引节点中，则如果有两个或更多个进程同时打开同一个文件时，它们将去访问同一个索引节点，于是一个进程的lseek操作将影响到另一个进程的读操作，这显然是不允许也是不可想象的。
+
+另一个想法是既然进程是通过文件描述符访问文件的，为什么不用一个与文件描述符数组相平行的数组来保存每个打开文件的文件位置？这个想法也是不能实现的，原因就在于在生成一个新进程时，子进程要共享父进程的所有信息，包括文件描述符数组。
+
+一个文件不仅可以被不同的进程分别打开，而且也可以被同一个进程先后多次打开。如果一个进程先后多次打开同一个文件，则每一次打开都要分配一个新的文件描述符，并且指向一个新的file结构，尽管它们都指向同一个索引节点，但是，如果一个子进程不和父进程共享同一个file结构，而是也如上面一样，分配一个新的file结构，会出现什么情况了？来看一个例子：
+
+假设有一个输出重定位到某文件A的shell script，我们知道，shell是作为一个进程运行的，当它生成第一个子进程时，将以0作为A的文件位置开始输出，假设输出了2K的数据，则现在文件位置为2K。然后，shell继续读取脚本，生成另一个子进程，它要共享shell的file结构，也就是共享文件位置，所以第二个进程的文件位置是2K，将接着第一个进程输出内容的后面输出。如果shell不和子进程共享文件位置，则第二个进程就有可能重写第一个进程的输出了，这显然不是希望得到的结果。
+
+至此，已经可以看出设置file结构的原因所在了。
+
+struct file中主要保存了文件位置，此外，还把指向该文件索引节点的指针也放在其中。file结构形成一个双链表，称为系统打开文件表，其最大长度是NR_FILE，其定义于include/linux/fs.h:
+
+```
+#define NR_FILE  8192		/* this can well be larger on a larger system */
+```
+
+struct file定义于include/linux/fs.h:
+
+```
+struct file {
+	/*
+	 * fu_list becomes invalid after file_free is called and queued via
+	 * fu_rcuhead for RCU freeing
+	 */
+	union {
+		struct list_head	fu_list;		// list of file objects
+		struct rcu_head		fu_rcuhead;		// RCU list after freeing
+	} f_u;
+
+	struct path			f_path;			// contains the dentry
+#define f_dentry			f_path.dentry
+#define f_vfsmnt			f_path.mnt
+
+	// 指向文件操作集合的指针，参见文件操作/struct file_operations节
+	const struct file_operations	*f_op;
+
+	/*
+	 * Protects f_ep_links, f_flags, f_pos vs i_size in lseek SEEK_CUR.
+	 * Must not be taken from IRQ context.
+	 */
+	spinlock_t			f_lock;			// per-file struct lock
+#ifdef CONFIG_SMP
+	int				f_sb_list_cpu;
+#endif
+	atomic_long_t			f_count; 		// file object’s usage count
+	unsigned int			f_flags; 		// flags specified on open
+	fmode_t				f_mode; 		// file access mode
+	loff_t				f_pos; 			// file offset (file pointer)
+	struct fown_struct		f_owner; 		// owner data for signals
+	const struct cred		*f_cred;		// file credentials
+	struct file_ra_state		f_ra;			// read-ahead state
+
+	u64				f_version; 		// version number
+#ifdef CONFIG_SECURITY
+	void				*f_security;		// security module
+#endif
+	/* needed for tty driver, and maybe others */
+	void				*private_data;		// tty driver hook
+
+#ifdef CONFIG_EPOLL
+	/* Used by fs/eventpoll.c to link all the hooks to this file */
+	struct list_head		f_ep_links;
+#endif /* #ifdef CONFIG_EPOLL */
+	struct address_space		*f_mapping;		// page cache mapping
+#ifdef CONFIG_DEBUG_WRITECOUNT
+	unsigned long			f_mnt_write_state;	// debugging state
+#endif
+};
+```
+
+引用file结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_2.jpg。其中，根目录的inode和当前目录的inode，参见init_mount_tree()节。
+
+##### 11.2.1.5.1 文件操作/struct file_operations
+
+该结构定义于include/linux/fs.h:
+
+```
+struct file_operations {
+	/*
+	 * This field is used to prevent the module from being
+	 * unloaded while its operations are in use. Almost all
+	 * the time, it is simply initialized to THIS_MODULE,
+	 * a macro defined in <linux/module.h>.
+	 * 参见Kernel Symbol Table节的"How to access symbols"
+	 */
+	struct module *owner;
+
+	/*
+	 * Used to change the current read/write position in a
+	 * file, and the new position is returned as a (positive)
+	 * return value. It is called via the llseek() system call.
+	 */
+	loff_t (*llseek) (struct file *, loff_t, int);
+
+	/*
+	 * Used to retrieve data from the device. A null pointer
+	 * in this position causes the read system call to fail
+	 * with -EINVAL ("Invalid argument"). A nonnegative return
+	 * value represents the number of bytes successfully read.
+	 * This function is called by the read() system call.
+	 * See read.
+	 */
+	ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+
+	/*
+	 * Sends data to the device. If NULL, -EINVAL is returned to
+	 * the program calling the write() system call. The return
+	 * value, if nonnegative, represents the number of bytes
+	 * successfully written. This function is called by the
+	 * write() system call. See section write.
+	 */
+	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+
+	/*
+	 * Initiates an asynchronous read — a read operation that
+	 * might not complete before the function returns. If this
+	 * method is NULL, all operations will be processed
+	 * (synchronously) by read() instead. This function is called
+	 * by the aio_read() and read() system call. See read.
+	 */
+	ssize_t (*aio_read) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+
+	/*
+	 * Initiates an asynchronous write operation on the device.
+	 * This function is called by the aio_write() and write()
+	 * system call. See write.
+	 */
+	ssize_t (*aio_write) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+
+	/*
+	 * This field should be NULL for device files; It is used
+	 * for reading directories and is useful only for filesystems.
+	 * This function is called by the readdir() system call.
+	 */
+	int (*readdir) (struct file *, void *, filldir_t);
+
+	/*
+	 * This method is the back end of three system calls: poll,
+	 * epoll, and select, all of which are used to query whether
+	 * a read or write to one or more file descriptors would block.
+	 * This method should return a bit mask indicating whether
+	 * non-blocking reads or writes are possible, and, possibly,
+	 * provide the kernel with information that can be used to put
+	 * the calling process to sleep until I/O becomes possible.
+	 * If a driver leaves its poll method NULL, the device is
+	 * assumed to be both readable and writable without blocking.
+	 */
+	unsigned int (*poll) (struct file *, struct poll_table_struct *);
+
+	/*
+	 * Implements the same functionality as ioctl() but without
+	 * needing to hold the BKL. The VFS calls unlocked_ioctl()
+	 * if it exists in lieu of ioctl() when userspace invokes the
+	 * ioctl() system call. Thus filesystems need implement only
+	 * one, preferably unlocked_ioctl().
+	 */
+	long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+
+	/*
+	 * Implements a portable variant of ioctl() for use on 64-bit
+	 * systems by 32-bit applications. This function is designed
+	 * to be 32-bit safe even on 64-bit architectures, performing
+	 * any necessary size conversions.
+	 * New drivers should design their ioctl commands such that all
+	 * are portable, and thus enable compat_ioctl() and unlocked_ioctl()
+	 * to point to the same function.
+	 * Like unlocked_ioctl(), compat_ioctl() does not hold the BKL.
+	 */
+	long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+
+	/*
+	 * Used to request a mapping of device memory to a process's
+	 * address space. If this method is NULL, the mmap system call
+	 * returns -ENODEV. It is called by the mmap() system call.
+	 */
+	int (*mmap) (struct file *, struct vm_area_struct *);
+
+	/*
+	 * Though this is always the first operation performed on the
+	 * device file, the driver is not required to declare a
+	 * corresponding method. If this entry is NULL, opening the
+	 * device always succeeds, but your driver isn't notified.
+	 * It is called by the open() system call.
+	 */
+	int (*open) (struct inode *, struct file *);
+	/*
+	 * Invoked when a process closes its copy of a file descriptor
+	 * for a device; it should execute (and wait for) any outstanding
+	 * operations on the device.
+	 */
+	int (*flush) (struct file *, fl_owner_t id);
+	/*
+	 * Invoked when the file structure is being released.
+	 * Like open(), release() can be NULL.
+	 */
+	int (*release) (struct inode *, struct file *);
+
+	/*
+	 * This method is the back end of the fsync system call,
+	 * which a user calls to flush any pending data.
+	 * If this pointer is NULL, the system call returns -EINVAL.
+	 */
+	int (*fsync) (struct file *, loff_t, loff_t, int datasync);
+	/*
+	 * Called by the aio_fsync() system call to write all cached
+	 * data for the file associated with iocb to disk.
+	 */
+	int (*aio_fsync) (struct kiocb *, int datasync);
+	/*
+	 * Enables or disables signal notification of asynchronous I/O.
+	 * The field can be NULL if the driver doesn't support
+	 * asynchronous notification.
+	 */
+	int (*fasync) (int, struct file *, int);
+
+	/*
+	 * Manipulates a file lock on the given file.
+	 * Locking is an indispensable feature for regular files
+	 * but is almost never implemented by device drivers.
+	 */
+	int (*lock) (struct file *, int, struct file_lock *);
+
+	/*
+	 * It's called by the kernel to send data, one page at a time,
+	 * to the corresponding file. Device drivers do not usually
+	 * implement sendpage.
+	 */
+	ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
+
+	/*
+	 * Find a suitable location in the process's address space
+	 * to map in a memory segment on the underlying device.
+	 */
+	unsigned long (*get_unmapped_area)(struct file *, unsigned long,
+					  unsigned long, unsigned long, unsigned long);
+
+	/*
+	 * Allows a module to check the flags passed to an
+	 * fcntl(F_SETFL...) call.
+	 */
+	int (*check_flags)(int);
+
+	/*
+	 * Used to implement the flock() system call, which provides
+	 * advisory locking.
+	 */
+	int (*flock) (struct file *, int, struct file_lock *);
+
+	ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
+	ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
+
+	int (*setlease)(struct file *, long, struct file_lock **);
+	long (*fallocate)(struct file *file, int mode, loff_t offset, loff_t len);
+};
+```
+
+##### 11.2.1.5.2 如何分配file并为struct file->f_op赋值
+
+函数alloc_file()用于分配并初始化一个struct file类型的对象:
+
+```
+/**
+ * alloc_file - allocate and initialize a 'struct file'
+ * @mnt:    the vfsmount on which the file will reside
+ * @dentry: the dentry representing the new file
+ * @mode:   the mode with which the new file will be opened
+ * @fop:    the 'struct file_operations' for the new file
+ *
+ * Use this instead of get_empty_filp() to get a new
+ * 'struct file'.  Do so because of the same initialization
+ * pitfalls reasons listed for init_file().  This is a
+ * preferred interface to using init_file().
+ *
+ * If all the callers of init_file() are eliminated, its
+ * code should be moved into this function.
+ */
+struct file *alloc_file(struct path *path, fmode_t mode,
+			const struct file_operations *fop)
+{
+	struct file *file;
+
+	// 分配空的struct file类型的对象
+	file = get_empty_filp();
+	if (!file)
+		return NULL;
+
+	// 初始化分配的struct file类型的对象
+	file->f_path = *path;
+	file->f_mapping = path->dentry->d_inode->i_mapping;
+	file->f_mode = mode;
+	file->f_op = fop;
+
+	/*
+	 * These mounts don't really matter in practice
+	 * for r/o bind mounts.  They aren't userspace-
+	 * visible.  We do this for consistency, and so
+	 * that we can do debugging checks at __fput()
+	 */
+	if ((mode & FMODE_WRITE) && !special_file(path->dentry->d_inode->i_mode)) {
+		file_take_write(file);
+		WARN_ON(mnt_clone_write(path->mnt));
+	}
+	if ((mode & (FMODE_READ | FMODE_WRITE)) == FMODE_READ)
+		i_readcount_inc(path->dentry->d_inode);
+
+	return file;
+}
+```
+
+当进程打开文件时，调用alloc_file()为struct file->f_op赋值，参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节。
+
+#### 11.2.1.6 虚拟文件系统安装结构/struct vfsmount
+
+该结构定义于include/linux/mount.h(为了显示各字段之间的关系，下表中各字段的先后顺序已被调整):
+
+```
+struct vfsmount {
+	/*
+	 * Pointers for the hash table list, see global variable
+	 * mount_hashtable in fs/namespace.c
+	 */
+	struct list_head		mnt_hash;
+
+	// 如下两个域组成的链表，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_29.jpg
+	struct mnt_namespace		*mnt_ns;		/* containing namespace */
+	struct list_head		mnt_list;		// 通过本域将所有的struct vfsmount实例链接起来
+
+	// 如下三个域组成的链表参见Subjects/Chapter11_Filesystem/Figures/Filesystem_17.jpg
+	struct vfsmount			*mnt_parent;		/* fs we are mounted on */
+	struct list_head		mnt_mounts;		/* list of children, anchored here */
+	struct list_head		mnt_child;		/* and going through their mnt_child */
+
+	// 如下三个域组成的链表参见Subjects/Chapter11_Filesystem/Figures/Filesystem_19.jpg
+	struct list_head		mnt_slave_list;		/* list of slave mounts */
+	struct list_head		mnt_slave;		/* slave list entry */
+	struct vfsmount			*mnt_master;		/* slave is on master->mnt_slave_list */
+
+	// 若mnt_flags中标志位MNT_SHARED置位，则各struct vfsmount通过域mnt_share形成双向链表
+	// 参见Subjects/Chapter11_Filesystem/Figures/Filesystem_31.jpg
+	struct list_head		mnt_share;		/* circular list of shared mounts */
+
+	struct list_head		mnt_expire;		/* link in fs-specific expiry list */
+
+	// Points to the dentry of the mount point directory where the filesystem is mounted
+	struct dentry			*mnt_mountpoint;	/* dentry of mountpoint */
+	// Points to the dentry of the root directory of this filesystem
+	struct dentry			*mnt_root;		/* root of the mounted tree */
+	// Points to the superblock object of this filesystem
+	struct super_block		*mnt_sb;		/* pointer to superblock */
+
+	// 标志位，其取值为include/linux/mount.h中的MNT_xxx
+	int				mnt_flags;
+
+#ifdef CONFIG_SMP
+	struct mnt_pcp __percpu		*mnt_pcp;
+	atomic_t			mnt_longterm;		/* how many of the refs are longterm */
+#else
+	int				mnt_count;		// usage counter
+	int				mnt_writers;		// writers counter
+#endif
+
+	/* 4 bytes hole on 64bits arches without fsnotify */
+#ifdef CONFIG_FSNOTIFY
+	__u32				mnt_fsnotify_mask;
+	struct hlist_head		mnt_fsnotify_marks;
+#endif
+
+	const char			*mnt_devname;		/* Name of device e.g. /dev/dsk/hda1 */
+
+	int				mnt_id;			/* mount identifier */
+	int				mnt_group_id;		/* peer group identifier */
+	int				mnt_expiry_mark;	/* true if marked for expiry */
+	int				mnt_pinned;		// pinned count
+	int				mnt_ghosts;		// ghosts count
+};
+```
+
+进程通过task_struct访问vfsmount结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_29.jpg，其赋值过程参见init_mount_tree()节。
+
+##### 11.2.1.6.1 虚拟文件系统安装点数组mount_hashtable[idx]及各链表
+
+struct vfsmount类型的全局变量为mount_hashtable，其定义于fs/namespace.c:
+
+```
+static struct list_head		*mount_hashtable __read_mostly;
+static struct kmem_cache	*mnt_cache __read_mostly;
+static struct rw_semaphore	namespace_sem;
+```
+
+函数mnt_init()为变量mount_hashtable分配空间，参见mnt_init()节。
+
+mount_hashtable哈希链表结构:
+
+![Filesystem_28](/assets/Filesystem_28.jpg)
+
+mnt_share链表:
+
+![Filesystem_31](/assets/Filesystem_31.jpg)
+
+struct vfsmount父子关系：
+* mnt_mounts/mnt_child/mnt_parent
+
+![Filesystem_17](/assets/Filesystem_17.jpg)
+
+* mnt_slave_list/mnt_slave/mnt_master
+
+![Filesystem_19](/assets/Filesystem_19.jpg)
+
+##### 11.2.1.6.2 如何创建struct vfsmount对象
+
+struct vfsmount类型的对象是在安装文件系统时创建的:
+
+```
+kern_mount(type) / kern_mount_data(type, NULL)		// 参见11.2.2.2 安装文件系统(1)/kern_mount()节
+-> mnt = vfs_kern_mount(type, MS_KERNMOUNT,		// 参见vfs_kern_mount()节
+                        type->name, data);
+   -> alloc_vfsmnt(name)				// 参见alloc_vfsmnt()节
+      -> mnt = kmem_cache_zalloc(mnt_cache, GFP_KERNEL);
+```
+
+其中，缓冲区mnt_cache是在系统启动时初始化的:
+
+```
+start_kernel()						// 参见4.3.4.1.4.3 start_kernel()节
+-> vfs_caches_init()					// 参见vfs_caches_init()节
+   -> mnt_init()					// 参见mnt_init()节
+      -> mnt_cache = kmem_cache_create(			// 参见Create a Specific Cache/kmem_cache_create()节
+                     "mnt_cache", sizeof(struct vfsmount),
+                     0, SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL);
+```
+
+#### 11.2.1.7 Data Structures Associated with a Process
+
+##### 11.2.1.7.1 struct files_struct
+
+每个进程用一个struct files_struct类型的对象files(参见文件系统节)来记录文件描述符的使用情况，files_struct结构称为用户打开文件表，它是进程的私有数据，参见11.2.4.2.1 open()节以及下图:
+
+![Filesystem_2](/assets/Filesystem_2.jpg)
+
+![Filesystem_3](/assets/Filesystem_3.jpg)
+
+该结构定义于include/linux/fdtable.h:
+
+```
+#define NR_OPEN_DEFAULT		BITS_PER_LONG
+
+/*
+ * Open file table structure
+ */
+struct files_struct {
+	/* read mostly part */
+	/*
+	 * Usage count. Following functions use it:
+	 * get_files_struct(), put_files_struct(), ...
+	 */
+	atomic_t			count;
+	struct fdtable __rcu		*fdt;		// pointer to other fd table
+	struct fdtable			fdtab;		// base fd table
+	/*
+	 * written part on a separate cache line in SMP. per-file lock
+	 */
+	spinlock_t			file_lock ____cacheline_aligned_in_smp;
+	// cache of next available fd, see alloc_fd() in fs/file.c
+	int				next_fd;
+	/*
+	 * 分别用于初始化fdt->close_on_exec和fdt->open_fds，
+	 * 参见fs/file.c中的struct files_struct init_files;
+	 */
+	struct embedded_fd_set 		close_on_exec_init;
+	struct embedded_fd_set 		open_fds_init;
+	// base files array, points to the list of open file objects
+	struct file __rcu		*fd_array[NR_OPEN_DEFAULT];
+};
+
+struct fdtable {
+	unsigned int			max_fds; 	// 当前文件对象的最大数
+	/*
+	 * fd指向文件对象数组的指针，该数组的长度存放在max_fds域中。
+	 * 通常，fd域指向files_struct结构的fd_array域，该域包括32个文件对象指针。
+	 * 若进程打开的文件数目多于32个，则内核就分配一个新的、更大的文件指针数组，并
+	 * 将其地址存放在fd域中；同时更新max_fds域；
+	 * 通常，fd数组的索引就是文件描述符(file descriptor)：
+	 *   - 数组的第一个元素(索引为0)是进程的标准输入文件
+	 *   - 数组的第二个元素(索引为1)是进程的标准输出文件
+	 *   - 数组的第三个元素(索引为2)是进程的标准错误文件
+	 * 可通过"ll /proc/<1684>/fd/"查看fd数组的内容。
+	 */
+	struct file __rcu		**fd;		/* current fd array */
+	fd_set				*close_on_exec;	// 执行exec()时需要关闭的文件描述符
+	fd_set				*open_fds; 	// 打开文件描述符的掩码
+	struct rcu_head			rcu;
+	struct fdtable			*next;
+};
+
+/*
+ * The embedded_fd_set is a small fd_set,
+ * suitable for most tasks (which open <= BITS_PER_LONG files)
+ */
+struct embedded_fd_set {
+	unsigned long			fds_bits[1];
+};
+```
+
+current->files结构:
+
+![Filesystem_3](/assets/Filesystem_3.jpg)
+
+##### 11.2.1.7.2 struct fs_struct
+
+struct fs_struct contains filesystem information related to a process and is pointed at by the fs field in  the process descriptor. See Subjects/Chapter11_Filesystem/Figures/Filesystem_2.jpg
+
+该结构定义于include/linux/fs_struct.h:
+
+```
+struct fs_struct {
+	int			users;		// 共享该表的进程个数
+	spinlock_t		lock;		// per-structure lock
+	seqcount_t		seq;		// 用于表中字段的读/写自旋锁
+	/*
+	 * 系统调用umask()用于为新创建的文件设置初始文件权限，参见kernel/sys.c;
+	 * 函数current_umask()返回current->fs->umask的取值
+	 */
+	int			umask;
+	/*
+	 * currently executing a file, see functions:
+	 * sys_execve()->do_execve()->do_execve_common()
+	 */
+	int			in_exec;
+	/*
+	 * root - root directory
+	 * pwd - current working directory
+	 */
+	struct path		root, pwd;
+};
+```
+
+##### 11.2.1.7.3 struct mnt_namespace
+
+该结构定义于include/linux/mnt_namespace.h:
+
+```
+struct mnt_namespace {
+	atomic_t		count;	// usage count
+	struct vfsmount		*root;	// root directory
+	struct list_head	list;	// list of mount points
+	wait_queue_head_t	poll;	// polling waitqueue
+	int			event;	// event count
+};
+```
+
+其结构参见:
+
+![Filesystem_29](/assets/Filesystem_29.jpg)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

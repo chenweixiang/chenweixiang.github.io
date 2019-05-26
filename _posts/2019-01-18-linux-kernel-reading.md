@@ -30199,6 +30199,933 @@ static struct worker *first_worker(struct global_cwq *gcwq)
 }
 ```
 
+### 7.5.3 释放workqueue
+
+#### 7.5.3.1 destroy_workqueue()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/**
+ * destroy_workqueue - safely terminate a workqueue
+ * @wq: target workqueue
+ *
+ * Safely destroy a workqueue. All work currently pending will be done first.
+ */
+void destroy_workqueue(struct workqueue_struct *wq)
+{
+	unsigned int cpu;
+
+	/* drain it before proceeding with destruction */
+	drain_workqueue(wq);
+
+	/*
+	 * wq list is used to freeze wq, remove from list after
+	 * flushing is complete in case freeze races us.
+	 */
+	spin_lock(&workqueue_lock);
+	list_del(&wq->list);
+	spin_unlock(&workqueue_lock);
+
+	/* sanity check */
+	for_each_cwq_cpu(cpu, wq) {
+		struct cpu_workqueue_struct *cwq = get_cwq(cpu, wq);
+		int i;
+
+		for (i = 0; i < WORK_NR_COLORS; i++)
+			BUG_ON(cwq->nr_in_flight[i]);
+		BUG_ON(cwq->nr_active);
+		BUG_ON(!list_empty(&cwq->delayed_works));
+	}
+
+	if (wq->flags & WQ_RESCUER) {
+		kthread_stop(wq->rescuer->task);
+		free_mayday_mask(wq->mayday_mask);
+		kfree(wq->rescuer);
+	}
+
+	free_cwqs(wq);
+	kfree(wq);
+}
+```
+
+### 7.5.4 调度work
+
+#### 7.5.4.1 schedule_work()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/*
+ * system_wq由初始化函数init_workqueues()创建，
+ * 参见workqueue的初始化/init_workqueues()节
+ */
+struct workqueue_struct *system_wq __read_mostly;
+
+/**
+ * schedule_work - put work task in global workqueue
+ * @work: job to be done
+ *
+ * Returns zero if @work was already on the kernel-global workqueue and
+ * non-zero otherwise.
+ *
+ * This puts a job in the kernel-global workqueue if it was not already
+ * queued and leaves it in the same position on the kernel-global
+ * workqueue otherwise.
+ */
+int schedule_work(struct work_struct *work)
+{
+	return queue_work(system_wq, work);
+}
+```
+
+##### 7.5.4.1.1 queue_work()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/**
+ * queue_work - queue work on a workqueue
+ * @wq: workqueue to use
+ * @work: work to queue
+ *
+ * Returns 0 if @work was already on a queue, non-zero otherwise.
+ *
+ * We queue the work to the CPU on which it was submitted, but if the CPU dies
+ * it can be processed by another CPU.
+ */
+int queue_work(struct workqueue_struct *wq, struct work_struct *work)
+{
+	int ret;
+
+	ret = queue_work_on(get_cpu(), wq, work);
+	put_cpu();
+
+	return ret;
+}
+
+/**
+ * queue_work_on - queue work on specific cpu
+ * @cpu: CPU number to execute work on
+ * @wq: workqueue to use
+ * @work: work to queue
+ *
+ * Returns 0 if @work was already on a queue, non-zero otherwise.
+ *
+ * We queue the work to a specific CPU, the caller must ensure it
+ * can't go away.
+ */
+int queue_work_on(int cpu, struct workqueue_struct *wq, struct work_struct *work)
+{
+	int ret = 0;
+
+	/*
+	 * 若标志位WORK_STRUCT_PENDING_BIT未置位，表明该work还未链接到workqueue中，
+	 * 则设置该标志位，并链接到workqueue中
+	 */
+	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))) {
+		// 参见__queue_work()节
+		__queue_work(cpu, wq, work);
+		ret = 1;
+	}
+	return ret;
+}
+```
+
+###### 7.5.4.1.1.1 \__queue_work()
+
+该函数将指定的work链接到workqueue中，其定义于kernel/workqueue.c:
+
+```
+static void __queue_work(unsigned int cpu, struct workqueue_struct *wq, struct work_struct *work)
+{
+	struct global_cwq *gcwq;
+	struct cpu_workqueue_struct *cwq;
+	struct list_head *worklist;
+	unsigned int work_flags;
+	unsigned long flags;
+
+	debug_work_activate(work);
+
+	/* if dying, only works from the same workqueue are allowed */
+	// 标识位WQ_DRAINING在函数destroy_workqueue()->drain_workqueue()中被置位
+	if (unlikely(wq->flags & WQ_DRAINING) && WARN_ON_ONCE(!is_chained_work(wq)))
+		return;
+
+	/* determine gcwq to use */
+	if (!(wq->flags & WQ_UNBOUND)) {
+		struct global_cwq *last_gcwq;
+
+		if (unlikely(cpu == WORK_CPU_UNBOUND))
+			cpu = raw_smp_processor_id();
+
+		/*
+		 * It's multi cpu.  If @wq is non-reentrant and @work
+		 * was previously on a different cpu, it might still
+		 * be running there, in which case the work needs to
+		 * be queued on that cpu to guarantee non-reentrance.
+		 */
+		/*
+		 * 获取指定CPU的、类型为struct global_cwq的变量，
+		 * 参见错误：引用源未找到
+		 */
+		gcwq = get_gcwq(cpu);
+		if (wq->flags & WQ_NON_REENTRANT &&
+		     (last_gcwq = get_work_gcwq(work)) && last_gcwq != gcwq) {
+			struct worker *worker;
+
+			spin_lock_irqsave(&last_gcwq->lock, flags);
+
+			worker = find_worker_executing_work(last_gcwq, work);
+
+			if (worker && worker->current_cwq->wq == wq)
+				gcwq = last_gcwq;
+			else {
+				/* meh... not running there, queue here */
+				spin_unlock_irqrestore(&last_gcwq->lock, flags);
+				spin_lock_irqsave(&gcwq->lock, flags);
+			}
+		} else
+			spin_lock_irqsave(&gcwq->lock, flags);
+	} else {
+		/*
+		 * 若wq->flags设置了标志位WQ_UNBOUND，
+		 * 则gcwq = unbound_global_cwq
+		 */
+		gcwq = get_gcwq(WORK_CPU_UNBOUND);
+		spin_lock_irqsave(&gcwq->lock, flags);
+	}
+
+	/* gcwq determined, get cwq and queue */
+	cwq = get_cwq(gcwq->cpu, wq);
+	trace_workqueue_queue_work(cpu, cwq, work);
+
+	BUG_ON(!list_empty(&work->entry));
+
+	cwq->nr_in_flight[cwq->work_color]++;
+	work_flags = work_color_to_flags(cwq->work_color);
+
+	// worklist的取值与如下因素有关：1) 当前激活的work数目
+	if (likely(cwq->nr_active < cwq->max_active)) {
+		trace_workqueue_activate_work(work);
+		cwq->nr_active++;
+		// 2) cwq->flags中的优先级标志位
+		worklist = gcwq_determine_ins_pos(gcwq, cwq);
+	} else {
+		work_flags |= WORK_STRUCT_DELAYED;
+		worklist = &cwq->delayed_works;
+	}
+
+	// 将该work插入到链表worklist的尾部，参见nsert_work()节
+	insert_work(cwq, work, worklist, work_flags);
+
+	spin_unlock_irqrestore(&gcwq->lock, flags);
+}
+```
+
+###### 7.5.4.1.1.1.1 insert_work()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/**
+ * insert_work - insert a work into gcwq
+ * @cwq: cwq @work belongs to
+ * @work: work to insert
+ * @head: insertion point
+ * @extra_flags: extra WORK_STRUCT_* flags to set
+ *
+ * Insert @work which belongs to @cwq into @gcwq after @head.
+ * @extra_flags is or'd to work_struct flags.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock).
+ */
+static void insert_work(struct cpu_workqueue_struct *cwq,
+				 struct work_struct *work, struct list_head *head,
+				 unsigned int extra_flags)
+{
+	struct global_cwq *gcwq = cwq->gcwq;
+
+	/* we own @work, set data and link */
+	// 设置work->data域；需要注意的是，data中包含了cwq地址的一部分
+	set_work_cwq(work, cwq, extra_flags);
+
+	/*
+	 * Ensure that we get the right work->data if we see the
+	 * result of list_add() below, see try_to_grab_pending().
+	 */
+	smp_wmb();
+
+	// 将work链接到链表末尾
+	list_add_tail(&work->entry, head);
+
+	/*
+	 * Ensure either worker_sched_deactivated() sees the above
+	 * list_add_tail() or we see zero nr_running to avoid workers
+	 * lying around lazily while there are works to be processed.
+	 */
+	smp_mb();
+
+	// 若需要，唤醒第一个空闲的worker进程
+	if (__need_more_worker(gcwq))
+		wake_up_worker(gcwq);
+}
+```
+
+#### 7.5.4.2 schedule_delayed_work()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/*
+ * system_wq由初始化函数init_workqueues()创建，
+ * 参见workqueue的初始化/init_workqueues()节
+ */
+struct workqueue_struct *system_wq __read_mostly;
+
+/**
+ * schedule_delayed_work - put work task in global workqueue after delay
+ * @dwork: job to be done
+ * @delay: number of jiffies to wait or 0 for immediate execution
+ *
+ * After waiting for a given time this puts a job in the kernel-global
+ * workqueue.
+ */
+int schedule_delayed_work(struct delayed_work *dwork, unsigned long delay)
+{
+	return queue_delayed_work(system_wq, dwork, delay);
+}
+
+/**
+ * queue_delayed_work - queue work on a workqueue after delay
+ * @wq: workqueue to use
+ * @dwork: delayable work to queue
+ * @delay: number of jiffies to wait before queueing
+ *
+ * Returns 0 if @work was already on a queue, non-zero otherwise.
+ */
+int queue_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork, unsigned long delay)
+{
+	if (delay == 0)
+		return queue_work(wq, &dwork->work);		// 参见queue_work()节
+
+	return queue_delayed_work_on(-1, wq, dwork, delay);	// 参见queue_delayed_work_on()节
+}
+```
+
+##### 7.5.4.2.1 queue_delayed_work_on()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/**
+ * queue_delayed_work_on - queue work on specific CPU after delay
+ * @cpu: CPU number to execute work on
+ * @wq: workqueue to use
+ * @dwork: work to queue
+ * @delay: number of jiffies to wait before queueing
+ *
+ * Returns 0 if @work was already on a queue, non-zero otherwise.
+ */
+int queue_delayed_work_on(int cpu, struct workqueue_struct *wq,
+							    struct delayed_work *dwork, unsigned long delay)
+{
+	int ret = 0;
+	struct timer_list *timer = &dwork->timer;
+	struct work_struct *work = &dwork->work;
+
+	/*
+	 * 若标志位WORK_STRUCT_PENDING_BIT未置位，表明该work还未链接到workqueue中，
+	 * 则设置该标志位，并等待链接到特定链表中
+	 */
+	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))) {
+		unsigned int lcpu;
+
+		BUG_ON(timer_pending(timer));
+		BUG_ON(!list_empty(&work->entry));
+
+		timer_stats_timer_set_start_info(&dwork->timer);
+
+		/*
+		 * This stores cwq for the moment, for the timer_fn.
+		 * Note that the work's gcwq is preserved to allow
+		 * reentrance detection for delayed works.
+		 */
+		if (!(wq->flags & WQ_UNBOUND)) {
+			struct global_cwq *gcwq = get_work_gcwq(work);
+
+			if (gcwq && gcwq->cpu != WORK_CPU_UNBOUND)
+				lcpu = gcwq->cpu;
+			else
+				lcpu = raw_smp_processor_id();
+		} else
+			lcpu = WORK_CPU_UNBOUND;
+
+		// 设置work->data域
+		set_work_cwq(work, get_cwq(lcpu, wq), 0);
+
+		/*
+		 * 设置定时器，当定时器到时后，调用函数delayed_work_timer_fn()，
+		 * 该函数将指定的work加入到链表中
+		 */
+		timer->expires = jiffies + delay;
+		// 函数delayed_work_timer_fn()的入参
+		timer->data = (unsigned long)dwork;
+		// 定时器处理函数，参见delayed_work_timer_fn()节
+		timer->function = delayed_work_timer_fn;
+
+		if (unlikely(cpu >= 0))
+			add_timer_on(timer, cpu);	// 参见add_timer_on()节
+		else
+			add_timer(timer); 		// 参见add_timer()节
+		ret = 1;
+	}
+	return ret;
+}
+```
+
+###### 7.5.4.2.1.1 delayed_work_timer_fn()
+
+该函数定义于kernel/workqueue.c:
+
+```
+static void delayed_work_timer_fn(unsigned long __data)
+{
+	struct delayed_work *dwork = (struct delayed_work *)__data;
+	struct cpu_workqueue_struct *cwq = get_work_cwq(&dwork->work);
+
+	// 参见__queue_work()节
+	__queue_work(smp_processor_id(), cwq->wq, &dwork->work);
+}
+```
+
+#### 7.5.4.3 flush_schedule_work()
+
+This function waits until all entries in the queue are executed before returning. While waiting for any pending work to execute, the function sleeps.Therefore, you can call it only from process context.
+
+Note that this function does not cancel any delayed work.That is, any work that was scheduled via ```schedule_delayed_work()```, and whose delay is not yet up, is not flushed via ```flush_scheduled_work()```. To cancel delayed work, call:
+
+```
+int cancel_delayed_work(struct work_struct *work);
+```
+
+该函数定义于kernel/workqueue.c:
+
+```
+void flush_scheduled_work(void)
+{
+	flush_workqueue(system_wq);
+}
+```
+
+### 7.5.5 workqueue的初始化/init_workqueues()
+
+在kernel/workqueue.c中，包含如下初始化函数：
+
+```
+struct workqueue_struct *system_wq __read_mostly;
+struct workqueue_struct *system_long_wq __read_mostly;
+struct workqueue_struct *system_nrt_wq __read_mostly;
+struct workqueue_struct *system_unbound_wq __read_mostly;
+struct workqueue_struct *system_freezable_wq __read_mostly;
+
+...
+static DEFINE_PER_CPU(struct global_cwq, global_cwq);
+
+...
+static int __init init_workqueues(void)
+{
+	unsigned int cpu;
+	int i;
+
+	cpu_notifier(workqueue_cpu_callback, CPU_PRI_WORKQUEUE);
+
+	/* initialize gcwqs */
+	/*
+	 * 依次获取每个CPU对应的变量global_cwq，并初始化之。
+	 * 参见错误：引用源未找到
+	 */
+	for_each_gcwq_cpu(cpu) {
+		struct global_cwq *gcwq = get_gcwq(cpu);
+
+		spin_lock_init(&gcwq->lock);
+		INIT_LIST_HEAD(&gcwq->worklist);
+		gcwq->cpu = cpu;
+		gcwq->flags |= GCWQ_DISASSOCIATED;
+
+		INIT_LIST_HEAD(&gcwq->idle_list);
+		for (i = 0; i < BUSY_WORKER_HASH_SIZE; i++)
+			INIT_HLIST_HEAD(&gcwq->busy_hash[i]);
+
+		init_timer_deferrable(&gcwq->idle_timer);
+		gcwq->idle_timer.function = idle_worker_timeout;
+		gcwq->idle_timer.data = (unsigned long)gcwq;
+
+		setup_timer(&gcwq->mayday_timer, gcwq_mayday_timeout, (unsigned long)gcwq);
+
+		// 初始化数据结构，参见struct ida节
+		ida_init(&gcwq->worker_ida);
+
+		gcwq->trustee_state = TRUSTEE_DONE;
+		init_waitqueue_head(&gcwq->trustee_wait);
+	}
+
+	/* create the initial worker */
+	// 为每个CPU创建处理workqueue的内核线程worker，并启动该内核线程
+	for_each_online_gcwq_cpu(cpu) {
+		struct global_cwq *gcwq = get_gcwq(cpu);
+		struct worker *worker;
+
+		if (cpu != WORK_CPU_UNBOUND)
+			gcwq->flags &= ~GCWQ_DISASSOCIATED;
+		// 为每个CPU创建一个内核线程worker，参见create_worker()节
+		worker = create_worker(gcwq, true);
+		BUG_ON(!worker);
+		spin_lock_irq(&gcwq->lock);
+		start_worker(worker);		// 启动worker对应的内核线程
+		spin_unlock_irq(&gcwq->lock);
+	}
+
+	// 调用alloc_workqueue()创建多个工作队列，参见alloc_workqueue()节
+	system_wq = alloc_workqueue("events", 0, 0);
+	system_long_wq = alloc_workqueue("events_long", 0, 0);
+	system_nrt_wq = alloc_workqueue("events_nrt", WQ_NON_REENTRANT, 0);
+	system_unbound_wq = alloc_workqueue("events_unbound", WQ_UNBOUND, WQ_UNBOUND_MAX_ACTIVE);
+	system_freezable_wq = alloc_workqueue("events_freezable", WQ_FREEZABLE, 0);
+	BUG_ON(!system_wq || !system_long_wq || !system_nrt_wq || !system_unbound_wq || !system_freezable_wq);
+	return 0;
+}
+early_initcall(init_workqueues);
+```
+
+在kernel/Makefile中，包含如下定义：
+
+```
+obj-y  = sched.o fork.o exec_domain.o panic.o printk.o \
+	    cpu.o exit.o itimer.o time.o softirq.o resource.o \
+	    sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o \
+	    signal.o sys.o kmod.o workqueue.o pid.o \
+	    rcupdate.o extable.o params.o posix-timers.o \
+	    kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o \
+	    hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
+	    notifier.o ksysfs.o sched_clock.o cred.o \
+	    async.o range.o
+```
+
+由此可知，workqueue是被编译进内核的。由如下代码:
+
+```
+early_initcall(init_workqueues);
+```
+
+及module被编译进内核时的初始化过程节可知，系统启动时，workqueue的初始化过程如下：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                           ^
+                                           +-- 其中的.initcallearly.init
+```
+
+#### 7.5.5.1 create_worker()
+
+该函数定义于kernel/workqueue.c:
+
+```
+/**
+ * create_worker - create a new workqueue worker
+ * @gcwq: gcwq the new worker will belong to
+ * @bind: whether to set affinity to @cpu or not
+ *
+ * Create a new worker which is bound to @gcwq.  The returned worker
+ * can be started by calling start_worker() or destroyed using
+ * destroy_worker().
+ *
+ * CONTEXT:
+ * Might sleep.  Does GFP_KERNEL allocations.
+ *
+ * RETURNS:
+ * Pointer to the newly created worker.
+ */
+static struct worker *create_worker(struct global_cwq *gcwq, bool bind)
+{
+	bool on_unbound_cpu = gcwq->cpu == WORK_CPU_UNBOUND;
+	struct worker *worker = NULL;
+	int id = -1;
+
+	spin_lock_irq(&gcwq->lock);
+	// 调用ida_get_new()分配新的worker ID，参见struct ida节
+	while (ida_get_new(&gcwq->worker_ida, &id)) {
+		spin_unlock_irq(&gcwq->lock);
+		if (!ida_pre_get(&gcwq->worker_ida, GFP_KERNEL))
+			goto fail;
+		spin_lock_irq(&gcwq->lock);
+	}
+	spin_unlock_irq(&gcwq->lock);
+
+	// 分配并初始化worker，参见struct worker节
+	worker = alloc_worker();
+	if (!worker)
+		goto fail;
+
+	worker->gcwq = gcwq;
+	worker->id = id;
+
+	/*
+	 * 创建worker内核线程(参见kthread_run()节)，该线程
+	 * 执行函数worker_thread()，参见worker_thread()节
+	 */
+	if (!on_unbound_cpu)
+		worker->task = kthread_create_on_node(worker_thread, worker, cpu_to_node(gcwq->cpu),
+									"kworker/%u:%d", gcwq->cpu, id);
+	else
+		worker->task = kthread_create(worker_thread, worker, "kworker/u:%d", id);
+	if (IS_ERR(worker->task))
+		goto fail;
+
+	/*
+	 * A rogue worker will become a regular one if CPU comes
+	 * online later on.  Make sure every worker has
+	 * PF_THREAD_BOUND set.
+	 */
+	if (bind && !on_unbound_cpu)
+		kthread_bind(worker->task, gcwq->cpu);
+	else {
+		worker->task->flags |= PF_THREAD_BOUND;
+		if (on_unbound_cpu)
+			worker->flags |= WORKER_UNBOUND;
+	}
+
+	return worker;
+fail:
+	if (id >= 0) {
+		spin_lock_irq(&gcwq->lock);
+		ida_remove(&gcwq->worker_ida, id);
+		spin_unlock_irq(&gcwq->lock);
+	}
+	kfree(worker);
+	return NULL;
+}
+```
+
+##### 7.5.5.1.1 worker_thread()
+
+线程worker被函数```wake_up_worker()```唤醒(参见wake_up_worker()节)，并执行函数```worker_thread()```，其定义于kernel/workqueue.c:
+
+```
+/**
+ * worker_thread - the worker thread function
+ * @__worker: self
+ *
+ * The gcwq worker thread function.  There's a single dynamic pool of
+ * these per each cpu.  These workers process all works regardless of
+ * their specific target workqueue.  The only exception is works which
+ * belong to workqueues with a rescuer which will be explained in
+ * rescuer_thread().
+ */
+static int worker_thread(void *__worker)
+{
+	struct worker *worker = __worker;
+	struct global_cwq *gcwq = worker->gcwq;
+
+	/* tell the scheduler that this is a workqueue worker */
+	worker->task->flags |= PF_WQ_WORKER;
+woke_up:
+	spin_lock_irq(&gcwq->lock);
+
+	/* DIE can be set only while we're idle, checking here is enough */
+	if (worker->flags & WORKER_DIE) {
+		spin_unlock_irq(&gcwq->lock);
+		worker->task->flags &= ~PF_WQ_WORKER;
+		return 0;
+	}
+
+	worker_leave_idle(worker);
+recheck:
+	/* no more worker necessary? */
+	if (!need_more_worker(gcwq))
+		goto sleep;
+
+	/* do we need to manage? */
+	if (unlikely(!may_start_working(gcwq)) && manage_workers(worker))
+		goto recheck;
+
+	/*
+	 * ->scheduled list can only be filled while a worker is
+	 * preparing to process a work or actually processing it.
+	 * Make sure nobody diddled with it while I was sleeping.
+	 */
+	BUG_ON(!list_empty(&worker->scheduled));
+
+	/*
+	 * When control reaches this point, we're guaranteed to have
+	 * at least one idle worker or that someone else has already
+	 * assumed the manager role.
+	 */
+	worker_clr_flags(worker, WORKER_PREP);
+
+	do {
+		// 取得work结构，参见错误：引用源未找到
+		struct work_struct *work = list_first_entry(&gcwq->worklist, struct work_struct, entry);
+
+		if (likely(!(*work_data_bits(work) & WORK_STRUCT_LINKED))) {
+			/* optimization path, not strictly necessary */
+			process_one_work(worker, work);			// 参见process_one_work()节
+			if (unlikely(!list_empty(&worker->scheduled)))
+				process_scheduled_works(worker);	// 参见process_scheduled_works()节
+		} else {
+			move_linked_works(work, &worker->scheduled, NULL);
+			process_scheduled_works(worker);		// 参见process_scheduled_works()节
+		}
+	} while (keep_working(gcwq));
+
+	worker_set_flags(worker, WORKER_PREP, false);
+sleep:
+	if (unlikely(need_to_manage_workers(gcwq)) && manage_workers(worker))
+		goto recheck;
+
+	/*
+	 * gcwq->lock is held and there's no work to process and no
+	 * need to manage, sleep.  Workers are woken up only while
+	 * holding gcwq->lock or from local cpu, so setting the
+	 * current state before releasing gcwq->lock is enough to
+	 * prevent losing any event.
+	 */
+	worker_enter_idle(worker);
+	__set_current_state(TASK_INTERRUPTIBLE);
+	spin_unlock_irq(&gcwq->lock);
+	schedule();
+	goto woke_up;
+}
+```
+
+###### 7.5.5.1.1.1 process_scheduled_works()
+
+该函数处理worker->scheduled链表上的work，其定义于kernel/workqueue.c:
+
+```
+/**
+ * process_scheduled_works - process scheduled works
+ * @worker: self
+ *
+ * Process all scheduled works.  Please note that the scheduled list
+ * may change while processing a work, so this function repeatedly
+ * fetches a work from the top and executes it.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock) which may be released and regrabbed
+ * multiple times.
+ */
+static void process_scheduled_works(struct worker *worker)
+{
+	while (!list_empty(&worker->scheduled)) {
+		struct work_struct *work = list_first_entry(&worker->scheduled, struct work_struct, entry);
+		process_one_work(worker, work);	// 参见process_one_work()节
+	}
+}
+```
+
+###### 7.5.5.1.1.1.1 process_one_work()
+
+该函数用于处理指定的work，其定义于kernel/workqueue.c:
+
+```
+/**
+ * process_one_work - process single work
+ * @worker: self
+ * @work: work to process
+ *
+ * Process @work.  This function contains all the logics necessary to
+ * process a single work including synchronization against and
+ * interaction with other workers on the same cpu, queueing and
+ * flushing.  As long as context requirement is met, any worker can
+ * call this function to process a work.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock) which is released and regrabbed.
+ */
+static void process_one_work(struct worker *worker, struct work_struct *work)
+__releases(&gcwq->lock)
+__acquires(&gcwq->lock)
+{
+	struct cpu_workqueue_struct *cwq = get_work_cwq(work);
+	struct global_cwq *gcwq = cwq->gcwq;
+	struct hlist_head *bwh = busy_worker_head(gcwq, work);
+	bool cpu_intensive = cwq->wq->flags & WQ_CPU_INTENSIVE;
+	work_func_t f = work->func;
+	int work_color;
+	struct worker *collision;
+#ifdef CONFIG_LOCKDEP
+	/*
+	 * It is permissible to free the struct work_struct from
+	 * inside the function that is called from it, this we need to
+	 * take into account for lockdep too.  To avoid bogus "held
+	 * lock freed" warnings as well as problems when looking into
+	 * work->lockdep_map, make a copy and use that here.
+	 */
+	struct lockdep_map lockdep_map = work->lockdep_map;
+#endif
+	/*
+	 * A single work shouldn't be executed concurrently by
+	 * multiple workers on a single cpu.  Check whether anyone is
+	 * already processing the work.  If so, defer the work to the
+	 * currently executing one.
+	 */
+	collision = __find_worker_executing_work(gcwq, bwh, work);
+	if (unlikely(collision)) {
+		move_linked_works(work, &collision->scheduled, NULL);
+		return;
+	}
+
+	/* claim and process */
+	debug_work_deactivate(work);
+	hlist_add_head(&worker->hentry, bwh);
+	worker->current_work = work;
+	worker->current_cwq = cwq;
+	work_color = get_work_color(work);
+
+	/* record the current cpu number in the work data and dequeue */
+	set_work_cpu(work, gcwq->cpu);
+	list_del_init(&work->entry);
+
+	/*
+	 * If HIGHPRI_PENDING, check the next work, and, if HIGHPRI,
+	 * wake up another worker; otherwise, clear HIGHPRI_PENDING.
+	 */
+	if (unlikely(gcwq->flags & GCWQ_HIGHPRI_PENDING)) {
+		struct work_struct *nwork = list_first_entry(&gcwq->worklist, struct work_struct, entry);
+
+		if (!list_empty(&gcwq->worklist) && get_work_cwq(nwork)->wq->flags & WQ_HIGHPRI)
+			wake_up_worker(gcwq);
+		else
+			gcwq->flags &= ~GCWQ_HIGHPRI_PENDING;
+	}
+
+	/*
+	 * CPU intensive works don't participate in concurrency
+	 * management.  They're the scheduler's responsibility.
+	 */
+	if (unlikely(cpu_intensive))
+		worker_set_flags(worker, WORKER_CPU_INTENSIVE, true);
+
+	spin_unlock_irq(&gcwq->lock);
+
+	work_clear_pending(work);
+	lock_map_acquire_read(&cwq->wq->lockdep_map);
+	lock_map_acquire(&lockdep_map);
+	trace_workqueue_execute_start(work);
+	f(work);		// 执行处理函数
+	/*
+	 * While we must be careful to not use "work" after this, the trace
+	 * point will only record its address.
+	 */
+	trace_workqueue_execute_end(work);
+	lock_map_release(&lockdep_map);
+	lock_map_release(&cwq->wq->lockdep_map);
+
+	if (unlikely(in_atomic() || lockdep_depth(current) > 0)) {
+		printk(KERN_ERR "BUG: workqueue leaked lock or atomic: %s/0x%08x/%d\n",
+		       current->comm, preempt_count(), task_pid_nr(current));
+		printk(KERN_ERR "    last function: ");
+		print_symbol("%s\n", (unsigned long)f);
+		debug_show_held_locks(current);
+		dump_stack();
+	}
+
+	spin_lock_irq(&gcwq->lock);
+
+	/* clear cpu intensive status */
+	if (unlikely(cpu_intensive))
+		worker_clr_flags(worker, WORKER_CPU_INTENSIVE);
+
+	/* we're done with it, release */
+	hlist_del_init(&worker->hentry);
+	worker->current_work = NULL;
+	worker->current_cwq = NULL;
+	cwq_dec_nr_in_flight(cwq, work_color, false);
+}
+```
+
+### 7.5.6 创建work示例
+
+源代码wqueue.c如下：
+
+```
+#include <linux/module.h>
+#include <linux/init.h>
+
+#include <linux/workqueue.h>
+
+MODULE_LICENSE("GPL");
+
+void *wq_process(struct work_struct *work)
+{
+	printk("start workqueue process\n");
+
+	printk("work->data: %d\n", work->data);
+	printk("work->func: %p\n", work->func);
+	printk("Add of wq_process(): %p\n", wq_process);
+
+	return 0;
+}
+
+DECLARE_WORK(my_work, wq_process);
+
+static int __init wq_init(void)
+{
+    printk("workqueue module init\n");
+    schedule_work(&my_work);
+    return 0;
+}
+
+static void __exit wq_exit(void)
+{
+    printk("workqueue module exit\n");
+}
+
+module_init(wq_init);
+module_exit(wq_exit);
+```
+
+编译wqueue.c所用的Makefile如下：
+
+```
+obj-m := wqueue.o
+
+KDIR := /lib/modules/$(shell uname -r)/build
+
+PWD := $(shell pwd)
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	rm *.o *.ko *.mod.c Modules.symvers modules.order -f
+```
+
+执行命令的过程如下：
+
+```
+chenwx@chenwx ~/alex/module/workqueue $ sudo insmod wqueue.ko
+chenwx@chenwx ~/alex/module/workqueue $ lsmod
+Module                  Size  Used by
+wqueue                 12441  0
+vboxsf                 42503  0
+...
+chenwx@chenwx ~/alex/module/workqueue $ dmesg | tail
+...
+[45988.104743] work->data: 0
+[45988.104752] work->func: e19c4000
+[45988.104758] Add of wq_process(): e19c4000
+chenwx@chenwx ~/alex/module/workqueue $ sudo rmmod wqueue
+chenwx@chenwx ~/alex/module/workqueue $ dmesg | tail
+...
+[45988.104743] work->data: 0
+[45988.104752] work->func: e19c4000
+[45988.104758] Add of wq_process(): e19c4000
+[46161.764209] workqueue module exit
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

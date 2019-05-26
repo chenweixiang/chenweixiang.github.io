@@ -31943,6 +31943,958 @@ time64_t mktime64(const unsigned int year0, const unsigned int mon0,
 }
 ```
 
+## 7.7 定时器/timer
+
+不同于第高分辨率定时器/hrtimer章，本章介绍的定时器为低分辨率定时器。
+
+The implementation of the timers has been designed to meet the following requirements and assumptions:
+* Timer management must be as lightweight as possible.
+* The design should scale well as the number of active timers increases.
+* Most timers expire within a few seconds or minutes at most, while timers with long delays are pretty rare.
+* A timer should run on the same CPU that registered it. See add_timer()->internal_add_timer().
+
+### 7.7.1 与定时器有关的数据结构
+
+#### 7.7.1.1 struct timer_list
+
+该结构定义于include/linux/timer.h:
+
+```
+struct timer_list {
+	/*
+	 * All fields that change during normal runtime grouped to the same cacheline.
+	 */
+	struct list_head entry;
+	/*
+	 * It specifies when the timer expires; the time is expressed as
+	 * the number of ticks that have elapsed since the system started up.
+	 * All timers that have an expires value smaller than or equal to
+	 * the value of jiffies are considered to be expired or decayed.
+	 */
+	unsigned long expires;
+	/* 指向包含本定时器的变量 */
+	struct tvec_base *base;
+
+	/*
+	 * 本定时器的超时处理函数为function()，其入参为data:
+	 * The data parameter enables you to register multiple timers with
+	 * the same handler, and differentiate between them via the argument.
+	 * It could store the device ID or other meaningful data that could
+	 * be used by the function to differentiate the device.
+	 */
+	void (*function)(unsigned long);
+	unsigned long data;
+
+	/*
+	 * 对到期时间精度不太敏感的定时器，允许适当地延迟定时器到期时刻，slack用于
+	 * 计算每次延迟的HZ数；可通过函数set_timer_slack()设置或修改slack域
+	 */
+	int slack;
+
+#ifdef CONFIG_TIMER_STATS
+	int 	start_pid;
+	void  *start_site;
+	char	start_comm[16];
+#endif
+#ifdef CONFIG_LOCKDEP
+	struct lockdep_map lockdep_map;
+#endif
+};
+```
+
+在include/linux/timer.h中，包含如下宏用于定义或者初始化定时器：
+
+```
+#define DEFINE_TIMER(_name, _function, _expires, _data)		\
+	struct timer_list _name =				\
+		TIMER_INITIALIZER(_function, _expires, _data)
+
+#define init_timer(timer)					\
+	init_timer_key((timer), NULL, NULL)
+
+#define setup_timer(timer, fn, data)				\
+	setup_timer_key((timer), NULL, NULL, (fn), (data))
+```
+
+#### 7.7.1.2 struct tvec_root / struct tvec
+
+这两个结构体均定义于kernel/timer.c，用于struct tvec_base:
+
+```
+/*
+ * per-CPU timer vector definitions:
+ */
+#define TVN_BITS (CONFIG_BASE_SMALL ? 4 : 6)
+#define TVR_BITS (CONFIG_BASE_SMALL ? 6 : 8)
+#define TVN_SIZE (1 << TVN_BITS)		// 64  (或16)
+#define TVR_SIZE (1 << TVR_BITS)		// 256 (或64)
+#define TVN_MASK (TVN_SIZE - 1)
+#define TVR_MASK (TVR_SIZE - 1)
+
+struct tvec {
+	// vec[i]为定时器双向循环链表的表头，其中下标i为定时器超时jeffies距离当前jeffies的差值
+	struct list_head vec[TVN_SIZE];
+};
+
+struct tvec_root {
+	// vec[i]为定时器双向循环链表的表头，其中下标i为定时器超时jeffies距离当前jeffies的差值
+	struct list_head vec[TVR_SIZE];
+};
+```
+
+#### 7.7.1.3 struct tvec_base
+
+该结构定义于kernel/timer.c:
+
+```
+struct tvec_base {
+	spinlock_t lock;
+	// 指向当前正在运行的定时器，在__run_timers()中设置，参见__run_timers()节
+	struct timer_list *running_timer;
+	/*
+	 * Represents the earliest expiration time of the dynamic timers
+	 * yet to be checked:
+	 *  - if it coincides with the value of jiffies, no backlog of
+	 *    deferrable functions has accumulated;
+	 *  - if it's smaller than jiffies, lists of dynamic timers that
+	 *    refer to previous ticks must be dealt with.
+	 * The field is set to jiffies at system startup and is increased
+	 * only by the run_timer_softirq().
+	 */
+	unsigned long timer_jiffies;
+	// 下一次定时器超时的jiffies值，与struct timer_list中的expires类似
+	unsigned long next_timer;
+	struct tvec_root tv1;			// 256 (或64)个定时器链表
+	struct tvec tv2;			// 64 (或16)个定时器链表
+	struct tvec tv3; 			// 64 (或16)个定时器链表
+	struct tvec tv4; 			// 64 (或16)个定时器链表
+	struct tvec tv5; 			// 64 (或16)个定时器链表
+} ____cacheline_aligned;
+```
+
+在kernel/timer.c中，内核定义了一个全局变量boot_tvec_bases，并且为每个CPU定义了一个指向该全局变量的指针tvec_bases：
+
+```
+struct tvec_base boot_tvec_bases;
+
+static DEFINE_PER_CPU(struct tvec_base *, tvec_bases) = &boot_tvec_bases;
+```
+
+定时器各结构之间的关系:
+
+![Timer](/assets/Timer.jpg)
+
+新增一个定时器t时，t被链接到tv1.vec[x]至tv5.vec[x]中的哪个链表是根据idx = (t.expires – base.timer_jiffies)的取值来确定的，其中base.timer_jiffies代表定时器系统的当前时刻，参见internal_add_timer()节。
+
+确定定时器t所在的链表，参见上图。
+
+确定定时器t所在的链表
+
+| idx<br>(t.expires - base.timer_jiffies) | tv*.vec[i] |
+| :-------------------------------------: | :--------- |
+| [0x00000000, 0x000000FF] | tv1.vec[idx] |
+| [0x00000100, 0x00003FFF] | tv2.vec[idx & 0x00003F00] |
+| [0x00004000, 0x000FFFFF] | tv3.vec[idx & 0x000FC000] |
+| [0x00100000, 0x03FFFFFF] | tv4.vec[idx & 0x03F00000] |
+| [0x04000000, 0xFFFFFFFF] | tv5.vec[idx & 0xFC000000] |
+
+<p/>
+
+### 7.7.2 定时器操作
+
+#### 7.7.2.1 新增定时器/add_timer()/add_timer_on()
+
+##### 7.7.2.1.1 add_timer()
+
+该函数定义于kernel/timer.c:
+
+```
+/**
+ * add_timer - start a timer
+ * @timer: the timer to be added
+ *
+ * The kernel will do a ->function(->data) callback from the
+ * timer interrupt at the ->expires point in the future. The
+ * current time is 'jiffies'.
+ *
+ * The timer's ->expires, ->function (and if the handler uses it, ->data)
+ * fields must be set prior calling this function.
+ *
+ * Timers with an ->expires field in the past will be executed in the next
+ * timer tick.
+ */
+void add_timer(struct timer_list *timer)
+{
+	BUG_ON(timer_pending(timer));		// 参见timer_pending()节
+	mod_timer(timer, timer->expires);	// 参见mod_timer()节
+}
+```
+
+###### 7.7.2.1.1.1 timer_pending()
+
+该函数用于判断定时器timer是否已插入到链表中，其定义于kernel/timer.c:
+
+```
+static inline int timer_pending(const struct timer_list * timer)
+{
+	return timer->entry.next != NULL;
+}
+```
+
+###### 7.7.2.1.1.2 mod_timer()
+
+该函数定义于kernel/timer.c:
+
+```
+int mod_timer(struct timer_list *timer, unsigned long expires)
+{
+	expires = apply_slack(timer, expires);				// 参见apply_slack()节
+
+	/*
+	 * This is a common optimization triggered by the
+	 * networking code - if the timer is re-modified
+	 * to be the same thing then just return:
+	 */
+	if (timer_pending(timer) && timer->expires == expires)		// 参见timer_pending()节
+		return 1;
+
+	return __mod_timer(timer, expires, false, TIMER_NOT_PINNED);	// 参见__mod_timer()节
+}
+```
+
+###### 7.7.2.1.1.2.1 apply_slack()
+
+该函数定义于kernel/timer.c:
+
+```
+/*
+ * Decide where to put the timer while taking the slack into account
+ *
+ * Algorithm:
+ *   1) calculate the maximum (absolute) time
+ *   2) calculate the highest bit where the expires and new max are different
+ *   3) use this bit to make a mask
+ *   4) use the bitmask to round down the maximum time, so that all last
+ *      bits are zeros
+ */
+static inline unsigned long apply_slack(struct timer_list *timer, unsigned long expires)
+{
+	unsigned long expires_limit, mask;
+	int bit;
+
+	if (timer->slack >= 0) {
+		expires_limit = expires + timer->slack;
+	} else {
+		long delta = expires - jiffies;
+
+		if (delta < 256)
+			return expires;
+
+		expires_limit = expires + delta / 256;
+	}
+	mask = expires ^ expires_limit;
+	if (mask == 0)
+		return expires;
+
+	bit = find_last_bit(&mask, BITS_PER_LONG);
+
+	mask = (1 << bit) - 1;
+
+	expires_limit = expires_limit & ~(mask);
+
+	return expires_limit;
+}
+```
+
+###### 7.7.2.1.1.2.2 \__mod_timer()
+
+该函数定义于kernel/timer.c:
+
+```
+static inline int __mod_timer(struct timer_list *timer, unsigned long expires,
+				bool pending_only, int pinned)
+{
+	struct tvec_base *base, *new_base;
+	unsigned long flags;
+	int ret = 0 , cpu;
+
+	timer_stats_timer_set_start_info(timer);
+	BUG_ON(!timer->function);
+
+	base = lock_timer_base(timer, &flags);
+
+	if (timer_pending(timer)) {		// 若定时器已经在链表中了
+		detach_timer(timer, 0);		// 则从链表中删除该定时器
+		if (timer->expires == base->next_timer &&
+		     !tbase_get_deferrable(timer->base))
+			base->next_timer = base->timer_jiffies;
+		ret = 1;
+	} else {
+		if (pending_only)
+			goto out_unlock;
+	}
+
+	debug_activate(timer, expires);
+
+	cpu = smp_processor_id();
+
+#if defined(CONFIG_NO_HZ) && defined(CONFIG_SMP)
+	if (!pinned && get_sysctl_timer_migration() && idle_cpu(cpu))
+		cpu = get_nohz_timer_target();
+#endif
+	new_base = per_cpu(tvec_bases, cpu);
+
+	if (base != new_base) {
+		/*
+		 * We are trying to schedule the timer on the local CPU.
+		 * However we can't change timer's base while it is running,
+		 * otherwise del_timer_sync() can't detect that the timer's
+		 * handler yet has not finished. This also guarantees that
+		 * the timer is serialized wrt itself.
+		 */
+		if (likely(base->running_timer != timer)) {
+			/* See the comment in lock_timer_base() */
+			timer_set_base(timer, NULL);
+			spin_unlock(&base->lock);
+			base = new_base;
+			spin_lock(&base->lock);
+			timer_set_base(timer, base);
+		}
+	}
+
+	timer->expires = expires;
+	// time_before()参见比较Jiffies节
+	if (time_before(timer->expires, base->next_timer) && !tbase_get_deferrable(timer->base))
+		base->next_timer = timer->expires;
+	/*
+	 * 将定时器timer插入到定时器链表(参见struct tvec_base节)中，
+	 * 参见internal_add_timer()节; internal_add_timer() adds
+	 * the new timer to a double-linked list of timers within
+	 * a "cascading table" associated to the current CPU.
+	 */
+	internal_add_timer(base, timer);
+
+out_unlock:
+	spin_unlock_irqrestore(&base->lock, flags);
+
+	return ret;
+}
+```
+
+###### 7.7.2.1.1.2.2.1 internal_add_timer()
+
+该函数定义于kernel/timer.c:
+
+```
+static void internal_add_timer(struct tvec_base *base, struct timer_list *timer)
+{
+	unsigned long expires = timer->expires;
+	/*
+	 * 获取定时器超时时刻(expires)距离当前时刻(base->timer_jiffies)
+	 * 的时间差，用于确定该定时器所在的数组
+	 */
+	unsigned long idx = expires - base->timer_jiffies;
+	struct list_head *vec;
+
+	// 定时器timer插入到定时器链表中，参见struct tvec_base节，错误：引用源未找到，
+	if (idx < TVR_SIZE) {
+		int i = expires & TVR_MASK;
+		vec = base->tv1.vec + i;
+	} else if (idx < 1 << (TVR_BITS + TVN_BITS)) {
+		int i = (expires >> TVR_BITS) & TVN_MASK;
+		vec = base->tv2.vec + i;
+	} else if (idx < 1 << (TVR_BITS + 2 * TVN_BITS)) {
+		int i = (expires >> (TVR_BITS + TVN_BITS)) & TVN_MASK;
+		vec = base->tv3.vec + i;
+	} else if (idx < 1 << (TVR_BITS + 3 * TVN_BITS)) {
+		int i = (expires >> (TVR_BITS + 2 * TVN_BITS)) & TVN_MASK;
+		vec = base->tv4.vec + i;
+	} else if ((signed long) idx < 0) {
+		/*
+		 * Can happen if you add a timer with expires == jiffies,
+		 * or you set a timer to go off in the past
+		 */
+		vec = base->tv1.vec + (base->timer_jiffies & TVR_MASK);
+	} else {
+		int i;
+		/* If the timeout is larger than 0xffffffff on 64-bit
+		 * architectures then we use the maximum timeout:
+		 */
+		if (idx > 0xffffffffUL) {
+			idx = 0xffffffffUL;
+			expires = idx + base->timer_jiffies;
+		}
+		i = (expires >> (TVR_BITS + 3 * TVN_BITS)) & TVN_MASK;
+		vec = base->tv5.vec + i;
+	}
+	/*
+	 * Timers are FIFO:
+	 */
+	list_add_tail(&timer->entry, vec);
+}
+```
+
+##### 7.7.2.1.2 add_timer_on()
+
+该函数定义于kernel/timer.c:
+
+```
+/**
+ * add_timer_on - start a timer on a particular CPU
+ * @timer: the timer to be added
+ * @cpu: the CPU to start it on
+ *
+ * This is not very scalable on SMP. Double adds are not possible.
+ */
+void add_timer_on(struct timer_list *timer, int cpu)
+{
+	struct tvec_base *base = per_cpu(tvec_bases, cpu);
+	unsigned long flags;
+
+	timer_stats_timer_set_start_info(timer);
+	BUG_ON(timer_pending(timer) || !timer->function);
+	spin_lock_irqsave(&base->lock, flags);
+	timer_set_base(timer, base);
+	debug_activate(timer, timer->expires);
+	if (time_before(timer->expires, base->next_timer) &&
+	     !tbase_get_deferrable(timer->base))
+		base->next_timer = timer->expires;
+	internal_add_timer(base, timer);	// 参见internal_add_timer()节
+	/*
+	 * Check whether the other CPU is idle and needs to be
+	 * triggered to reevaluate the timer wheel when nohz is
+	 * active. We are protected against the other CPU fiddling
+	 * with the timer by holding the timer base lock. This also
+	 * makes sure that a CPU on the way to idle can not evaluate
+	 * the timer wheel.
+	 */
+	wake_up_idle_cpu(cpu);
+	spin_unlock_irqrestore(&base->lock, flags);
+}
+```
+
+#### 7.7.2.2 修改定时器/mod_timer()/mod_timer_pending()
+
+##### 7.7.2.2.1 mod_timer()
+
+参见mod_timer()节。
+
+##### 7.7.2.2.2 mod_timer_pending()
+
+该函数定义于kernel/timer.c:
+
+```
+/**
+ * mod_timer_pending - modify a pending timer's timeout
+ * @timer: the pending timer to be modified
+ * @expires: new timeout in jiffies
+ *
+ * mod_timer_pending() is the same for pending timers as mod_timer(),
+ * but will not re-activate and modify already deleted timers.
+ *
+ * It is useful for unserialized use of timers.
+ */
+int mod_timer_pending(struct timer_list *timer, unsigned long expires)
+{
+	// 参见__mod_timer()节
+	return __mod_timer(timer, expires, true, TIMER_NOT_PINNED);
+}
+```
+
+#### 7.7.2.3 删除定时器/del_timer()/del_timer_sync()
+
+##### 7.7.2.3.1 del_timer()
+
+该函数定义于kernel/timer.c:
+
+```
+/**
+ * del_timer - deactive a timer.
+ * @timer: the timer to be deactivated
+ *
+ * del_timer() deactivates a timer - this works on both active and inactive
+ * timers.
+ *
+ * The function returns whether it has deactivated a pending timer or not.
+ * (ie. del_timer() of an inactive timer returns 0, del_timer() of an
+ * active timer returns 1.)
+ */
+int del_timer(struct timer_list *timer)
+{
+	struct tvec_base *base;
+	unsigned long flags;
+	int ret = 0;
+
+	timer_stats_timer_clear_start_info(timer);
+	if (timer_pending(timer)) {
+		base = lock_timer_base(timer, &flags);
+		if (timer_pending(timer)) {
+			detach_timer(timer, 1);		// 将定时器timer从链表中删除
+			if (timer->expires == base->next_timer && !tbase_get_deferrable(timer->base))
+				base->next_timer = base->timer_jiffies;
+			ret = 1;
+		}
+		spin_unlock_irqrestore(&base->lock, flags);
+	}
+
+	return ret;
+}
+```
+
+##### 7.7.2.3.2 del_timer_sync()
+
+On a multiprocessing machine, the timer handler might already be executing on another processor. To deactivate the timer and wait until a potentially executing handler for the timer exits, use del_timer_sync(). In almost all cases, you should use del_timer_sync() over del_timer().
+
+Unlike del_timer(), del_timer_sync() cannot be used from interrupt context.
+
+在include/linux/timer.h中，包含如下代码：
+
+```
+#ifdef CONFIG_SMP
+  extern int			del_timer_sync(struct timer_list *timer);
+#else
+# define del_timer_sync(t)	del_timer(t)
+#endif
+```
+
+若定义了CONFIG_SMP，则函数del_timer_sync()定义于kernel/timer.c:
+
+```
+#ifdef CONFIG_SMP
+int del_timer_sync(struct timer_list *timer)
+{
+#ifdef CONFIG_LOCKDEP
+	unsigned long flags;
+
+	/*
+	 * If lockdep gives a backtrace here, please reference
+	 * the synchronization rules above.
+	 */
+	local_irq_save(flags);
+	lock_map_acquire(&timer->lockdep_map);
+	lock_map_release(&timer->lockdep_map);
+	local_irq_restore(flags);
+#endif
+	/*
+	 * don't use it in hardirq context, because it
+	 * could lead to deadlock.
+	 */
+	WARN_ON(in_irq());
+	for (;;) {
+		// 参见try_to_del_timer_sync(timer)节
+		int ret = try_to_del_timer_sync(timer);
+		if (ret >= 0)
+			return ret;
+		cpu_relax();
+	}
+}
+#endif
+```
+
+###### 7.7.2.3.2.1 try_to_del_timer_sync(timer)
+
+该函数定义于kernel/timer.c:
+
+```
+/**
+ * try_to_del_timer_sync - Try to deactivate a timer
+ * @timer: timer do del
+ *
+ * This function tries to deactivate a timer. Upon successful (ret >= 0)
+ * exit the timer is not queued and the handler is not running on any CPU.
+ */
+int try_to_del_timer_sync(struct timer_list *timer)
+{
+	struct tvec_base *base;
+	unsigned long flags;
+	int ret = -1;
+
+	base = lock_timer_base(timer, &flags);
+
+	if (base->running_timer == timer)
+		goto out;
+
+	timer_stats_timer_clear_start_info(timer);
+	ret = 0;
+	if (timer_pending(timer)) {
+		detach_timer(timer, 1); 	// 将定时器timer从链表中删除
+		if (timer->expires == base->next_timer && !tbase_get_deferrable(timer->base))
+			base->next_timer = base->timer_jiffies;
+		ret = 1;
+	}
+out:
+	spin_unlock_irqrestore(&base->lock, flags);
+
+	return ret;
+}
+```
+
+##### 7.7.2.3.3 del_singleshot_timer_sync()
+
+该宏定义于include/linux/timer.h:
+
+```
+#define del_singleshot_timer_sync(t)	del_timer_sync(t)	// 参见del_timer_sync()节
+```
+
+### 7.7.3 定时器模块的编译及初始化
+
+由kernel/Makefile中的如下变量可知，timer不是被编译成模块，而是直接被编译进内核：
+
+```
+obj-y  = sched.o fork.o exec_domain.o panic.o printk.o				\
+	    cpu.o exit.o itimer.o time.o softirq.o resource.o			\
+	    sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o	\
+	    signal.o sys.o kmod.o workqueue.o pid.o				\
+	    rcupdate.o extable.o params.o posix-timers.o			\
+	    kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o	\
+	    hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o			\
+	    notifier.o ksysfs.o sched_clock.o cred.o				\
+	    async.o range.o
+```
+
+在系统启动时调用定时器初始化函数init_timers():
+
+```
+start_kernel()		// 参见start_kernel()节
+-> init_timers()
+```
+
+该函数定义于kernel/timer.c:
+
+```
+void __init init_timers(void)
+{
+	// 参见timer_cpu_notify()节
+	int err = timer_cpu_notify(&timers_nb, (unsigned long)CPU_UP_PREPARE, (void *)(long)smp_processor_id());
+
+	init_timer_stats();
+
+	BUG_ON(err != NOTIFY_OK);
+	register_cpu_notifier(&timers_nb);
+	/*
+	 * 设置软中断TIMER_SOFTIRQ的处理程序为run_timer_softirq()，参见struct softirq_节；
+	 * 该处理程序在函数__do_softirq()中被调用，参见__do_softirq()节；由此可知，定时器超时
+	 * 处理函数是在软中断上下文中执行的；
+	 * 处理程序run_timer_softirq()参见定时器的超时处理/run_timer_softirq()节
+	 */
+	open_softirq(TIMER_SOFTIRQ, run_timer_softirq);
+}
+```
+
+#### 7.7.3.1 timer_cpu_notify()
+
+该函数定义于kernel/timer.c:
+
+```
+static int __cpuinit timer_cpu_notify(struct notifier_block *self,
+				unsigned long action, void *hcpu)
+{
+	long cpu = (long)hcpu;
+	int err;
+
+	switch(action) {
+	case CPU_UP_PREPARE:
+	case CPU_UP_PREPARE_FROZEN:
+		err = init_timers_cpu(cpu);	// 参见init_timers_cpu()节
+		if (err < 0)
+			return notifier_from_errno(err);
+		break;
+#ifdef CONFIG_HOTPLUG_CPU
+	case CPU_DEAD:
+	case CPU_DEAD_FROZEN:
+		migrate_timers(cpu);
+		break;
+#endif
+	default:
+		break;
+	}
+	return NOTIFY_OK;
+}
+```
+
+##### 7.7.3.1.1 init_timers_cpu()
+
+该函数定义于kernel/timer.c:
+
+```
+static int __cpuinit init_timers_cpu(int cpu)
+{
+	int j;
+	struct tvec_base *base;
+	static char __cpuinitdata tvec_base_done[NR_CPUS];
+
+	if (!tvec_base_done[cpu]) {
+		static char boot_done;
+
+		if (boot_done) {
+			/*
+			 * The APs use this path later in boot
+			 */
+			base = kmalloc_node(sizeof(*base), GFP_KERNEL | __GFP_ZERO, cpu_to_node(cpu));
+			if (!base)
+				return -ENOMEM;
+
+			/* Make sure that tvec_base is 2 byte aligned */
+			if (tbase_get_deferrable(base)) {
+				WARN_ON(1);
+				kfree(base);
+				return -ENOMEM;
+			}
+			per_cpu(tvec_bases, cpu) = base;
+		} else {
+			/*
+			 * This is for the boot CPU - we use compile-time
+			 * static initialisation because per-cpu memory isn't
+			 * ready yet and because the memory allocators are not
+			 * initialised either.
+			 */
+			boot_done = 1;
+			base = &boot_tvec_bases;
+		}
+		tvec_base_done[cpu] = 1;
+	} else {
+		base = per_cpu(tvec_bases, cpu);
+	}
+
+	spin_lock_init(&base->lock);
+
+	for (j = 0; j < TVN_SIZE; j++) {
+		INIT_LIST_HEAD(base->tv5.vec + j);
+		INIT_LIST_HEAD(base->tv4.vec + j);
+		INIT_LIST_HEAD(base->tv3.vec + j);
+		INIT_LIST_HEAD(base->tv2.vec + j);
+	}
+	for (j = 0; j < TVR_SIZE; j++)
+		INIT_LIST_HEAD(base->tv1.vec + j);
+
+	base->timer_jiffies = jiffies;
+	base->next_timer = base->timer_jiffies;
+	return 0;
+}
+```
+
+### 7.7.4 定时器的超时处理/run_timer_softirq()
+
+该函数被软中断处理函数__do_softirq()调用，参见__do_softirq()节和错误：引用源未找到，其定义于kernel/timer.c:
+
+```
+/*
+ * This function runs timers and the timer-tq in bottom half context.
+ */
+static void run_timer_softirq(struct softirq_action *h)
+{
+	struct tvec_base *base = __this_cpu_read(tvec_bases);
+
+	hrtimer_run_pending();					// 参见切换到高精度模式节
+
+	if (time_after_eq(jiffies, base->timer_jiffies))	// 参见比较Jiffies节
+		__run_timers(base);				// 参见__run_timers()节
+}
+```
+
+#### 7.7.4.1 __run_timers()
+
+该函数定义于kernel/timer.c:
+
+```
+#define INDEX(N) ((base->timer_jiffies >> (TVR_BITS + (N) * TVN_BITS)) & TVN_MASK)
+
+/**
+ * __run_timers - run all expired timers (if any) on this CPU.
+ * @base: the timer vector to be processed.
+ *
+ * This function cascades all vectors and executes all expired timer
+ * vectors.
+ */
+static inline void __run_timers(struct tvec_base *base)
+{
+	struct timer_list *timer;
+
+	spin_lock_irq(&base->lock);
+	// 只要定时器的当前时刻早于系统的当前时刻，就可能存在已超时的定时器，因而需要继续处理
+	while (time_after_eq(jiffies, base->timer_jiffies)) {
+		struct list_head work_list;
+		struct list_head *head = &work_list;
+		/*
+		 * 根据base->timer_jiffies的低8位(或低6位)来确定定时器所在的链表，
+		 * 参见错误：引用源未找到
+		 * 注意：此处不是按照tv1.vec[0], tv1.vec[1], ... 的顺序来处理定时器
+		 */
+		int index = base->timer_jiffies & TVR_MASK;
+
+		/*
+		 * Cascade timers:
+		 */
+		/*
+		 * 由错误：引用源未找到可知：
+		 * 若index为0，表示base->timer_jiffies的低8位有进位，
+		 * 	此时要根据其8-13位的取值，将定时器从某个tv2链表(如tv2.vec[x])
+		 * 	迁移到tv1.vec[*]；
+		 * 同理，若8-13位为0，则要根据其14-19位的取值，将定时器从某个tv3链表
+		 * (如tv3.vec[x])迁移到tv2或tv1中；
+		 * 以此类推，可得tv4, tv5中定时器的迁移
+		 */
+		if (!index &&
+			 (!cascade(base, &base->tv2, INDEX(0))) &&
+			 (!cascade(base, &base->tv3, INDEX(1))) &&
+			 !cascade(base, &base->tv4, INDEX(2)))
+			cascade(base, &base->tv5, INDEX(3));	// 参见cascade()节
+		// 调整时钟滴答计数
+		++base->timer_jiffies;
+		// 将链表base->tv1.vec[index]中的元素转移到链表work_list中，并循环处理
+		list_replace_init(base->tv1.vec + index, &work_list);
+		while (!list_empty(head)) {
+			void (*fn)(unsigned long);
+			unsigned long data;
+
+			// 从前至后依次处理链表中的所有定时器
+			timer = list_first_entry(head, struct timer_list,entry);
+			fn = timer->function;
+			data = timer->data;
+
+			timer_stats_account_timer(timer);
+
+			base->running_timer = timer;		// 设置当前正在处理的定时器
+			detach_timer(timer, 1); 		// 将定时器timer从链表中移除
+
+			spin_unlock_irq(&base->lock);
+			call_timer_fn(timer, fn, data);		// 调用定时器处理函数fn(data)
+			spin_lock_irq(&base->lock);
+		}
+	}
+	base->running_timer = NULL; 				// 清除当前正在处理的定时器
+	spin_unlock_irq(&base->lock);
+}
+```
+
+##### 7.7.4.1.1 cascade()
+
+该函数定义于kernel/timer.c:
+
+```
+static int cascade(struct tvec_base *base, struct tvec *tv, int index)
+{
+	/* cascade all the timers from tv up one level */
+	struct timer_list *timer, *tmp;
+	struct list_head tv_list;
+
+	// 变量tv_list中保存需要迁移的链表
+	list_replace_init(tv->vec + index, &tv_list);
+
+	/*
+	 * We are removing _all_ timers from the list, so we
+	 * don't have to detach them individually.
+	 */
+	list_for_each_entry_safe(timer, tmp, &tv_list, entry) {
+		BUG_ON(tbase_get_base(timer->base) != base);
+		/*
+		 * 将定时器timer重新加入定时器链表中，实际上会迁移到下一级
+		 * 的tv数组中，参见internal_add_timer()节
+		 */
+		internal_add_timer(base, timer);
+	}
+
+	return index;
+}
+```
+
+综上可知，内核中低分辨率定时器的实现非常精妙，它既实现了大量定时器的管理，又实现了快速的O(1)查找超时定时器的能力。利用巧妙的数组结构，使得只需在间隔256个tick时间才处理一次迁移操作。5个数组(tv1 – tv5)就像5个齿轮，它们随着base->timer_jifffies的增长而不停地转动，每次只需处理第一个齿轮的某一个齿节，低一级的齿轮转动一圈，高一级的齿轮转动一个齿，同时自动把即将超时的定时器迁移到下一级齿轮中，所以低分辨率定时器通常又被叫做时间轮(time wheel)。事实上，该实现方法是一个很好的空间换时间的软件算法。
+
+### 7.7.5 定时器编程示例
+
+源文件test_timer.c如下：
+
+```
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/timer.h>
+
+MODULE_LICENSE("GPL");
+
+struct timer_list t;
+
+void timer_func(unsigned long data)
+{
+	printk("*** Time out, data: %ld\n", data);
+}
+
+static int __init timer_init(void)
+{
+	printk("*** Timer init ***\n");
+	setup_timer(&t, timer_func, 1010);
+	add_timer(&t);
+	
+	return 0;
+}
+
+static void __exit timer_exit(void)
+{
+    printk("*** Timer exit ***\n");
+}
+
+module_init(timer_init);
+module_exit(timer_exit);
+```
+
+编译test_timer.c所用的Makefile如下：
+
+```
+obj-m := test_timer.o
+
+# ‘uname –r’ print kernel release
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	rm *.o *.ko *.mod.c Modules.symvers modules.order -f
+```
+
+执行命令的过程如下：
+
+```
+chenwx@chenwx ~/alex/timer $ make
+make -C /lib/modules/3.5.0-17-generic/build M=/home/chenwx/alex/timer modules
+make[1]: Entering directory `/usr/src/linux-headers-3.5.0-17-generic'
+  CC [M]  /home/chenwx/alex/timer/test_timer.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/chenwx/alex/timer/test_timer.mod.o
+  LD [M]  /home/chenwx/alex/timer/test_timer.ko
+make[1]: Leaving directory `/usr/src/linux-headers-3.5.0-17-generic'
+chenwx@chenwx ~/alex/timer $ ll
+total 100
+drwxr-xr-x 3 chenwx chenwx  4096 Dec  7 09:37 .
+drwxr-xr-x 8 chenwx chenwx  4096 Dec  7 08:35 ..
+-rw-r--r-- 1 chenwx chenwx   231 Dec  7 08:58 Makefile
+-rw-r--r-- 1 chenwx chenwx    45 Dec  7 09:37 modules.order
+-rw-r--r-- 1 chenwx chenwx     0 Dec  7 09:00 Module.symvers
+-rw-r--r-- 1 chenwx chenwx   474 Dec  7 09:34 test_timer.c
+-rw-r--r-- 1 chenwx chenwx  3182 Dec  7 09:37 test_timer.ko
+-rw-r--r-- 1 chenwx chenwx   263 Dec  7 09:37 .test_timer.ko.cmd
+-rw-r--r-- 1 chenwx chenwx   754 Dec  7 09:37 test_timer.mod.c
+-rw-r--r-- 1 chenwx chenwx  1956 Dec  7 09:37 test_timer.mod.o
+-rw-r--r-- 1 chenwx chenwx 26095 Dec  7 09:37 .test_timer.mod.o.cmd
+-rw-r--r-- 1 chenwx chenwx  2540 Dec  7 09:37 test_timer.o
+-rw-r--r-- 1 chenwx chenwx 25992 Dec  7 09:37 .test_timer.o.cmd
+drwxr-xr-x 2 chenwx chenwx  4096 Dec  7 09:37 .tmp_versions
+chenwx@chenwx ~/alex/timer $ sudo insmod test_timer.ko
+[sudo] password for chenwx: 
+chenwx@chenwx ~/alex/timer $ dmesg | tail
+...
+[ 1019.255595] *** Timer init ***
+[ 1019.256197] *** Time out, data: 1010
+chenwx@chenwx ~/alex/timer $ sudo rmmod test_timer
+chenwx@chenwx ~/alex/timer $ dmesg | tail
+...
+[ 1019.255595] *** Timer init ***
+[ 1019.256197] *** Time out, data: 1010
+[ 1053.784719] *** Timer exit ***
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

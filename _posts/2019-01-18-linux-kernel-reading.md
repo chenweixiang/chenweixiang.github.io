@@ -48943,6 +48943,3594 @@ void usb_deregister_dev(struct usb_interface *intf,
 }
 ```
 
+## 10.4 Block Drivers (block/)
+
+<<Linux Kernel Development, 3rd Edition>> Chaper 14. The Block I/O Layer:
+
+Block devices are hardware devices distinguished by the random (that is, not necessarily sequential) access of fixed-size chunks of data. The fixed-size chunks of data are called blocks. The most common block device is a hard disk, but many other block devices exist, such as floppy drives, Blu-ray readers, and flash memory.
+
+The smallest addressable unit on a block device is a sector. Sectors come in various powers of two, but 512 bytes is the most common size.
+
+Software has different goals and therefore imposes its own smallest logically addressable unit, which is the block. Because the device’s smallest addressable unit is the sector, the block size can be no smaller than the sector and must be a multiple of a sector. The kernel also requires that a block be no larger than the page size. Common block sizes are 512 bytes, 1 kilobyte, and 4 kilobytes.
+
+下列命令输出结果中的第一列为b，则该设备为块设备：
+
+```
+chenwx@chenwx ~ $ ll /dev
+brw-rw----  1 root disk      7,   0 Nov 27 20:51 loop0 
+brw-rw----  1 root disk      7,   1 Nov 27 20:51 loop1 
+brw-rw----  1 root disk      7,   2 Nov 27 20:51 loop2 
+brw-rw----  1 root disk      7,   3 Nov 27 20:51 loop3 
+brw-rw----  1 root disk      1,   0 Nov 27 20:51 ram0 
+brw-rw----  1 root disk      1,   1 Nov 27 20:51 ram1 
+brw-rw----  1 root disk      1,   2 Nov 27 20:51 ram2 
+brw-rw----  1 root disk      1,   3 Nov 27 20:51 ram3 
+brw-rw----  1 root disk      8,   0 Nov 27 20:51 sda 
+brw-rw----  1 root disk      8,   1 Nov 28 21:03 sda1 
+brw-rw----  1 root disk      8,  16 Nov 27 20:51 sdb 
+brw-rw----  1 root disk      8,  17 Nov 27 20:51 sdb1 
+...
+```
+
+### 10.4.0 与块设备有关的命令
+
+#### 10.4.0.1 lsblk
+
+The lsblk stands for (List Block Devices), print block devices by their assigned name (but not RAM) on the standard output in a tree-like fashion.
+
+```
+chenwx@chenwx ~/linux $ lsblk 
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT 
+sda      8:0    0 298.1G  0 disk 
+`-sda1   8:1    0 298.1G  0 part /media/chenwx/Work 
+sdb      8:16   0 111.8G  0 disk 
+|-sdb1   8:17   0   100M  0 part 
+|-sdb2   8:18   0  58.4G  0 part 
+|-sdb3   8:19   0   484M  0 part 
+|-sdb4   8:20   0     1K  0 part 
+`-sdb5   8:21   0  52.8G  0 part / 
+
+chenwx@chenwx ~/linux $ lsblk -l 
+NAME MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT 
+sda    8:0    0 298.1G  0 disk 
+sda1   8:1    0 298.1G  0 part /media/chenwx/Work 
+sdb    8:16   0 111.8G  0 disk 
+sdb1   8:17   0   100M  0 part 
+sdb2   8:18   0  58.4G  0 part 
+sdb3   8:19   0   484M  0 part 
+sdb4   8:20   0     1K  0 part 
+sdb5   8:21   0  52.8G  0 part / 
+```
+
+**NOTE**: lsblk is very useful and easiest way to know the name of New Usb Device you just plugged in, especially when you have to deal with disk/blocks in terminal.
+
+### 10.4.1 描述块设备的数据结构
+
+#### 10.4.1.1 struct block_device
+
+每个块设备都是由一个block_device结构的描述符来表示: struct block_device
+
+所有的块设备描述符被插入一个全局链表中，链表首部是由变量all_bdevs表示的，参见fs/block_dev.c;
+
+链表链接所用的指针位于块设备描述符的bd_list字段中.
+
+该结构定义于include/linux/fs.h:
+
+```
+struct block_device {
+	// 块设备的主设备号/次设备号
+	dev_t				bd_dev;  	/* not a kdev_t - it's a search key */
+
+	// 计数器，统计块设备已经被打开的次数
+	int				bd_openers;
+
+	// 指向bdev文件系统中块设备对应的索引节点的指针
+	struct inode			*bd_inode;	/* will die */
+
+	struct super_block		*bd_super;
+	struct mutex			bd_mutex;	/* open/close mutex */
+
+	// 已打开的块设备文件的索引节点链表的首部
+	struct list_head		bd_inodes;
+	void				*bd_claiming;
+
+	// 块设备描述符的当前所有者
+	void				*bd_holder;
+	// 计数器，统计对bd_holder字段设置的次数
+	int				bd_holders;
+	bool				bd_write_holder;
+#ifdef CONFIG_SYSFS
+	struct list_head		bd_holder_disks;
+#endif
+
+	// 如果块设备是一个分区，则指向整个磁盘的块设备描述符；否则，指向该块设备描述符
+	struct block_device		*bd_contains;
+	// 块大小
+	unsigned			bd_block_size;
+
+	// 指向分区描述符的指针；若该块设备不是一个分区，则为NULL
+	struct hd_struct		*bd_part;
+	/* number of times partitions within this device have been opened. */
+	unsigned			bd_part_count;
+
+	// 当需要读块设备的分区表时设置的标志
+	int				bd_invalidated;
+	// 指向块设备中基本磁盘的gendisk结构的指针
+	struct gendisk 			*bd_disk;
+	// 用于块设备描述符链表的指针
+	struct list_head		bd_list;
+	/*
+	 * Private data.  You must have bd_claim'ed the block_device
+	 * to use this.  NOTE:  bd_claim allows an owner to claim
+	 * the same device multiple times, the owner must take special
+	 * care to not mess up bd_private for that case.
+	 */
+	unsigned long			bd_private;
+
+	/* The counter of freeze processes */
+	int				bd_fsfreeze_count;
+	/* Mutex for freeze */
+	struct mutex			bd_fsfreeze_mutex;
+};
+```
+
+#### 10.4.1.2 struct buffer_head
+
+该结构定义于include/linux/blk_types.h:
+
+```
+struct buffer_head {
+	unsigned long			b_state;		/* buffer state bitmap (see enum bh_state_bits) */
+	struct buffer_head		*b_this_page;		/* circular list of page's buffers */
+	struct page			*b_page;		/* the page this bh is mapped to */
+
+	sector_t			b_blocknr;		/* start block number */
+	size_t				b_size;			/* size of mapping */
+	char				*b_data;		/* pointer to data within the page */
+
+	struct block_device	   	*b_bdev;
+	bh_end_io_t			*b_end_io;		/* I/O completion */
+ 	void				*b_private;		/* reserved for b_end_io */
+	struct list_head		b_assoc_buffers;	/* associated with another mapping */
+	struct address_space		*b_assoc_map;		/* mapping this buffer is associated with */
+	atomic_t 			b_count;		/* users using this buffer_head */
+};
+```
+
+该结构参见:
+
+![Block_Driver_02](/assets/Block_Driver_02.jpg)
+
+#### 10.4.1.3 struct bio
+
+该结构定义于include/linux/blk_types.h:
+
+```
+struct bio {
+	sector_t			bi_sector;	/* device address in 512 byte sectors */
+	struct bio			*bi_next;	/* request queue link */
+	struct block_device		*bi_bdev;
+	unsigned long			bi_flags;	/* status, command, etc */
+	unsigned long			bi_rw;		/* bottom bits READ/WRITE, top bits priority */
+
+	unsigned short			bi_vcnt;	/* how many bio_vec's */
+	unsigned short			bi_idx;	/* current index into bvl_vec */
+
+	/* Number of segments in this BIO after
+	 * physical address coalescing is performed.
+	 */
+	unsigned int			bi_phys_segments;
+
+	unsigned int			bi_size;	/* residual I/O count */
+
+	/*
+	 * To keep track of the max segment size, we account for the
+	 * sizes of the first and last mergeable segments in this bio.
+	 */
+	unsigned int			bi_seg_front_size;
+	unsigned int			bi_seg_back_size;
+
+	unsigned int			bi_max_vecs;	/* max bvl_vecs we can hold */
+
+	atomic_t			bi_cnt;		/* pin count */
+
+	struct bio_vec			*bi_io_vec;	/* the actual vec list */
+
+	bio_end_io_t			*bi_end_io;
+
+	void				*bi_private;
+#if defined(CONFIG_BLK_DEV_INTEGRITY)
+	struct bio_integrity_payload	*bi_integrity;  /* data integrity */
+#endif
+
+	bio_destructor_t		*bi_destructor;	/* destructor */
+
+	/*
+	 * We can inline a number of vecs at the end of the bio, to avoid
+	 * double allocations for a small number of bio_vecs. This member
+	 * MUST obviously be kept at the very end of the bio.
+	 */
+	struct bio_vec			bi_inline_vecs[0];
+};
+```
+
+该结构参见:
+
+![Block_Driver_01](/assets/Block_Driver_01.jpg)
+
+#### 10.4.1.4 struct request_queue
+
+Block devices maintain request queues to store their pending block I/O requests. Requests are added to the queue by higher-level code in the kernel, such as filesystems. As long as the request queue is nonempty, the block device driver associated with the queue grabs the request from the head of the queue and submits it to its associated block device. Each item in the queue’s request list is a single request, of type struct request.
+
+该结构定义于include/linux/blkdev.h:
+
+```
+struct request_queue {
+	/*
+	 * Together with queue_head for cacheline sharing
+	 */
+	struct list_head	queue_head;
+	struct request		*last_merge;
+	struct elevator_queue	*elevator;
+
+	/*
+	 * the queue request freelist, one for reads and one for writes
+	 */
+	struct request_list	rq;
+
+	request_fn_proc		*request_fn;
+	make_request_fn		*make_request_fn;
+	prep_rq_fn		*prep_rq_fn;
+	unprep_rq_fn		*unprep_rq_fn;
+	merge_bvec_fn		*merge_bvec_fn;
+	softirq_done_fn		*softirq_done_fn;
+	rq_timed_out_fn		*rq_timed_out_fn;
+	dma_drain_needed_fn	*dma_drain_needed;
+	lld_busy_fn		*lld_busy_fn;
+
+	/*
+	 * Dispatch queue sorting
+	 */
+	sector_t		end_sector;
+	struct request		*boundary_rq;
+
+	/*
+	 * Delayed queue handling
+	 */
+	struct delayed_work	delay_work;
+
+	struct backing_dev_info backing_dev_info;
+
+	/*
+	 * The queue owner gets to use this for whatever they like.
+	 * ll_rw_blk doesn't touch it.
+	 */
+	void			*queuedata;
+
+	/*
+	 * various queue flags, see QUEUE_* below
+	 */
+	unsigned long		queue_flags;
+
+	/*
+	 * queue needs bounce pages for pages above this limit
+	 */
+	gfp_t			bounce_gfp;
+
+	/*
+	 * protects queue structures from reentrancy. ->__queue_lock should
+	 * _never_ be used directly, it is queue private. always use
+	 * ->queue_lock.
+	 */
+	spinlock_t		__queue_lock;
+	spinlock_t		*queue_lock;
+
+	/*
+	 * queue kobject
+	 */
+	struct kobject 		kobj;
+
+	/*
+	 * queue settings
+	 */
+	unsigned long		nr_requests;	/* Max # of requests */
+	unsigned int		nr_congestion_on;
+	unsigned int		nr_congestion_off;
+	unsigned int		nr_batching;
+
+	unsigned int		dma_drain_size;
+	void				*dma_drain_buffer;
+	unsigned int		dma_pad_mask;
+	unsigned int		dma_alignment;
+
+	struct blk_queue_tag	*queue_tags;
+	struct list_head	tag_busy_list;
+
+	unsigned int		nr_sorted;
+	unsigned int		in_flight[2];
+
+	unsigned int		rq_timeout;
+	struct timer_list	timeout;
+	struct list_head	timeout_list;
+
+	struct queue_limits	limits;
+
+	/*
+	 * sg stuff
+	 */
+	unsigned int		sg_timeout;
+	unsigned int		sg_reserved_size;
+	int			node;
+#ifdef CONFIG_BLK_DEV_IO_TRACE
+	struct blk_trace	*blk_trace;
+#endif
+	/*
+	 * for flush operations
+	 */
+	unsigned int		flush_flags;
+	unsigned int		flush_not_queueable:1;
+	unsigned int		flush_queue_delayed:1;
+	unsigned int		flush_pending_idx:1;
+	unsigned int		flush_running_idx:1;
+	unsigned long		flush_pending_since;
+	struct list_head	flush_queue[2];
+	struct list_head	flush_data_in_flight;
+	struct request		flush_rq;
+
+	struct mutex		sysfs_lock;
+
+#if defined(CONFIG_BLK_DEV_BSG)
+	bsg_job_fn		*bsg_job_fn;
+	int			bsg_job_size;
+	struct bsg_class_device bsg_dev;
+#endif
+
+#ifdef CONFIG_BLK_DEV_THROTTLING
+	/* Throttle data */
+	struct throtl_data 	*td;
+#endif
+};
+```
+
+### 10.4.2 块设备的初始化/genhd_device_init()
+
+* 字符设备初始化函数之一：bdev_cache_init()			// 参见4.3.4.1.4.3.11.5 bdev_cache_init()节
+* 字符设备初始化函数之二：genhd_device_init()		// 参见本节
+
+```
+start_kernel()						// 参见4.3.4.1.4.3 start_kernel()节
+-> vfs_caches_init()					// 参见4.3.4.1.4.3.11 vfs_caches_init()节
+   -> bdev_cache_init()					// 参见4.3.4.1.4.3.11.6 chrdev_init()节
+-> rest_init()						// 参见4.3.4.1.4.3.13 rest_init()节
+   -> kernel_init()					// 参见4.3.4.1.4.3.13.1 kernel_init()节
+      -> do_basic_setup()				// 参见4.3.4.1.4.3.13.1.2 do_basic_setup()节
+         -> do_initcalls()				// 参见13.5.1.1.1 do_initcalls()节
+            -> do_one_initcall()			// 参见13.5.1.1.1.2 do_one_initcall()节
+               -> subsys_initcall(genhd_device_init)	// initcall4.init
+                  -> genhd_device_init()		// 参见本节
+```
+
+该函数定义于block/genhd.c:
+
+```
+static int __init genhd_device_init(void)
+{
+	int error;
+
+	// 变量sysfs_dev_block_kobj参见10.2.1.1 devices_init()节
+	block_class.dev_kobj = sysfs_dev_block_kobj;
+
+	// 参见10.2.7.1.1 class_register()/__class_register()节
+	error = class_register(&block_class);
+	if (unlikely(error))
+		return error;
+
+	/*
+	 * 初始化变量bdev_map,
+	 * 参见Subjects/Chapter10_Device_Driver/02_Block_Device/Figures/major_names[255]_2.jpg
+	 */
+	bdev_map = kobj_map_init(base_probe, &block_class_lock);
+
+	// 参见10.4.2.1 blk_dev_init()节
+	blk_dev_init();
+
+	/*
+	 * 注册块设备blkext，其主设备号为259，
+	 * 参见10.4.3.1 register_blkdev()节
+	 */
+	register_blkdev(BLOCK_EXT_MAJOR, "blkext");
+
+	/* create top-level block dir */
+	/*
+	 * 创建目录/sys/block，
+	 * 参见15.7.1.2 kobject_create_and_add()节
+	 */
+	if (!sysfs_deprecated)
+		block_depr = kobject_create_and_add("block", NULL);
+
+	return 0;
+}
+```
+
+#### 10.4.2.1 blk_dev_init()
+
+该函数定义于block/blk-core.c:
+
+```
+int __init blk_dev_init(void)
+{
+	BUILD_BUG_ON(__REQ_NR_BITS > 8 * sizeof(((struct request *)0)->cmd_flags));
+
+	/* used for unplugging and affects IO latency/throughput - HIGHPRI */
+	// 创建工作队列kblockd，参见7.5.2.1 alloc_workqueue()节
+	kblockd_workqueue = alloc_workqueue("kblockd", WQ_MEM_RECLAIM | WQ_HIGHPRI, 0);
+	if (!kblockd_workqueue)
+		panic("Failed to create kblockd\n");
+
+	// 参见Create a Specific Cache/kmem_cache_create()节
+	request_cachep = kmem_cache_create("blkdev_requests",
+			sizeof(struct request), 0, SLAB_PANIC, NULL);
+
+	// 参见Create a Specific Cache/kmem_cache_create()节
+	blk_requestq_cachep = kmem_cache_create("blkdev_queue",
+			sizeof(struct request_queue), 0, SLAB_PANIC, NULL);
+
+	return 0;
+}
+```
+
+### 10.4.3 注册/注销块设备
+
+#### 10.4.3.1 register_blkdev()
+
+该函数定义于block/genhd.c:
+
+```
+/**
+ * register_blkdev - register a new block device
+ *
+ * @major: the requested major device number [1..255]. If @major=0, try to
+ *         allocate any unused major number.
+ * @name: the name of the new block device as a zero terminated string
+ *
+ * The @name must be unique within the system.
+ *
+ * The return value depends on the @major input parameter.
+ *  - if a major device number was requested in range [1..255] then the
+ *    function returns zero on success, or a negative error code
+ *  - if any unused major number was requested with @major=0 parameter
+ *    then the return value is the allocated major number in range
+ *    [1..255] or a negative error code otherwise
+ */
+/*
+ * 由如下函数调用可知，入参major的取值范围不止在[1, 255]，其中BLOCK_EXT_MAJOR = 259
+ * genhd_device_init()->register_blkdev(BLOCK_EXT_MAJOR, "blkext");
+ */
+int register_blkdev(unsigned int major, const char *name)
+{
+	struct blk_major_name **n, *p;
+	int index, ret = 0;
+
+	mutex_lock(&block_class_lock);
+
+	/*
+	 * 若major == 0，则动态分配主设备号：
+	 * 按从后向前的顺序查找数组major_names[]，若某元素为空，
+	 * 则该元素对应的下标即为新分配的主设备号；由此可知，
+	 * 动态分配主设备号的顺序是由大到小
+	 */
+	/* temporary */
+	if (major == 0) {
+		for (index = ARRAY_SIZE(major_names)-1; index > 0; index--) {
+			if (major_names[index] == NULL)
+				break;
+		}
+
+		// 若数组major_names[]的255个元素全部被用，则直接返回;
+		if (index == 0) {
+			printk("register_blkdev: failed to get major for %s\n", name);
+			ret = -EBUSY;
+			goto out;
+		}
+
+		major = index;
+		ret = major;
+	}
+
+	p = kmalloc(sizeof(struct blk_major_name), GFP_KERNEL);
+	if (p == NULL) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	p->major = major;
+	strlcpy(p->name, name, sizeof(p->name));
+	p->next = NULL;
+
+	/*
+	 * 查找新元素p应插入到链表major_names[major%255]中的位置；
+	 * 举例：如下函数调用中，该元素被插入链表major_names[4]中，
+	 * genhd_device_init()->register_blkdev(BLOCK_EXT_MAJOR, "blkext")
+	 */
+	index = major_to_index(major);
+	for (n = &major_names[index]; *n; n = &(*n)->next) {
+		if ((*n)->major == major)
+			break;
+	}
+	if (!*n)
+		*n = p;
+	else
+		ret = -EBUSY;
+
+	if (ret < 0) {
+		printk("register_blkdev: cannot get major %d for %s\n", major, name);
+		kfree(p);
+	}
+
+out:
+	mutex_unlock(&block_class_lock);
+	return ret;
+}
+```
+
+#### 10.4.3.2 unregister_blkdev()
+
+该函数定义于block/genhd.c:
+
+```
+void unregister_blkdev(unsigned int major, const char *name)
+{
+	struct blk_major_name **n;
+	struct blk_major_name *p = NULL;
+	int index = major_to_index(major);
+
+	mutex_lock(&block_class_lock);
+	for (n = &major_names[index]; *n; n = &(*n)->next)
+		if ((*n)->major == major)
+			break;
+	if (!*n || strcmp((*n)->name, name)) {
+		WARN_ON(1);
+	} else {
+		p = *n;
+		*n = p->next;
+	}
+	mutex_unlock(&block_class_lock);
+	kfree(p);
+}
+```
+
+### 10.4.x I/O Scheduler
+
+| I/O Scheduler | Source Code | CONFIG_xxx | elevator= |
+| :------------ | :---------- | :--------- | :-------- |
+| Linus elevator | block/elevator.c |      | "as"      |
+| Deadline I/O scheduler | block/deadline-iosched.c | CONFIG_IOSCHED_DEADLINE<br>CONFIG_DEFAULT_DEADLINE | "deadline" |
+| Complete Fair Queuing (CFQ) | block/cfq-iosched.c | CONFIG_IOSCHED_CFQ<br>CONFIG_DEFAULT_CFQ | "cfq" |
+| Noop I/O scheduler | block/noop-iosched.c | CONFIG_IOSCHED_NOOP<br>CONFIG_DEFAULT_NOOP | "noop" |
+
+<p/>
+
+默认的I/O Schedule是Complete Fair Queuing (CFQ)。可以使用内核参数elevator=xxx来配置I/O Scheduler。
+
+## 10.5 Network Drivers
+
+下列命令输出结果中的第一列为s，则该设备为网络设备：
+
+```
+chenwx@chenwx ~ $ ll /dev
+srw-rw-rw-  1 root root           0 Nov 27 20:51 log
+
+chenwx@chenwx ~ $ ll /sys/class/net/
+lrwxrwxrwx 1 root root 0 Sep 14 18:45 eth0 -> ../../devices/pci0000:00/0000:00:19.0/net/eth0 
+lrwxrwxrwx 1 root root 0 Sep 14 18:45 lo -> ../../devices/virtual/net/lo 
+
+chenwx@chenwx ~ $ ll /sys/devices/virtual/net/lo 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 addr_assign_type 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 addr_len 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 address 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 broadcast 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 carrier 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 carrier_changes 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 dev_id 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 dev_port 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 dormant 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 duplex 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 flags 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 gro_flush_timeout 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 ifalias 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 ifindex 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 iflink 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 link_mode 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 mtu 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 name_assign_type 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 netdev_group 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 operstate 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 phys_port_id 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 phys_port_name 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 phys_switch_id 
+drwxr-xr-x 2 root root    0 Sep 14 20:27 power 
+drwxr-xr-x 4 root root    0 Sep 14 20:27 queues 
+-r--r--r-- 1 root root 4.0K Sep 14 20:27 speed 
+drwxr-xr-x 2 root root    0 Sep 14 20:27 statistics 
+lrwxrwxrwx 1 root root    0 Sep 14 15:50 subsystem -> ../../../../class/net 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:27 tx_queue_len 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 type 
+-rw-r--r-- 1 root root 4.0K Sep 14  2015 uevent 
+
+chenwx@chenwx ~ $ ll /sys/devices/pci0000\:00/0000\:00\:19.0/net/eth0/ 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 addr_assign_type 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 addr_len 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 address 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 broadcast 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 carrier 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 carrier_changes 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 dev_id 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 dev_port 
+lrwxrwxrwx 1 root root    0 Sep 14 15:50 device -> ../../../0000:00:19.0 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 dormant 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 duplex 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 flags 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 gro_flush_timeout 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 ifalias 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 ifindex 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 iflink 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 link_mode 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 mtu 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 name_assign_type 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 netdev_group 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 operstate 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 phys_port_id 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 phys_port_name 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 phys_switch_id 
+drwxr-xr-x 2 root root    0 Sep 14 20:28 power 
+drwxr-xr-x 4 root root    0 Sep 14  2015 queues 
+-r--r--r-- 1 root root 4.0K Sep 14 20:28 speed 
+drwxr-xr-x 2 root root    0 Sep 14 20:28 statistics 
+lrwxrwxrwx 1 root root    0 Sep 14 15:50 subsystem -> ../../../../../class/net 
+-rw-r--r-- 1 root root 4.0K Sep 14 20:28 tx_queue_len 
+-r--r--r-- 1 root root 4.0K Sep 14 15:50 type 
+-rw-r--r-- 1 root root 4.0K Sep 14  2015 uevent 
+```
+
+### 10.5.0 基本知识
+
+#### 10.5.0.1 TCP/IP参考模型
+
+| OSI参考模型 | TCP/IP参考模型 | 具体协议示例 |
+| :-------- | :------------ | :--------- |
+| L7: 应用层(Application Layer) | L4: 应用层(Application Layer) | HTTP, SMTP， FTP， ... |
+| L6: 表示层(Presentation Layer) | L4: 应用层(Application Layer) | ASN.1, NCP， ... |
+| L5: 会话层(Session Layer) | L4: 应用层(Application Layer) | SSH, ASAP， X.225, ... |
+| L4: 传输层(Transport Layer) | L3: 传输层(Transport Layer) | TCP, UDP, TLS， RTP， SCTP， ... |
+| L3: 网络层(Network Layer) | L2: 网络互连层(Internet Layer) | IP, ICMP, BGP, ... |
+| L2: 数据链路层(Data Link Layer) | L1: 网络接口层(Network Access Layer) | 以太网, 令牌环, HDLC, 帧中继, ISDN, ... |
+| L1: 物理层(Physical Layer) | L1: 网络接口层(Network Access Layer) | 光纤, 无线电, ... |
+
+<p/>
+
+#### 10.5.0.2 与网络设备有关的命令
+
+命令ifconfig用于配置网络接口:
+
+```
+ifconfig - configure a network interface 
+
+SYNOPSIS 
+       ifconfig [-v] [-a] [-s] [interface] 
+       ifconfig [-v] interface [aftype] options | address ... 
+
+DESCRIPTION 
+       Ifconfig is used to configure the kernel-resident network interfaces. It is used at boot
+       time to set up interfaces as necessary. After that, it is usually only needed when debugging
+       or when system tuning is needed. 
+
+       If no arguments are given, ifconfig displays the status of the currently active interfaces.
+       If a single interface argument is given, it displays the status of the given interface only;
+       if a single -a argument is given, it displays the status of all interfaces, even those that
+       are down. Otherwise, it configures an interface. 
+```
+
+命令ifconfig举例如下:
+
+```
+chenwx@chenwx ~ $ ifconfig 
+eth0      Link encap:Ethernet  HWaddr 00:1c:25:76:75:eb  
+          inet addr:192.168.1.109  Bcast:192.168.1.255  Mask:255.255.255.0 
+          inet6 addr: fe80::21c:25ff:fe76:75eb/64 Scope:Link 
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1 
+          RX packets:49185 errors:0 dropped:0 overruns:0 frame:0 
+          TX packets:235164 errors:0 dropped:0 overruns:0 carrier:0 
+          collisions:0 txqueuelen:1000 
+          RX bytes:35297669 (35.2 MB)  TX bytes:20815563 (20.8 MB) 
+          Interrupt:20 Memory:fe000000-fe020000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0 
+          inet6 addr: ::1/128 Scope:Host 
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1 
+          RX packets:51853 errors:0 dropped:0 overruns:0 frame:0 
+          TX packets:51853 errors:0 dropped:0 overruns:0 carrier:0 
+          collisions:0 txqueuelen:0 
+          RX bytes:24077890 (24.0 MB)  TX bytes:24077890 (24.0 MB) 
+```
+
+### 10.5.1 描述网络设备的数据结构
+
+#### 10.5.1.1 struct net_device
+
+该结构定义于include/linux/netdevice.h:
+
+```
+/* Kernel tag: v4.2 */
+struct net_device {
+	char				name[IFNAMSIZ];
+
+	/*
+	 * 链接至struct net -> dev_name_head，
+	 * 参见10.5.1.1.1 分配网络设备/alloc_netdev()节：
+	 * register_netdevice() -> list_netdevice()
+	 */
+	struct hlist_node		name_hlist;
+
+	char 				*ifalias;
+	/*
+	 *	I/O specific fields
+	 *	FIXME: Merge these and struct ifmap into one
+	 */
+	unsigned long			mem_end;
+	unsigned long			mem_start;
+	unsigned long			base_addr;
+	int				irq;
+
+	atomic_t			carrier_changes;
+
+	/*
+	 *	Some hardware also needs these fields (state,dev_list,
+	 *	napi_list,unreg_list,close_list) but they are not
+	 *	part of the usual set specified in Space.c.
+	 */
+	unsigned long			state;
+
+	/*
+	 * 链接至struct net -> dev_base_head，
+	 * 参见10.5.1.1.1 分配网络设备/alloc_netdev()节：
+	 * register_netdevice() -> list_netdevice()
+	 */
+	struct list_head		dev_list;
+
+	struct list_head		napi_list;
+	struct list_head		unreg_list;
+	struct list_head		close_list;
+	struct list_head		ptype_all;
+	struct list_head		ptype_specific;
+
+	struct {
+		struct list_head 	upper;
+		struct list_head 	lower;
+	} adj_list;
+
+	struct {
+		struct list_head 	upper;
+		struct list_head 	lower;
+	} all_adj_list;
+
+	netdev_features_t		features;
+	netdev_features_t		hw_features;
+	netdev_features_t		wanted_features;
+	netdev_features_t		vlan_features;
+	netdev_features_t		hw_enc_features;
+	netdev_features_t		mpls_features;
+
+	int				ifindex;
+	int				group;
+
+	struct net_device_stats	stats;
+
+	atomic_long_t			rx_dropped;
+	atomic_long_t			tx_dropped;
+
+#ifdef CONFIG_WIRELESS_EXT
+	const struct iw_handler_def	*wireless_handlers;
+	struct iw_public_data		*wireless_data;
+#endif
+
+	// 参见10.5.1.2 struct net_device_ops节
+	const struct net_device_ops	*netdev_ops;
+	const struct ethtool_ops	*ethtool_ops;
+#ifdef CONFIG_NET_SWITCHDEV
+	const struct switchdev_ops	*switchdev_ops;
+#endif
+
+	const struct header_ops		*header_ops;
+
+	unsigned int			flags;
+	unsigned int			priv_flags;
+
+	unsigned short			gflags;
+	unsigned short			padded;
+
+	unsigned char			operstate;
+	unsigned char			link_mode;
+
+	unsigned char			if_port;
+	unsigned char			dma;
+
+	unsigned int			mtu;
+	unsigned short			type;
+	unsigned short			hard_header_len;
+
+	unsigned short			needed_headroom;
+	unsigned short			needed_tailroom;
+
+	/* Interface address info. */
+	unsigned char			perm_addr[MAX_ADDR_LEN];
+	unsigned char			addr_assign_type;
+	unsigned char			addr_len;
+	unsigned short			neigh_priv_len;
+	unsigned short     		dev_id;
+	unsigned short     		dev_port;
+	spinlock_t			addr_list_lock;
+	unsigned char			name_assign_type;
+	bool				uc_promisc;
+	struct netdev_hw_addr_list	uc;
+	struct netdev_hw_addr_list	mc;
+	struct netdev_hw_addr_list	dev_addrs;
+
+#ifdef CONFIG_SYSFS
+	struct kset			*queues_kset;
+#endif
+	unsigned int			promiscuity;
+	unsigned int			allmulti;
+
+	/* Protocol specific pointers */
+
+#if IS_ENABLED(CONFIG_VLAN_8021Q)
+	struct vlan_info __rcu		*vlan_info;
+#endif
+#if IS_ENABLED(CONFIG_NET_DSA)
+	struct dsa_switch_tree		*dsa_ptr;
+#endif
+#if IS_ENABLED(CONFIG_TIPC)
+	struct tipc_bearer __rcu	*tipc_ptr;
+#endif
+	void 				*atalk_ptr;
+	struct in_device __rcu		*ip_ptr;
+	struct dn_dev __rcu		*dn_ptr;
+	struct inet6_dev __rcu		*ip6_ptr;
+	void				*ax25_ptr;
+	struct wireless_dev		*ieee80211_ptr;
+	struct wpan_dev			*ieee802154_ptr;
+#if IS_ENABLED(CONFIG_MPLS_ROUTING)
+	struct mpls_dev __rcu		*mpls_ptr;
+#endif
+
+/*
+ * Cache lines mostly used on receive path (including eth_type_trans())
+ */
+	unsigned long			last_rx;
+
+	/* Interface address info used in eth_type_trans() */
+	unsigned char			*dev_addr;
+
+
+#ifdef CONFIG_SYSFS
+	struct netdev_rx_queue		*_rx;
+
+	unsigned int			num_rx_queues;
+	unsigned int			real_num_rx_queues;
+#endif
+
+	unsigned long			gro_flush_timeout;
+	rx_handler_func_t __rcu		*rx_handler;
+	void __rcu			*rx_handler_data;
+
+#ifdef CONFIG_NET_CLS_ACT
+	struct tcf_proto __rcu	*ingress_cl_list;
+#endif
+	struct netdev_queue __rcu	*ingress_queue;
+#ifdef CONFIG_NETFILTER_INGRESS
+	struct list_head		nf_hooks_ingress;
+#endif
+
+	unsigned char			broadcast[MAX_ADDR_LEN];
+#ifdef CONFIG_RFS_ACCEL
+	struct cpu_rmap			*rx_cpu_rmap;
+#endif
+
+	/*
+	 * 链接至struct net -> dev_index_head，
+	 * 参见10.5.1.1.1 分配网络设备/alloc_netdev()节：
+	 * register_netdevice() -> list_netdevice()
+	 */
+	struct hlist_node		index_hlist;
+
+/*
+ * Cache lines mostly used on transmit path
+ */
+	struct netdev_queue		*_tx ____cacheline_aligned_in_smp;
+	unsigned int			num_tx_queues;
+	unsigned int			real_num_tx_queues;
+	struct Qdisc			*qdisc;
+	unsigned long			tx_queue_len;
+	spinlock_t			tx_global_lock;
+	int				watchdog_timeo;
+
+#ifdef CONFIG_XPS
+	struct xps_dev_maps __rcu	*xps_maps;
+#endif
+
+	/* These may be needed for future network-power-down code. */
+
+	/*
+	 * trans_start here is expensive for high speed devices on SMP,
+	 * please use netdev_queue->trans_start instead.
+	 */
+	unsigned long			trans_start;
+
+	struct timer_list		watchdog_timer;
+
+	int __percpu			*pcpu_refcnt;
+	struct list_head		todo_list;
+
+	struct list_head		link_watch_list;
+
+	// 网络设备的注册状态
+	enum {
+		// alloc_netdev_mqs()将此域处初始化为0
+		NETREG_UNINITIALIZED=0,
+		// register_netdevice()设置
+		NETREG_REGISTERED,		/* completed register_netdevice */
+		// rollback_registered_many()设置
+		NETREG_UNREGISTERING,		/* called unregister_netdevice */
+		// netdev_run_todo()设置
+		NETREG_UNREGISTERED,		/* completed unregister todo */
+		// free_netdev()设置
+		NETREG_RELEASED,		/* called free_netdev */
+		// init_dummy_netdev()设置
+		NETREG_DUMMY,			/* dummy device for NAPI poll */
+	} reg_state:8;
+
+	bool dismantle;
+
+	enum {
+		RTNL_LINK_INITIALIZED,
+		RTNL_LINK_INITIALIZING,
+	} rtnl_link_state:16;
+
+	void (*destructor)(struct net_device *dev);
+
+#ifdef CONFIG_NETPOLL
+	struct netpoll_info __rcu	*npinfo;
+#endif
+
+	possible_net_t			nd_net;
+
+	/* mid-layer private */
+	union {
+		void					*ml_priv;
+		struct pcpu_lstats __percpu		*lstats;
+		struct pcpu_sw_netstats __percpu	*tstats;
+		struct pcpu_dstats __percpu		*dstats;
+		struct pcpu_vstats __percpu		*vstats;
+	};
+
+	struct garp_port __rcu		*garp_port;
+	struct mrp_port __rcu		*mrp_port;
+
+	// 参见10.2.3 struct device节
+	struct device			dev;
+	const struct attribute_group	*sysfs_groups[4];
+	const struct attribute_group	*sysfs_rx_queue_group;
+
+	const struct rtnl_link_ops	*rtnl_link_ops;
+
+	/* for setting kernel sock attribute on TCP connection setup */
+#define GSO_MAX_SIZE	65536
+	unsigned int			gso_max_size;
+#define GSO_MAX_SEGS	65535
+	u16				gso_max_segs;
+	u16				gso_min_segs;
+#ifdef CONFIG_DCB
+	const struct dcbnl_rtnl_ops	*dcbnl_ops;
+#endif
+	u8 				num_tc;
+	struct netdev_tc_txq		tc_to_txq[TC_MAX_QUEUE];
+	u8				prio_tc_map[TC_BITMASK + 1];
+
+#if IS_ENABLED(CONFIG_FCOE)
+	unsigned int			fcoe_ddp_xid;
+#endif
+#if IS_ENABLED(CONFIG_CGROUP_NET_PRIO)
+	struct netprio_map __rcu	*priomap;
+#endif
+	struct phy_device		*phydev;
+	struct lock_class_key		*qdisc_tx_busylock;
+};
+```
+
+##### 10.5.1.1.1 分配网络设备/alloc_netdev()
+
+宏alloc_netdev()定义于include/linux/netdevice.h:
+
+```
+#define alloc_netdev(sizeof_priv, name, name_assign_type, setup) \
+	 alloc_netdev_mqs(sizeof_priv, name, name_assign_type, setup, 1, 1)
+```
+
+其中，函数alloc_netdev_mqs()定义于net/core/dev.c:
+
+```
+/**
+ *	alloc_netdev_mqs - allocate network device
+ *	@sizeof_priv:	size of private data to allocate space for
+ *	@name:		device name format string
+ *	@name_assign_type: 	origin of device name
+ *	@setup:	callback to initialize device
+ *	@txqs:	the number of TX subqueues to allocate
+ *	@rxqs:	the number of RX subqueues to allocate
+ *
+ *	Allocates a struct net_device with private data area for driver use
+ *	and performs basic initialization.  Also allocates subqueue structs
+ *	for each queue on the device.
+ *
+ * 私有数据块位与struct net_device数据结构的后面，通过函数netdev_priv()获取其开始地址.
+ */
+struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
+				    unsigned char name_assign_type,
+				    void (*setup)(struct net_device *),
+				    unsigned int txqs, unsigned int rxqs)
+{
+	struct net_device *dev;
+	size_t alloc_size;
+	struct net_device *p;
+
+	BUG_ON(strlen(name) >= sizeof(dev->name));
+
+	if (txqs < 1) {
+		pr_err("alloc_netdev: Unable to allocate device with zero queues\n");
+		return NULL;
+	}
+
+#ifdef CONFIG_SYSFS
+	if (rxqs < 1) {
+		pr_err("alloc_netdev: Unable to allocate device with zero RX queues\n");
+		return NULL;
+	}
+#endif
+
+	alloc_size = sizeof(struct net_device);
+	if (sizeof_priv) {
+		/* ensure 32-byte alignment of private area */
+		alloc_size = ALIGN(alloc_size, NETDEV_ALIGN);
+		alloc_size += sizeof_priv;
+	}
+	/* ensure 32-byte alignment of whole construct */
+	alloc_size += NETDEV_ALIGN - 1;
+
+	p = kzalloc(alloc_size, GFP_KERNEL | __GFP_NOWARN | __GFP_REPEAT);
+	if (!p)
+		p = vzalloc(alloc_size);
+	if (!p)
+		return NULL;
+
+	/*
+	 * struct net_device并不是位于分配的内存区域的开始位置，而是
+	 * 有padded字节的偏移量；将该偏移量保存到dev->padded中，用
+	 * 于释放网络设备，参见free_netdev()->netdev_freemem()
+	 */
+	dev = PTR_ALIGN(p, NETDEV_ALIGN);
+	dev->padded = (char *)dev - (char *)p;
+
+	dev->pcpu_refcnt = alloc_percpu(int);
+	if (!dev->pcpu_refcnt)
+		goto free_dev;
+
+	if (dev_addr_init(dev))
+		goto free_pcpu;
+
+	dev_mc_init(dev);
+	dev_uc_init(dev);
+
+	/*
+	 * 设置网络名字空间，即: dev->nd_net->net = init_net;
+	 * 函数net_ns_init()将init_net.list添加到链表net_namespace_list中:
+	 * net_ns_init() -> list_add_tail_rcu(&init_net.list, &net_namespace_list);
+	 */
+	dev_net_set(dev, &init_net);
+
+	dev->gso_max_size = GSO_MAX_SIZE;
+	dev->gso_max_segs = GSO_MAX_SEGS;
+	dev->gso_min_segs = 0;
+
+	INIT_LIST_HEAD(&dev->napi_list);
+	INIT_LIST_HEAD(&dev->unreg_list);
+	INIT_LIST_HEAD(&dev->close_list);
+	INIT_LIST_HEAD(&dev->link_watch_list);
+	INIT_LIST_HEAD(&dev->adj_list.upper);
+	INIT_LIST_HEAD(&dev->adj_list.lower);
+	INIT_LIST_HEAD(&dev->all_adj_list.upper);
+	INIT_LIST_HEAD(&dev->all_adj_list.lower);
+	INIT_LIST_HEAD(&dev->ptype_all);
+	INIT_LIST_HEAD(&dev->ptype_specific);
+	dev->priv_flags = IFF_XMIT_DST_RELEASE | IFF_XMIT_DST_RELEASE_PERM;
+	setup(dev);
+
+	dev->num_tx_queues = txqs;
+	dev->real_num_tx_queues = txqs;
+	if (netif_alloc_netdev_queues(dev))
+		goto free_all;
+
+#ifdef CONFIG_SYSFS
+	dev->num_rx_queues = rxqs;
+	dev->real_num_rx_queues = rxqs;
+	if (netif_alloc_rx_queues(dev))
+		goto free_all;
+#endif
+
+	strcpy(dev->name, name);
+	dev->name_assign_type = name_assign_type;
+	dev->group = INIT_NETDEV_GROUP;
+	if (!dev->ethtool_ops)
+		dev->ethtool_ops = &default_ethtool_ops;
+
+	nf_hook_ingress_init(dev);
+
+	return dev;
+
+free_all:
+	free_netdev(dev);
+	return NULL;
+
+free_pcpu:
+	free_percpu(dev->pcpu_refcnt);
+free_dev:
+	netdev_freemem(dev);
+	return NULL;
+}
+```
+
+##### 10.5.1.1.2 释放网络设备/free_netdev()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	free_netdev - free network device
+ *	@dev: device
+ *
+ *	This function does the last stage of destroying an allocated device
+ * 	interface. The reference to the device object is released.
+ *	If this is the last reference then it will be freed.
+ */
+void free_netdev(struct net_device *dev)
+{
+	struct napi_struct *p, *n;
+
+	netif_free_tx_queues(dev);
+#ifdef CONFIG_SYSFS
+	kvfree(dev->_rx);
+#endif
+
+	kfree(rcu_dereference_protected(dev->ingress_queue, 1));
+
+	/* Flush device addresses */
+	dev_addr_flush(dev);
+
+	list_for_each_entry_safe(p, n, &dev->napi_list, dev_list)
+		netif_napi_del(p);
+
+	free_percpu(dev->pcpu_refcnt);
+	dev->pcpu_refcnt = NULL;
+
+	/*  Compatibility with error handling in drivers */
+	if (dev->reg_state == NETREG_UNINITIALIZED) {
+		netdev_freemem(dev);
+		return;
+	}
+
+	BUG_ON(dev->reg_state != NETREG_UNREGISTERED);
+	dev->reg_state = NETREG_RELEASED;
+
+	/* will free via device release */
+	put_device(&dev->dev);
+}
+```
+
+##### 10.5.1.1.3 注册网络设备/register_netdev()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	register_netdev	- register a network device
+ *	@dev: device to register
+ *
+ *	Take a completed network device structure and add it to the kernel
+ *	interfaces. A %NETDEV_REGISTER message is sent to the netdev notifier
+ *	chain. 0 is returned on success. A negative errno code is returned
+ *	on a failure to set up the device, or if the name is a duplicate.
+ *
+ *	This is a wrapper around register_netdevice that takes the rtnl semaphore
+ *	and expands the device name if you passed a format string to
+ *	alloc_netdev.
+ */
+int register_netdev(struct net_device *dev)
+{
+	int err;
+
+	rtnl_lock();
+	err = register_netdevice(dev);
+	rtnl_unlock();
+	return err;
+}
+```
+
+其中，函数register_netdevice()定义于net/core/dev.c:
+
+```
+/**
+ *	register_netdevice - register a network device
+ *	@dev: device to register
+ *
+ *	Take a completed network device structure and add it to the kernel
+ *	interfaces. A %NETDEV_REGISTER message is sent to the netdev notifier
+ *	chain. 0 is returned on success. A negative errno code is returned
+ *	on a failure to set up the device, or if the name is a duplicate.
+ *
+ *	Callers must hold the rtnl semaphore. You may want
+ *	register_netdev() instead of this.
+ *
+ *	BUGS:
+ *	The locking appears insufficient to guarantee two parallel registers
+ *	will not get the same name.
+ */
+int register_netdevice(struct net_device *dev)
+{
+	int ret;
+	struct net *net = dev_net(dev);
+
+	BUG_ON(dev_boot_phase);
+	ASSERT_RTNL();
+
+	might_sleep();
+
+	/* When net_device's are persistent, this will be fatal. */
+	BUG_ON(dev->reg_state != NETREG_UNINITIALIZED);
+	BUG_ON(!net);
+
+	spin_lock_init(&dev->addr_list_lock);
+	netdev_set_addr_lockdep_class(dev);
+
+	ret = dev_get_valid_name(net, dev, dev->name);
+	if (ret < 0)
+		goto out;
+
+	/* Init, if this function is available */
+	if (dev->netdev_ops->ndo_init) {
+		ret = dev->netdev_ops->ndo_init(dev);
+		if (ret) {
+			if (ret > 0)
+				ret = -EIO;
+			goto out;
+		}
+	}
+
+	if (((dev->hw_features | dev->features) & NETIF_F_HW_VLAN_CTAG_FILTER) &&
+	    (!dev->netdev_ops->ndo_vlan_rx_add_vid ||
+	     !dev->netdev_ops->ndo_vlan_rx_kill_vid)) {
+		netdev_WARN(dev, "Buggy VLAN acceleration in driver!\n");
+		ret = -EINVAL;
+		goto err_uninit;
+	}
+
+	/*
+	 * 为该网络设备分配一个可用的索引号
+	 */
+	ret = -EBUSY;
+	if (!dev->ifindex)
+		dev->ifindex = dev_new_index(net);
+	else if (__dev_get_by_index(net, dev->ifindex))
+		goto err_uninit;
+
+	/*
+	 * Transfer changeable features to wanted_features and enable
+	 * software offloads (GSO and GRO).
+	 */
+	dev->hw_features |= NETIF_F_SOFT_FEATURES;
+	dev->features |= NETIF_F_SOFT_FEATURES;
+	dev->wanted_features = dev->features & dev->hw_features;
+
+	if (!(dev->flags & IFF_LOOPBACK)) {
+		dev->hw_features |= NETIF_F_NOCACHE_COPY;
+	}
+
+	/*
+	 * Make NETIF_F_HIGHDMA inheritable to VLAN devices.
+	 */
+	dev->vlan_features |= NETIF_F_HIGHDMA;
+
+	/*
+	 * Make NETIF_F_SG inheritable to tunnel devices.
+	 */
+	dev->hw_enc_features |= NETIF_F_SG;
+
+	/*
+	 * Make NETIF_F_SG inheritable to MPLS.
+	 */
+	dev->mpls_features |= NETIF_F_SG;
+
+	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	ret = call_netdevice_notifiers(NETDEV_POST_INIT, dev);
+	ret = notifier_to_errno(ret);
+	if (ret)
+		goto err_uninit;
+
+	/*
+	 * Create sysfs entries for network device.
+	 * 参见10.5.1.1.3.1 netdev_register_kobject()节
+	 */
+	ret = netdev_register_kobject(dev);
+	if (ret)
+		goto err_uninit;
+	dev->reg_state = NETREG_REGISTERED;
+
+	__netdev_update_features(dev);
+
+	/*
+	 *	Default initial state at registry is that the
+	 *	device is present.
+	 */
+
+	set_bit(__LINK_STATE_PRESENT, &dev->state);
+
+	linkwatch_init_dev(dev);
+
+	dev_init_scheduler(dev);
+	dev_hold(dev);
+	/*
+	 * 将dev->dev_list, dev->name_hlist, dev->index_hlist链接至struct net相应的链表中;
+	 * 可通过函数dev_get_by_name()从struct net->dev_name_head中查找指定的网络设备；
+	 * 可通过函数dev_get_by_index()从struct net->dev_index_head中查找指定的网络设备；
+	 */
+	list_netdevice(dev);
+	add_device_randomness(dev->dev_addr, dev->addr_len);
+
+	/* If the device has permanent device address, driver should
+	 * set dev_addr and also addr_assign_type should be set to
+	 * NET_ADDR_PERM (default value).
+	 */
+	if (dev->addr_assign_type == NET_ADDR_PERM)
+		memcpy(dev->perm_addr, dev->dev_addr, dev->addr_len);
+
+	/* Notify protocols, that a new device appeared. */
+	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	ret = call_netdevice_notifiers(NETDEV_REGISTER, dev);
+	ret = notifier_to_errno(ret);
+	if (ret) {
+		rollback_registered(dev);
+		dev->reg_state = NETREG_UNREGISTERED;
+	}
+	/*
+	 *	Prevent userspace races by waiting until the network
+	 *	device is fully setup before sending notifications.
+	 */
+	if (!dev->rtnl_link_ops ||
+	    dev->rtnl_link_state == RTNL_LINK_INITIALIZED)
+		rtmsg_ifinfo(RTM_NEWLINK, dev, ~0U, GFP_KERNEL);
+
+out:
+	return ret;
+
+err_uninit:
+	if (dev->netdev_ops->ndo_uninit)
+		dev->netdev_ops->ndo_uninit(dev);
+	goto out;
+}
+```
+
+###### 10.5.1.1.3.1 netdev_register_kobject()
+
+该函数定义于net/core/net-sysfs.c:
+
+```
+/* Create sysfs entries for network device. */
+int netdev_register_kobject(struct net_device *ndev)
+{
+	struct device *dev = &(ndev->dev);
+	const struct attribute_group **groups = ndev->sysfs_groups;
+	int error = 0;
+
+	// 参见10.2.3.3.1 设备初始化/device_initialize()节
+	device_initialize(dev);
+	dev->class = &net_class;
+	dev->platform_data = ndev;
+	dev->groups = groups;
+
+	// 将dev->kobj->name设置为ndev->name
+	dev_set_name(dev, "%s", ndev->name);
+
+#ifdef CONFIG_SYSFS
+	/* Allow for a device specific group */
+	if (*groups)
+		groups++;
+
+	*groups++ = &netstat_group;
+
+#if IS_ENABLED(CONFIG_WIRELESS_EXT) || IS_ENABLED(CONFIG_CFG80211)
+	if (ndev->ieee80211_ptr)
+		*groups++ = &wireless_group;
+#if IS_ENABLED(CONFIG_WIRELESS_EXT)
+	else if (ndev->wireless_handlers)
+		*groups++ = &wireless_group;
+#endif
+#endif
+#endif /* CONFIG_SYSFS */
+
+	// 参见10.2.3.3.2 添加设备/device_add()节
+	error = device_add(dev);
+	if (error)
+		return error;
+
+	error = register_queue_kobjects(ndev);
+	if (error) {
+		device_del(dev);
+		return error;
+	}
+
+	pm_runtime_set_memalloc_noio(dev, true);
+
+	return error;
+}
+```
+
+##### 10.5.1.1.4 注销网络设备
+
+###### 10.5.1.1.4.1 unregister_netdev()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	unregister_netdev - remove device from the kernel
+ *	@dev: device
+ *
+ *	This function shuts down a device interface and removes it
+ *	from the kernel tables.
+ *
+ *	This is just a wrapper for unregister_netdevice that takes
+ *	the rtnl semaphore.  In general you want to use this and not
+ *	unregister_netdevice.
+ */
+void unregister_netdev(struct net_device *dev)
+{
+	// 获取互斥锁rtnl_mutex; 函数__rtnl_unlock()用于释放该互斥锁
+	rtnl_lock();
+	unregister_netdevice(dev);
+	rtnl_unlock();		// 参见10.5.1.1.4.2 rtnl_unlock()节
+}
+```
+
+其中，函数unregister_netdevice()定义于include/linux/netdevice.h:
+
+```
+static inline void unregister_netdevice(struct net_device *dev)
+{
+	unregister_netdevice_queue(dev, NULL);
+}
+
+/**
+ *	unregister_netdevice_queue - remove device from the kernel
+ *	@dev: device
+ *	@head: list
+ *
+ *	This function shuts down a device interface and removes it
+ *	from the kernel tables.
+ *	If head not NULL, device is queued to be unregistered later.
+ *
+ *	Callers must hold the rtnl semaphore.  You may want
+ *	unregister_netdev() instead of this.
+ */
+void unregister_netdevice_queue(struct net_device *dev, struct list_head *head)
+{
+	ASSERT_RTNL();
+
+	if (head) {
+		list_move_tail(&dev->unreg_list, head);
+	} else {
+		rollback_registered(dev);
+
+		/*
+		 * 将待注销的网络设备链接到net_todo_list中，并通过如下函数释放该设备:
+		 * rtnl_unlock()->netdev_run_todo()，参见10.5.1.1.4.2 rtnl_unlock()节
+		 */
+		/* Finish processing unregister after unlock */
+		net_set_todo(dev);
+	}
+}
+```
+
+###### 10.5.1.1.4.2 rtnl_unlock()
+
+该函数定义于net/core/rtnetlink.c:
+
+```
+void rtnl_unlock(void)
+{
+	/* This fellow will unlock it for us. */
+	netdev_run_todo();
+}
+```
+
+其中，函数netdev_run_todo()定义于net/core/dev.c:
+
+```
+/* The sequence is:
+ *
+ *	rtnl_lock();
+ *	...
+ *	register_netdevice(x1);
+ *	register_netdevice(x2);
+ *	...
+ *	unregister_netdevice(y1);
+ *	unregister_netdevice(y2);
+ *      ...
+ *	rtnl_unlock();
+ *	free_netdev(y1);
+ *	free_netdev(y2);
+ *
+ * We are invoked by rtnl_unlock().
+ * This allows us to deal with problems:
+ * 1) We can delete sysfs objects which invoke hotplug
+ *    without deadlocking with linkwatch via keventd.
+ * 2) Since we run with the RTNL semaphore not held, we can sleep
+ *    safely in order to wait for the netdev refcnt to drop to zero.
+ *
+ * We must not return until all unregister events added during
+ * the interval the lock was held have been completed.
+ */
+void netdev_run_todo(void)
+{
+	struct list_head list;
+
+	/* Snapshot list, allow later requests */
+	list_replace_init(&net_todo_list, &list);
+
+	__rtnl_unlock();
+
+
+	/* Wait for rcu callbacks to finish before next phase */
+	if (!list_empty(&list))
+		rcu_barrier();
+
+	while (!list_empty(&list)) {
+		struct net_device *dev = list_first_entry(&list, struct net_device, todo_list);
+		list_del(&dev->todo_list);
+
+		rtnl_lock();
+		// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+		call_netdevice_notifiers(NETDEV_UNREGISTER_FINAL, dev);
+		__rtnl_unlock();
+
+		if (unlikely(dev->reg_state != NETREG_UNREGISTERING)) {
+			pr_err("network todo '%s' but state %d\n",
+			       dev->name, dev->reg_state);
+			dump_stack();
+			continue;
+		}
+
+		dev->reg_state = NETREG_UNREGISTERED;
+
+		netdev_wait_allrefs(dev);
+
+		/* paranoia */
+		BUG_ON(netdev_refcnt_read(dev));
+		BUG_ON(!list_empty(&dev->ptype_all));
+		BUG_ON(!list_empty(&dev->ptype_specific));
+		WARN_ON(rcu_access_pointer(dev->ip_ptr));
+		WARN_ON(rcu_access_pointer(dev->ip6_ptr));
+		WARN_ON(dev->dn_ptr);
+
+		if (dev->destructor)
+			dev->destructor(dev);
+
+		/* Report a network device has been unregistered */
+		rtnl_lock();
+		dev_net(dev)->dev_unreg_count--;
+		__rtnl_unlock();
+		wake_up(&netdev_unregistering_wq);
+
+		/* Free network device */
+		kobject_put(&dev->dev.kobj);	// 参见15.7.2.2 kobject_put()节
+	}
+}
+```
+
+##### 10.5.1.1.5 启动网络设备/dev_open()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	dev_open	- prepare an interface for use.
+ *	@dev:	device to open
+ *
+ *	Takes a device from down to up state. The device's private open
+ *	function is invoked and then the multicast lists are loaded. Finally
+ *	the device is moved into the up state and a %NETDEV_UP message is
+ *	sent to the netdev notifier chain.
+ *
+ *	Calling this function on an active interface is a nop. On a failure
+ *	a negative errno code is returned.
+ */
+int dev_open(struct net_device *dev)
+{
+	int ret;
+
+	if (dev->flags & IFF_UP)
+		return 0;
+
+	ret = __dev_open(dev);
+	if (ret < 0)
+		return ret;
+
+	rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
+
+	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	call_netdevice_notifiers(NETDEV_UP, dev);
+
+	return ret;
+}
+
+static int __dev_open(struct net_device *dev)
+{
+	const struct net_device_ops *ops = dev->netdev_ops;
+	int ret;
+
+	ASSERT_RTNL();
+
+	if (!netif_device_present(dev))
+		return -ENODEV;
+
+	/* Block netpoll from trying to do any rx path servicing.
+	 * If we don't do this there is a chance ndo_poll_controller
+	 * or ndo_poll may be running while we open the device
+	 */
+	netpoll_poll_disable(dev);
+
+	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	ret = call_netdevice_notifiers(NETDEV_PRE_UP, dev);
+	ret = notifier_to_errno(ret);
+	if (ret)
+		return ret;
+
+	set_bit(__LINK_STATE_START, &dev->state);
+
+	/*
+	 * 调用设备驱动程序提供的接口来启动网络设备
+	 */
+	if (ops->ndo_validate_addr)
+		ret = ops->ndo_validate_addr(dev);
+
+	if (!ret && ops->ndo_open)
+		ret = ops->ndo_open(dev);
+
+	netpoll_poll_enable(dev);
+
+	/*
+	 * 启用设备时设置标志位__LINK_STATE_START，表示设备可以传递数据；
+	 * 关闭设备时清除该标志位，参见10.5.1.1.6 禁用网络设备/dev_close()节
+	 */
+	if (ret)
+		clear_bit(__LINK_STATE_START, &dev->state);
+	else {
+		dev->flags |= IFF_UP;
+		dev_set_rx_mode(dev);
+		dev_activate(dev);
+		add_device_randomness(dev->dev_addr, dev->addr_len);
+	}
+
+	return ret;
+}
+```
+
+##### 10.5.1.1.6 禁用网络设备/dev_close()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	dev_close - shutdown an interface.
+ *	@dev: device to shutdown
+ *
+ *	This function moves an active device into down state. A
+ *	%NETDEV_GOING_DOWN is sent to the netdev notifier chain. The device
+ *	is then deactivated and finally a %NETDEV_DOWN is sent to the notifier
+ *	chain.
+ */
+int dev_close(struct net_device *dev)
+{
+	if (dev->flags & IFF_UP) {
+		LIST_HEAD(single);
+
+		list_add(&dev->close_list, &single);
+		dev_close_many(&single, true);
+		list_del(&single);
+	}
+	return 0;
+}
+
+int dev_close_many(struct list_head *head, bool unlink)
+{
+	struct net_device *dev, *tmp;
+
+	/* Remove the devices that don't need to be closed */
+	list_for_each_entry_safe(dev, tmp, head, close_list)
+		if (!(dev->flags & IFF_UP))
+			list_del_init(&dev->close_list);
+
+	__dev_close_many(head);
+
+	list_for_each_entry_safe(dev, tmp, head, close_list) {
+		rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
+		// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+		call_netdevice_notifiers(NETDEV_DOWN, dev);
+		if (unlink)
+			list_del_init(&dev->close_list);
+	}
+
+	return 0;
+}
+
+static int __dev_close_many(struct list_head *head)
+{
+	struct net_device *dev;
+
+	ASSERT_RTNL();
+	might_sleep();
+
+	list_for_each_entry(dev, head, close_list) {
+		/* Temporarily disable netpoll until the interface is down */
+		netpoll_poll_disable(dev);
+
+		// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+		call_netdevice_notifiers(NETDEV_GOING_DOWN, dev);
+
+		/*
+		 * 关闭设备时清除标志位__LINK_STATE_START，表示设备禁止传递数据；
+		 * 启用设备时设置该标志位，参见10.5.1.1.5 启动网络设备/dev_open()节
+		 */
+		clear_bit(__LINK_STATE_START, &dev->state);
+
+		/* Synchronize to scheduled poll. We cannot touch poll list, it
+		 * can be even on different cpu. So just clear netif_running().
+		 *
+		 * dev->stop() will invoke napi_disable() on all of it's
+		 * napi_struct instances on this device.
+		 */
+		smp_mb__after_atomic(); /* Commit netif_running(). */
+	}
+
+	dev_deactivate_many(head);
+
+	list_for_each_entry(dev, head, close_list) {
+		const struct net_device_ops *ops = dev->netdev_ops;
+
+		/*
+		 *	Call the device specific close. This cannot fail.
+		 *	Only if device is UP
+		 *
+		 *	We allow it to be called even after a DETACH hot-plug
+		 *	event.
+		 */
+		if (ops->ndo_stop)
+			ops->ndo_stop(dev);
+
+		dev->flags &= ~IFF_UP;
+		netpoll_poll_enable(dev);
+	}
+
+	return 0;
+}
+```
+
+#### 10.5.1.2 struct net_device_ops
+
+该结构定义于include/linux/netdevice.h:
+
+```
+/* Kernel tag: v4.2 */
+struct net_device_ops {
+	int		(*ndo_init)(struct net_device *dev);
+	void		(*ndo_uninit)(struct net_device *dev);
+	int		(*ndo_open)(struct net_device *dev);
+	int		(*ndo_stop)(struct net_device *dev);
+	netdev_tx_t	(*ndo_start_xmit) (struct sk_buff *skb, struct net_device *dev);
+	u16		(*ndo_select_queue)(struct net_device *dev, struct sk_buff *skb,
+				void *accel_priv, select_queue_fallback_t fallback);
+	void		(*ndo_change_rx_flags)(struct net_device *dev, int flags);
+	void		(*ndo_set_rx_mode)(struct net_device *dev);
+	int		(*ndo_set_mac_address)(struct net_device *dev, void *addr);
+	int		(*ndo_validate_addr)(struct net_device *dev);
+	int		(*ndo_do_ioctl)(struct net_device *dev, struct ifreq *ifr, int cmd);
+	int		(*ndo_set_config)(struct net_device *dev, struct ifmap *map);
+	int		(*ndo_change_mtu)(struct net_device *dev, int new_mtu);
+	int		(*ndo_neigh_setup)(struct net_device *dev, struct neigh_parms *);
+	void		(*ndo_tx_timeout) (struct net_device *dev);
+
+	struct rtnl_link_stats64* (*ndo_get_stats64)(struct net_device *dev,
+						     struct rtnl_link_stats64 *storage);
+	struct net_device_stats* (*ndo_get_stats)(struct net_device *dev);
+
+	int		(*ndo_vlan_rx_add_vid)(struct net_device *dev, __be16 proto, u16 vid);
+	int		(*ndo_vlan_rx_kill_vid)(struct net_device *dev, __be16 proto, u16 vid);
+#ifdef CONFIG_NET_POLL_CONTROLLER
+	void		(*ndo_poll_controller)(struct net_device *dev);
+	int		(*ndo_netpoll_setup)(struct net_device *dev, struct netpoll_info *info);
+	void		(*ndo_netpoll_cleanup)(struct net_device *dev);
+#endif
+#ifdef CONFIG_NET_RX_BUSY_POLL
+	int		(*ndo_busy_poll)(struct napi_struct *dev);
+#endif
+	int		(*ndo_set_vf_mac)(struct net_device *dev, int queue, u8 *mac);
+	int		(*ndo_set_vf_vlan)(struct net_device *dev, int queue, u16 vlan, u8 qos);
+	int		(*ndo_set_vf_rate)(struct net_device *dev, int vf, int min_tx_rate, int max_tx_rate);
+	int		(*ndo_set_vf_spoofchk)(struct net_device *dev, int vf, bool setting);
+	int		(*ndo_get_vf_config)(struct net_device *dev, int vf, struct ifla_vf_info *ivf);
+	int		(*ndo_set_vf_link_state)(struct net_device *dev, int vf, int link_state);
+	int		(*ndo_get_vf_stats)(struct net_device *dev, int vf, struct ifla_vf_stats *vf_stats);
+	int		(*ndo_set_vf_port)(struct net_device *dev, int vf, struct nlattr *port[]);
+	int		(*ndo_get_vf_port)(struct net_device *dev, int vf, struct sk_buff *skb);
+	int		(*ndo_set_vf_rss_query_en)(struct net_device *dev, int vf, bool setting);
+	int		(*ndo_setup_tc)(struct net_device *dev, u8 tc);
+#if IS_ENABLED(CONFIG_FCOE)
+	int		(*ndo_fcoe_enable)(struct net_device *dev);
+	int		(*ndo_fcoe_disable)(struct net_device *dev);
+	int		(*ndo_fcoe_ddp_setup)(struct net_device *dev, u16 xid,
+						      struct scatterlist *sgl, unsigned int sgc);
+	int		(*ndo_fcoe_ddp_done)(struct net_device *dev, u16 xid);
+	int		(*ndo_fcoe_ddp_target)(struct net_device *dev, u16 xid,
+						      struct scatterlist *sgl, unsigned int sgc);
+	int		(*ndo_fcoe_get_hbainfo)(struct net_device *dev, struct netdev_fcoe_hbainfo *hbainfo);
+#endif
+
+#if IS_ENABLED(CONFIG_LIBFCOE)
+#define NETDEV_FCOE_WWNN 0
+#define NETDEV_FCOE_WWPN 1
+	int		(*ndo_fcoe_get_wwn)(struct net_device *dev, u64 *wwn, int type);
+#endif
+
+#ifdef CONFIG_RFS_ACCEL
+	int		(*ndo_rx_flow_steer)(struct net_device *dev, const struct sk_buff *skb,
+						     u16 rxq_index, u32 flow_id);
+#endif
+	int		(*ndo_add_slave)(struct net_device *dev, struct net_device *slave_dev);
+	int		(*ndo_del_slave)(struct net_device *dev, struct net_device *slave_dev);
+	netdev_features_t (*ndo_fix_features)(struct net_device *dev, netdev_features_t features);
+	int		(*ndo_set_features)(struct net_device *dev, netdev_features_t features);
+	int		(*ndo_neigh_construct)(struct neighbour *n);
+	void		(*ndo_neigh_destroy)(struct neighbour *n);
+
+	int		(*ndo_fdb_add)(struct ndmsg *ndm, struct nlattr *tb[], struct net_device *dev,
+					       const unsigned char *addr, u16 vid, u16 flags);
+	int		(*ndo_fdb_del)(struct ndmsg *ndm, struct nlattr *tb[], struct net_device *dev,
+					       const unsigned char *addr, u16 vid);
+	int		(*ndo_fdb_dump)(struct sk_buff *skb, struct netlink_callback *cb,
+						struct net_device *dev, struct net_device *filter_dev, int idx);
+
+	int		(*ndo_bridge_setlink)(struct net_device *dev, struct nlmsghdr *nlh, u16 flags);
+	int		(*ndo_bridge_getlink)(struct sk_buff *skb, u32 pid, u32 seq,
+						      struct net_device *dev, u32 filter_mask, int nlflags);
+	int		(*ndo_bridge_dellink)(struct net_device *dev, struct nlmsghdr *nlh, u16 flags);
+	int		(*ndo_change_carrier)(struct net_device *dev, bool new_carrier);
+	int		(*ndo_get_phys_port_id)(struct net_device *dev, struct netdev_phys_item_id *ppid);
+	int		(*ndo_get_phys_port_name)(struct net_device *dev, char *name, size_t len);
+	void		(*ndo_add_vxlan_port)(struct  net_device *dev, sa_family_t sa_family, __be16 port);
+	void		(*ndo_del_vxlan_port)(struct  net_device *dev, sa_family_t sa_family, __be16 port);
+
+	void*		(*ndo_dfwd_add_station)(struct net_device *pdev, struct net_device *dev);
+	void		(*ndo_dfwd_del_station)(struct net_device *pdev, void *priv);
+
+	netdev_tx_t (*ndo_dfwd_start_xmit) (struct sk_buff *skb, struct net_device *dev, void *priv);
+	int		(*ndo_get_lock_subclass)(struct net_device *dev);
+	netdev_features_t (*ndo_features_check) (struct sk_buff *skb, struct net_device *dev,
+						       netdev_features_t features);
+	int		(*ndo_set_tx_maxrate)(struct net_device *dev, int queue_index, u32 maxrate);
+	int		(*ndo_get_iflink)(const struct net_device *dev);
+};
+```
+
+#### 10.5.1.3 网络设备通知链/netdev_chain
+
+变量netdev_chain定义于net/core/dev.c:
+
+```
+#define RAW_NOTIFIER_INIT(name)	{ .head = NULL }
+
+#define RAW_NOTIFIER_HEAD(name)	\
+	struct raw_notifier_head name =	RAW_NOTIFIER_INIT(name)
+
+static RAW_NOTIFIER_HEAD(netdev_chain);
+```
+
+其中，struct raw_notifier_head和struct notifier_block定义于include/linux/notifier.h:
+
+```
+struct raw_notifier_head {
+	struct notifier_block __rcu *head;
+};
+
+struct notifier_block {
+	notifier_fn_t			notifier_call;
+	struct notifier_block __rcu	*next;
+	int					priority;
+};
+
+/*
+ * 入参action定义于include/linux/netdevice.h，
+ * 参见10.5.1.3.1 网络设备通知事件节
+ */
+typedef int (*notifier_fn_t)(struct notifier_block *nb, unsigned long action, void *data);
+
+/*
+ * 函数notifier_call()的返回值类型
+ */
+#define NOTIFY_DONE		0x0000	/* Don't care */
+#define NOTIFY_OK		0x0001	/* Suits me */
+#define NOTIFY_STOP_MASK	0x8000	/* Don't call further */
+#define NOTIFY_BAD		(NOTIFY_STOP_MASK|0x0002)	/* Bad/Veto action */
+/*
+ * Clean way to return from the notifier and stop further calls.
+ */
+#define NOTIFY_STOP		(NOTIFY_OK|NOTIFY_STOP_MASK)
+```
+
+##### 10.5.1.3.1 网络设备通知事件
+
+网络设备通知事件定义于include/linux/netdevice.h:
+
+```
+/*
+ * netdevice notifier chain. Please remember to update the rtnetlink
+ * notification exclusion list in rtnetlink_event() when adding new
+ * types.
+ */
+#define NETDEV_UP			0x0001	/* For now you can't veto a device up/down */
+#define NETDEV_DOWN			0x0002
+#define NETDEV_REBOOT			0x0003	/* Tell a protocol stack a network interface
+						   detected a hardware crash and restarted
+						   - we can use this eg to kick tcp sessions
+						   once done */
+#define NETDEV_CHANGE			0x0004	/* Notify device state change */
+#define NETDEV_REGISTER 		0x0005
+#define NETDEV_UNREGISTER		0x0006
+#define NETDEV_CHANGEMTU		0x0007	/* notify after mtu change happened */
+#define NETDEV_CHANGEADDR		0x0008
+#define NETDEV_GOING_DOWN		0x0009
+#define NETDEV_CHANGENAME		0x000A
+#define NETDEV_FEAT_CHANGE		0x000B
+#define NETDEV_BONDING_FAILOVER		0x000C
+#define NETDEV_PRE_UP			0x000D
+#define NETDEV_PRE_TYPE_CHANGE		0x000E
+#define NETDEV_POST_TYPE_CHANGE		0x000F
+#define NETDEV_POST_INIT		0x0010
+#define NETDEV_UNREGISTER_FINAL		0x0011
+#define NETDEV_RELEASE			0x0012
+#define NETDEV_NOTIFY_PEERS		0x0013
+#define NETDEV_JOIN			0x0014
+#define NETDEV_CHANGEUPPER		0x0015
+#define NETDEV_RESEND_IGMP		0x0016
+#define NETDEV_PRECHANGEMTU		0x0017	/* notify before mtu change happened */
+#define NETDEV_CHANGEINFODATA		0x0018
+#define NETDEV_BONDING_INFO		0x0019
+```
+
+##### 10.5.1.3.2 注册网络设备通知块/register_netdevice_notifier()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	register_netdevice_notifier - register a network notifier block
+ *	@nb: notifier
+ *
+ *	Register a notifier to be called when network device events occur.
+ *	The notifier passed is linked into the kernel structures and must
+ *	not be reused until it has been unregistered. A negative errno code
+ *	is returned on a failure.
+ *
+ * 	When registered all registration and up events are replayed
+ *	to the new notifier to allow device to have a race free
+ *	view of the network device list.
+ */
+int register_netdevice_notifier(struct notifier_block *nb)
+{
+	struct net_device *dev;
+	struct net_device *last;
+	struct net *net;
+	int err;
+
+	rtnl_lock();
+
+	// 将nb链接到全局链表netdev_chain中
+	err = raw_notifier_chain_register(&netdev_chain, nb);
+	if (err)
+		goto unlock;
+	if (dev_boot_phase)
+		goto unlock;
+
+	/*
+	 * 轮询每个网络设备，并调用call_netdevice_notifier()
+	 * 函数通知事件NETDEV_REGISTER和NETDEV_UP
+	 */
+	for_each_net(net) {
+		for_each_netdev(net, dev) {
+			err = call_netdevice_notifier(nb, NETDEV_REGISTER, dev);
+			err = notifier_to_errno(err);
+			if (err)
+				goto rollback;
+
+			if (!(dev->flags & IFF_UP))
+				continue;
+
+			call_netdevice_notifier(nb, NETDEV_UP, dev);
+		}
+	}
+
+unlock:
+	rtnl_unlock();
+	return err;
+
+rollback:
+	last = dev;
+	for_each_net(net) {
+		for_each_netdev(net, dev) {
+			if (dev == last)
+				goto outroll;
+
+			if (dev->flags & IFF_UP) {
+				call_netdevice_notifier(nb, NETDEV_GOING_DOWN, dev);
+				call_netdevice_notifier(nb, NETDEV_DOWN, dev);
+			}
+			call_netdevice_notifier(nb, NETDEV_UNREGISTER, dev);
+		}
+	}
+
+outroll:
+	raw_notifier_chain_unregister(&netdev_chain, nb);
+	goto unlock;
+}
+```
+
+##### 10.5.1.3.3 注销网络设备通知块/unregister_netdevice_notifier()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	unregister_netdevice_notifier - unregister a network notifier block
+ *	@nb: notifier
+ *
+ *	Unregister a notifier previously registered by
+ *	register_netdevice_notifier(). The notifier is unlinked into the
+ *	kernel structures and may then be reused. A negative errno code
+ *	is returned on a failure.
+ *
+ * 	After unregistering unregister and down device events are synthesized
+ *	for all devices on the device list to the removed notifier to remove
+ *	the need for special case cleanup code.
+ */
+int unregister_netdevice_notifier(struct notifier_block *nb)
+{
+	struct net_device *dev;
+	struct net *net;
+	int err;
+
+	rtnl_lock();
+	err = raw_notifier_chain_unregister(&netdev_chain, nb);
+	if (err)
+		goto unlock;
+
+	for_each_net(net) {
+		for_each_netdev(net, dev) {
+			if (dev->flags & IFF_UP) {
+				call_netdevice_notifier(nb, NETDEV_GOING_DOWN, dev);
+				call_netdevice_notifier(nb, NETDEV_DOWN, dev);
+			}
+			call_netdevice_notifier(nb, NETDEV_UNREGISTER, dev);
+		}
+	}
+unlock:
+	rtnl_unlock();
+	return err;
+}
+```
+
+##### 10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	call_netdevice_notifiers - call all network notifier blocks
+ * @val: value passed unmodified to notifier function
+ * @dev: net_device pointer passed unmodified to notifier function
+ *
+ *	Call all network notifier blocks.  Parameters and return value
+ *	are as for raw_notifier_call_chain().
+ */
+int call_netdevice_notifiers(unsigned long val, struct net_device *dev)
+{
+	struct netdev_notifier_info info;
+	return call_netdevice_notifiers_info(val, dev, &info);
+}
+
+/**
+ *	call_netdevice_notifiers_info - call all network notifier blocks
+ *	@val: value passed unmodified to notifier function
+ *	@dev: net_device pointer passed unmodified to notifier function
+ *	@info: notifier information data
+ *
+ *	Call all network notifier blocks.  Parameters and return value
+ *	are as for raw_notifier_call_chain().
+ */
+static int call_netdevice_notifiers_info(unsigned long val,
+					 struct net_device *dev,
+					 struct netdev_notifier_info *info)
+{
+	ASSERT_RTNL();
+	netdev_notifier_info_init(info, dev);	// info->dev = dev
+	return raw_notifier_call_chain(&netdev_chain, val, info);
+}
+
+int raw_notifier_call_chain(struct raw_notifier_head *nh, unsigned long val, void *v)
+{
+	return __raw_notifier_call_chain(nh, val, v, -1, NULL);
+}
+
+/**
+ *	__raw_notifier_call_chain - Call functions in a raw notifier chain
+ *	@nh: Pointer to head of the raw notifier chain
+ *	@val: Value passed unmodified to notifier function
+ *	@v: Pointer passed unmodified to notifier function
+ *	@nr_to_call: See comment for notifier_call_chain.
+ *	@nr_calls: See comment for notifier_call_chain
+ *
+ *	Calls each function in a notifier chain in turn.  The functions
+ *	run in an undefined context.
+ *	All locking must be provided by the caller.
+ *
+ *	If the return value of the notifier can be and'ed
+ *	with %NOTIFY_STOP_MASK then raw_notifier_call_chain()
+ *	will return immediately, with the return value of
+ *	the notifier function which halted execution.
+ *	Otherwise the return value is the return value
+ *	of the last notifier function called.
+ */
+int __raw_notifier_call_chain(struct raw_notifier_head *nh,
+			      unsigned long val, void *v,
+			      int nr_to_call, int *nr_calls)
+{
+	return notifier_call_chain(&nh->head, val, v, nr_to_call, nr_calls);
+}
+
+/**
+ * notifier_call_chain - Informs the registered notifiers about an event.
+ *	@nl:		Pointer to head of the blocking notifier chain
+ *	@val:		Value passed unmodified to notifier function
+ *	@v:		Pointer passed unmodified to notifier function
+ *	@nr_to_call:	Number of notifier functions to be called. Don't care
+ *			value of this parameter is -1.
+ *	@nr_calls:	Records the number of notifications sent. Don't care
+ *			value of this field is NULL.
+ *	@returns:	notifier_call_chain returns the value returned by the
+ *			last notifier function called.
+ */
+static int notifier_call_chain(struct notifier_block **nl,
+			       unsigned long val, void *v,
+			       int nr_to_call, int *nr_calls)
+{
+	int ret = NOTIFY_DONE;
+	struct notifier_block *nb, *next_nb;
+
+	nb = rcu_dereference_raw(*nl);
+
+	while (nb && nr_to_call) {
+		next_nb = rcu_dereference_raw(nb->next);
+
+#ifdef CONFIG_DEBUG_NOTIFIERS
+		if (unlikely(!func_ptr_is_kernel_text(nb->notifier_call))) {
+			WARN(1, "Invalid notifier called!");
+			nb = next_nb;
+			continue;
+		}
+#endif
+		ret = nb->notifier_call(nb, val, v);
+
+		if (nr_calls)
+			(*nr_calls)++;
+
+		if ((ret & NOTIFY_STOP_MASK) == NOTIFY_STOP_MASK)
+			break;
+		nb = next_nb;
+		nr_to_call--;
+	}
+	return ret;
+}
+```
+
+#### 10.5.1.4 struct sk_buff / struct skb_shared_info
+
+struct sk_buff是Linux网络系统中的核心结构体，Linux网络中的所有数据包的封装以及解封装都是在这个结构体的基础上进行。该结构定义于include/linux/skbuff.h:
+
+```
+/** 
+ *	struct sk_buff - socket buffer
+ *	@next: Next buffer in list
+ *	@prev: Previous buffer in list
+ * ...
+ */
+struct sk_buff {
+	union {
+		struct {
+			/*
+			 * 通过next和prev将struct sk_buff链接成双向链表，
+			 * 链表头为struct sk_buff_head. 通过如下函数操作该链表:
+			 * skb_queue_head(), skb_queue_tail(), skb_insert(),
+			 * skb_dequeue(), skb_dequeue_tail(), ...
+			 */
+			/* These two members must be first. */
+			struct sk_buff			*next;
+			struct sk_buff			*prev;
+
+			union {
+				ktime_t			tstamp;
+				struct skb_mstamp	skb_mstamp;
+			};
+		};
+		struct rb_node				rbnode; /* used in netem & tcp stack */
+	};
+
+	/*
+	 * pointer to a sock data structure of the socket that owns this buffer.
+	 * This pointer is needed when data is either locally generated or being
+	 * received by a local process, because the data and socket-related information
+	 * is used by L4 (TCP or UDP) and by the user application. When a buffer is
+	 * merely being forwarded (that is, neither the source nor the destination is
+	 * on the local machine), this pointer is NULL.
+	 */
+	struct sock		*sk;
+
+	/*
+	 * The role of the device represented by dev depends on whether the packet
+	 * stored in the buffer is about to be transmitted or has just been received.
+	 *
+	 *  - When a packet is received, the device driver updates this field with the
+	 *    pointer to the data structure representing the receiving interface.
+	 *
+	 *  - When a packet is to be transmitted, this parameter represents the device
+	 *    through which it will be sent out. The code that sets the value is more
+	 *    complicated than the code for receiving a packet.
+	 */
+	struct net_device	*dev;
+
+	/*
+	 * This is the control buffer. It is free to use for every
+	 * layer. Please put your private variables there. If you
+	 * want to keep them across layers you have to do a skb_clone()
+	 * first. This is owned by whoever has the skb queued ATM.
+	 *
+	 * In the code for each layer, access is done through macros
+	 * to make the code more readable.
+	 */
+	char			cb[48] __aligned(8);
+
+	unsigned long		_skb_refdst;
+
+	/*
+	 * This function pointer can be initialized to a routine that performs
+	 * some activity when the buffer is removed. When the buffer does not
+	 * belong to a socket, the destructor is usually not initialized. When
+	 * the buffer belongs to a socket, it is usually set to sock_rfree or
+	 * sock_wfree (by the skb_set_owner_r and skb_set_owner_w initialization
+	 * functions, respectively). The two sock_xxx routines are used to update
+	 * the amount of memory held by the socket in its queues.
+	 */
+	void (*destructor)(struct sk_buff *skb);
+
+#ifdef CONFIG_XFRM
+	struct	sec_path	*sp;
+#endif
+#if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
+	struct nf_conntrack	*nfct;
+#endif
+#if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
+	struct nf_bridge_info	*nf_bridge;
+#endif
+
+	/*
+	 * len:		The total number of bytes in the packet.
+	 * data_len:	SKBs are composed of a linear data buffer,
+	 *			and optionally a set of one or more page
+	 *			buffers. If there are page buffers, the
+	 *			total number of bytes in the page buffer
+	 *			area is 'data_len'.
+	 *
+	 * The number of bytes in the linear buffer is 'skb->len – skb->data_len'.
+	 * There is a shorthand function for this in 'skb_headlen()'. 
+	 */
+	unsigned int		len, data_len;
+
+	/*
+	 * mac_len: Hold the length of the MAC header.
+	 */
+	__u16			mac_len, hdr_len;
+
+	/* Following fields are _not_ copied in __copy_skb_header()
+	 * Note that queue_mapping is here mostly to fill a hole.
+	 */
+	kmemcheck_bitfield_begin(flags1);
+	__u16			queue_mapping;
+	__u8			cloned:1,
+				nohdr:1,
+				fclone:2,
+				peeked:1,
+				head_frag:1,
+				xmit_more:1;
+	/* one bit hole */
+	kmemcheck_bitfield_end(flags1);
+
+	/* fields enclosed in headers_start/headers_end are copied
+	 * using a single memcpy() in __copy_skb_header()
+	 */
+	/* private: */
+	__u32			headers_start[0];
+	/* public: */
+
+/* if you move pkt_type around you also must adapt those constants */
+#ifdef __BIG_ENDIAN_BITFIELD
+#define PKT_TYPE_MAX	(7 << 5)
+#else
+#define PKT_TYPE_MAX	7
+#endif
+#define PKT_TYPE_OFFSET()	offsetof(struct sk_buff, __pkt_type_offset)
+
+	__u8			__pkt_type_offset[0];
+	// 其取值参见include/uapi/linux/if_packet.h中的PACKET_XXX
+	__u8			pkt_type:3;
+	__u8			pfmemalloc:1;
+	__u8			ignore_df:1;
+	__u8			nfctinfo:3;
+
+	__u8			nf_trace:1;
+	__u8			ip_summed:2;
+	__u8			ooo_okay:1;
+	__u8			l4_hash:1;
+	__u8			sw_hash:1;
+	__u8			wifi_acked_valid:1;
+	__u8			wifi_acked:1;
+
+	__u8			no_fcs:1;
+	/* Indicates the inner headers are valid in the skbuff. */
+	__u8			encapsulation:1;
+	__u8			encap_hdr_csum:1;
+	__u8			csum_valid:1;
+	__u8			csum_complete_sw:1;
+	__u8			csum_level:2;
+	__u8			csum_bad:1;
+
+#ifdef CONFIG_IPV6_NDISC_NODETYPE
+	__u8			ndisc_nodetype:2;
+#endif
+	__u8			ipvs_property:1;
+	__u8			inner_protocol_type:1;
+	__u8			remcsum_offload:1;
+	/* 3 or 5 bit hole */
+
+#ifdef CONFIG_NET_SCHED
+	__u16			tc_index;	/* traffic control index */
+#ifdef CONFIG_NET_CLS_ACT
+	__u16			tc_verd;	/* traffic control verdict */
+#endif
+#endif
+
+	union {
+		__wsum	csum;
+		struct {
+			__u16	csum_start;
+			__u16	csum_offset;
+		};
+	};
+	__u32			priority;
+	int			skb_iif;
+	__u32			hash;
+	__be16			vlan_proto;
+	__u16			vlan_tci;
+#if defined(CONFIG_NET_RX_BUSY_POLL) || defined(CONFIG_XPS)
+	union {
+		unsigned int	napi_id;
+		unsigned int	sender_cpu;
+	};
+#endif
+#ifdef CONFIG_NETWORK_SECMARK
+	__u32			secmark;
+#endif
+	union {
+		__u32		mark;
+		__u32		reserved_tailroom;
+	};
+
+	union {
+		__be16		inner_protocol;
+		__u8		inner_ipproto;
+	};
+
+	__u16			inner_transport_header;
+	__u16			inner_network_header;
+	__u16			inner_mac_header;
+
+	__be16			protocol;
+	__u16			transport_header;
+	__u16			network_header;
+	__u16			mac_header;
+
+	/* private: */
+	__u32			headers_end[0];
+	/* public: */
+
+	/* These elements must be at the end, see alloc_skb() for details.  */
+	/*
+	 * head:	Head of buffer. head和data之间的空间为headroom;
+	 * data:	Data head pointer. data和tail之间的空间为user data;
+	 * tail:	Data tail pointer. tail和end之间的空间为user data;
+	 * end:	指向struct skb_shared_info结构，可通过skb_shinfo(SKB)访问
+	 */
+	sk_buff_data_t		tail;
+	sk_buff_data_t		end;
+	unsigned char		*head, *data;
+
+	/*
+	 * represent the total size of the buffer, including
+	 * the sk_buff structure itself. It is initially set
+	 * by the function alloc_skb() to len+sizeof(sk_buff)
+	 * when the buffer is allocated for a requested data
+	 * space of len bytes. The field gets updated whenever
+	 * skb->len is increased.
+	 */
+	unsigned int		truesize;
+
+	/*
+	 * the reference count, or the number of entities using
+	 * this sk_buff buffer. The main use of this parameter
+	 * is to avoid freeing the sk_buff structure when someone
+	 * is still using it. For this reason, each user of the
+	 * buffer should increment and decrement this field when
+	 * necessary. This counter covers only the users of the
+	 * sk_buff data structure; the buffer containing the actual
+	 * data is covered by skb_shinfo(skb)->dataref.
+	 */
+	atomic_t		users;
+};
+```
+
+struct skb_shared_info定义于include/linux/skbuff.h:
+
+```
+/*
+ * This data is invariant across clones and lives at
+ * the end of the header data, ie. at skb->end.
+ */
+struct skb_shared_info {
+	/*
+	 * nr_frags states how many frags there are
+	 * active in the frags[] array.
+	 */
+	unsigned char			nr_frags;
+
+	__u8				tx_flags;
+	unsigned short	gso_size;
+	/* Warning: this field is not always filled in (UFO)! */
+	unsigned short	gso_segs;
+	unsigned short  		gso_type;
+
+	/*
+	 * The frag_list is used to maintain a chain of SKBs
+	 * organized for IP fragmentation purposes, it is
+	 * _not_ used for maintaining paged data.
+	 *
+	 * Check ip_push_pending_frames()->ip_finish_skb() for
+	 * populating the frag_list with skbs which queued in
+	 * sk->sk_write_queue and check ip_fragment() for
+	 * processing the frag_list.
+	 *
+	 * 通过如下函数操作frag_list单向链表:
+	 *   skb_frag_list_init(): 初始化链表
+	 *   skb_has_frag_list() : 是否存在->frag_list链表
+	 *   skb_frag_add_head() : 将skb添加到->frag_list链表头部
+	 *
+	 * 通过skb_walk_frags()轮询frag_list单项链表
+	 */
+	struct sk_buff			*frag_list;
+
+	struct skb_shared_hwtstamps	hwtstamps;
+	u32				tskey;
+	__be32          		ip6_frag_id;
+
+	/*
+	 * Warning : all fields before dataref are cleared in __alloc_skb()
+	 */
+	atomic_t			dataref;
+
+	/* Intermediate layers must ensure that destructor_arg
+	 * remains valid until skb destructor */
+	void				*destructor_arg;
+
+	/* must be last field, see pskb_expand_head() */
+	/*
+	 * The frags[] holds the frag descriptors themselves.
+	 * See following for type skb_frag_t. A helper routine
+	 * skb_fill_page_desc() is available to help you fill
+	 * in page descriptors.
+	 */
+	skb_frag_t			frags[MAX_SKB_FRAGS];
+};
+
+typedef struct skb_frag_struct		skb_frag_t;
+
+struct skb_frag_struct {
+	struct {
+		struct page *p;
+	}				page;
+#if (BITS_PER_LONG > 32) || (PAGE_SIZE >= 65536)
+	__u32				page_offset;
+	__u32				size;
+#else
+	__u16				page_offset;
+	__u16				size;
+#endif
+};
+```
+
+##### 10.5.1.4.0 发送网络数据包的流程
+
+发送网络数据包的流程举例如下：
+
+```
+/* (1) 分配skb，并初始化该结构 */ 
+skb = alloc_skb(1500, GFP_ATOMIC); 
+skb->dev = dev; 
+/* 例行填充skb元数据 */ 
+
+/* (2) 保留skb区域 */ 
+skb_reserve(skb, 2 + sizeof(struct ethhdr) + 
+                     sizeof(struct iphdr) + 
+                     sizeof(struct iphdr) + 
+                     sizeof(app_data)); 
+
+/* (3) 填充应用数据区 */ 
+p = skb_push(skb, sizeof(app_data)); 
+memcpy(p, &app_data[0], sizeof(app_data)); 
+
+/* (4) 填充传输层头 */ 
+p = skb_push(skb, sizeof(struct udphdr)); 
+udphdr = (struct udphdr *)p; 
+/* 在udphdr中填充udphdr字段，略 */ 
+skb_reset_transport_header(skb); 
+
+/* (5) 填充IP头 */ 
+p = skb_push(skb, sizeof(struct iphdr)); 
+iphdr = (struct iphdr*)p; 
+/* 在iphdr中填充iphdr字段，略 */ 
+skb_reset_network_header(skb); 
+
+/* (6) 填充以太网头 */ 
+p = skb_push(skb, sizeof(struct ethhdr)); 
+ethhdr = (struct ethhdr*)p; 
+/* 在ethhdr中填充ethhdr字段，略 */ 
+skb_reset_mac_header(skb); 
+
+/* (7) 发射 */ 
+dev_queue_xmit(skb);
+```
+
+##### 10.5.1.4.1 操作skb链表
+
+struct sk_buff通过元素prev/next链接成以struct sk_buff_head为链表头的双向链表中，其结构参见:
+
+![sk_buff](/assets/sk_buff.svg)
+
+下列函数用于操作skb链表(struct sk_buff_head)：
+
+```
+static inline void skb_queue_head_init(struct sk_buff_head *list); 
+static inline void skb_queue_head_init_class(struct sk_buff_head *list,
+                                             struct lock_class_key *class); 
+- create a split out lock class for each invocation.
+
+static inline int skb_queue_empty(const struct sk_buff_head *list); 
+- check if a queue is empty.
+
+static inline __u32 skb_queue_len(const struct sk_buff_head *list_); 
+- get queue length.
+
+static inline bool skb_queue_is_first(const struct sk_buff_head *list,
+                                      const struct sk_buff *skb); 
+- check if skb is the first entry in the queue.
+
+static bool skb_queue_is_last(const struct sk_buff_head *list,
+                              const struct sk_buff *skb); 
+- check if skb is the last entry in the queue.
+
+static inline struct sk_buff *skb_queue_prev(const struct sk_buff_head *list,
+                                             const struct sk_buff *skb); 
+- return the prev packet in the queue.
+- It is only valid to call this if skb_queue_is_first() evaluates to false. 
+
+static inline struct sk_buff *skb_queue_next(const struct sk_buff_head *list,
+                                             const struct sk_buff *skb); 
+- return the next packet in the queue.
+- It is only valid to call this if skb_queue_is_last() evaluates to false. 
+
+void skb_queue_head(struct sk_buff_head *list, struct sk_buff *newsk); 
+- queue a buffer at the list head.
+
+void skb_queue_tail(struct sk_buff_head *list, struct sk_buff *newsk); 
+- queue a buffer at the list tail.
+
+void skb_insert(struct sk_buff *old, struct sk_buff *newsk, struct sk_buff_head *list); 
+- insert a packet before a given packet in a list.
+
+void skb_append(struct sk_buff *old, struct sk_buff *newsk, struct sk_buff_head *list); 
+- append a packet after a given packet in a list.
+
+void skb_unlink(struct sk_buff *skb, struct sk_buff_head *list); 
+- remove a buffer from a list.
+
+struct sk_buff *skb_dequeue(struct sk_buff_head *list); 
+- remove from the head of the queue.
+
+struct sk_buff *skb_dequeue_tail(struct sk_buff_head *list);
+- remove from the tail of the queue.
+
+void skb_queue_purge(struct sk_buff_head *list); 
+- empty a list.
+```
+
+#### 10.5.1.4.2 分配skb/__alloc_skb()
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ * __alloc_skb - allocate a network buffer
+ * @size: size to allocate
+ * @gfp_mask: allocation mask
+ * @flags: If SKB_ALLOC_FCLONE is set, allocate from fclone cache
+ * 	instead of head cache and allocate a cloned (child) skb.
+ * 	If SKB_ALLOC_RX is set, __GFP_MEMALLOC will be used for
+ * 	allocations in case the data is required for writeback
+ * @node: numa node to allocate memory on
+ *
+ * Allocate a new &sk_buff. The returned buffer has no headroom and a
+ * tail room of at least size bytes. The object has a reference count
+ * of one. The return is the buffer. On a failure the return is %NULL.
+ *
+ * Buffers may only be allocated from interrupts using a @gfp_mask of
+ * %GFP_ATOMIC.
+ */
+struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask, int flags, int node)
+{
+	struct kmem_cache *cache;
+	struct skb_shared_info *shinfo;
+	struct sk_buff *skb;
+	u8 *data;
+	bool pfmemalloc;
+
+	/*
+	 * (1) 从缓冲区skbuff_head_cache或skbuff_fclone_cache中分配skb
+	 *
+	 * 若设置了SKB_ALLOC_FCLONE，则从缓冲区skbuff_head_cache中分配skb，
+	 * 分配的空间是struct sk_buff; 否则，从缓冲区skbuff_fclone_cache中
+	 * 分配skb，分配的空间是struct sk_buff_fclones;
+	 * 缓冲区skbuff_head_cache和skbuff_fclone_cache是由如下函数创建的:
+	 * core_initcall(sock_init) in net/socket.c->sock_init()->skb_init()
+	 * 参见10.5.2.1 应用层(L4)的初始化: sock_init()节
+	 */
+	cache = (flags & SKB_ALLOC_FCLONE) ? skbuff_fclone_cache : skbuff_head_cache;
+
+	if (sk_memalloc_socks() && (flags & SKB_ALLOC_RX))
+		gfp_mask |= __GFP_MEMALLOC;
+
+	/* Get the HEAD */
+	skb = kmem_cache_alloc_node(cache, gfp_mask & ~__GFP_DMA, node);
+	if (!skb)
+		goto out;
+	prefetchw(skb);
+
+	/*
+	 * (2) 分配数据区: 其后紧跟struct skb_shared_info区
+	 */
+	/*
+	 * We do our best to align skb_shared_info on a separate cache
+	 * line. It usually works because kmalloc(X > SMP_CACHE_BYTES) gives
+	 * aligned memory blocks, unless SLUB/SLAB debug is enabled.
+	 * Both skb->head and skb_shared_info are cache line aligned.
+	 */
+	size = SKB_DATA_ALIGN(size);
+	size += SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+	data = kmalloc_reserve(size, gfp_mask, node, &pfmemalloc);
+	if (!data)
+		goto nodata;
+	/*
+	 * kmalloc(size) might give us more room than requested.
+	 * Put skb_shared_info exactly at the end of allocated zone,
+	 * to allow max possible filling before reallocation.
+	 */
+	size = SKB_WITH_OVERHEAD(ksize(data));
+	prefetchw(data + size);
+
+	/*
+	 * Only clear those fields we need to clear, not those that we will
+	 * actually initialise below. Hence, don't put any more fields after
+	 * the tail pointer in struct sk_buff!
+	 */
+	memset(skb, 0, offsetof(struct sk_buff, tail));
+	/* Account for allocated memory : skb + skb->head */
+	skb->truesize = SKB_TRUESIZE(size);
+	skb->pfmemalloc = pfmemalloc;
+	atomic_set(&skb->users, 1);
+	skb->head = data;
+	skb->data = data;
+	// skb->tail = skb->data - skb->head;
+	skb_reset_tail_pointer(skb);
+	skb->end = skb->tail + size;
+	skb->mac_header = (typeof(skb->mac_header))~0U;
+	skb->transport_header = (typeof(skb->transport_header))~0U;
+
+	/* make sure we initialize shinfo sequentially */
+	shinfo = skb_shinfo(skb);
+	memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
+	atomic_set(&shinfo->dataref, 1);
+	kmemcheck_annotate_variable(shinfo->destructor_arg);
+
+	/*
+	 * 若从缓冲区skbuff_fclone_cache中分配skb，
+	 * 分配的空间是struct sk_buff_fclones，则返回其中的skb1
+	 */
+	if (flags & SKB_ALLOC_FCLONE) {
+		struct sk_buff_fclones *fclones;
+
+		fclones = container_of(skb, struct sk_buff_fclones, skb1);
+
+		kmemcheck_annotate_bitfield(&fclones->skb2, flags1);
+		skb->fclone = SKB_FCLONE_ORIG;
+		atomic_set(&fclones->fclone_ref, 1);
+
+		fclones->skb2.fclone = SKB_FCLONE_CLONE;
+		fclones->skb2.pfmemalloc = pfmemalloc;
+	}
+
+out:
+	return skb;
+nodata:
+	kmem_cache_free(cache, skb);
+	skb = NULL;
+	goto out;
+}
+```
+
+函数```__alloc_skb()```是最基础的分配skb的函数，内核代码中还有如下包装函数:
+
+```
+alloc_skb()		// 从缓冲区skbuff_head_cache中分配skb，分配的空间是struct sk_buff 
+->  __alloc_skb(size, priority, 0, NUMA_NO_NODE) 
+
+alloc_skb_fclone()	// 从缓冲区skbuff_fclone_cache中分配skb，分配的空间是struct sk_buff_fclones 
+->  __alloc_skb(size, priority, SKB_ALLOC_FCLONE, NUMA_NO_NODE) 
+
+dev_alloc_skb() 
+->  netdev_alloc_skb(NULL, length) 
+    ->  __netdev_alloc_skb(dev, length, GFP_ATOMIC) 
+
+__dev_alloc_skb() 
+->  __netdev_alloc_skb(NULL, length, gfp_mask) 
+
+sock_alloc_send_pskb() 
+
+sock_alloc_send_skb() 
+->  sock_alloc_send_pskb(sk, size, 0, noblock, errcode, 0) 
+
+sk_stream_alloc_skb() 
+
+sock_wmalloc() 
+
+__alloc_rx_skb() 
+->  __alloc_skb(length, gfp_mask, SKB_ALLOC_RX, NUMA_NO_NODE) 
+
+skb_copy() 
+->  __alloc_skb(size, gfp_mask, skb_alloc_rx_flag(skb), NUMA_NO_NODE) 
+
+skb_copy_expand() 
+->  __alloc_skb(newheadroom + skb->len + newtailroom, gfp_mask, skb_alloc_rx_flag(skb), NUMA_NO_NODE) 
+
+__pskb_copy_fclone() 
+->  __alloc_skb(size, gfp_mask, flags, NUMA_NO_NODE) 
+
+skb_segment() 
+->  __alloc_skb(hsize + doffset + headroom, GFP_ATOMIC, skb_alloc_rx_flag(head_skb), NUMA_NO_NODE) 
+```
+
+##### 10.5.1.4.3 注销skb/kfree_skb() 
+
+该函数定义于net/core/dev.c:
+
+```
+/**
+ *	kfree_skb - free an sk_buff
+ *	@skb: buffer to free
+ *
+ *	Drop a reference to the buffer and free it if the usage count has
+ *	hit zero.
+ */
+void kfree_skb(struct sk_buff *skb)
+{
+	if (unlikely(!skb))
+		return;
+
+	if (likely(atomic_read(&skb->users) == 1))
+		smp_rmb();
+	else if (likely(!atomic_dec_and_test(&skb->users)))
+		return;
+
+	trace_kfree_skb(skb, __builtin_return_address(0));
+	__kfree_skb(skb);
+}
+
+/**
+ *	__kfree_skb - private function
+ *	@skb: buffer
+ *
+ *	Free an sk_buff. Release anything attached to the buffer.
+ *	Clean the state. This is an internal helper function. Users should
+ *	always call kfree_skb
+ */
+
+void __kfree_skb(struct sk_buff *skb)
+{
+	skb_release_all(skb);
+	kfree_skbmem(skb);
+}
+
+/* Free everything but the sk_buff shell. */
+static void skb_release_all(struct sk_buff *skb)
+{
+	skb_release_head_state(skb);
+	if (likely(skb->head))
+		skb_release_data(skb);
+}
+
+/*
+ *	Free an skbuff by memory without cleaning the state.
+ */
+static void kfree_skbmem(struct sk_buff *skb)
+{
+	struct sk_buff_fclones *fclones;
+
+	switch (skb->fclone) {
+	case SKB_FCLONE_UNAVAILABLE:
+		kmem_cache_free(skbuff_head_cache, skb);
+		return;
+
+	case SKB_FCLONE_ORIG:
+		fclones = container_of(skb, struct sk_buff_fclones, skb1);
+
+		/* We usually free the clone (TX completion) before original skb
+		 * This test would have no chance to be true for the clone,
+		 * while here, branch prediction will be good.
+		 */
+		if (atomic_read(&fclones->fclone_ref) == 1)
+			goto fastpath;
+		break;
+
+	default: /* SKB_FCLONE_CLONE */
+		fclones = container_of(skb, struct sk_buff_fclones, skb2);
+		break;
+	}
+	if (!atomic_dec_and_test(&fclones->fclone_ref))
+		return;
+
+fastpath:
+	kmem_cache_free(skbuff_fclone_cache, fclones);
+}
+```
+
+##### 10.5.1.4.4 操作skb
+
+下列函数用于获取skb的某些信息：
+
+```
+static inline bool skb_is_nonlinear(const struct sk_buff *skb);
+- Check if the skb is nonlinear, that's the value of skb->data_len;
+
+static inline unsigned int skb_headroom(const struct sk_buff *skb);
+- Return the number of bytes of free space at the head of an &sk_buff.
+
+static inline int skb_tailroom(const struct sk_buff *skb);
+- Return the number of bytes of free space at the tail of an sk_buff.
+
+static inline int skb_cloned(const struct sk_buff *skb);
+- is the buffer a clone.
+- Returns true if the buffer was generated with skb_clone() and
+  is one of multiple shared copies of the buffer.
+
+static inline unsigned int skb_headlen(const struct sk_buff *skb);
+- the number of bytes in the linear buffer of the skb.
+```
+
+下列函数用于操作skb:
+
+```
+static inline void skb_reserve(struct sk_buff *skb, int len);
+- Increase the headroom of an empty &sk_buff by reducing the tail room.
+- This is only allowed for an empty buffer.
+
+unsigned char *skb_push(struct sk_buff *skb, unsigned int len);
+- add data to the start of a buffer;
+- If this would exceed the total buffer headroom the kernel will panic.
+
+unsigned char *skb_pull(struct sk_buff *skb, unsigned int len);
+- remove data from the start of a buffer.
+
+unsigned char *skb_put(struct sk_buff *skb, unsigned int len);
+- add data to a buffer.
+- If this would exceed the total buffer size the kernel will panic.
+
+void skb_trim(struct sk_buff *skb, unsigned int len);
+- remove end from a buffer.
+- cut the length of a buffer down by removing data from the tail. The skb must be linear.
+
+struct sk_buff *skb_copy(const struct sk_buff *skb, gfp_t gfp_mask);
+- create private copy of an sk_buff.
+
+struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
+- duplicate an sk_buff.
+- The new one is not owned by a socket. Both copies share the same packet data but not structure.
+
+static inline int skb_linearize(struct sk_buff *skb);
+- convert paged skb to linear one.
+
+static inline void * __must_check
+skb_header_pointer(const struct sk_buff *skb, int offset, int len, void *buffer);
+- copy data out from a packet (non-paged buffer only) into another buffer.
+
+int skb_copy_bits(const struct sk_buff *skb, int offset, void *to, int len);
+- copy the specified number of bytes from the source skb (non-paged buffer and/or paged buffer)
+  to the destination buffer.
+```
+
+### 10.5.2 网络设备的初始化
+
+Linux内核中网络协议栈的初始化包括：
+* 应用层(L4)的初始化: sock_init()
+* 传输层(L3)的初始化: proto_init()
+* 网络互连层(L2)的初始化: inet_init() for IPv4, inet6_init() for IPv6
+* 网络接口层(L1)的初始化: e100_init_module()，net_dev_init()
+
+#### 10.5.2.1 应用层(L4)的初始化: sock_init()
+
+该函数定义于net/socket.c:
+
+```
+static struct file_system_type sock_fs_type = {
+	.name		= "sockfs",
+	.mount		= sockfs_mount,
+	.kill_sb	= kill_anon_super,
+};
+
+static int __init sock_init(void)
+{
+	int err;
+
+	/*
+	 * Initialize sock SLAB cache.
+	 */
+	sk_init();
+
+	/*
+	 * Initialize skbuff SLAB cache
+	 */
+	skb_init();
+
+	/*
+	 * Initialize the protocols module.
+	 */
+	init_inodecache();
+
+	// 注册sockfs文件系统，参见11.2.2.1 注册/注销文件系统节
+	err = register_filesystem(&sock_fs_type);
+	if (err)
+		goto out_fs;
+
+	// 挂载sockfs文件系统，参见11.2.2.2 安装文件系统(1)/kern_mount()节
+	sock_mnt = kern_mount(&sock_fs_type);
+	if (IS_ERR(sock_mnt)) {
+		err = PTR_ERR(sock_mnt);
+		goto out_mount;
+	}
+
+	/*
+	 * The real protocol initialization is performed in later initcalls.
+	 */
+#ifdef CONFIG_NETFILTER
+	netfilter_init();
+#endif
+
+#ifdef CONFIG_NETWORK_PHY_TIMESTAMPING
+	skb_timestamping_init();
+#endif
+
+out:
+	return err;
+
+out_mount:
+	unregister_filesystem(&sock_fs_type);
+out_fs:
+	goto out;
+}
+
+core_initcall(sock_init);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall1.init
+```
+
+#### 10.5.2.2 传输层(L3)的初始化: proto_init()
+
+该函数定义于net/socket.c:
+
+```
+static __net_initdata struct pernet_operations proto_net_ops = {
+	.init = proto_init_net,
+	.exit = proto_exit_net,
+};
+
+static int __init proto_init(void)
+{
+	return register_pernet_subsys(&proto_net_ops);
+}
+
+subsys_initcall(proto_init);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall4.init
+```
+
+#### 10.5.2.3 网络互连层(L2)的初始化
+
+##### 10.5.2.3.1 inet_init()
+
+该函数定义于net/ipv4/af_inet.c:
+
+```
+static int __init inet_init(void)
+{
+	struct sk_buff *dummy_skb;
+	struct inet_protosw *q;
+	struct list_head *r;
+	int rc = -EINVAL;
+
+	BUILD_BUG_ON(sizeof(struct inet_skb_parm) > sizeof(dummy_skb->cb));
+
+	sysctl_local_reserved_ports = kzalloc(65536 / 8, GFP_KERNEL);
+	if (!sysctl_local_reserved_ports)
+		goto out;
+
+	// 将元素tcp_prot->node添加到链表proto_list中
+	rc = proto_register(&tcp_prot, 1);
+	if (rc)
+		goto out_free_reserved_ports;
+
+	// 将元素udp_prot->node添加到链表proto_list中
+	rc = proto_register(&udp_prot, 1);
+	if (rc)
+		goto out_unregister_tcp_proto;
+
+	// 将元素raw_prot->node添加到链表proto_list中
+	rc = proto_register(&raw_prot, 1);
+	if (rc)
+		goto out_unregister_udp_proto;
+
+	// 将元素ping_prot->node添加到链表proto_list中
+	rc = proto_register(&ping_prot, 1);
+	if (rc)
+		goto out_unregister_raw_proto;
+
+	/*
+	 *	Tell SOCKET that we are alive...
+	 */
+	/*
+	 * 将inet_family_ops注册到数组net_families[]中，即：
+	 * net_families[inet_family_ops->family] = &inet_family_ops;
+	 */
+	(void)sock_register(&inet_family_ops);
+
+#ifdef CONFIG_SYSCTL
+	ip_static_sysctl_init();
+#endif
+
+	/*
+	 *	Add all the base protocols.
+	 */
+	if (inet_add_protocol(&icmp_protocol, IPPROTO_ICMP) < 0)
+		printk(KERN_CRIT "inet_init: Cannot add ICMP protocol\n");
+	if (inet_add_protocol(&udp_protocol, IPPROTO_UDP) < 0)
+		printk(KERN_CRIT "inet_init: Cannot add UDP protocol\n");
+	if (inet_add_protocol(&tcp_protocol, IPPROTO_TCP) < 0)
+		printk(KERN_CRIT "inet_init: Cannot add TCP protocol\n");
+#ifdef CONFIG_IP_MULTICAST
+	if (inet_add_protocol(&igmp_protocol, IPPROTO_IGMP) < 0)
+		printk(KERN_CRIT "inet_init: Cannot add IGMP protocol\n");
+#endif
+
+	/* Register the socket-side information for inet_create. */
+	for (r = &inetsw[0]; r < &inetsw[SOCK_MAX]; ++r)
+		INIT_LIST_HEAD(r);
+
+	for (q = inetsw_array; q < &inetsw_array[INETSW_ARRAY_LEN]; ++q)
+		inet_register_protosw(q);
+
+	/*
+	 *	Set the ARP module up
+	 */
+	arp_init();
+
+	/*
+	 *	Set the IP module up
+	 */
+	ip_init();
+
+	tcp_v4_init();
+
+	/* Setup TCP slab cache for open requests. */
+	tcp_init();
+
+	/* Setup UDP memory threshold */
+	udp_init();
+
+	/* Add UDP-Lite (RFC 3828) */
+	udplite4_register();
+
+	ping_init();
+
+	/*
+	 *	Set the ICMP layer up
+	 */
+	if (icmp_init() < 0)
+		panic("Failed to create the ICMP control socket.\n");
+
+	/*
+	 *	Initialise the multicast router
+	 */
+#if defined(CONFIG_IP_MROUTE)
+	if (ip_mr_init())
+		printk(KERN_CRIT "inet_init: Cannot init ipv4 mroute\n");
+#endif
+
+	/*
+	 *	Initialise per-cpu ipv4 mibs
+	 */
+	if (init_ipv4_mibs())
+		printk(KERN_CRIT "inet_init: Cannot init ipv4 mibs\n");
+
+	ipv4_proc_init();
+
+	ipfrag_init();
+
+	dev_add_pack(&ip_packet_type);
+
+	rc = 0;
+
+out:
+	return rc;
+out_unregister_raw_proto:
+	proto_unregister(&raw_prot);
+out_unregister_udp_proto:
+	proto_unregister(&udp_prot);
+out_unregister_tcp_proto:
+	proto_unregister(&tcp_prot);
+out_free_reserved_ports:
+	kfree(sysctl_local_reserved_ports);
+	goto out;
+}
+
+fs_initcall(inet_init);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall5.init
+```
+
+##### 10.5.2.3.2 inet6_init()
+
+该函数定义于net/ipv6/af_inet6.c:
+
+```
+static int __init inet6_init(void)
+{
+	struct sk_buff *dummy_skb;
+	struct list_head *r;
+	int err = 0;
+
+	BUILD_BUG_ON(sizeof(struct inet6_skb_parm) > sizeof(dummy_skb->cb));
+
+	/* Register the socket-side information for inet6_create.  */
+	for(r = &inetsw6[0]; r < &inetsw6[SOCK_MAX]; ++r)
+		INIT_LIST_HEAD(r);
+
+	if (disable_ipv6_mod) {
+		printk(KERN_INFO
+		       "IPv6: Loaded, but administratively disabled, "
+		       "reboot required to enable\n");
+		goto out;
+	}
+
+	err = proto_register(&tcpv6_prot, 1);
+	if (err)
+		goto out;
+
+	err = proto_register(&udpv6_prot, 1);
+	if (err)
+		goto out_unregister_tcp_proto;
+
+	err = proto_register(&udplitev6_prot, 1);
+	if (err)
+		goto out_unregister_udp_proto;
+
+	err = proto_register(&rawv6_prot, 1);
+	if (err)
+		goto out_unregister_udplite_proto;
+
+
+	/* We MUST register RAW sockets before we create the ICMP6,
+	 * IGMP6, or NDISC control sockets.
+	 */
+	err = rawv6_init();
+	if (err)
+		goto out_unregister_raw_proto;
+
+	/* Register the family here so that the init calls below will
+	 * be able to create sockets. (?? is this dangerous ??)
+	 */
+	err = sock_register(&inet6_family_ops);
+	if (err)
+		goto out_sock_register_fail;
+
+#ifdef CONFIG_SYSCTL
+	err = ipv6_static_sysctl_register();
+	if (err)
+		goto static_sysctl_fail;
+#endif
+
+	/*
+	 *	ipngwg API draft makes clear that the correct semantics
+	 *	for TCP and UDP is to consider one TCP and UDP instance
+	 *	in a host available by both INET and INET6 APIs and
+	 *	able to communicate via both network protocols.
+	 */
+	err = register_pernet_subsys(&inet6_net_ops);
+	if (err)
+		goto register_pernet_fail;
+	err = icmpv6_init();
+	if (err)
+		goto icmp_fail;
+	err = ip6_mr_init();
+	if (err)
+		goto ipmr_fail;
+	err = ndisc_init();
+	if (err)
+		goto ndisc_fail;
+	err = igmp6_init();
+	if (err)
+		goto igmp_fail;
+	err = ipv6_netfilter_init();
+	if (err)
+		goto netfilter_fail;
+
+	/* Create /proc/foo6 entries. */
+#ifdef CONFIG_PROC_FS
+	err = -ENOMEM;
+	if (raw6_proc_init())
+		goto proc_raw6_fail;
+	if (udplite6_proc_init())
+		goto proc_udplite6_fail;
+	if (ipv6_misc_proc_init())
+		goto proc_misc6_fail;
+	if (if6_proc_init())
+		goto proc_if6_fail;
+#endif
+
+	err = ip6_route_init();
+	if (err)
+		goto ip6_route_fail;
+	err = ip6_flowlabel_init();
+	if (err)
+		goto ip6_flowlabel_fail;
+	err = addrconf_init();
+	if (err)
+		goto addrconf_fail;
+
+	/* Init v6 extension headers. */
+	err = ipv6_exthdrs_init();
+	if (err)
+		goto ipv6_exthdrs_fail;
+
+	err = ipv6_frag_init();
+	if (err)
+		goto ipv6_frag_fail;
+
+	/* Init v6 transport protocols. */
+	err = udpv6_init();
+	if (err)
+		goto udpv6_fail;
+
+	err = udplitev6_init();
+	if (err)
+		goto udplitev6_fail;
+
+	err = tcpv6_init();
+	if (err)
+		goto tcpv6_fail;
+
+	err = ipv6_packet_init();
+	if (err)
+		goto ipv6_packet_fail;
+
+#ifdef CONFIG_SYSCTL
+	err = ipv6_sysctl_register();
+	if (err)
+		goto sysctl_fail;
+#endif
+
+out:
+	return err;
+
+#ifdef CONFIG_SYSCTL
+sysctl_fail:
+	ipv6_packet_cleanup();
+#endif
+ipv6_packet_fail:
+	tcpv6_exit();
+tcpv6_fail:
+	udplitev6_exit();
+udplitev6_fail:
+	udpv6_exit();
+udpv6_fail:
+	ipv6_frag_exit();
+ipv6_frag_fail:
+	ipv6_exthdrs_exit();
+ipv6_exthdrs_fail:
+	addrconf_cleanup();
+addrconf_fail:
+	ip6_flowlabel_cleanup();
+ip6_flowlabel_fail:
+	ip6_route_cleanup();
+ip6_route_fail:
+#ifdef CONFIG_PROC_FS
+	if6_proc_exit();
+proc_if6_fail:
+	ipv6_misc_proc_exit();
+proc_misc6_fail:
+	udplite6_proc_exit();
+proc_udplite6_fail:
+	raw6_proc_exit();
+proc_raw6_fail:
+#endif
+	ipv6_netfilter_fini();
+netfilter_fail:
+	igmp6_cleanup();
+igmp_fail:
+	ndisc_cleanup();
+ndisc_fail:
+	ip6_mr_cleanup();
+ipmr_fail:
+	icmpv6_cleanup();
+icmp_fail:
+	unregister_pernet_subsys(&inet6_net_ops);
+register_pernet_fail:
+#ifdef CONFIG_SYSCTL
+	ipv6_static_sysctl_unregister();
+static_sysctl_fail:
+#endif
+	sock_unregister(PF_INET6);
+	rtnl_unregister_all(PF_INET6);
+out_sock_register_fail:
+	rawv6_exit();
+out_unregister_raw_proto:
+	proto_unregister(&rawv6_prot);
+out_unregister_udplite_proto:
+	proto_unregister(&udplitev6_prot);
+out_unregister_udp_proto:
+	proto_unregister(&udpv6_prot);
+out_unregister_tcp_proto:
+	proto_unregister(&tcpv6_prot);
+	goto out;
+}
+
+module_init(inet6_init);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+#### 10.5.2.4 网络接口层(L1)的初始化: net_dev_init()
+
+该函数定义于net/core/dev.c:
+
+```
+/*
+ *	Initialize the DEV module. At boot time this walks the device list and
+ *	unhooks any devices that fail to initialise (normally hardware not
+ *	present) and leaves us with a valid list of present and active devices.
+ *
+ */
+
+/*
+ * This is called single threaded during boot, so no need to take the rtnl semaphore.
+ */
+static int __init net_dev_init(void)
+{
+	int i, rc = -ENOMEM;
+
+	BUG_ON(!dev_boot_phase);
+
+	if (dev_proc_init())
+		goto out;
+
+	if (netdev_kobject_init())
+		goto out;
+
+	INIT_LIST_HEAD(&ptype_all);
+	for (i = 0; i < PTYPE_HASH_SIZE; i++)
+		INIT_LIST_HEAD(&ptype_base[i]);
+
+	if (register_pernet_subsys(&netdev_net_ops))
+		goto out;
+
+	/*
+	 *	Initialise the packet receive queues.
+	 */
+
+	for_each_possible_cpu(i) {
+		struct softnet_data *sd = &per_cpu(softnet_data, i);
+
+		memset(sd, 0, sizeof(*sd));
+		skb_queue_head_init(&sd->input_pkt_queue);
+		skb_queue_head_init(&sd->process_queue);
+		sd->completion_queue = NULL;
+		INIT_LIST_HEAD(&sd->poll_list);
+		sd->output_queue = NULL;
+		sd->output_queue_tailp = &sd->output_queue;
+#ifdef CONFIG_RPS
+		sd->csd.func = rps_trigger_softirq;
+		sd->csd.info = sd;
+		sd->csd.flags = 0;
+		sd->cpu = i;
+#endif
+
+		sd->backlog.poll = process_backlog;
+		sd->backlog.weight = weight_p;
+		sd->backlog.gro_list = NULL;
+		sd->backlog.gro_count = 0;
+	}
+
+	dev_boot_phase = 0;
+
+	/* The loopback device is special if any other network devices
+	 * is present in a network namespace the loopback device must
+	 * be present. Since we now dynamically allocate and free the
+	 * loopback device ensure this invariant is maintained by
+	 * keeping the loopback device as the first device on the
+	 * list of network devices.  Ensuring the loopback devices
+	 * is the first device that appears and the last network device
+	 * that disappears.
+	 */
+	if (register_pernet_device(&loopback_net_ops))
+		goto out;
+
+	if (register_pernet_device(&default_device_ops))
+		goto out;
+
+	/*
+	 * 分别设置如下软中断的服务服务程序，参见struct softirq_节：
+	 *   - NET_TX_SOFTIRQ的服务程序为net_tx_action()
+	 *   - NET_RX_SOFTIRQ的服务程序为net_rx_action()
+	 * 该服务程序被__do_softirq()调用，参见__do_softirq()节
+	 */
+	open_softirq(NET_TX_SOFTIRQ, net_tx_action);
+	open_softirq(NET_RX_SOFTIRQ, net_rx_action);
+
+	hotcpu_notifier(dev_cpu_callback, 0);
+	dst_init();
+	dev_mcast_init();
+	rc = 0;
+
+out:
+	return rc;
+}
+
+subsys_initcall(net_dev_init);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall4.init
+```
+
+### 10.5.3 发送/接收数据包
+
+#### 10.5.3.1 发送数据包
+
+```
+dev_queue_xmit(skb) 
+->  dev_queue_xmit_sk(skb->sk, skb) 
+    ->  __dev_queue_xmit(skb, NULL) 
+        ->  __dev_xmit_skb(skb, q, dev, txq) 
+            ->  sch_direct_xmit() 
+                ->  dev_hard_start_xmit(skb, dev, txq, &ret) 
+                    ->  xmit_one(skb, dev, txq, next != NULL) 
+                        ->  netdev_start_xmit() 
+                            ->  __netdev_start_xmit(ops, skb, dev, more) 
+                                ->  dev->netdev_ops->ndo_start_xmit(skb, dev) 
+                ->  dev_xmit_complete()
+```
+
+#### 10.5.3.2 接收数据包
+
+```
+网卡驱动 
+->  netif_receive_skb() 
+    ->  netif_receive_skb_sk(skb->sk, skb) 
+        ->  netif_receive_skb_internal(skb) 
+            ->  __netif_receive_skb(skb) 
+                ->  __netif_receive_skb_core(skb, ..) 
+                    ->  deliver_skb() 
+                        ->  packet_type.func()
+```
+
+## 10.6 Peripheral Component Interconnect (PCI)
+
+PCI(Peripheral Component Interconnect)驱动程序实现于drivers/pci/pci.c，声明于include/linux/pci.h。
+
+PCI (Peripheral Component Interconnect)是一种连接电脑主板和外部设备的总线标准。一般PCI设备可分为两种形式：
+* 1) 直接布放在主板上的集成电路上，在PCI规范中称作"平面设备"(planar device)；
+* 2) 安装在插槽上的扩展卡。
+
+PCI Standards
+* [The PCI ID Repository (old site)](http://pciids.sourceforge.net/)
+* [The PCI ID Repository (new site)](http://pci-ids.ucw.cz/)
+* [The PCI ID Repository (GitHub)](https://github.com/pciutils/pciids)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

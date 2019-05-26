@@ -42078,6 +42078,4143 @@ static irqreturn_t rtc_interrupt(int irq, void *dev_id)
 * early_irq_init()节
 * init_IRQ()节
 
+# 10 设备驱动程序/device driver
+
+Reading materials:
+* Understanding Modern Device Drivers
+* Linux Device Drivers, 3rd Edition
+
+参见《Linux Device Drivers, 3rd Edition》第一章第The Role of the Device Driver节：
+* The role of a device driver is providing mechanism, not policy.
+* The distinction between mechanism and policy is one of the best ideas behind the Unix design. Most programming problems can indeed be split into two parts: "what capabilities are to be provided" (the mechanism) and "how those capabilities can be used" (the policy). If the two issues are addressed by different parts of the program, or even by different programs altogether, the software package is much easier to develop and to adapt to particular needs.
+
+## 10.1 Linux Kernel中的设备驱动程序
+
+内核中包含了大量的设备驱动程序，大部分位于driver/目录下，如下表所示：
+
+| Drivers | Notes |
+| :------ | :---- |
+| driver/accessibility | braille/<br>This adds a minimalistic braille screen reader support. This is meant to be used by blind people e.g. on boot failures or when / cannot be mounted etc and thus the userland screen readers can not work. |
+| driver/acpi | 高级配置和电源接口(ACPI: Advanced Configuration and Power Interface)驱动程序，用于管理电源的使用 |
+| driver/amba | 高级微控制器总线架构(AMBA: Advanced Microcontroller Bus Architecture)是与片上系统(SoC)的管理和互连的协议。SoC是一块包含许多或所有必要的计算机组件的芯片。这里的AMBA驱动让内核能够运行在这上面。 |
+| driver/android | |
+| driver/ata | 该目录包含PATA和SATA设备的驱动程序。串行ATA(SATA)是一种连接主机总线适配器到像硬盘那样的存储器的计算机总线接口。并行ATA(PATA)用于连接存储设备，如硬盘驱动器，软盘驱动器，光盘驱动器的标准，PATA就是我们所说的IDE。 |
+| driver/atm | 异步通信模式(ATM: Asynchronous Transfer Mode)是一种通信标准。这里有各种接到PCI桥的驱动(它们连接到PCI总线)和以太网控制器(控制以太网通信的集成电路芯片)。 |
+| driver/auxdisplay | 该目录提供了三个驱动: LCD帧缓存(frame buffer)驱动、LCD控制器驱动和一个LCD驱动。这些驱动用于管理液晶显示器 — 液晶显示器会在按压时显示波纹。注意: 按压会损害屏幕，所以请不要用力戳LCD显示屏。 |
+| driver/base | 这是个重要的目录包含了固件、系统总线、虚拟化能力等基本的驱动程序。 |
+| driver/bcma | 这些驱动程序用于使用基于AMBA协议的总线。AMBA协议是由博通公司开发的。 |
+| driver/block | 块设备驱动程序。提供对块设备的支持，像软驱、SCSI磁带、TCP网络块设备等。 |
+| driver/bluetooth | 蓝牙是一种安全的无线个人区域网络标准(PANs)。蓝牙驱动程序就在该目录中，它允许系统使用各种蓝牙设备。例如，一个蓝牙鼠标不用电缆，并且计算机有一个电子狗(小型USB接收器)。Linux系统必须能够知道进入电子狗的信号，否则蓝牙设备无法工作。 |
+| driver/bus | 该目录包含了三个驱动: 第一个是转换ocp接口协议到scp协议，第二个是设备间的互联驱动，第三个是用于处理互联中的错误处理。 |
+| driver/cdrom | This directory hosts the generic CD-ROM interface. Both the IDE and SCSI cdrom drivers rely on drivers/cdrom/cdrom.c for some of their functionality. 该目录包含两个驱动：第一个是cd-rom，包括DVD和CD的读写；第二个是gd-rom(只读GB光盘)，GD光盘是1.2GB容量的光盘，这像一个更大的CD或者更小的DVD。GD通常用于世嘉游戏机中。 |
+| driver/char | 字符设备驱动程序。字符设备每次传输数据传输一个字符。该目录中的驱动程序包括打印机、PS3闪存驱动、东芝SMM驱动和随机数发生器驱动等。 |
+| driver/clk | 这些驱动程序用于系统时钟。 |
+| driver/clocksource | 这些驱动用于作为定时器的时钟。 |
+| driver/connector | 这些驱动使内核知道当进程fork并使用proc连接器更改UID(用户ID)、GID(组ID)和SID(会话ID)。内核需要知道什么时候进程fork(CPU中运行多个任务)并执行。否则，内核可能会低效管理资源。 |
+| driver/cpufreq | 这些驱动改变CPU的电源能耗。 |
+| driver/cpuidle | 这些驱动用来管理空闲的CPU。一些系统使用多个CPU，其中一个驱动可以让这些CPU负载相当。 |
+| driver/crypto | 这些驱动提供加密功能。 |
+| driver/dax | |
+| driver/dca | 直接缓存访问(DCA: Direct Cache Access)驱动允许内核访问CPU缓存。CPU缓存就像CPU内置的RAM。CPU缓存的速度比RAM更快。然而，CPU缓存的容量比RAM小得多。CPU在这个缓存系统上存储了最重要的和执行的代码。 |
+| driver/devfreq | 这个驱动程序提供了一个通用的动态电压和频率调整(DVFS: Generic Dynamic Voltage and Frequency Scaling)框架，可以根据需要改变CPU频率来节约能源。这就是所谓的CPU节能。 |
+| driver/dio | 数字输入/输出(DIO: Digital Input/Output)总线驱动允许内核可以使用DIO总线。 |
+| driver/dma | 直接内存访问(DMA: Direct Memory Access)驱动允许设备无需CPU直接访问内存。这减少了CPU的负载。 |
+| driver/dma-buf | |
+| driver/edac | 错误检测和校正(Error Detection And Correction)驱动帮助减少和纠正错误。 |
+| driver/eisa | 扩展工业标准结构总线(Extended Industry Standard Architecture)驱动提供内核对EISA总线的支持。 |
+| driver/extcon | 外部连接器(EXTernal CONnectors)驱动用于检测设备插入时的变化。例如：extcon会检测用户是否插入了USB驱动器。 |
+| driver/firewire | 这些驱动用于控制苹果制造的类似于USB的火线设备。 |
+| driver/firmware | 这些驱动用于和像BIOS(计算机的基本输入输出系统固件)之类的设备的固件通信。BIOS用于启动操作系统和控制硬件与设备的固件。一些BIOS允许用户超频CPU。超频是使CPU运行在一个更快的速度。CPU速度以MHz或GHz来衡量。一个3.7 GHz的CPU的速度明显快于一个700Mhz的CPU。 |
+| driver/fmc | |
+| driver/fpga | |
+| driver/gpio | 通用输入/输出(GPIO: General Purpose Input/Output)是可由用户控制行为的芯片的管脚。这里的驱动就是控制GPIO。 |
+| driver/gpu | 这些驱动控制VGA、GPU和直接渲染管理(DRM: Direct Rendering Manager)。VGA是640*480的模拟计算机显示器或是简化的分辨率标准。GPU是图形处理器。DRM是一个Unix渲染系统。 |
+| driver/hid | 这驱动用于对USB人机界面设备的支持。 |
+| driver/hsi | 这个驱动用于内核访问像Nokia N900这样的蜂窝式调制解调器。 |
+| driver/hv | 这个驱动用于提供Linux中的键值对(KVP: Key Value Pair)功能。 |
+| driver/hwmon | 硬件监控驱动用于内核读取硬件传感器上的信息。例如：CPU上有个温度传感器，那么内核就可以追踪温度的变化并相应地调节风扇的速度。 |
+| driver/hwspinlock | 硬件自旋锁驱动允许系统同时使用两个或者更多的处理器，或使用一个处理器上的两个或更多的核心。 |
+| driver/hwtracing | |
+| driver/i2c | I2C驱动可以使计算机使用I2C协议处理主板上的低速外设。系统管理总线(SMBus: System Management Bus)驱动管理SMBus，这是一种用于轻量级通信的two-wire总线。 |
+| driver/ide | 这些驱动用来处理像CDROM和硬盘这些PATA/IDE设备。The IDE family of device drivers used to live in drivers/block but has expanded to the point where they were moved into a separate directory. |
+| driver/idle | 这个驱动用来管理Intel处理器的空闲功能。 |
+| driver/iio | 工业I/O核心驱动程序用来处理数模转换器或模数转换器。 |
+| driver/infiniband | Infiniband是在企业数据中心和一些超级计算机中使用的一种高性能的端口。该目录中的驱动用来支持Infiniband硬件。 |
+| driver/input | 这些驱动用于输入处理，包括游戏杆、鼠标、键盘、游戏端口(旧式的游戏杆接口)、遥控器、触控、耳麦按钮和许多其他的驱动。如今的操纵杆使用USB端口，但是在上世纪80、90年代，操纵杆是插在游戏端口的。Input management is another facility meant to simplify and standardize activities that are common to several drivers, and to offer a unified interface to user space. |
+| driver/iommu | 输入/输出内存管理单元(IOMMU: Input/Output Memory Management Unit)驱动用来管理内存管理单元中的IOMMU。IOMMU连接DMA IO总线到内存上。IOMMU是设备在没有CPU帮助下直接访问内存的桥梁。这有助于减少处理器的负载。 |
+| driver/ipack | Ipack代表的是Industry Pack。这个驱动是一个虚拟总线，允许在载体和夹板之间操作。 |
+| driver/irqchip | 这些驱动程序允许硬件的中断请求(IRQ)发送到处理器，暂时挂起一个正在运行的程序而去运行一个特殊的程序(称为一个中断处理程序)。 |
+| driver/isdn | 这些驱动用于支持综合业务数字网(ISDN)，这是用于同步数字传输语音、视频、数据和其他网络服务使用传统电话网络的电路的通信标准。 |
+| driver/leds | 用于LED的驱动。 |
+| driver/lguest | lguest用于管理客户机系统的中断。中断是CPU被重要任务打断的硬件或软件信号。CPU接着给硬件或软件一些处理资源。 |
+| driver/lightnvm | |
+| driver/macintosh | 苹果设备的驱动程序。 |
+| driver/mailbox | 这个文件夹中的驱动(pl320-pci)用于管理邮箱系统的连接。 |
+| driver/mcb | |
+| driver/md | 多设备驱动用于支持磁盘阵列，一种多块硬盘间共享或复制数据的系统。 This directory is concerned with implementing RAID functionality and the Logical Volume Manager abstraction. |
+| driver/media | 媒体驱动提供了对收音机、调谐器、视频捕捉卡、DVB标准的数字电视等等的支持。驱动还提供了对不同通过USB或火线端口插入的多媒体设备的支持。This directory collects other communication media, currently radio and video input devices. |
+| driver/memory | 支持内存的重要驱动。 |
+| driver/memstick | 这个驱动用于支持Sony记忆棒。 |
+| driver/message | 这些驱动用于运行LSI Fusion MPT(一种消息传递技术)固件的LSI PCI芯片/适配器。LSI大规模集成，这代表每片芯片上集成了几万晶体管。 |
+| driver/mfd | 多用途设备(MFD)驱动提供了对可以提供诸如电子邮件、传真、复印机、扫描仪、打印机功能的多用途设备的支持。这里的驱动还给MFD设备提供了一个通用多媒体通信端口(MCP)层。 |
+| driver/misc | 该目录包含了不适合放在其他目录的各种驱动，就像光线传感器驱动。 |
+| driver/mmc | MMC卡驱动用于处理用于MMC标准的闪存卡。 |
+| driver/mtd | 内存技术设备(MTD: Memory technology devices)驱动程序用于Linux和闪存的交互，这就像一层闪存转换层。其他块设备和字符设备的驱动程序不会以闪存设备的操作方式来做映射。尽管USB记忆卡和SD卡是闪存设备，但它们不使用这个驱动，因为他们隐藏在系统的块设备接口后。这个驱动用于新型闪存设备的通用闪存驱动器驱动。 |
+| driver/net | 网络驱动提供像AppleTalk、TCP和其他的网络协议。这些驱动也提供对调制解调器、USB 2.0的网络设备、和射频设备的支持。This directory is the home for most interface adapters. Unlike drivers/scsi, this directory doesn’t include the actual communication protocols, which live in the top-level net/ directory tree. |
+| driver/nfc | 这个驱动是德州仪器的共享传输层之间的接口和NCI核心。 |
+| driver/ntb | 不透明的桥接驱动提供了在PCIe系统的不透明桥接。PCIe是一种高速扩展总线标准。 |
+| driver/nubus | NuBus是一种32位并行计算总线，用于支持苹果设备。 |
+| driver/nvdimm | |
+| driver/nvme | |
+| driver/nvmem | |
+| driver/of | 这个驱动程序提供设备树中创建、访问和解释程序的OF助手。设备树是一种数据结构，用于描述硬件。 |
+| driver/oprofile | 这个驱动用于从驱动到用户空间进程(运行在用户态下的应用)评测整个系统。这帮助开发人员找到性能问题。 |
+| driver/parisc | 这些驱动用于HP生产的PA-RISC架构设备。PA-RISC是一种特殊指令集的处理器。 |
+| driver/parport | 并口驱动提供了Linux下的并口支持。 |
+| driver/pci | 这些驱动提供了PCI总线服务。 |
+| driver/pcmcia | 这些是笔记本的pc卡驱动。 |
+| driver/perf | |
+| driver/phy | |
+| driver/pinctrl | 这些驱动用来处理引脚控制设备。引脚控制器可以禁用或启用I/O设备。 |
+| driver/platform | 该目录包含了不同的计算机平台的驱动，像Acer、Dell、Toshiba、IBM、Intel、Chrombooks等。 |
+| driver/pnp | 即插即用驱动允许用户在插入一个像USB的设备后可以立即使用而不必手动配置设备。 |
+| driver/power | 电源驱动使内核可以测量电池电量，检测充电器和进行电源管理。 |
+| driver/powercap | |
+| driver/pps | Pulse-Per-Second驱动用来控制电流脉冲速率，用于计时。 |
+| driver/ps3 | 这是Sony的游戏控制台驱动 - PlayStation3 |
+| driver/ptp | 图片传输协议(PTP)驱动支持一种从数码相机中传输图片的协议。 |
+| driver/pwm | 脉宽调制(PWM)驱动用于控制设备的电流脉冲，主要用于控制像CPU风扇。 |
+| driver/rapidio | RapidIO驱动用于管理RapidIO架构，它是一种高性能分组交换，用于电路板上交互芯片的交互技术，也用于互相使用底板的电路板。 |
+| driver/ras | |
+| driver/regulator | 校准驱动用于校准电流、温度、或其他可能系统存在的校准硬件。 |
+| driver/remoteproc | 这些驱动用来管理远程处理器。 |
+| driver/reset | |
+| driver/rpmsg | 这个驱动用来控制支持大量驱动的远程处理器通讯总线(rpmsg)。这些总线提供消息传递设施，促进客户端驱动程序编写自己的连接协议消息。 |
+| driver/rtc | 实时时钟(RTC)驱动使内核可以读取时钟。 |
+| driver/s390 | 用于31/32位的大型机架构的驱动。 |
+| driver/sbus | 用于管理基于SPARC Sbus总线驱动。 |
+| driver/scsi | 允许内核使用SCSI标准外围设备，例如: Linux将在与SCSI硬件传输数据时使用SCSI驱动。 Everything related to the SCSI bus has always been placed in this directory. This includes both controller-independent support for specific devices (such as hard drives and tapes) and drivers for specific SCSI controller boards. |
+| driver/sfi | 简单固件接口(SFI)驱动允许固件发送信息表给操作系统，这些表的数据称为SFI表。 |
+| driver/sh | 该驱动用于支持SuperHway总线。 |
+| driver/sn | 该驱动用于支持IOC3串口。 |
+| driver/soc | |
+| driver/spi | 这些驱动处理串行设备接口总线(SPI)，它是一个在在全双工下运行的同步串行数据链路标准。全双工是指两个设备可以同一时间同时发送和接收信息，双工指的是双向通信。设备在主/从模式下通信(取决于设备配置)。 |
+| driver/spmi | |
+| driver/ssb | ssb (Sonics Silicon Backplane)驱动提供对在不同博通芯片和嵌入式设备上使用的迷你总线的支持。 |
+| driver/staging | 该目录含有许多子目录。这里所有的驱动还需要在加入主内核前经过更多的开发工作。 |
+| driver/target | SCSI设备驱动程序。 |
+| driver/tc | 这些驱动用于Tubro Channel。Tubro Channel是数字设备公司开发的32位开放总线，这主要用于DEC工作站。 |
+| driver/thermal | thermal驱动使CPU保持较低温度。 |
+| driver/thunderbolt | |
+| driver/tty | tty驱动用于管理物理终端连接。 |
+| driver/uio | 该驱动允许用户编译运行在用户空间而不是内核空间的驱动，这使用户驱动不会导致内核崩溃。 |
+| driver/usb | 通用串行总线(USB)设备允许内核使用USB端口。闪存驱动和记忆卡已经包含了固件和控制器，所以这些驱动程序允许内核使用USB接口和与USB设备。 |
+| driver/uwb | Ultra-WideBand驱动用来管理短距离，高带宽通信的超低功耗的射频设备。 |
+| driver/vfio | 允许设备访问用户空间的VFIO驱动。 |
+| driver/vhost | 这是用于宿主内核中的virtio服务器驱动，用于虚拟化中。 |
+| driver/video | 这是用来管理显卡和监视器的视频驱动。 The directory is concerned with video output, not video input. |
+| driver/virt | 这些驱动用来虚拟化。 |
+| driver/virtio | 这个驱动用来在虚拟PCI设备上使用virtio设备，用于虚拟化中。 |
+| driver/vlynq | 这个驱动控制着由德州仪器开发的专有接口。这些都是宽带产品，像WLAN和调制解调器，VOIP处理器，音频和数字媒体信号处理芯片。 |
+| driver/vme | WMEbus最初是为摩托罗拉68000系列处理器开发的总线标准。 |
+| driver/w1 | 这些驱动用来控制one-wire总线。 |
+| driver/watchdog | 该驱动管理看门狗定时器，这是一个可以用来检测和恢复异常的定时器。 |
+| driver/xen | 该驱动是Xen管理程序系统。这是个允许用户在一台计算机的软件或硬件运行多个操作系统。这意味着xen的代码将允许用户在同一时间的一台计算机上运行两个或更多的Linux系统。用户也可以在Linux上运行Windows、Solaris、FreeBSD、或其他操作系统。 |
+| driver/zorro | 该驱动提供Zorro Amiga总线支持。 |
+
+<p/>
+ 
+**NOTE**: firmware/目录下的文件为二进制固件，用于支持某些硬件设备。该目录下的文件不是开放源代码的，因此存在固件之争(2002年，Richard Stallman曾质疑这些二进制固件使得Linux成为非自由软件，甚至违反了GPL License)。而driver/firmware/目录下的文件则是开放源代码的。
+
+此外，下列目录也包含设备驱动程序:
+
+| block/ | block层的实现。最初，block层的代码一部分位于drivers目录，一部分位于fs目录，从2.6.15开始，block层的核心代码被提取出来放在了顶层的block目录。 |
+| firmware/ | 二进制固件程序 |
+| net/ | 网络驱动程序 |
+| sound/ | 声卡驱动程序 |
+
+<p/>
+
+References:
+* [Linux内核专题：03 驱动程序](https://github.com/LCTT/TranslateProject/blob/master/published/The Linux Kernel/03 The Linux Kernel--Drivers.md)
+* http://www.linux.org/threads/the-linux-kernel-drivers.4205/
+
+### 10.1.1 设备驱动程序在Linux Kernel中的比重
+
+在Linux Kernel v3.2.0中，设备驱动程序大小所占比重约52.68%：
+
+* Total size: 410M
+* Directory drivers/ size: 216M, 52.68%
+
+在每个Linux Kernel Release中，改动最大的部分也是设备驱动程序，例如：
+
+**Linux Kernel v3.10**
+
+```
+chenwx@chenwx ~/linux $ git diff --shortstat v3.9 v3.10 drivers/
+  5121 files changed, 431416 insertions(+), 265193 deletions(-)
+chenwx@chenwx ~/linux $ git diff --shortstat v3.9 v3.10
+ 10471 files changed, 663996 insertions(+), 395390 deletions(-)
+
+				64.97%			67.07%
+```
+
+**Linux Kernel v3.11**
+
+```
+chenwx@chenwx ~/linux $ git diff --shortstat v3.10 v3.11 drivers/
+ 4734 files changed, 590741 insertions(+), 236962 deletions(-)
+chenwx@chenwx ~/linux $ git diff --shortstat v3.10 v3.11
+ 9692 files changed, 789124 insertions(+), 341338 deletions(-)
+
+				74.86%			69.42%
+```
+
+**Linux Kernel v3.12**
+
+```
+chenwx@chenwx ~/linux $ git diff --shortstat v3.11 v3.12 drivers/
+ 4409 files changed, 427509 insertions(+), 165182 deletions(-)
+chenwx@chenwx ~/linux $ git diff --shortstat v3.11 v3.12
+ 8636 files changed, 587981 insertions(+), 264385 deletions(-)
+
+				72.70%			62.48%
+```
+
+**Linux Kernel v3.13**
+
+```
+chenwx@chenwx ~/linux $ git diff --shortstat v3.12 v3.13 drivers/ 
+ 4616 files changed, 231474 insertions(+), 108537 deletions(-) 
+chenwx@chenwx ~/linux $ git diff --shortstat v3.12 v3.13 
+ 9850 files changed, 441972 insertions(+), 237926 deletions(-) 
+
+				52.37%			45.61%
+```
+
+**Linux Kernel 3.14**
+
+```
+chenwx@chenwx ~/linux $ git diff --shortstat v3.13 v3.14 drivers/ 
+ 5244 files changed, 409987 insertions(+), 162394 deletions(-) 
+chenwx@chenwx ~/linux $ git diff --shortstat v3.13 v3.14 
+ 10601 files changed, 606195 insertions(+), 265116 deletions(-) 
+
+				67.63%			61.25%
+```
+
+### 10.1.2 设备驱动程序的分类
+
+根据<<Understanding Modern Device Drivers>>第2.1节可知，设备驱动程序分为如下三大类：
+* Char Drivers
+* Block Drivers
+* Network Drivers
+
+Most device drivers represent physical hardware. However, some device drivers are virtual, providing access to kernel functionality. 参见10.3.5.1 内存设备节. Some of the most common Pseudo devices are:
+* the kernel random number generator (accessible at /dev/random and /dev/urandom),
+* the null device (accessible at /dev/null)
+* the zero device (accessible at /dev/zero)
+* the full device (accessible at /dev/full)
+* the memory device (accessible at /dev/mem)
+
+可运行下列命令查看系统中的设备信息：
+
+```
+chenwx ～ $ cat /proc/devices
+Character devices:
+  1 mem
+  4 /dev/vc/0
+  4 tty
+  4 ttyS
+  5 /dev/tty
+  5 /dev/console
+  5 /dev/ptmx
+  5 ttyprintk
+  6 lp
+  7 vcs
+ 10 misc
+ 13 input
+ 21 sg
+ 29 fb
+ 99 ppdev
+108 ppp
+116 alsa
+128 ptm
+136 pts
+180 usb
+189 usb_device
+216 rfcomm
+226 drm
+250 bsg
+251 watchdog
+252 ptp
+253 pps
+254 rtc
+
+Block devices:
+  1 ramdisk
+259 blkext
+  7 loop
+  8 sd
+  9 md
+ 11 sr
+ 65 sd
+ 66 sd
+ 67 sd
+ 68 sd
+ 69 sd
+ 70 sd
+ 71 sd
+128 sd
+129 sd
+130 sd
+131 sd
+132 sd
+133 sd
+134 sd
+135 sd
+251 device-mapper
+252 nullb
+253 virtblk
+254 mdp
+```
+
+可运行下列命令查看主/次设备号：
+
+```
+chenwx ～ $ ls -l /dev
+crw-rw----  1 root video    10, 175 Nov 14 18:43 agpgart 
+crw-------  1 root root     10, 235 Nov 14 18:43 autofs 
+drwxr-xr-x  2 root root         660 Nov 15 02:42 block 
+drwxr-xr-x  2 root root          80 Nov 15 02:42 bsg 
+crw-------  1 root root     10, 234 Nov 14 18:43 btrfs-control 
+drwxr-xr-x  3 root root          60 Nov 15 02:42 bus 
+drwxr-xr-x  2 root root        3760 Nov 14 23:36 char 
+crw-------  1 root root      5,   1 Nov 14 18:43 console 
+lrwxrwxrwx  1 root root          11 Nov 15 02:42 core -> /proc/kcore 
+drwxr-xr-x  2 root root          60 Nov 15 02:42 cpu 
+... 
+```
+
+**NOTE**: 某些主设备号已被预先静态的指定给了许多常见设备，这些已被分配掉的主设备号都列在Documentation/devices.txt中。
+
+## 10.2 Linux的设备驱动模型/Device Driver model
+
+### 10.2.1 设备驱动程序的初始化/driver_init()
+
+设备驱动程序的初始化函数为driver_init()，其调用关系如下：
+
+```
+start_kernel()				// 参见start_kernel()节
+-> rest_init()				// 参见rest_init()节
+   -> kernel_init()			// 参见kernel_init()节
+      -> do_basic_setup()		// 参见4.3.4.1.4.3.13.1.2 do_basic_setup()节
+         -> driver_init()
+```
+
+函数driver_init()定义于drivers/base/init.c:
+
+```
+/**
+ * driver_init - initialize driver model.
+ *
+ * Call the driver model init functions to initialize their
+ * subsystems. Called early from init/main.c.
+ */
+void __init driver_init(void)
+{
+	/* These are the core pieces */
+	devtmpfs_init();		// 参见11.3.10.2 Devtmpfs的编译及初始化节
+	devices_init();			// 参见10.2.1.1 devices_init()节
+	buses_init();			// 参见10.2.1.2 buses_init()节
+	classes_init();			// 参见10.2.1.3 classes_init()节
+	firmware_init();		// 参见10.2.1.4 firmware_init()节
+	hypervisor_init();		// 参见10.2.1.5 hypervisor_init()节
+
+	/* These are also core pieces, but must come after the
+	 * core core pieces.
+	 */
+	platform_bus_init();		// 参见10.2.1.6 platform_bus_init()节
+	system_bus_init();		// 参见10.2.1.7 system_bus_init()节
+	cpu_dev_init();			// 参见10.2.1.8 cpu_dev_init()节
+	memory_dev_init();		// 参见10.2.1.9 memory_dev_init()节
+}
+```
+
+#### 10.2.1.1 devices_init()
+
+该函数定义于drivers/base/core.c:
+
+```
+int __init devices_init(void)
+{
+	/*
+	 * 创建目录/sys/devices，参见15.7.4.1 kset_create_and_add()节
+	 * 变量device_uevent_ops，参见15.7.5.1 device_uevent_ops节
+	 */
+	devices_kset = kset_create_and_add("devices", &device_uevent_ops, NULL);
+	if (!devices_kset)
+		return -ENOMEM;
+
+	// 创建目录/sys/dev，参见kobject_create_and_add()节
+	dev_kobj = kobject_create_and_add("dev", NULL);
+	if (!dev_kobj)
+		goto dev_kobj_err;
+
+	// 创建目录/sys/dev/block，参见kobject_create_and_add()节
+	sysfs_dev_block_kobj = kobject_create_and_add("block", dev_kobj);
+	if (!sysfs_dev_block_kobj)
+		goto block_kobj_err;
+
+	// 创建目录/sys/dev/char，参见kobject_create_and_add()节
+	sysfs_dev_char_kobj = kobject_create_and_add("char", dev_kobj);
+	if (!sysfs_dev_char_kobj)
+		goto char_kobj_err;
+
+	return 0;
+
+char_kobj_err:
+	kobject_put(sysfs_dev_block_kobj);	// 参见15.7.2.2 kobject_put()节
+block_kobj_err:
+	kobject_put(dev_kobj);			// 参见15.7.2.2 kobject_put()节
+dev_kobj_err:
+	kset_unregister(devices_kset);
+	return -ENOMEM;
+}
+```
+
+#### 10.2.1.2 buses_init()
+
+该函数定义于drivers/base/bus.c:
+
+```
+int __init buses_init(void)
+{
+	// 创建目录/sys/bus，参见15.7.4.1 kset_create_and_add()节
+	bus_kset = kset_create_and_add("bus", &bus_uevent_ops, NULL);
+	if (!bus_kset)
+		return -ENOMEM;
+	return 0;
+}
+```
+
+#### 10.2.1.3 classes_init()
+
+该函数定义于drivers/base/class.c:
+
+```
+int __init classes_init(void)
+{
+	// 创建目录/sys/class，参见15.7.4.1 kset_create_and_add()节
+	class_kset = kset_create_and_add("class", NULL, NULL);
+	if (!class_kset)
+		return -ENOMEM;
+	return 0;
+}
+```
+
+#### 10.2.1.4 firmware_init()
+
+该函数定义于drivers/base/firmware.c:
+
+```
+int __init firmware_init(void)
+{
+	// 创建目录/sys/firmware，参见kobject_create_and_add()节
+	firmware_kobj = kobject_create_and_add("firmware", NULL);
+	if (!firmware_kobj)
+		return -ENOMEM;
+	return 0;
+}
+```
+
+#### 10.2.1.5 hypervisor_init()
+
+该函数定义于drivers/base/hypervisor.c:
+
+```
+int __init hypervisor_init(void)
+{
+	// 创建目录/sys/hypervisor，参见kobject_create_and_add()节
+	hypervisor_kobj = kobject_create_and_add("hypervisor", NULL);
+	if (!hypervisor_kobj)
+		return -ENOMEM;
+	return 0;
+}
+```
+
+#### 10.2.1.6 platform_bus_init()
+
+该函数定义于drivers/base/platform.c:
+
+```
+struct device platform_bus = {
+	.init_name	= "platform",
+};
+
+struct bus_type platform_bus_type = {
+	.name		= "platform",
+	.dev_attrs	= platform_dev_attrs,
+	.match		= platform_match,
+	.uevent		= platform_uevent,
+	.pm		= &platform_dev_pm_ops,
+};
+
+int __init platform_bus_init(void)
+{
+	int error;
+
+	// clean up early platform code in driver list: early_platform_device_list
+	early_platform_cleanup();
+
+	/*
+	 * 注册platform_bus设备，参见10.2.3.3 注册设备/device_register()节;
+	 * 变量platform_bus用于platform_bus_register()，
+	 * 参见10.2.5.1 注册平台设备/platform_device_register()节
+	 */
+	error = device_register(&platform_bus);
+	if (error)
+		return error;
+
+	error = bus_register(&platform_bus_type);
+	if (error)
+		device_unregister(&platform_bus);
+
+	return error;
+}
+```
+
+#### 10.2.1.7 system_bus_init()
+
+该函数定义于drivers/base/sys.c:
+
+```
+int __init system_bus_init(void)
+{
+	/*
+	 * 创建目录/sys/devices/system
+	 * 参见15.7.4.1 kset_create_and_add()节和10.2.1.1 devices_init()节
+	 */
+	system_kset = kset_create_and_add("system", NULL, &devices_kset->kobj);
+	if (!system_kset)
+		return -ENOMEM;
+	return 0;
+}
+```
+
+#### 10.2.1.8 cpu_dev_init()
+
+该函数定义于drivers/base/cpu.c:
+
+```
+struct sysdev_class cpu_sysdev_class = {
+	.name	= "cpu",
+	.attrs	= cpu_sysdev_class_attrs,
+};
+
+int __init cpu_dev_init(void)
+{
+	int err;
+
+	// 参见10.2.1.8.1 sysdev_class_register()节
+	err = sysdev_class_register(&cpu_sysdev_class);
+
+#if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
+	if (!err)
+		err = sched_create_sysfs_power_savings_entries(&cpu_sysdev_class);
+#endif
+
+	return err;
+}
+```
+
+##### 10.2.1.8.1 sysdev_class_register()
+
+该函数定义于drivers/base/sys.c:
+
+```
+int sysdev_class_register(struct sysdev_class *cls)
+{
+	int retval;
+
+	pr_debug("Registering sysdev class '%s'\n", cls->name);
+
+	INIT_LIST_HEAD(&cls->drivers);
+	memset(&cls->kset.kobj, 0x00, sizeof(struct kobject));
+
+	// 设置父节点为/sys/devices/system，参见10.2.1.7 system_bus_init()节
+	cls->kset.kobj.parent = &system_kset->kobj;
+	cls->kset.kobj.ktype = &ktype_sysdev_class;
+	cls->kset.kobj.kset = system_kset;
+
+	// 设置kset.kobj->name = "cpu"，对应目录为/sys/devices/system/cpu
+	retval = kobject_set_name(&cls->kset.kobj, "%s", cls->name);
+	if (retval)
+		return retval;
+
+	// 创建kset.kobj所对应的目录/sys/devices/system/cpu
+	retval = kset_register(&cls->kset);
+
+	/*
+	 * 在/sys/devices/system/cpu目录下创建 cls->attrs包含的文件，
+	 * 参见11.3.5.6.1 sysfs_create_files()节
+	 */
+	if (!retval && cls->attrs)
+		retval = sysfs_create_files(&cls->kset.kobj, (const struct attribute **)cls->attrs);
+	return retval;
+}
+```
+
+#### 10.2.1.9 memory_dev_init()
+
+该函数定义于drivers/base/memory.c:
+
+```
+static const struct kset_uevent_ops memory_uevent_ops = {
+	.name		= memory_uevent_name,		// "memory"
+	.uevent		= memory_uevent,
+};
+
+/*
+ * Initialize the sysfs support for memory devices...
+ */
+int __init memory_dev_init(void)
+{
+	unsigned int i;
+	int ret;
+	int err;
+	unsigned long block_sz;
+
+	memory_sysdev_class.kset.uevent_ops = &memory_uevent_ops;
+
+	// 创建目录/sys/devices/system/memory，参见10.2.1.8.1 sysdev_class_register()节
+	ret = sysdev_class_register(&memory_sysdev_class);
+	if (ret)
+		goto out;
+
+	block_sz = get_memory_block_size();
+	sections_per_block = block_sz / MIN_MEMORY_BLOCK_SIZE;
+
+	/*
+	 * Create entries for memory sections that were found
+	 * during boot and have been initialized
+	 */
+	// 创建目录/sys/devices/system/memory/memoryXXX，及其子目录和子文件
+	for (i = 0; i < NR_MEM_SECTIONS; i++) {
+		if (!present_section_nr(i))
+			continue;
+		err = add_memory_section(0, __nr_to_section(i), MEM_ONLINE, BOOT);
+		if (!ret)
+			ret = err;
+	}
+
+	// 创建文件/sys/devices/system/memory/probe
+	err = memory_probe_init();
+	if (!ret)
+		ret = err;
+
+	/*
+	 * 创建如下文件：
+	 * - /sys/devices/system/memory/hard_offline_page
+	 * - /sys/devices/system/memory/soft_offline_page
+	 */
+	err = memory_fail_init();
+	if (!ret)
+		ret = err;
+
+	// 创建文件/sys/devices/system/memory/block_size_bytes
+	err = block_size_init();
+	if (!ret)
+		ret = err;
+out:
+	if (ret)
+		printk(KERN_ERR "%s() failed: %d\n", __func__, ret);
+
+	return ret;
+```
+
+### 10.2.2 struct bus_type
+
+该结构定义于include/linux/device.h:
+
+```
+struct bus_type {
+	const char			*name;		// 总线名称
+	struct bus_attribute		*bus_attrs;	// 总线属性
+	struct device_attribute		*dev_attrs;	// 该总线上所有设备的默认属性
+	struct driver_attribute		*drv_attrs;	// 该总线上所有驱动的默认属性
+
+	int	(*match)(struct device *dev, struct device_driver *drv);
+	int	(*uevent)(struct device *dev, struct kobj_uevent_env *env);
+	int	(*probe)(struct device *dev);
+	int	(*remove)(struct device *dev);
+	void	(*shutdown)(struct device *dev);
+
+	int	(*suspend)(struct device *dev, pm_message_t state);
+	int	(*resume)(struct device *dev);
+
+	const struct dev_pm_ops 	*pm;		// 设备电源管理
+	struct iommu_ops 		*iommu_ops;
+
+	struct subsys_private 		*p;		// 私有数据，完全由驱动核心初始化并使用，参见下文
+};
+```
+
+其中， struct subsys_private定义于drivers/base/base.h:
+
+```
+struct subsys_private {
+	struct kset 			subsys;
+	struct kset 			*devices_kset;
+
+	struct kset 			*drivers_kset;
+
+	/*
+	 * 该链表用来链接struct device->knode_class元素，参见如下函数调用：
+	 * device_register()->device_add()->klist_add_tail(&dev->knode_class,
+	 *                                                 &dev->class->p->klist_devices)
+	 *
+	 * 查询该链表的函数：bus_find_device(), bus_for_each_dev()
+	 */
+	struct klist 			klist_devices;
+
+	/*
+	 * 该链表用来链接struct device_driver->p->klist_drivers元素，参见如下函数调用：
+	 * driver_register()->bus_add_driver()->klist_add_tail()
+	 * 查询该链表的函数：bus_for_each_drv()
+	 */
+	struct klist 			klist_drivers;
+
+	struct blocking_notifier_head	bus_notifier;
+	unsigned int			drivers_autoprobe:1;
+
+	// 指向本结构所属的struct bus_type
+	struct bus_type			*bus;
+
+	struct list_head		class_interfaces;
+	struct kset			glue_dirs;
+	struct mutex			class_mutex;
+	struct class			*class;
+};
+```
+
+#### 10.2.2.1 bus_register()
+
+该函数定义于drivers/base/bus.c:
+
+```
+/**
+ * bus_register - register a bus with the system.
+ * @bus: bus.
+ *
+ * Once we have that, we registered the bus with the kobject
+ * infrastructure, then register the children subsystems it has:
+ * the devices and drivers that belong to the bus.
+ */
+int bus_register(struct bus_type *bus)
+{
+	int retval;
+	struct subsys_private *priv;
+
+	priv = kzalloc(sizeof(struct subsys_private), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	priv->bus = bus;
+	bus->p = priv;
+
+	BLOCKING_INIT_NOTIFIER_HEAD(&priv->bus_notifier);
+
+	/*
+	 * 设置priv->subsys.kobj->name = bus->name
+	 * 下文中，通过调用kset_register()来创建目录/sys/bus/XXX
+	 * 通过下列命令在内核源代码中搜索关键字"bus_register(&":
+	 *   $ git grep -n "bus_register(&"
+	 */
+	retval = kobject_set_name(&priv->subsys.kobj, "%s", bus->name);
+	if (retval)
+		goto out;
+
+	// 设置该bus的父目录为/sys/bus，参见10.2.1.2 buses_init()节
+	priv->subsys.kobj.kset = bus_kset;
+	priv->subsys.kobj.ktype = &bus_ktype;
+
+	/*
+	 * 设置自动匹配驱动程序，如下函数会判断该字段：
+	 * - bus_probe_device()，参见10.2.3.3.2.3 bus_probe_device()节
+	 * - bus_add_driver()，参见10.2.4.1.1 添加设备驱动程序/bus_add_driver()节
+	 */
+	priv->drivers_autoprobe = 1;
+
+	/*
+	 * 将该bus注册到目录/sys/bus/XXX
+	 * 其中，XXX为priv->subsys->kobj->name，即上文中的bus->name
+	 */
+	retval = kset_register(&priv->subsys);
+	if (retval)
+		goto out;
+
+	// 创建文件/sys/bus/XXX/uevent
+	retval = bus_create_file(bus, &bus_attr_uevent);
+	if (retval)
+		goto bus_uevent_fail;
+
+	/*
+	 * 创建目录/sys/bus/XXX/devices，该目录下的每个子目录对应于一个设备，
+	 * 参见15.7.4.1 kset_create_and_add()节
+	 */
+	priv->devices_kset = kset_create_and_add("devices", NULL, &priv->subsys.kobj);
+	if (!priv->devices_kset) {
+		retval = -ENOMEM;
+		goto bus_devices_fail;
+	}
+
+	/*
+	 * 创建目录/sys/bus/XXX/drivers，该目录下的每个子目录对应于一个设备驱动程序，
+	 * 参见15.7.4.1 kset_create_and_add()节
+	 */
+	priv->drivers_kset = kset_create_and_add("drivers", NULL, &priv->subsys.kobj);
+	if (!priv->drivers_kset) {
+		retval = -ENOMEM;
+		goto bus_drivers_fail;
+	}
+
+	// 初始化链表，参见15.1.13 双向循环链表的封装/struct klist节
+	klist_init(&priv->klist_devices, klist_devices_get, klist_devices_put);
+	klist_init(&priv->klist_drivers, NULL, NULL);
+
+	/*
+	 * 创建下列文件：
+	 * - /sys/bus/XXX/drivers_probe
+	 * - /sys/bus/XXX/drivers_autoprobe
+	 */
+	retval = add_probe_files(bus);
+	if (retval)
+		goto bus_probe_files_fail;
+
+	/*
+	 * Add default attributes for this bus.
+	 * 即创建文件：bus->bus_attrs[idx]->attr
+	 */
+	retval = bus_add_attrs(bus);
+	if (retval)
+		goto bus_attrs_fail;
+
+	pr_debug("bus: '%s': registered\n", bus->name);
+	return 0;
+
+bus_attrs_fail:
+	remove_probe_files(bus);
+bus_probe_files_fail:
+	kset_unregister(bus->p->drivers_kset);
+bus_drivers_fail:
+	kset_unregister(bus->p->devices_kset);
+bus_devices_fail:
+	bus_remove_file(bus, &bus_attr_uevent);
+bus_uevent_fail:
+	kset_unregister(&bus->p->subsys);
+out:
+	kfree(bus->p);
+	bus->p = NULL;
+	return retval;
+}
+```
+
+示例：
+
+```
+// 查看系统中注册的bus
+chenwx@chenwx ~/linux $ ll /sys/bus/
+drwxr-xr-x 4 root root 0 Oct 24 21:30 acpi
+drwxr-xr-x 4 root root 0 Oct 24 21:30 clockevents
+drwxr-xr-x 4 root root 0 Oct 24 21:30 clocksource
+drwxr-xr-x 4 root root 0 Oct 24 21:30 container
+drwxr-xr-x 4 root root 0 Oct 24 21:30 cpu
+drwxr-xr-x 4 root root 0 Oct 24 21:30 event_source
+drwxr-xr-x 4 root root 0 Oct 24 21:30 firewire
+drwxr-xr-x 4 root root 0 Oct 24 21:30 hdaudio
+drwxr-xr-x 4 root root 0 Oct 24 21:30 hid
+drwxr-xr-x 4 root root 0 Oct 24 21:30 i2c
+drwxr-xr-x 4 root root 0 Oct 24 21:30 machinecheck
+drwxr-xr-x 4 root root 0 Oct 24 21:30 mdio_bus
+drwxr-xr-x 4 root root 0 Oct 24 21:30 memory
+drwxr-xr-x 4 root root 0 Oct 24 21:30 mipi-dsi
+drwxr-xr-x 4 root root 0 Oct 24 21:30 mmc
+drwxr-xr-x 4 root root 0 Oct 24 21:30 nd
+drwxr-xr-x 4 root root 0 Oct 24 21:30 node
+drwxr-xr-x 4 root root 0 Oct 24 21:30 parport
+drwxr-xr-x 5 root root 0 Oct 24 21:30 pci
+drwxr-xr-x 4 root root 0 Oct 24 21:30 pci_express
+drwxr-xr-x 4 root root 0 Oct 24 21:30 pcmcia
+drwxr-xr-x 4 root root 0 Oct 24 21:30 platform
+drwxr-xr-x 4 root root 0 Oct 24 21:30 pnp
+drwxr-xr-x 4 root root 0 Oct 24 21:30 rapidio
+drwxr-xr-x 4 root root 0 Oct 24 21:30 scsi
+drwxr-xr-x 4 root root 0 Oct 24 21:30 sdio
+drwxr-xr-x 4 root root 0 Oct 24 21:30 serio
+drwxr-xr-x 4 root root 0 Oct 24 21:30 snd_seq
+drwxr-xr-x 4 root root 0 Oct 24 21:30 spi
+drwxr-xr-x 4 root root 0 Oct 24 21:30 usb
+drwxr-xr-x 4 root root 0 Oct 24 21:30 virtio
+drwxr-xr-x 4 root root 0 Oct 24 21:30 vme
+drwxr-xr-x 4 root root 0 Oct 24 21:30 workqueue
+drwxr-xr-x 4 root root 0 Oct 24 21:30 xen
+drwxr-xr-x 4 root root 0 Oct 24 21:30 xen-backend
+
+// 查看某bus的目录结构
+chenwx@chenwx ~/linux $ ll /sys/bus/acpi/
+drwxr-xr-x  2 root root    0 Oct 24 21:46 devices
+drwxr-xr-x 14 root root    0 Oct 24 21:46 drivers
+-rw-r--r--  1 root root 4.0K Oct 24 21:46 drivers_autoprobe
+--w-------  1 root root 4.0K Oct 24 21:46 drivers_probe
+--w-------  1 root root 4.0K Oct 24 21:46 uevent
+
+// 查找内核源代码中的struct bus_type对象
+chenwx@chenwx ~/linux $ git grep -n "bus_register(&"
+...
+drivers/acpi/bus.c:1156:        result = bus_register(&acpi_bus_type);
+...
+
+chenwx@chenwx ~/linux $ cat drivers/acpi/bus.c
+struct bus_type acpi_bus_type = {
+	.name		= "acpi",
+	.match	= acpi_bus_match,
+	.probe	= acpi_device_probe,
+	.remove	= acpi_device_remove,
+	.uevent	= acpi_device_uevent,
+};
+```
+
+#### 10.2.2.2 bus_unregister()
+
+该函数定义于drivers/base/bus.c:
+
+```
+/**
+ * bus_unregister - remove a bus from the system
+ * @bus: bus.
+ *
+ * Unregister the child subsystems and the bus itself.
+ * Finally, we call bus_put() to release the refcount
+ */
+void bus_unregister(struct bus_type *bus)
+{
+	pr_debug("bus: '%s': unregistering\n", bus->name);
+	bus_remove_attrs(bus);
+	remove_probe_files(bus);
+	kset_unregister(bus->p->drivers_kset);
+	kset_unregister(bus->p->devices_kset);
+	bus_remove_file(bus, &bus_attr_uevent);
+	kset_unregister(&bus->p->subsys);
+	kfree(bus->p);
+	bus->p = NULL;
+}
+```
+
+### 10.2.3 struct device
+
+该结构定义于include/linux/device.h:
+
+```
+/**
+ * struct device - The basic device structure
+ *
+ * At the lowest level, every device in a Linux system is represented by an
+ * instance of struct device. The device structure contains the information
+ * that the device model core needs to model the system. Most subsystems,
+ * however, track additional information about the devices they host. As a
+ * result, it is rare for devices to be represented by bare device structures;
+ * instead, that structure, like kobject structures, is usually embedded within
+ * a higher-level representation of the device.
+ */
+struct device {
+	// 该设备的父设备
+	struct device				*parent;
+
+	// 用于保存该设备的私有数据，参见下文
+	struct device_private			*p;
+
+	struct kobject				kobj;
+
+	/* initial name of the device */
+	const char				*init_name;
+
+	/* the type of device, device name is kept in type→name */
+	const struct device_type		*type;
+
+	/* mutex to synchronize calls to its driver. */
+	struct mutex				mutex;
+
+	/* type of bus device is on */
+	struct bus_type				*bus;
+
+	/* which driver has allocated this device */
+	struct device_driver			*driver;
+
+	/* Platform specific data, device core doesn't touch it */
+	void					*platform_data;
+
+	// 电源管理相关信息
+	struct dev_pm_info			power;
+	struct dev_pm_domain			*pm_domain;
+
+#ifdef CONFIG_NUMA
+	/* NUMA node this device is close to */
+	int					numa_node;
+#endif
+	/* dma mask (if dma'able device) */
+	u64					*dma_mask;
+	/*
+	 * Like dma_mask, but for alloc_coherent mappings as not all hardware
+	 * supports 64 bit addresses for consistent allocations such descriptors.
+	 */
+	u64					coherent_dma_mask;
+
+	struct device_dma_parameters		*dma_parms;
+	/* dma pools (if dma'ble) */
+	struct list_head			dma_pools;
+	/* internal for coherent mem override */
+	struct dma_coherent_mem			*dma_mem;
+
+	/* arch specific additions */
+	struct dev_archdata			archdata;
+
+	/* associated device tree node */
+	struct device_node			*of_node;
+
+	/* dev_t, creates the sysfs "dev" */
+	dev_t					devt;
+
+	spinlock_t				devres_lock;
+	struct list_head			devres_head;
+
+	/*
+	 * 元素dev->knode_class被链接到以dev->class->p->klist_devices为链表头的链表中，
+	 * 参见函数调用：device_register()->device_add()
+	 */
+	struct klist_node			knode_class;
+	struct class				*class;
+
+	/* optional groups */
+	const struct attribute_group		**groups;
+
+	void (*release)(struct device *dev);
+};
+```
+
+其中， struct device_private定义于drivers/base/base.h:
+
+```
+struct device_private {
+	/*
+	 * 该链表用来链接本设备的子设备所对应的struct device->p->knode_parent
+	 * 元素，参见函数调用: device_register()->device_add()
+	 * 查询该链表的函数: device_find_child(), device_for_each_child()
+	 */
+	struct klist		klist_children;
+
+	/*
+	 * 该元素被链接到以struct device->parent->p->klist_children
+	 * 为链表头的链表中，参见如下函数调用:
+	 * device_register()->device_add()
+	 */
+	struct klist_node	knode_parent;
+
+	/*
+	 * 该元素被链接到以struct device_driver->p->klist_devices
+	 * 为链表头的链表中，参见如下函数调用：
+	 * driver_register()->bus_add_driver()->driver_attach()
+	 * ->__driver_attach()->driver_probe_device()->really_probe()
+	 * ->driver_bound()
+	 */
+	struct klist_node	knode_driver;
+
+	/*
+	 * 该元素被链接到以struct bus_type->p->klist_devices
+	 * 为链表头的链表中，参见如下函数调用：
+	 * device_add(dev)->bus_add_device(dev)
+	 * ->klist_add_tail(&dev->p->knode_bus, &bus->p->klist_devices);
+	 */
+	struct klist_node	knode_bus;
+
+	void			*driver_data;
+
+	// 指向使用本结构体的设备
+	struct device		*device;
+};
+```
+
+#### 10.2.3.1 创建设备/device_create()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_create - creates a device and registers it with sysfs
+ * @class:	pointer to the struct class that this device should be registered to
+ * @parent:	pointer to the parent struct device of this new device, if any
+ * @devt:	the dev_t for the char device to be added
+ * @drvdata:	the data to be added to the device for callbacks
+ * @fmt:	string for the device's name
+ *
+ * This function can be used by char device classes.  A struct device
+ * will be created in sysfs, registered to the specified class.
+ *
+ * A "dev" file will be created, showing the dev_t for the device, if
+ * the dev_t is not 0,0.
+ *
+ * If a pointer to a parent struct device is passed in, the newly created
+ * struct device will be a child of that device in sysfs.
+ *
+ * The pointer to the struct device will be returned from the call.
+ * Any further sysfs files that might be required can be created using this
+ * pointer.
+ *
+ * Returns &struct device pointer on success, or ERR_PTR() on error.
+ *
+ * Note: the struct class passed to this function must have previously
+ * been created with a call to class_create().
+ */
+struct device *device_create(struct class *class, struct device *parent,
+			     dev_t devt, void *drvdata, const char *fmt, ...)
+{
+	va_list vargs;
+	struct device *dev;
+
+	va_start(vargs, fmt);
+	dev = device_create_vargs(class, parent, devt, drvdata, fmt, vargs);
+	va_end(vargs);
+
+	return dev;
+}
+```
+
+其中，函数device_create_vargs()定义于drivers/base/core.c:
+
+```
+struct device *device_create_vargs(struct class *class, struct device *parent,
+				   dev_t devt, void *drvdata, const char *fmt,
+				   va_list args)
+{
+	struct device *dev = NULL;
+	int retval = -ENODEV;
+
+	if (class == NULL || IS_ERR(class))
+		goto error;
+
+	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+	if (!dev) {
+		retval = -ENOMEM;
+		goto error;
+	}
+
+	dev->devt = devt;
+	dev->class = class;
+
+	/*
+	 * 如下函数调用会使用dev->parent:
+	 * device_register()->device_add()->setup_parent()
+	 * ->get_device_parent()->virtual_device_parent()
+	 */
+	dev->parent = parent;
+
+	/*
+	 * 释放该设备的处理函数为device_create_release()，该函数被下列函数调用:
+	 * device_unregister(dev)
+	 * -> put_device(dev)
+	 *    -> kobject_put(&dev->kobj)
+	 *       -> kref_put(&kobj->kref, kobject_release)
+	 *          -> kobject_release()
+	 *             -> kobject_cleanup(struct kobject *kobj)
+	 *                -> struct kobj_type *t = get_ktype(kobj);
+	 *                -> t->release(kobj)   // NOTE (1)
+	 *                   -> device_release()
+	 *                      -> dev->release(dev)
+	 *                         -> device_create_release()
+	 *
+	 * 其中，NOTE (1)处t->release()是通过下面的函数赋值的:
+	 * device_create()			// 参见本节
+	 * -> device_create_vargs()
+	 *    -> device_register()		// 参见10.2.3.3 注册设备/device_register()节
+	 *       -> device_initialize(struct device *dev)
+	 *          -> kobject_init(&dev->kobj, &device_ktype)
+	 *             -> dev->kobj->ktype = device_ktype
+	 */
+	dev->release = device_create_release;
+
+	// 设置dev->p->driver_data = drvdata;
+	dev_set_drvdata(dev, drvdata);
+
+	// 设置kobj->name
+	retval = kobject_set_name_vargs(&dev->kobj, fmt, args);
+	if (retval)
+		goto error;
+
+	// 注册设备，参见10.2.3.3 注册设备/device_register()节
+	retval = device_register(dev);
+	if (retval)
+		goto error;
+
+	return dev;
+
+error:
+	put_device(dev);
+	return ERR_PTR(retval);
+}
+```
+
+#### 10.2.3.2 销毁设备/destroy_device()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_destroy - removes a device that was created with device_create()
+ * @class: pointer to the struct class that this device was registered with
+ * @devt: the dev_t of the device that was previously registered
+ *
+ * This call unregisters and cleans up a device that was created with a
+ * call to device_create().
+ */
+void device_destroy(struct class *class, dev_t devt)
+{
+	struct device *dev;
+
+	// device iterator for locating a particular device
+	dev = class_find_device(class, NULL, &devt, __match_devt);
+	if (dev) {
+		put_device(dev);
+
+		// 参见10.2.3.4 注销设备/device_unregister()节
+		device_unregister(dev);
+	}
+}
+```
+
+#### 10.2.3.3 注册设备/device_register()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_register - register a device with the system.
+ * @dev: pointer to the device structure
+ *
+ * This happens in two clean steps - initialize the device
+ * and add it to the system. The two steps can be called
+ * separately, but this is the easiest and most common.
+ * I.e. you should only call the two helpers separately if
+ * have a clearly defined need to use and refcount the device
+ * before it is added to the hierarchy.
+ *
+ * NOTE: _Never_ directly free @dev after calling this function, even
+ * if it returned an error! Always use put_device() to give up the
+ * reference initialized in this function instead.
+ */
+int device_register(struct device *dev)
+{
+	device_initialize(dev);	// 参见10.2.3.3.1 设备初始化/device_initialize()节
+	return device_add(dev);	// 参见10.2.3.3.2 添加设备/device_add()节
+}
+```
+
+##### 10.2.3.3.1 设备初始化/device_initialize()
+
+该函数定义于drivers/base/core.c:
+
+```
+static struct kobj_type device_ktype = {
+	.release	= device_release,
+	.sysfs_ops	= &dev_sysfs_ops,
+	.namespace	= device_namespace,
+};
+
+/**
+ * device_initialize - init device structure.
+ * @dev: device.
+ *
+ * This prepares the device for use by other layers by initializing
+ * its fields.
+ * It is the first half of device_register(), if called by
+ * that function, though it can also be called separately, so one
+ * may use @dev's fields. In particular, get_device()/put_device()
+ * may be used for reference counting of @dev after calling this
+ * function.
+ *
+ * NOTE: Use put_device() to give up your reference instead of freeing
+ * @dev directly once you have called this function.
+ */
+void device_initialize(struct device *dev)
+{
+	/*
+	 * 设置该device的父目录为/sys/devices，
+	 * 参见10.2.1.1 devices_init()节
+	 */
+	dev->kobj.kset = devices_kset;
+
+	// 设置dev->kobj->ktype = &device_ktype
+	kobject_init(&dev->kobj, &device_ktype);
+
+	INIT_LIST_HEAD(&dev->dma_pools);
+	mutex_init(&dev->mutex);
+	lockdep_set_novalidate_class(&dev->mutex);
+	spin_lock_init(&dev->devres_lock);
+	INIT_LIST_HEAD(&dev->devres_head);
+	device_pm_init(dev);
+	set_dev_node(dev, -1);
+}
+```
+
+##### 10.2.3.3.2 添加设备/device_add()
+
+该函数定义于drivers/base/core.c:
+
+```
+static struct device_attribute uevent_attr =
+	__ATTR(uevent, S_IRUGO | S_IWUSR, show_uevent, store_uevent);
+
+static struct device_attribute devt_attr =
+	__ATTR(dev, S_IRUGO, show_dev, NULL);
+
+/**
+ * device_add - add device to device hierarchy.
+ * @dev: device.
+ *
+ * This is part 2 of device_register(), though may be called
+ * separately _iff_ device_initialize() has been called separately.
+ *
+ * This adds @dev to the kobject hierarchy via kobject_add(), adds it
+ * to the global and sibling lists for the device, then
+ * adds it to the other relevant subsystems of the driver model.
+ *
+ * NOTE: _Never_ directly free @dev after calling this function, even
+ * if it returned an error! Always use put_device() to give up your
+ * reference instead.
+ */
+int device_add(struct device *dev)
+{
+	struct device *parent = NULL;
+	struct class_interface *class_intf;
+	int error = -EINVAL;
+
+	// 增加设备的索引计数，即dev->kobj->kref->refcount
+	dev = get_device(dev);
+	if (!dev)
+		goto done;
+
+	// 初始化设备私有数据dev->p
+	if (!dev->p) {
+		error = device_private_init(dev);
+		if (error)
+			goto done;
+	}
+
+	/*
+	 * for statically allocated devices, which should all be converted
+	 * some day, we need to initialize the name. We prevent reading back
+	 * the name, and force the use of dev_name()
+	 */
+	// 将dev->kobj->name设置为dev->init_name，并复位dev->init_name
+	if (dev->init_name) {
+		dev_set_name(dev, "%s", dev->init_name);
+		dev->init_name = NULL;
+	}
+
+	// 测试dev->kobj->name是否设置成功
+	if (!dev_name(dev)) {
+		error = -EINVAL;
+		goto name_error;
+	}
+
+	pr_debug("device: '%s': %s\n", dev_name(dev), __func__);
+
+	/*
+	 * 增加父设备的索引计数，即dev->parent->kobj->kref->refcount
+	 * 并将dev->kobj.parent设置为parent->kobj
+	 * 参见10.2.3.3.2.1 setup_parent()节
+	 */
+	parent = get_device(dev->parent);
+	setup_parent(dev, parent);
+
+	/* use parent numa_node */
+	// 将dev->numa_node设置为parent->numa_node
+	if (parent)
+		set_dev_node(dev, dev_to_node(parent));
+
+	/* first, register with generic layer. */
+	/* we require the name to be set before, and pass NULL */
+	// 设置dev->kobj->parent = dev->kobj.parent，并创建目录/sys/devices/XXX
+	// 其中，XXX为dev->kobj->name，即上文中的dev->init_name
+	error = kobject_add(&dev->kobj, dev->kobj.parent, NULL);
+	if (error)
+		goto Error;
+
+	/* notify platform of device entry */
+	// 由init_acpi_device_notify()设置函数指针 platform_notify
+	if (platform_notify)
+		platform_notify(dev);
+
+	// 创建文件/sys/devices/XXX/uevent
+	// 参见10.2.3.3.2.2.2 创建设备属性/device_create_file()节
+	error = device_create_file(dev, &uevent_attr);
+	if (error)
+		goto attrError;
+
+	if (MAJOR(dev->devt)) {
+		// 创建文件/sys/devices/XXX/dev
+		// 参见10.2.3.3.2.2.2 创建设备属性/device_create_file()节
+		error = device_create_file(dev, &devt_attr);
+		if (error)
+			goto ueventattrError;
+
+		/*
+		 * 创建链接文件/sys/class/YYY/mmm:nnn，
+		 * 其指向/sys/devices/XXX/YYY/mmm:nnn
+		 */
+		error = device_create_sys_dev_entry(dev);
+		if (error)
+			goto devtattrError;
+
+		/*
+		 * 目录/dev被挂载为devtmpfs文件系统，故可通过向线程
+		 * devtmpfsd发送request来创建设备文件/dev/DevName，
+		 * 参见11.3.10.2.2.1 devtmpfs_create_node()节；
+		 *
+		 * 文件名/dev/DevName是通过如下函数获得的，
+		 * devtmpfs_create_node()->device_get_devnode()
+		 * 参见11.3.10.2.2.1.1 device_get_devnode()节
+		 */
+		devtmpfs_create_node(dev);
+	}
+
+	/*
+	 * 创建链接文件/sys/devices/XXX/subsystem，
+	 * 其指向/sys/bus/event_source
+	 */
+	error = device_add_class_symlinks(dev);
+	if (error)
+		goto SymlinkError;
+
+	/*
+	 * 在目录/sys/devices/XXX中创建如下属性文件：
+	 * - dev->class->dev_attrs
+	 * - dev->class->dev_bin_attrs
+	 */
+	error = device_add_attrs(dev);
+	if (error)
+		goto AttrsError;
+
+	/*
+	 * 在目录/sys/devices/XXX中创建属性文件
+	 * dev->bus->dev_attrs[idx]
+	 */
+	error = bus_add_device(dev);
+	if (error)
+		goto BusError;
+
+	error = dpm_sysfs_add(dev);
+	if (error)
+		goto DPMError;
+
+	// 将元素dev->power.entry添加到链表dpm_list的尾部
+	device_pm_add(dev);
+
+	/* Notify clients of device addition.  This call must come
+	 * after dpm_sysf_add() and before kobject_uevent().
+	 */
+	if (dev->bus)
+		blocking_notifier_call_chain(&dev->bus->p->bus_notifier, BUS_NOTIFY_ADD_DEVICE, dev);
+
+	// 参见15.7.5 kobject_uevent()节
+	kobject_uevent(&dev->kobj, KOBJ_ADD);
+
+	/*
+	 * 为该新设备查找对应的驱动程序(probe drivers for a new device)
+	 * 参见10.2.3.3.2.3 bus_probe_device()节
+	 */
+	bus_probe_device(dev);
+
+	/*
+	 * 将元素dev->p->knode_parent链接到以
+	 * dev->parent->p->klist_children为链表头的链表中
+	 */
+	if (parent)
+		klist_add_tail(&dev->p->knode_parent, &parent->p->klist_children);
+
+	if (dev->class) {
+		mutex_lock(&dev->class->p->class_mutex);
+		/* tie the class to the device */
+		klist_add_tail(&dev->knode_class, &dev->class->p->klist_devices);
+
+		/* notify any interfaces that the device is here */
+		list_for_each_entry(class_intf, &dev->class->p->class_interfaces, node)
+			if (class_intf->add_dev)
+				class_intf->add_dev(dev, class_intf);
+		mutex_unlock(&dev->class->p->class_mutex);
+	}
+
+done:
+	/*
+	 * 对应于get_device()，用于减小设备的索引计数，
+	 * 即dev->kobj->kref->refcount
+	 */
+	put_device(dev);
+	return error;
+
+DPMError:
+	bus_remove_device(dev);
+BusError:
+	device_remove_attrs(dev);
+AttrsError:
+	device_remove_class_symlinks(dev);
+SymlinkError:
+	if (MAJOR(dev->devt))
+		devtmpfs_delete_node(dev);
+	if (MAJOR(dev->devt))
+		device_remove_sys_dev_entry(dev);
+devtattrError:
+	if (MAJOR(dev->devt))
+		device_remove_file(dev, &devt_attr);
+ueventattrError:
+	device_remove_file(dev, &uevent_attr);
+attrError:
+	kobject_uevent(&dev->kobj, KOBJ_REMOVE);
+	// 参见15.7.2.2.1.1 kobject_del()节
+	kobject_del(&dev->kobj);
+Error:
+	cleanup_device_parent(dev);
+	if (parent)
+		put_device(parent);
+name_error:
+	kfree(dev->p);
+	dev->p = NULL;
+	goto done;
+}
+```
+
+###### 10.2.3.3.2.1 setup_parent()
+
+该函数定义于drivers/base/core.c:
+
+```
+static void setup_parent(struct device *dev, struct device *parent)
+{
+	struct kobject *kobj;
+	kobj = get_device_parent(dev, parent);
+	if (kobj)
+		dev->kobj.parent = kobj;
+}
+
+static struct kobject *get_device_parent(struct device *dev, struct device *parent)
+{
+	if (dev->class) {
+		static DEFINE_MUTEX(gdp_mutex);
+		struct kobject *kobj = NULL;
+		struct kobject *parent_kobj;
+		struct kobject *k;
+
+#ifdef CONFIG_BLOCK
+		/* block disks show up in /sys/block */
+		if (sysfs_deprecated && dev->class == &block_class) {
+			if (parent && parent->class == &block_class)
+				return &parent->kobj;
+			return &block_class.p->subsys.kobj;
+		}
+#endif
+
+		/*
+		 * If we have no parent, we live in "virtual".
+		 * Class-devices with a non class-device as parent, live
+		 * in a "glue" directory to prevent namespace collisions.
+		 */
+		if (parent == NULL)
+			parent_kobj = virtual_device_parent(dev);
+		else if (parent->class && !dev->class->ns_type)
+			return &parent->kobj;
+		else
+			parent_kobj = &parent->kobj;
+
+		mutex_lock(&gdp_mutex);
+
+		/* find our class-directory at the parent and reference it */
+		spin_lock(&dev->class->p->glue_dirs.list_lock);
+		list_for_each_entry(k, &dev->class->p->glue_dirs.list, entry)
+			if (k->parent == parent_kobj) {
+				kobj = kobject_get(k);
+				break;
+			}
+		spin_unlock(&dev->class->p->glue_dirs.list_lock);
+		if (kobj) {
+			mutex_unlock(&gdp_mutex);
+			return kobj;
+		}
+
+		/* or create a new class-directory at the parent device */
+		k = class_dir_create_and_add(dev->class, parent_kobj);
+		/* do not emit an uevent for this simple "glue" directory */
+		mutex_unlock(&gdp_mutex);
+		return k;
+	}
+
+	if (parent)
+		return &parent->kobj;
+	return NULL;
+}
+
+static struct kobject *virtual_device_parent(struct device *dev)
+{
+	static struct kobject *virtual_dir = NULL;
+
+	/*
+	 * 创建目录/sys/devices/virtual
+	 * 参见15.7.1.2 kobject_create_and_add()节
+	 */
+	if (!virtual_dir)
+		virtual_dir = kobject_create_and_add("virtual", &devices_kset->kobj);
+
+	return virtual_dir;
+}
+```
+
+###### 10.2.3.3.2.2 创建/删除设备属性
+
+创建/删除设备驱动属性分为如下几个步骤：
+* 1) 定义设备属性，即定义struct device_attribute类型的对象，并实现其show()/store()函数；
+* 2) 调用device_create_file()创建设备属性；
+* 3) 调用device_remove_file()删除设备属性。
+
+###### 10.2.3.3.2.2.1 定义设备属性/struct device_attribute
+
+struct device_attribute表示设备属性，其定义于include/linux/device.h:
+
+```
+struct device_attribute {
+	struct attribute		attr;
+	ssize_t (*show)(struct device *dev, struct device_attribute *attr, char *buf);
+	ssize_t (*store)(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
+};
+
+struct dev_ext_attribute {
+	struct device_attribute		attr;
+	void				*var;
+};
+```
+
+如下宏用来定义设备属性，其定义于include/linux/device.h:
+
+```
+#define DEVICE_ATTR(_name, _mode, _show, _store) \
+	struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)
+
+#define DEVICE_ATTR_RO(_name) \
+	struct device_attribute dev_attr_##_name = __ATTR_RO(_name)
+
+/* kernel v3.10 */
+#define DEVICE_ATTR_WO(_name) \
+	struct device_attribute dev_attr_##_name = __ATTR_WO(_name)
+
+/* kernel v3.10 */
+#define DEVICE_ATTR_RW(_name) \
+	struct device_attribute dev_attr_##_name = __ATTR_RW(_name)
+
+#define DEVICE_ATTR_IGNORE_LOCKDEP(_name, _mode, _show, _store)	\
+	struct device_attribute dev_attr_##_name =		\
+		__ATTR_IGNORE_LOCKDEP(_name, _mode, _show, _store)
+
+#define DEVICE_ULONG_ATTR(_name, _mode, _var) 	\
+	struct dev_ext_attribute dev_attr_##_name =	\
+		{ __ATTR(_name, _mode, device_show_ulong, device_store_ulong), &(_var) }
+
+#define DEVICE_INT_ATTR(_name, _mode, _var) 	\
+	struct dev_ext_attribute dev_attr_##_name =	\
+		{ __ATTR(_name, _mode, device_show_int, device_store_int), &(_var) }
+
+#define DEVICE_BOOL_ATTR(_name, _mode, _var)	\
+	struct dev_ext_attribute dev_attr_##_name =	\
+		{ __ATTR(_name, _mode, device_show_bool, device_store_bool), &(_var) }
+```
+
+其中，__ATTR之类的宏定义于include/linux/sysfs.h:
+
+```
+#define __ATTR(_name,_mode,_show,_store) {				\
+	.attr  = { .name = __stringify(_name), .mode = _mode },		\
+	.show  = _show,							\
+	.store = _store,						\
+}
+
+#define __ATTR_RO(_name) { 						\
+	.attr	= { .name = __stringify(_name), .mode = S_IRUGO },	\
+	.show	= _name##_show,						\
+}
+
+/* kernel v3.10 */
+#define __ATTR_WO(_name) {						\
+	.attr	= { .name = __stringify(_name), .mode = S_IWUSR },	\
+	.store = _name##_store,						\
+}
+
+/* kernel v3.10 */
+#define __ATTR_RW(_name) __ATTR(_name, (S_IWUSR | S_IRUGO),		\
+			 _name##_show, _name##_store)
+```
+
+【设备属性定义举例】
+
+如下定义：
+
+```
+DEVICE_ATTR_RW(foo);
+```
+
+被扩展为：
+
+```
+struct device_attribute dev_attr_foo = {
+	.attr = {
+		.name = "foo",
+		.mode = (S_IWUSR | S_IRUGO),
+	},
+	.show	= foo_show,
+	.store	= foo_store,
+};
+```
+
+然后实现如下函数：
+
+```
+ssize_t *foo_show(struct device *dev, struct device_attribute *attr, char *buf);
+ssize_t *foo_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
+```
+
+###### 10.2.3.3.2.2.2 创建设备属性/device_create_file()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_create_file - create sysfs attribute file for device.
+ * @dev: device.
+ * @attr: device attribute descriptor.
+ */
+int device_create_file(struct device *dev, const struct device_attribute *attr)
+{
+	int error = 0;
+
+	if (dev) {
+		WARN(((attr->attr.mode & S_IWUGO) && !attr->store),
+			"Attribute %s: write permission without 'store'\n",
+			attr->attr.name);
+		WARN(((attr->attr.mode & S_IRUGO) && !attr->show),
+			"Attribute %s: read permission without 'show'\n",
+			attr->attr.name);
+
+		// 参见11.3.5.6.2 sysfs_create_file()节
+		error = sysfs_create_file(&dev->kobj, &attr->attr);
+	}
+
+	return error;
+}
+```
+
+###### 10.2.3.3.2.2.3 删除设备属性/device_remove_file()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_remove_file - remove sysfs attribute file.
+ * @dev: device.
+ * @attr: device attribute descriptor.
+ */
+void device_remove_file(struct device *dev, const struct device_attribute *attr)
+{
+	// 参见11.3.5.6.3 sysfs_remove_file()节
+	if (dev)
+		sysfs_remove_file(&dev->kobj, &attr->attr);
+}
+```
+
+###### 10.2.3.3.2.3 bus_probe_device()
+
+该函数定义于drivers/base/bus.c:
+
+```
+/**
+ * bus_probe_device - probe drivers for a new device
+ * @dev: device to probe
+ *
+ * - Automatically probe for a driver if the bus allows it.
+ */
+void bus_probe_device(struct device *dev)
+{
+	struct bus_type *bus = dev->bus;
+	int ret;
+
+	/*
+	 * 若支持自动匹配(参见10.2.2.1 bus_register()节)，
+	 * 则自动匹配注册到同一bus的device和driver (参见下文)
+	 */
+	if (bus && bus->p->drivers_autoprobe) {
+		ret = device_attach(dev);
+		WARN_ON(ret < 0);
+	}
+}
+
+/**
+ * device_attach - try to attach device to a driver.
+ * @dev: device.
+ *
+ * Walk the list of drivers that the bus has and call
+ * driver_probe_device() for each pair. If a compatible
+ * pair is found, break out and return.
+ *
+ * Returns 1 if the device was bound to a driver;
+ * 0 if no matching driver was found;
+ * -ENODEV if the device is not registered.
+ *
+ * When called for a USB interface, @dev->parent lock must be held.
+ */
+int device_attach(struct device *dev)
+{
+	int ret = 0;
+
+	device_lock(dev);
+
+	/*
+	 * 1) 若该设备已配置了驱动程序：
+	 * 1.1) 若dev->p->knode_driver已指向其对应的驱动程序，说明dev->p->knode_driver已被
+	 *      链接到以struct device_driver->p->klist_devices为链表头的链表中，则直接返回；
+	 * 1.2) 若dev->p->knode_driver未指向其对应的驱动程序，说明dev->p->knode_driver未被
+	 *      链接到以struct device_driver->p->klist_devices为链表头的链表中，则调用
+	 *      device_bind_driver->driver_bound()；
+	 */	
+	if (dev->driver) {
+		if (klist_node_attached(&dev->p->knode_driver)) {
+			ret = 1;
+			goto out_unlock;
+		}
+		ret = device_bind_driver(dev);
+		if (ret == 0)
+			ret = 1;
+		else {
+			dev->driver = NULL;
+			ret = 0;
+		}
+	} else {
+	  /*
+	   * 2) 若该设备还未配置了驱动程序：
+	   * 则对链表drv->bus->p->klist_devices->k_list中的每个元素，
+	   * 调用函数__driver_attach(device, driver);
+	   * 该函数尝试将匹配的driver和device绑定到一起.
+	   * 注：链表drv->bus->p->klist_devices->k_list中链接的是元素
+	   * struct device->p->knode_bus->n_node
+	   */
+		pm_runtime_get_noresume(dev);
+		ret = bus_for_each_drv(dev->bus, NULL, dev, __device_attach);
+		pm_runtime_put_sync(dev);
+	}
+
+out_unlock:
+	device_unlock(dev);
+	return ret;
+}
+```
+
+其中，函数定义于drivers/base/dd.c:
+
+```
+static int __device_attach(struct device_driver *drv, void *data)
+{
+	struct device *dev = data;
+
+	/*
+	 * 调用函数drv->bus->match(dev, drv)来查看某device和该driver是否匹配：
+	 * 若匹配，则返回非0值；否则，返回0
+	 */
+	if (!driver_match_device(drv, dev))
+		return 0;
+
+	/*
+	 * 若该device和driver匹配，且该device还未指定匹配的driver，
+	 * 则调用driver_probe_device()->really_probe()来绑定该device和driver
+	 * 参见10.2.3.3.2.3.1 driver_probe_device()节
+	 */
+	return driver_probe_device(drv, dev);
+}
+```
+
+###### 10.2.3.3.2.3.1 driver_probe_device()
+
+该函数定义于drivers/base/dd.c:
+
+```
+/**
+ * driver_probe_device - attempt to bind device & driver together
+ * @drv: driver to bind a device to
+ * @dev: device to try to bind to the driver
+ *
+ * This function returns -ENODEV if the device is not registered,
+ * 1 if the device is bound successfully and 0 otherwise.
+ *
+ * This function must be called with @dev lock held.  When called for a
+ * USB interface, @dev->parent lock must be held as well.
+ */
+int driver_probe_device(struct device_driver *drv, struct device *dev)
+{
+	int ret = 0;
+
+	if (!device_is_registered(dev))
+		return -ENODEV;
+
+	pr_debug("bus: '%s': %s: matched device %s with driver %s\n",
+				drv->bus->name, __func__, dev_name(dev), drv->name);
+
+	pm_runtime_get_noresume(dev);
+	pm_runtime_barrier(dev);
+	ret = really_probe(dev, drv);
+	pm_runtime_put_sync(dev);
+
+	return ret;
+}
+
+static int really_probe(struct device *dev, struct device_driver *drv)
+{
+	int ret = 0;
+
+	atomic_inc(&probe_count);
+	pr_debug("bus: '%s': %s: probing driver %s with device %s\n",
+			  drv->bus->name, __func__, drv->name, dev_name(dev));
+	WARN_ON(!list_empty(&dev->devres_head));
+
+	// 将dev的驱动程序设置为drv，并创建dev->driver->p->kobj和dev->kobj之间的相互链接文件
+	dev->driver = drv;
+	if (driver_sysfs_add(dev)) {
+		printk(KERN_ERR "%s: driver_sysfs_add(%s) failed\n", __func__, dev_name(dev));
+		goto probe_failed;
+	}
+
+	// 调用函数dev->bus->probe()或者drv->probe()来判断设备dev和驱动程序drv是否匹配
+	if (dev->bus->probe) {
+		ret = dev->bus->probe(dev);
+		if (ret)
+			goto probe_failed;
+	} else if (drv->probe) {
+		ret = drv->probe(dev);
+		if (ret)
+			goto probe_failed;
+	}
+
+	/*
+	 * 将元素dev->p->knode_driver添加到链表dev->driver->p->klist_devices
+	 * 的尾部，即链表drv->p->klist_devices尾部
+	 */
+	driver_bound(dev);
+	ret = 1;
+	pr_debug("bus: '%s': %s: bound device %s to driver %s\n",
+			  drv->bus->name, __func__, dev_name(dev), drv->name);
+	goto done;
+
+probe_failed:
+	devres_release_all(dev);
+	driver_sysfs_remove(dev);
+	dev->driver = NULL;
+
+	if (ret != -ENODEV && ret != -ENXIO) {
+		/* driver matched but the probe failed */
+		printk(KERN_WARNING "%s: probe of %s failed with error %d\n",
+		       drv->name, dev_name(dev), ret);
+	} else {
+		pr_debug("%s: probe of %s rejects match %d\n",
+		         drv->name, dev_name(dev), ret);
+	}
+	/*
+	 * Ignore errors returned by ->probe so that the next driver can try
+	 * its luck.
+	 */
+	ret = 0;
+
+done:
+	atomic_dec(&probe_count);
+	wake_up(&probe_waitqueue);
+	return ret;
+}
+```
+
+#### 10.2.3.4 注销设备/device_unregister()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_unregister - unregister device from system.
+ * @dev: device going away.
+ *
+ * We do this in two parts, like we do device_register(). First,
+ * we remove it from all the subsystems with device_del(), then
+ * we decrement the reference count via put_device(). If that
+ * is the final reference count, the device will be cleaned up
+ * via device_release() above. Otherwise, the structure will
+ * stick around until the final reference to the device is dropped.
+ */
+void device_unregister(struct device *dev)
+{
+	pr_debug("device: '%s': %s\n", dev_name(dev), __func__);
+
+	/*
+	 * delete device from system.
+	 * 参见10.2.3.4.1 删除设备/device_del()节
+	 */
+	device_del(dev);
+
+	/*
+	 * 对应于get_device()，用于减小设备的索引计数，
+	 * 即dev->kobj->kref->refcount
+	 */
+	put_device(dev);
+}
+```
+
+##### 10.2.3.4.1 删除设备/device_del()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_del - delete device from system.
+ * @dev: device.
+ *
+ * This is the first part of the device unregistration
+ * sequence. This removes the device from the lists we control
+ * from here, has it removed from the other driver model
+ * subsystems it was added to in device_add(), and removes it
+ * from the kobject hierarchy.
+ *
+ * NOTE: this should be called manually _iff_ device_add() was
+ * also called manually.
+ */
+void device_del(struct device *dev)
+{
+	struct device *parent = dev->parent;
+	struct class_interface *class_intf;
+
+	/*
+	 * Notify clients of device removal. This call must come
+	 * before dpm_sysfs_remove().
+	 */
+	if (dev->bus)
+		blocking_notifier_call_chain(&dev->bus->p->bus_notifier,
+			BUS_NOTIFY_DEL_DEVICE, dev);
+	device_pm_remove(dev);
+	dpm_sysfs_remove(dev);
+	if (parent)
+		klist_del(&dev->p->knode_parent);
+	if (MAJOR(dev->devt)) {
+		devtmpfs_delete_node(dev);
+		device_remove_sys_dev_entry(dev);
+		device_remove_file(dev, &devt_attr);
+	}
+	if (dev->class) {
+		device_remove_class_symlinks(dev);
+
+		mutex_lock(&dev->class->p->class_mutex);
+		/* notify any interfaces that the device is now gone */
+		list_for_each_entry(class_intf, &dev->class->p->class_interfaces, node)
+			if (class_intf->remove_dev)
+				class_intf->remove_dev(dev, class_intf);
+		/* remove the device from the class list */
+		klist_del(&dev->knode_class);
+		mutex_unlock(&dev->class->p->class_mutex);
+	}
+	device_remove_file(dev, &uevent_attr);
+	device_remove_attrs(dev);
+	bus_remove_device(dev);
+
+	/*
+	 * Some platform devices are driven without driver attached
+	 * and managed resources may have been acquired.  Make sure
+	 * all resources are released.
+	 */
+	devres_release_all(dev);
+
+	/*
+	 * Notify the platform of the removal, in case they
+	 * need to do anything...
+	 */
+	if (platform_notify_remove)
+		platform_notify_remove(dev);
+	kobject_uevent(&dev->kobj, KOBJ_REMOVE);
+	cleanup_device_parent(dev);
+	kobject_del(&dev->kobj);
+	put_device(parent);
+}
+```
+
+### 10.2.4 struct device_driver
+
+该结构定义于include/linux/device.h:
+
+```
+/**
+ * struct device_driver - The basic device driver structure
+ *
+ * The device driver-model tracks all of the drivers known to the system.
+ * The main reason for this tracking is to enable the driver core to match
+ * up drivers with new devices. Once drivers are known objects within the
+ * system, however, a number of other things become possible. Device drivers
+ * can export information and configuration variables that are independent
+ * of any specific device.
+ */
+struct device_driver {
+	const char			*name;
+	struct bus_type			*bus;
+
+	struct module			*owner;
+	const char			*mod_name;		/* used for built-in modules */
+
+	bool				suppress_bind_attrs;	/* disables bind/unbind via sysfs */
+
+	const struct of_device_id	*of_match_table;
+
+	// 参见13.1.2.2 MODULE_DEVICE_TABLE()节
+	int	(*probe) (struct device *dev);
+	int	(*remove) (struct device *dev);
+	void	(*shutdown) (struct device *dev);
+	int	(*suspend) (struct device *dev, pm_message_t state);
+	int	(*resume) (struct device *dev);
+
+	const struct attribute_group 	**groups;
+
+	const struct dev_pm_ops 	*pm;
+
+	// 指向struct device_driver对象
+	struct driver_private 		*p;
+};
+```
+
+其中， struct driver_private定义于drivers/base/base.h:
+
+```
+struct driver_private {
+	struct kobject		kobj;
+
+	/*
+	 * 该链表将使用本驱动程序的设备链接到一起;
+	 *
+	 * 该链表用来链接struct device->p->knode_driver元素，参见如下函数调用：
+	 * driver_register()->bus_add_driver()->driver_attach()
+	 * ->__driver_attach()->driver_probe_device()->really_probe()
+	 * ->driver_bound()
+	 * 查询该链表的函数：driver_find_device(), driver_for_each_device()
+	 */
+	struct klist		klist_devices;
+
+	/*
+	 * 该元素被链接到以struct device_driver->bus->p->klist_drivers
+	 * 为链表头的链表中，参见如下函数调用：
+	 * driver_register()->bus_add_driver()->klist_add_tail()
+	 */
+	struct klist_node	knode_bus;
+
+	struct module_kobject	*mkobj;
+
+	// 指向struct device_driver对象
+	struct device_driver	*driver;
+};
+```
+
+#### 10.2.4.1 注册驱动程序/driver_register()
+
+该函数定义于drivers/base/driver.c:
+
+```
+/**
+ * driver_register - register driver with bus
+ * @drv: driver to register
+ *
+ * We pass off most of the work to the bus_add_driver() call,
+ * since most of the things we have to do deal with the bus
+ * structures.
+ */
+int driver_register(struct device_driver *drv)
+{
+	int ret;
+	struct device_driver *other;
+
+	BUG_ON(!drv->bus->p);
+
+	if ((drv->bus->probe && drv->probe) ||
+	    (drv->bus->remove && drv->remove) ||
+	    (drv->bus->shutdown && drv->shutdown))
+		printk(KERN_WARNING "Driver '%s' needs updating - please use bus_type methods\n", drv->name);
+
+	/*
+	 * 查找链表drv->bus->p->drivers_kset->list上是否已存在该驱动程序(drv->name)
+	 * 其中，链表drv->bus->p->drivers_kset->list上链接的是struct device_driver->p->kobj->entry元素
+	 * 参见Subjects/Chapter10_Device_Driver/00_Device_Driver_Model/Figures/Device_Driver_Model.jpg
+	 */
+	other = driver_find(drv->name, drv->bus);
+	if (other) {
+		put_driver(other);
+		printk(KERN_ERR "Error: Driver '%s' is already registered, aborting...\n", drv->name);
+		return -EBUSY;
+	}
+
+	// 添加设备驱动程序到bus，参见10.2.4.1.1 添加设备驱动程序/bus_add_driver()节
+	ret = bus_add_driver(drv);
+	if (ret)
+		return ret;
+
+	ret = driver_add_groups(drv, drv->groups);
+	if (ret)
+		bus_remove_driver(drv);
+
+	return ret;
+}
+```
+
+##### 10.2.4.1.1 添加设备驱动程序/bus_add_driver()
+
+该函数定义于drivers/base/driver.c:
+
+```
+static struct kobj_type driver_ktype = {
+	.sysfs_ops	= &driver_sysfs_ops,
+	.release	= driver_release,
+};
+
+/**
+ * bus_add_driver - Add a driver to the bus.
+ * @drv: driver.
+ */
+int bus_add_driver(struct device_driver *drv)
+{
+	struct bus_type *bus;
+	struct driver_private *priv;
+	int error = 0;
+
+	// 1) 增加drv->bus->p->subsys->kobj->kref引用计数
+	bus = bus_get(drv->bus);
+	if (!bus)
+		return -EINVAL;
+
+	pr_debug("bus: '%s': add driver %s\n", bus->name, drv->name);
+
+	// 2) 分配并初始化struct driver_private类型的对象priv，并将priv和drv相互链接起来
+	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
+	if (!priv) {
+		error = -ENOMEM;
+		goto out_put_bus;
+	}
+	klist_init(&priv->klist_devices, NULL, NULL);
+	priv->driver = drv;
+	drv->p = priv;
+	priv->kobj.kset = bus->p->drivers_kset;
+
+	/*
+	 * 2.1) 设置如下参数：
+	 *   &priv->kobj->ktype = &driver_ktype
+	 *   &priv->kobj->name = drv->name
+	 *   &priv->kobj->parent = NULL
+	 */
+	error = kobject_init_and_add(&priv->kobj, &driver_ktype, NULL, "%s", drv->name);
+	if (error)
+		goto out_unregister;
+
+	/*
+	 * 若支持自动匹配(参见10.2.2.1 bus_register()节)，
+	 * 则自动匹配注册到同一bus的device和driver，
+	 * 参见10.2.4.1.1.1 driver_attach()节
+	 */
+	if (drv->bus->p->drivers_autoprobe) {
+		error = driver_attach(drv);
+		if (error)
+			goto out_unregister;
+	}
+
+	// 将元素drv->p->knode_bus链接到以drv->bus->p->klist_drivers为链表头的链表中
+	klist_add_tail(&priv->knode_bus, &bus->p->klist_drivers);
+
+	/*
+	 * 创建如下两个链接：
+	 * - 由drv->p->kobj到drv->owner->mkobj->kobj的链接文件
+	 * - 由drv->owner->mkobj->drivers_dir到drv->p->kobj的链接文件
+	 */
+	module_add_driver(drv->owner, drv);
+
+	// 参见10.2.4.1.1.2.2 创建设备驱动属性/driver_create_file()节
+	error = driver_create_file(drv, &driver_attr_uevent);
+	if (error) {
+		printk(KERN_ERR "%s: uevent attr (%s) failed\n", __func__, drv->name);
+	}
+
+	error = driver_add_attrs(bus, drv);
+	if (error) {
+		/* How the hell do we get out of this pickle? Give up */
+		printk(KERN_ERR "%s: driver_add_attrs(%s) failed\n", __func__, drv->name);
+	}
+
+	if (!drv->suppress_bind_attrs) {
+		error = add_bind_files(drv);
+		if (error) {
+			/* Ditto */
+			printk(KERN_ERR "%s: add_bind_files(%s) failed\n", __func__, drv->name);
+		}
+	}
+
+	/*
+	 * notify userspace by sending an uevent
+	 * 参见15.7.5 kobject_uevent()节
+	 */
+	kobject_uevent(&priv->kobj, KOBJ_ADD);
+	return 0;
+
+out_unregister:
+	kobject_put(&priv->kobj);	// 参见15.7.2.2 kobject_put()节
+	kfree(drv->p);
+	drv->p = NULL;
+out_put_bus:
+	bus_put(bus);
+	return error;
+}
+```
+
+###### 10.2.4.1.1.1 driver_attach()
+
+该函数定义于drivers/base/dd.c:
+
+```
+/**
+ * driver_attach - try to bind driver to devices.
+ * @drv: driver.
+ *
+ * Walk the list of devices that the bus has on it and try to
+ * match the driver with each one.  If driver_probe_device()
+ * returns 0 and the @dev->driver is set, we've found a
+ * compatible pair.
+ */
+int driver_attach(struct device_driver *drv)
+{
+	/*
+	 * 对链表drv->bus->p->klist_devices->k_list中的每个元素，
+	 * 调用函数__driver_attach(device, driver); 该函数尝试将
+	 * 匹配的driver和device绑定到一起。
+	 * 注：链表drv->bus->p->klist_devices->k_list中链接的是
+	 * struct device->p->knode_bus->n_node元素
+	 */
+	return bus_for_each_dev(drv->bus, NULL, drv, __driver_attach);
+}
+
+static int __driver_attach(struct device *dev, void *data)
+{
+	struct device_driver *drv = data;
+
+	/*
+	 * Lock device and try to bind to it. We drop the error
+	 * here and always return 0, because we need to keep trying
+	 * to bind to devices and some drivers will return an error
+	 * simply if it didn't support the device.
+	 *
+	 * driver_probe_device() will spit a warning if there
+	 * is an error.
+	 */
+	/*
+	 * 调用函数drv->bus->match(dev, drv)来查看某device和该driver是否匹配：
+	 * 若匹配，则返回非0值；否则，返回0
+	 */
+	if (!driver_match_device(drv, dev))
+		return 0;
+
+	if (dev->parent)	/* Needed for USB */
+		device_lock(dev->parent);
+	device_lock(dev);
+
+	/*
+	 * 若该device和driver匹配，且该device还未指定匹配的driver，
+	 * 则调用driver_probe_device()->really_probe()来绑定该device
+	 * 和driver。参见10.2.3.3.2.3.1 driver_probe_device()节
+	 */
+	if (!dev->driver)
+		driver_probe_device(drv, dev);
+
+	device_unlock(dev);
+	if (dev->parent)
+		device_unlock(dev->parent);
+
+	return 0;
+}
+```
+
+###### 10.2.4.1.1.2 创建/删除设备驱动属性
+
+创建/删除设备驱动属性分为如下几个步骤：
+* 1) 定义设备属性，即定义struct driver_attribute类型的对象，并实现其show()/store()函数；
+* 2) 调用driver_create_file()创建设备属性；
+* 3) 调用driver_remove_file()删除设备属性。
+
+###### 10.2.4.1.1.2.1 定义设备驱动属性
+
+struct driver_attribute表示设备属性，其定义于include/linux/device.h:
+
+```
+struct driver_attribute {
+	struct attribute attr;
+	ssize_t (*show)(struct device_driver *driver, char *buf);
+	ssize_t (*store)(struct device_driver *driver, const char *buf, size_t count);
+};
+```
+
+如下宏用来定义设备属性，其定义于include/linux/device.h:
+
+```
+#define DRIVER_ATTR(_name, _mode, _show, _store) \
+	struct driver_attribute driver_attr_##_name = __ATTR(_name, _mode, _show, _store)
+
+#define DRIVER_ATTR_RW(_name) \
+	struct driver_attribute driver_attr_##_name = __ATTR_RW(_name)
+
+#define DRIVER_ATTR_RO(_name) \
+	struct driver_attribute driver_attr_##_name = __ATTR_RO(_name)
+
+#define DRIVER_ATTR_WO(_name) \
+	struct driver_attribute driver_attr_##_name = __ATTR_WO(_name)
+```
+
+【设备属性定义举例】
+
+如下定义：
+
+```
+DRIVER_ATTR_RW(foo);
+```
+
+被扩展为：
+
+```
+struct driver_attribute driver_attr_foo = {
+	.attr = {
+		.name = "foo",
+		// 宏DRIVER_ATTR_XX对应的属性不同
+		.mode = (S_IWUSR | S_IRUGO),
+	},
+	.show	= foo_show,
+	.store	= foo_store,
+};
+```
+
+然后实现如下函数：
+
+```
+ssize_t *foo_show(struct device_driver *driver, char *buf);
+ssize_t *foo_store(struct device_driver *driver, const char *buf, size_t count);
+```
+
+###### 10.2.4.1.1.2.2 创建设备驱动属性/driver_create_file()
+
+该函数定义于drivers/base/driver.c:
+
+```
+/**
+ * driver_create_file - create sysfs file for driver.
+ * @drv: driver.
+ * @attr: driver attribute descriptor.
+ */
+int driver_create_file(struct device_driver *drv,
+			const struct driver_attribute *attr)
+{
+	int error;
+
+	// 参见11.3.5.6.2 sysfs_create_file()节
+	if (drv)
+		error = sysfs_create_file(&drv->p->kobj, &attr->attr);
+	else
+		error = -EINVAL;
+
+	return error;
+}
+```
+
+###### 10.2.4.1.1.2.3 删除设备驱动属性/driver_remove_file()
+
+该函数定义于drivers/base/driver.c:
+
+```
+/**
+ * driver_remove_file - remove sysfs file for driver.
+ * @drv: driver.
+ * @attr: driver attribute descriptor.
+ */
+void driver_remove_file(struct device_driver *drv,
+			const struct driver_attribute *attr)
+{
+	// 参见11.3.5.6.3 sysfs_remove_file()节
+	if (drv)
+		sysfs_remove_file(&drv->p->kobj, &attr->attr);
+}
+```
+
+#### 10.2.4.2 注销驱动程序/driver_unregister()
+
+该函数定义于drivers/base/driver.c:
+
+```
+/**
+ * driver_unregister - remove driver from system.
+ * @drv: driver.
+ *
+ * Again, we pass off most of the work to the bus-level call.
+ */
+void driver_unregister(struct device_driver *drv)
+{
+	if (!drv || !drv->p) {
+		WARN(1, "Unexpected driver unregister!\n");
+		return;
+	}
+
+	driver_remove_groups(drv, drv->groups);
+	bus_remove_driver(drv);
+}
+
+/**
+ * bus_remove_driver - delete driver from bus's knowledge.
+ * @drv: driver.
+ *
+ * Detach the driver from the devices it controls, and remove
+ * it from its bus's list of drivers. Finally, we drop the reference
+ * to the bus we took in bus_add_driver().
+ */
+void bus_remove_driver(struct device_driver *drv)
+{
+	if (!drv->bus)
+		return;
+
+	if (!drv->suppress_bind_attrs)
+		remove_bind_files(drv);
+	driver_remove_attrs(drv->bus, drv);
+
+	// 参见10.2.4.1.1.2.3 删除设备驱动属性/driver_remove_file()节
+	driver_remove_file(drv, &driver_attr_uevent);
+	klist_remove(&drv->p->knode_bus);
+	pr_debug("bus: '%s': remove driver %s\n", drv->bus->name, drv->name);
+
+	/*
+	 * detach driver from all devices it controls
+	 * 参见10.2.4.2.1 driver_detach()节
+	 */
+	driver_detach(drv);
+
+	module_remove_driver(drv);
+	// 参见15.7.2.2 kobject_put()节
+	kobject_put(&drv->p->kobj);
+	bus_put(drv->bus);
+}
+```
+
+##### 10.2.4.2.1 driver_detach()
+
+该函数定义于drivers/base/dd.c:
+
+```
+/**
+ * driver_detach - detach driver from all devices it controls.
+ * @drv: driver.
+ */
+void driver_detach(struct device_driver *drv)
+{
+	struct device_private *dev_prv;
+	struct device *dev;
+
+	for (;;) {
+		spin_lock(&drv->p->klist_devices.k_lock);
+		if (list_empty(&drv->p->klist_devices.k_list)) {
+			spin_unlock(&drv->p->klist_devices.k_lock);
+			break;
+		}
+
+		// 轮询使用本驱动程序的每个设备，即轮询 链表drv->p->klist_devices
+		dev_prv = list_entry(drv->p->klist_devices.k_list.prev,
+				     struct device_private, knode_driver.n_node);
+		dev = dev_prv->device;
+		get_device(dev);
+		spin_unlock(&drv->p->klist_devices.k_lock);
+
+		if (dev->parent)	/* Needed for USB */
+			device_lock(dev->parent);
+		device_lock(dev);
+
+		// 若该设备使用为本驱动程序，则释放该设备
+		if (dev->driver == drv)
+			__device_release_driver(dev);
+
+		device_unlock(dev);
+		if (dev->parent)
+			device_unlock(dev->parent);
+		put_device(dev);
+	}
+}
+
+/*
+ * __device_release_driver() must be called with @dev lock held.
+ * When called for a USB interface, @dev->parent lock must be held as well.
+ */
+static void __device_release_driver(struct device *dev)
+{
+	struct device_driver *drv;
+
+	drv = dev->driver;
+	if (drv) {
+		pm_runtime_get_sync(dev);
+
+		driver_sysfs_remove(dev);
+
+		if (dev->bus)
+			blocking_notifier_call_chain(&dev->bus->p->bus_notifier,
+						     BUS_NOTIFY_UNBIND_DRIVER, dev);
+
+		pm_runtime_put_sync(dev);
+
+		// 通过调用dev->bus->remove()或者drv->remove()来释放该设备
+		if (dev->bus && dev->bus->remove)
+			dev->bus->remove(dev);
+		else if (drv->remove)
+			drv->remove(dev);
+
+		// Release all managed resources
+		devres_release_all(dev);
+
+		dev->driver = NULL;
+		klist_remove(&dev->p->knode_driver);
+		if (dev->bus)
+			blocking_notifier_call_chain(&dev->bus->p->bus_notifier,
+						     BUS_NOTIFY_UNBOUND_DRIVER, dev);
+
+	}
+}
+```
+
+#### 10.2.4.3 何时调用struct device_driver中的probe()函数
+
+Probe是指在Linux内核中，若存在相同名称的device和device_driver (注：还存在其它方式，暂时不关注)，内核就会执行struct device_driver中的回调函数probe()，而该函数就是所有driver的入口，可以执行诸如硬件设备初始化、字符设备注册、设备文件操作、ops注册等动作。
+
+struct device_driver中函数probe()的调用时机如下：
+
+(1) 将struct device类型的变量注册到内核中时自动触发，如device_register(), device_add(), device_create_vargs(), device_create()等
+
+```
+device_register()			// 参见10.2.3.3 注册设备/device_register()节
+-> device_add()
+   -> bus_probe_device()
+      -> device_attach()
+         -> device_bind_driver()
+            -> driver_bound()
+               -> bus_for_each_drv(.., __device_attach)
+                  -> __device_attach()
+                     -> driver_probe_device()
+                        -> really_probe()
+                           -> dev->bus->probe(dev), or drv->probe(dev);
+                           -> driver_bound()
+```
+
+(2) 将struct device_driver类型的变量注册到内核中时自动触发，如driver_register()
+
+```
+driver_register()			// 参见10.2.4.1 注册驱动程序/driver_register()节
+-> bus_add_driver()
+   -> driver_attach()
+      -> bus_for_each_dev(.., __driver_attach)
+         -> __driver_attach()
+            -> driver_probe_device()
+               -> really_probe()
+                  -> dev->bus->probe(dev), or drv->probe(dev);
+                  -> driver_bound()
+```
+
+(3) 手动查找同一bus下的所有device_driver，若存在与指定device同名的driver，则执行probe()；例如device_attach()，参见(1)
+
+(4) 手动查找同一bus下的所有device，若存在与指定driver同名的device，则执行probe()；例如driver_attach()，参见(2)
+
+(5) 自行调用driver的接口probe()，并在该接口中将该driver绑定到某个device结构中，即设置dev->driver；例如device_bind_driver()，参见(1)
+
+### 10.2.5 struct platform_device
+
+该结构定义于include/linux/platform_device.h:
+
+```
+struct platform_device {
+	const char			*name;
+	int				id;
+	struct device			dev;
+	u32				num_resources;
+	struct resource			*resource;
+
+	const struct platform_device_id	*id_entry;
+
+	/* MFD cell pointer */
+	struct mfd_cell 		*mfd_cell;
+
+	/* arch specific additions */
+	struct pdev_archdata		archdata;
+};
+```
+
+##### 10.2.5.1 注册平台设备/platform_device_register()
+
+该函数定义于drivers/base/platform.c:
+
+```
+/**
+ * platform_add_devices - add a numbers of platform devices
+ * @devs: array of platform devices to add
+ * @num: number of platform devices in array
+ */
+int platform_add_devices(struct platform_device **devs, int num)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < num; i++) {
+		ret = platform_device_register(devs[i]);
+		if (ret) {
+			while (--i >= 0)
+				platform_device_unregister(devs[i]);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/**
+ * platform_device_register - add a platform-level device
+ * @pdev: platform device we're adding
+ */
+int platform_device_register(struct platform_device *pdev)
+{
+	// 参见10.2.3.3.1 设备初始化/device_initialize()节
+	device_initialize(&pdev->dev);
+	arch_setup_pdev_archdata(pdev);
+
+	// 参见下文
+	return platform_device_add(pdev);
+}
+
+/**
+ * platform_device_add - add a platform device to device hierarchy
+ * @pdev: platform device we're adding
+ *
+ * This is part 2 of platform_device_register(), though may be called
+ * separately _iff_ pdev was allocated by platform_device_alloc().
+ */
+int platform_device_add(struct platform_device *pdev)
+{
+	int i, ret = 0;
+
+	if (!pdev)
+		return -EINVAL;
+
+	// 设置本设备的父节点，参见10.2.1.6 platform_bus_init()节
+	if (!pdev->dev.parent)
+		pdev->dev.parent = &platform_bus;
+
+	pdev->dev.bus = &platform_bus_type;
+
+	if (pdev->id != -1)
+		dev_set_name(&pdev->dev, "%s.%d", pdev->name,  pdev->id);
+	else
+		dev_set_name(&pdev->dev, "%s", pdev->name);
+
+	for (i = 0; i < pdev->num_resources; i++) {
+		struct resource *p, *r = &pdev->resource[i];
+
+		if (r->name == NULL)
+			r->name = dev_name(&pdev->dev);
+
+		p = r->parent;
+		if (!p) {
+			if (resource_type(r) == IORESOURCE_MEM)
+				p = &iomem_resource;
+			else if (resource_type(r) == IORESOURCE_IO)
+				p = &ioport_resource;
+		}
+
+		if (p && insert_resource(p, r)) {
+			printk(KERN_ERR
+			       "%s: failed to claim resource %d\n",
+			       dev_name(&pdev->dev), i);
+			ret = -EBUSY;
+			goto failed;
+		}
+	}
+
+	pr_debug("Registering platform device '%s'. Parent at %s\n",
+				dev_name(&pdev->dev), dev_name(pdev->dev.parent));
+
+	// 参见10.2.3.3.2 添加设备/device_add()节
+	ret = device_add(&pdev->dev);
+	if (ret == 0)
+		return ret;
+
+failed:
+	while (--i >= 0) {
+		struct resource *r = &pdev->resource[i];
+		unsigned long type = resource_type(r);
+
+		if (type == IORESOURCE_MEM || type == IORESOURCE_IO)
+			release_resource(r);
+	}
+
+	return ret;
+}
+```
+
+#### 10.2.5.2 注销平台设备/platform_device_unregister()
+
+该函数定义于drivers/base/platform.c:
+
+```
+/**
+ * platform_device_unregister - unregister a platform-level device
+ * @pdev: platform device we're unregistering
+ *
+ * Unregistration is done in 2 steps. First we release all resources
+ * and remove it from the subsystem, then we drop reference count by
+ * calling platform_device_put().
+ */
+void platform_device_unregister(struct platform_device *pdev)
+{
+	platform_device_del(pdev);
+	platform_device_put(pdev);
+}
+
+/**
+ * platform_device_del - remove a platform-level device
+ * @pdev: platform device we're removing
+ *
+ * Note that this function will also release all memory- and port-based
+ * resources owned by the device (@dev->resource).  This function must
+ * _only_ be externally called in error cases.  All other usage is a bug.
+ */
+void platform_device_del(struct platform_device *pdev)
+{
+	int i;
+
+	if (pdev) {
+		device_del(&pdev->dev);
+
+		if (pdev->id_auto) {
+			ida_simple_remove(&platform_devid_ida, pdev->id);
+			pdev->id = PLATFORM_DEVID_AUTO;
+		}
+
+		for (i = 0; i < pdev->num_resources; i++) {
+			struct resource *r = &pdev->resource[i];
+			unsigned long type = resource_type(r);
+
+			if (type == IORESOURCE_MEM || type == IORESOURCE_IO)
+				release_resource(r);
+		}
+	}
+}
+```
+
+### 10.2.6 struct platform_driver
+
+该结构定义于include/linux/platform_device.h:
+
+```
+struct platform_driver {
+	int	(*probe)(struct platform_device *);
+	int	(*remove)(struct platform_device *);
+	void	(*shutdown)(struct platform_device *);
+	int	(*suspend)(struct platform_device *, pm_message_t state);
+	int	(*resume)(struct platform_device *);
+
+	struct device_driver driver;
+	const struct platform_device_id *id_table;
+};
+```
+
+#### 10.2.6.1 注册平台驱动程序/platform_driver_register()
+
+该结构定义于include/linux/platform_device.h:
+
+```
+/**
+ * platform_driver_register - register a driver for platform-level devices
+ * @drv: platform driver structure
+ */
+int platform_driver_register(struct platform_driver *drv)
+{
+	// 参见10.2.1.6 platform_bus_init()节
+	drv->driver.bus = &platform_bus_type;
+
+	if (drv->probe)
+		drv->driver.probe = platform_drv_probe;
+	if (drv->remove)
+		drv->driver.remove = platform_drv_remove;
+	if (drv->shutdown)
+		drv->driver.shutdown = platform_drv_shutdown;
+
+	// 参见10.2.4.1 注册驱动程序/driver_register()节
+	return driver_register(&drv->driver);
+}
+```
+
+#### 10.2.6.2 注销平台驱动程序/platform_driver_unregister()
+
+该结构定义于include/linux/platform_device.h:
+
+```
+/**
+ * platform_driver_unregister - unregister a driver for platform-level devices
+ * @drv: platform driver structure
+ */
+void platform_driver_unregister(struct platform_driver *drv)
+{
+	// 参见10.2.4.2 注销驱动程序/driver_unregister()节
+	driver_unregister(&drv->driver);
+}
+```
+
+### 10.2.7 struct class
+
+内核中定义了struct class结构体，顾名思义，一个struct class结构体类型变量对应一个类，内核同时提供了函数 class_create()来创建一个类，这个类存放于sysfs(即/sys/class/)下面，一旦创建好了这个类，再调用函数device_create()在/dev目录下创建相应的设备节点。这样，加载模块时，用户空间中的udev会自动响应device_create()函数，去/sysfs下寻找对应的类从而创建设备节点。
+
+对struct class的初始化，参见10.2.1.3 classes_init()节。
+
+该结构定义于include/linux/device.h：
+
+```
+struct class {
+	// 类名
+	const char				*name;
+	// 类所属的模块，比如usb模块、led模块等
+	struct module				*owner;
+
+	// 类所添加的属性
+	struct class_attribute			*class_attrs;
+	// 类所包含的设备所添加的属性
+	struct device_attribute			*dev_attrs;
+	struct bin_attribute			*dev_bin_attrs;
+	// 用于标识类所包含的设备属于块设备还是字符设备
+	struct kobject				*dev_kobj;
+
+	// 用于在设备发出uevent消息时添加环境变量
+	int	(*dev_uevent)(struct device *dev, struct kobj_uevent_env *env);
+
+	// 设备节点的相对路径名
+	char*	(*devnode)(struct device *dev, mode_t *mode);
+
+	// 类被释放时调用的函数
+	void	(*class_release)(struct class *class);
+
+	// 设备被释放时调用的函数
+	void	(*dev_release)(struct device *dev);
+
+	// 设备休眠时调用的函数
+	int	(*suspend)(struct device *dev, pm_message_t state);
+
+	// 设备被唤醒时调用的函数
+	int	(*resume)(struct device *dev);
+
+	const struct kobj_ns_type_operations	*ns_type;
+	const void *(*namespace)(struct device *dev);
+
+	// 用于电源管理的函数
+	const struct dev_pm_ops			*pm;
+
+	struct subsys_private			*p;
+};
+```
+
+其中，struct subsys_private定义于drivers/base/base.h:
+
+```
+struct subsys_private {
+	struct kset			subsys;
+	struct kset			*devices_kset;
+
+	struct kset			*drivers_kset;
+	struct klist			klist_devices;
+	struct klist			klist_drivers;
+	struct blocking_notifier_head 	bus_notifier;
+	unsigned int 			drivers_autoprobe:1;
+	struct bus_type			*bus;
+
+	struct list_head		class_interfaces;
+	struct kset			glue_dirs;
+	struct mutex			class_mutex;
+
+	// 指向包含本结构的class对象
+	struct class			*class;
+};
+```
+
+#### 10.2.7.1 class_create()
+
+该宏定义于include/linux/device.h:
+
+```
+/* This is a #define to keep the compiler from merging different
+ * instances of the __key variable */
+#define class_create(owner, name)		\
+({						\
+	static struct lock_class_key __key;	\
+	__class_create(owner, name, &__key);	\
+})
+```
+
+其中，函数__class_create()定义于drivers/base/class.c:
+
+```
+/**
+ * class_create - create a struct class structure
+ * @owner: pointer to the module that is to "own" this struct class
+ * @name: pointer to a string for the name of this class.
+ * @key: the lock_class_key for this class; used by mutex lock debugging
+ *
+ * This is used to create a struct class pointer that can then be used
+ * in calls to device_create().
+ *
+ * Returns &struct class pointer on success, or ERR_PTR() on error.
+ *
+ * Note, the pointer created here is to be destroyed when finished by
+ * making a call to class_destroy().
+ */
+struct class *__class_create(struct module *owner, const char *name,
+			     struct lock_class_key *key)
+{
+	struct class *cls;
+	int retval;
+
+	cls = kzalloc(sizeof(*cls), GFP_KERNEL);
+	if (!cls) {
+		retval = -ENOMEM;
+		goto error;
+	}
+
+	cls->name = name;
+	cls->owner = owner;
+	cls->class_release = class_create_release;
+
+	// 参见10.2.7.1.1 class_register()/__class_register()节
+	retval = __class_register(cls, key);
+	if (retval)
+		goto error;
+
+	return cls;
+
+error:
+	kfree(cls);
+	return ERR_PTR(retval);
+}
+```
+
+##### 10.2.7.1.1 class_register()/__class_register()
+
+该宏定义于include/linux/device.h:
+
+```
+/* This is a #define to keep the compiler from merging different
+ * instances of the __key variable */
+#define class_register(class)			\
+({						\
+	static struct lock_class_key __key;	\
+	__class_register(class, &__key);	\
+})
+```
+
+其中，函数__class_register()定义于drivers/base/class.c:
+
+```
+int __class_register(struct class *cls, struct lock_class_key *key)
+{
+	struct subsys_private *cp;
+	int error;
+
+	pr_debug("device class '%s': registering\n", cls->name);
+
+	cp = kzalloc(sizeof(*cp), GFP_KERNEL);
+	if (!cp)
+		return -ENOMEM;
+
+	klist_init(&cp->klist_devices, klist_class_dev_get, klist_class_dev_put);
+	INIT_LIST_HEAD(&cp->class_interfaces);
+	kset_init(&cp->glue_dirs);
+	__mutex_init(&cp->class_mutex, "struct class mutex", key);
+
+	error = kobject_set_name(&cp->subsys.kobj, "%s", cls->name);
+	if (error) {
+		kfree(cp);
+		return error;
+	}
+
+	/* set the default /sys/dev directory for devices of this class */
+	/*
+	 * 变量sysfs_dev_char_kobj参见10.2.1.1 devices_init()节；
+	 * 函数调用genhd_device_init()->class_register()时，不进入
+	 * 此条件分支，参见10.4.2 块设备的初始化/genhd_device_init()节
+	 */
+	if (!cls->dev_kobj)
+		cls->dev_kobj = sysfs_dev_char_kobj;
+
+	/*
+	 * 变量class_kset参见10.2.1.3 classes_init()节
+	 */
+#if defined(CONFIG_BLOCK)
+	/* let the block class directory show up in the root of sysfs */
+	if (!sysfs_deprecated || cls != &block_class)
+		cp->subsys.kobj.kset = class_kset;
+#else
+	cp->subsys.kobj.kset = class_kset;
+#endif
+
+	cp->subsys.kobj.ktype = &class_ktype;
+	cp->class = cls;
+	cls->p = cp;
+
+	// 参见15.7.4 kset节
+	error = kset_register(&cp->subsys);
+	if (error) {
+		kfree(cp);
+		return error;
+	}
+	error = add_class_attrs(class_get(cls));
+	class_put(cls);
+
+	return error;
+}
+```
+
+## 10.2A 与设备驱动程序有关的系统调用
+
+### 10.2A.1 ioctl()
+
+Most drivers need - in addition to the ability to read and write the device - the ability to perform various types of hardware control via the device driver. Most devices can perform operations beyond simple data transfers; user space must often be able to request, for example, that the device lock its door, eject its media, report error information, change a baud rate, or self destruct. These operations are usually supported via the ioctl method, which implements the system call by the same name.
+
+系统调用sys_ioctl()定义于fs/ioctl.c:
+
+```
+SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
+{
+	struct file *filp;
+	int error = -EBADF;
+	int fput_needed;
+
+	// 根据入参fd，从当前进程描述符中取出相应的file对象
+	filp = fget_light(fd, &fput_needed);
+	if (!filp)
+		goto out;
+
+	// 参见security/security.c
+	error = security_file_ioctl(filp, cmd, arg);
+	if (error)
+		goto out_fput;
+
+	// 参见10.2A.1.1 do_vfs_ioctl()节
+	error = do_vfs_ioctl(filp, fd, cmd, arg);
+
+out_fput:
+	fput_light(filp, fput_needed);
+out:
+	return error;
+}
+```
+
+#### 10.2A.1.1 do_vfs_ioctl()
+
+该函数定义于fs/ioctl.c:
+
+```
+/*
+ * When you add any new common ioctls to the switches above and below
+ * please update compat_sys_ioctl() too.
+ *
+ * do_vfs_ioctl() is not for drivers and not intended to be EXPORT_SYMBOL()'d.
+ * It's just a simple helper for sys_ioctl and compat_sys_ioctl.
+ */
+int do_vfs_ioctl(struct file *filp, unsigned int fd, unsigned int cmd, unsigned long arg)
+{
+	int error = 0;
+	int __user *argp = (int __user *)arg;
+	struct inode *inode = filp->f_path.dentry->d_inode;
+
+	/*
+	 * 1) These predefined commands are recognized by the kernel.
+	 *    参见10.2A.1.3 Predefined ioctl commands节；
+	 *    其宏定义于include/asm-generic/ioctls.h
+	 */
+	switch (cmd) {
+	case FIOCLEX:
+		// 参见fs/fcntl.c中的函数set_close_on_exec()
+		set_close_on_exec(fd, 1);
+		break;
+
+	case FIONCLEX:
+		// 参见fs/fcntl.c中的函数set_close_on_exec()
+		set_close_on_exec(fd, 0);
+		break;
+
+	case FIONBIO:
+		// 设置filp->f_flags
+		error = ioctl_fionbio(filp, argp);
+		break;
+
+	case FIOASYNC:
+		// 该函数调用filp->f_op->fasync()
+		error = ioctl_fioasync(fd, filp, argp);
+		break;
+
+	case FIOQSIZE:
+		if (S_ISDIR(inode->i_mode) || S_ISREG(inode->i_mode) ||
+		    S_ISLNK(inode->i_mode)) {
+			loff_t res = inode_get_bytes(inode);
+			error = copy_to_user(argp, &res, sizeof(res)) ? -EFAULT : 0;
+		} else
+			error = -ENOTTY;
+		break;
+
+	case FIFREEZE:
+		// 该函数调用filp->f_path.dentry->d_inode->i_sb->s_op->freeze_fs()
+		error = ioctl_fsfreeze(filp);
+		break;
+
+	case FITHAW:
+		// 该函数调用filp->f_path.dentry->d_inode->i_sb->s_op->unfreeze_fs()
+		error = ioctl_fsthaw(filp);
+		break;
+
+	case FS_IOC_FIEMAP:
+		// 该函数调用filp->f_path.dentry->d_inode->i_op->fiemap()
+		return ioctl_fiemap(filp, arg);
+
+	case FIGETBSZ:
+		return put_user(inode->i_sb->s_blocksize, argp);
+
+	/*
+	 * 2) Specific commands decoded by devices drivers
+	 */
+	default:
+		if (S_ISREG(inode->i_mode))
+			// 该函数调用vfs_ioctl()，参见10.2A.1.1.1 vfs_ioctl()节
+			error = file_ioctl(filp, cmd, arg);
+		else
+			// 参见10.2A.1.1.1 vfs_ioctl()节
+			error = vfs_ioctl(filp, cmd, arg);
+		break;
+	}
+	return error;
+}
+```
+
+##### 10.2A.1.1.1 vfs_ioctl()
+
+该函数定义于fs/ioctl.c:
+
+```
+/**
+ * vfs_ioctl - call filesystem specific ioctl methods
+ * @filp:	open file to invoke ioctl method on
+ * @cmd:	ioctl command to execute
+ * @arg:	command-specific argument for ioctl
+ *
+ * Invokes filesystem specific ->unlocked_ioctl, if one exists; otherwise
+ * returns -ENOTTY.
+ *
+ * Returns 0 on success, -errno on error.
+ */
+static long vfs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+	int error = -ENOTTY;
+
+	if (!filp->f_op || !filp->f_op->unlocked_ioctl)
+		goto out;
+
+	/*
+	 * 函数unlocked_ioctl()定义于struct file_operations，
+	 * 参见11.2.1.5.1 文件操作/struct file_operations节；
+	 * 该函数是由设备驱动程序定义，并由函数register_chrdev()
+	 * 注册到struct cdev->ops->unlocked_ioctl，
+	 * 参见10.3.3.1 register_chrdev()节
+	 */
+	error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+	if (error == -ENOIOCTLCMD)
+		error = -EINVAL;
+ out:
+	return error;
+}
+```
+
+#### 10.2A.1.2 ioctl command encoding
+
+参见《Linux Device Drivers, 3rd edition》第Advanced Char Driver Operations章第Choosing the ioctl Commands节：
+
+To choose ioctl numbers for your driver according to the Linux kernel convention, you should first check include/asm/ioctl.h (that's include/asm-generic/ioctl.h) and Documentation/ioctl-number.txt. The header defines the bitfields you will be using: type (magic number), ordinal number, direction of transfer, and size of argument. The ioctl-number.txt file lists the magic numbers used throughout the kernel, so you’ll be able to choose your own magic number and avoid overlaps. The text file also lists the reasons why the convention should be used. The ioctl command encoding has following struture:
+
+```
+  DIR     SIZE          COMMAND 
+-------------------------------------- 
+|     |          |        16         | 
+|  2  |    14    |-------------------| 
+|     |          |    8    |    8    | 
+-------------------------------------- 
+                    TYPE       NR 
+```
+
+其中，各字段的含义如下：
+
+| Field | Description |
+| :---- | :---------- |
+| direction | The direction of data transfer, if the particular command involves a data transfer. The possible values are ```_IOC_NONE``` (no data transfer), ```_IOC_READ```, ```_IOC_WRITE```, and ```_IOC_READ|_IOC_WRITE``` (data is transferred both ways). Data transfer is seen from the application's point of view; ```_IOC_READ``` means reading from the device, so the driver must write to user space. Note that the field is a bit mask, so ```_IOC_ READ``` and ```_IOC_WRITE``` can be extracted using a logical AND operation. |
+| size | The size of user data involved. The width of this field is architecture dependent, but is usually 13 or 14 bits. You can find its value for your specific architecture in the macro ```_IOC_SIZEBITS```. It's not mandatory that you use the size field - the kernel does not check it - but it is a good idea. Proper use of this field can help detect user-space programming errors and enable you to implement backward compatibility if you ever need to change the size of the relevant data item. If you need larger data structures, however, you can just ignore the size field. |
+| type | The magic number. Just choose one number (after consulting ioctl-number.txt) and use it throughout the driver. This field is eight bits wide (```_IOC_TYPEBITS```). |
+| number | The ordinal (sequential) number. It's eight bits (```_IOC_NRBITS```) wide. |
+
+<p/>
+
+使用如下宏编码ioctl command:
+
+```
+#define _IOC(dir,type,nr,size)		\
+	(((dir)  << _IOC_DIRSHIFT)  |	\
+	 ((type) << _IOC_TYPESHIFT) |	\
+	 ((nr)   << _IOC_NRSHIFT)   |	\
+	 ((size) << _IOC_SIZESHIFT))
+
+#define _IO(type,nr)			_IOC(_IOC_NONE,(type),(nr),0)
+#define _IOR(type,nr,size)		_IOC(_IOC_READ,(type),(nr),(_IOC_TYPECHECK(size)))
+#define _IOW(type,nr,size)		_IOC(_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))
+#define _IOWR(type,nr,size)		_IOC(_IOC_READ|_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))
+#define _IOR_BAD(type,nr,size)		_IOC(_IOC_READ,(type),(nr),sizeof(size))
+#define _IOW_BAD(type,nr,size)		_IOC(_IOC_WRITE,(type),(nr),sizeof(size))
+#define _IOWR_BAD(type,nr,size)		_IOC(_IOC_READ|_IOC_WRITE,(type),(nr),sizeof(size))
+```
+
+使用如下宏解码ioctl command:
+
+```
+/* used to decode ioctl numbers.. */
+#define _IOC_DIR(nr)			(((nr) >> _IOC_DIRSHIFT) & _IOC_DIRMASK)
+#define _IOC_TYPE(nr)			(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
+#define _IOC_NR(nr)			(((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)
+#define _IOC_SIZE(nr)			(((nr) >> _IOC_SIZESHIFT) & _IOC_SIZEMASK)
+```
+
+#### 10.2A.1.3 Predefined ioctl commands
+
+Although the ioctl system call is most often used to act on devices, a few commands are recognized by the kernel. Note that these commands, when applied to your device, are decoded before your own file operations are called. Thus, if you choose the same number for one of your ioctl commands, you won‘t ever see any request for that command, and the application gets something unexpected because of the conflict between the ioctl numbers. 
+
+The predefined commands are divided into three groups:
+* Those that can be issued on any file (regular, device, FIFO, or socket) 
+* Those that are issued only on regular files 
+* Those specific to the filesystem type 
+
+Commands in the last group are executed by the implementation of the hosting filesystem (this is how the chattr command works). Device driver writers are interested only in the first group of commands, whose magic number is "T".
+
+### 10.2A.2 compat_sys_ioctl()
+
+该系统调用定义于fs/impact_ioctl.c:
+
+```
+asmlinkage long compat_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
+{
+	struct file *filp;
+	int error = -EBADF;
+	int fput_needed;
+
+	filp = fget_light(fd, &fput_needed);
+	if (!filp)
+		goto out;
+
+	/* RED-PEN how should LSM module know it's handling 32bit? */
+	error = security_file_ioctl(filp, cmd, arg);
+	if (error)
+		goto out_fput;
+
+	/*
+	 * To allow the compat_ioctl handlers to be self contained
+	 * we need to check the common ioctls here first.
+	 * Just handle them with the standard handlers below.
+	 */
+	switch (cmd) {
+	case FIOCLEX:
+	case FIONCLEX:
+	case FIONBIO:
+	case FIOASYNC:
+	case FIOQSIZE:
+		break;
+
+#if defined(CONFIG_IA64) || defined(CONFIG_X86_64)
+	case FS_IOC_RESVSP_32:
+	case FS_IOC_RESVSP64_32:
+		error = compat_ioctl_preallocate(filp, compat_ptr(arg));
+		goto out_fput;
+#else
+	case FS_IOC_RESVSP:
+	case FS_IOC_RESVSP64:
+		error = ioctl_preallocate(filp, compat_ptr(arg));
+		goto out_fput;
+#endif
+
+	case FIBMAP:
+	case FIGETBSZ:
+	case FIONREAD:
+		if (S_ISREG(filp->f_path.dentry->d_inode->i_mode))
+			break;
+		/*FALL THROUGH*/
+
+	default:
+		if (filp->f_op && filp->f_op->compat_ioctl) {
+			/*
+			 * 函数compat_ioctl()定义于struct file_operations，
+			 * 参见11.2.1.5.1 文件操作/struct file_operations节；
+			 * 该函数是由设备驱动程序定义，并由函数register_chrdev()
+			 * 注册到struct cdev->ops->unlocked_ioctl，
+			 * 参见10.3.3.1 register_chrdev()节
+			 */
+			error = filp->f_op->compat_ioctl(filp, cmd, arg);
+			if (error != -ENOIOCTLCMD)
+				goto out_fput;
+		}
+
+		// 若未设置函数compat_ioctl()，则调用unlocked_ioctl()
+		if (!filp->f_op || !filp->f_op->unlocked_ioctl)
+			goto do_ioctl;
+		break;
+	}
+
+	if (compat_ioctl_check_table(XFORM(cmd)))
+		goto found_handler;
+
+	error = do_ioctl_trans(fd, cmd, arg, filp);
+	if (error == -ENOIOCTLCMD) {
+		static int count;
+
+		if (++count <= 50)
+			compat_ioctl_error(filp, fd, cmd, arg);
+		error = -EINVAL;
+	}
+
+	goto out_fput;
+
+found_handler:
+	arg = (unsigned long)compat_ptr(arg);
+do_ioctl:
+	// 参见10.2A.1.1 do_vfs_ioctl()节
+	error = do_vfs_ioctl(filp, fd, cmd, arg);
+out_fput:
+	fput_light(filp, fput_needed);
+out:
+	return error;
+}
+```
+
+## 10.2B Linux系统如何自动加载设备驱动程序
+
+Linux通过如下步骤自动加载硬件设备所对应的驱动程序:
+
+### 10.2B.1 驱动程序声明其支持的硬件设备版本
+
+驱动程序开发人员在驱动程序中通过宏MODULE_DEVICE_TABLE(参见13.1.2.2 MODULE_DEVICE_TABLE()节)声明该驱动程序所支持的硬件设备版本，以driver/net/ethernet/intel/e1000e/netdev.c为例：
+
+```
+static const struct pci_device_id e1000_pci_tbl[] = {
+	...
+
+	/*
+	 * PCI_VENDOR_ID_INTEL定义于include/linux/pci_ids.h:
+	 *   #define PCI_VENDOR_ID_INTEL		0x8086
+	 * E1000_DEV_ID_ICH8_IGP_M_AMT定义于drivers/net/ethernet/intel/e1000e/hw.h:
+	 *   #define E1000_DEV_ID_ICH8_IGP_M_AMT	0x1049
+	 */
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_ICH8_IGP_M_AMT), board_ich8lan },
+
+	...
+	{ 0, 0, 0, 0, 0, 0, 0 }	/* terminate list */
+};
+
+MODULE_DEVICE_TABLE(pci, e1000_pci_tbl);
+```
+
+当编译驱动程序时，根据编译方式的不同，对宏MODULE_DEVICE_TABLE的处理方式也不同:
+* 当驱动程序编译进内核时，因为内核可以直接访问该数组，故MODULE_GENERIC_TABLE(gtype,name)被定义为空；
+* 当驱动程序编译成模块时，宏MODULE_GENERIC_TABLE(gtype,name)通过*.mod.c->*.mod.o被编译到*.ko文件中的.modinfo段，参见3.4.3.4.2.1 __modpost节。
+
+当安装模块时，各模块中.modinfo段的 MODULE_GENERIC_TABLE()被提取到下列文件中， 参见3.5.5.1.1 cmd_depmod节:
+* /lib/modules/<kernelrelease>/modules.alias
+
+### 10.2B.2 内核发现硬件设备并发送uevent到用户空间
+
+当内核发现硬件设备时，根据驱动程序编译方式的不同，加载该驱动程序的方式也有所不同:
+
+#### 10.2B.2.1 当驱动程序编译进内核时的情形
+
+当驱动程序编译进内核时，通过如下方式绑定该硬件所对应的驱动程序(以PCI网卡设备为例，kernel v4.2.2):
+
+```
+struct x86_init_ops x86_init __initdata = { 
+	... 
+	.pci = { 
+		/*
+		 * x86_default_pci_init is defined to:
+		 * pci_acpi_init()  : if CONFIG_PCI and CONFIG_ACPI defined;
+		 * pci_legacy_init(): if only CONFIG_PCI defined.
+		 */
+		.init		= x86_default_pci_init,
+		.init_irq	= x86_default_pci_init_irq, 
+		.fixup_irqs	= x86_default_pci_fixup_irqs, 
+	},
+};
+```
+
+```
+kernel_init() 
+-> do_basic_setup() 
+   -> do_initcalls() 
+      /*
+       * Part 1: scan devices on PCI bus and register them
+       */
+      -> subsys_initcall(pci_subsys_init)
+         -> pci_subsys_init()
+            -> x86_init.pci.init()
+               -> pci_legacy_init()
+                  -> printk("PCI: Probing PCI hardware\n")
+                  -> pcibios_scan_root(0)
+                     -> sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+                     -> sd->node = x86_pci_root_bus_node(busnum)
+                     -> x86_pci_root_bus_resources(busnum, &resources)
+                     -> bus = pci_scan_root_bus(NULL, 0, &pci_root_ops, sd, &resources)
+                        -> b = pci_create_root_bus(parent, bus, ops, sysdata, resources)
+                        -> pci_scan_child_bus(b)
+                           -> for (devfn = 0; devfn < 0x100; devfn += 8) {
+                              -> pci_scan_slot(bus, devfn)
+                                 -> pci_scan_single_device(bus, devfn)
+                                    -> dev = pci_get_slot(bus, devfn)
+                                    -> dev = pci_scan_device(bus, devfn)
+                                       -> pci_bus_read_dev_vendor_id(bus, devfn, &l, 60*1000)
+                                       -> dev = pci_alloc_dev(bus)
+                                       -> dev->vendor = l & 0xffff;
+                                       -> dev->device = (l >> 16) & 0xffff;
+                                       -> pci_setup_device(dev)
+                                    -> pci_device_add(dev, bus)
+                                       -> list_add_tail(&dev->bus_list, &bus->devices)
+                                       -> dev->match_driver = false;			// [NOTE1]
+                                       -> device_add(&dev->dev)
+                                          -> kobject_uevent(&dev->kobj, KOBJ_ADD)
+                                          -> bus_probe_device(dev)
+                                          -> device_initial_probe(dev)
+                                             -> __device_attach(dev, true)
+                                                -> bus_for_each_drv(dev->bus, NULL, &data, __device_attach_driver)
+                                                   -> __device_attach_driver()
+                                                      -> driver_match_device(drv, dev)
+                                                         -> drv->bus->match()
+                                                            -> pci_bus_match()
+                                                               -> return 0;		// see [NOTE1]
+                                       /*
+                                        * list the device dev to bus->p->p->klist_devices
+                                        */
+                                       -> bus_add_device(dev)
+                                          -> klist_add_tail(&dev->p->knode_bus, &bus->p->klist_devices)
+                              }
+                     -> pci_bus_add_devices(bus)
+                        /* loop each device on list bus->devices */
+                        -> list_for_each_entry(dev, &bus->devices, bus_list) {
+                           -> pci_bus_add_device(dev)
+                              -> dev->match_driver = true;				// [NOTE2] 
+                              -> device_attach(&dev->dev) 
+                                 -> __device_attach(dev, false)
+                                    -> bus_for_each_drv(dev->bus, NULL, &data, __device_attach_driver)
+                                       -> __device_attach_driver()
+                                          -> driver_match_device(drv, dev)
+                                             -> drv->bus->match()
+                                                -> pci_bus_match()
+                                                   /*
+                                                    * cannot find match driver yet, because
+                                                    * the driver is not registered yet.
+                                                    */
+                                                   -> pci_match_device(pci_drv, pci_dev)
+                                                -> dev->is_added = 1;
+                           }
+                        /* loop each device on list bus->devices */
+                        -> list_for_each_entry(dev, &bus->devices, bus_list) {
+                           -> child = dev->subordinate;
+                           -> pci_bus_add_devices(child)
+                           }
+      /*
+       * Part 2: register drivers and bind it to supported devices
+       *         This is happened when kernel initializes the driver modules.
+       */
+      -> module_init(e1000_init_module)
+         -> pci_register_driver(&e1000_driver)
+            -> __pci_register_driver(driver, THIS_MODULE, KBUILD_MODNAME)
+               -> drv->driver.bus = &pci_bus_type;
+               -> driver_register(&drv->driver)
+                  -> bus_add_driver(drv)
+                     -> klist_add_tail(&priv->knode_bus, &bus->p->klist_drivers);
+                     -> driver_attach(drv)
+                        /*
+                         * loop each device on list bus->p->klist_devices,
+                         * and call __driver_attach() with each device.
+                         */
+                        -> bus_for_each_dev(drv->bus, NULL, drv, __driver_attach)
+                           -> __driver_attach()
+                              -> driver_match_device(drv, dev)
+                                 -> drv->bus->match(dev, drv)
+                                    -> pci_bus_match()
+                                       /* find the supported device here */
+                                       -> pci_match_device(pci_drv, pci_dev)
+                              -> driver_probe_device(drv, dev)
+                                 -> really_probe(dev, drv)
+                                    /* bound the dev and its driver drv together */
+                                    -> dev->driver = drv;
+```
+
+#### 10.2B.2.2 当驱动程序编译成模块时的情形
+
+当驱动程序编译成模块时，通过如下方式加载该硬件所对应的驱动程序(以PCI网卡设备为例):
+
+```
+struct x86_init_ops x86_init __initdata = { 
+	... 
+	.pci = { 
+		/*
+		 * x86_default_pci_init is defined to:
+		 * pci_acpi_init()  : if CONFIG_PCI and CONFIG_ACPI defined;
+		 * pci_legacy_init(): if only CONFIG_PCI defined.
+		 */
+		.init		= x86_default_pci_init,
+		.init_irq	= x86_default_pci_init_irq, 
+		.fixup_irqs	= x86_default_pci_fixup_irqs, 
+	},
+};
+```
+
+```
+kernel_init()
+-> do_basic_setup() 
+   -> do_initcalls() 
+      /*
+       * Part 1: scan devices on PCI bus and register them
+       */
+      -> subsys_initcall(pci_subsys_init)
+         -> pci_subsys_init()
+            -> x86_init.pci.init()
+               -> pci_legacy_init()
+                  -> printk("PCI: Probing PCI hardware\n")
+                  -> pcibios_scan_root(0)
+                     -> sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+                     -> sd->node = x86_pci_root_bus_node(busnum)
+                     -> x86_pci_root_bus_resources(busnum, &resources)
+                     -> bus = pci_scan_root_bus(NULL, 0, &pci_root_ops, sd, &resources)
+                        -> pci_create_root_bus(parent, bus, ops, sysdata, resources)
+                        -> pci_scan_child_bus()
+                           -> for (devfn = 0; devfn < 0x100; devfn += 8) {
+                              -> pci_scan_slot()
+                                 -> pci_scan_single_device(bus, devfn)
+                                    -> dev = pci_get_slot(bus, devfn)
+                                    -> dev = pci_scan_device(bus, devfn)
+                                       -> pci_bus_read_dev_vendor_id(bus, devfn, &l, 60*1000)
+                                       -> dev = pci_alloc_dev(bus)
+                                       -> dev->vendor = l & 0xffff;
+                                       -> dev->device = (l >> 16) & 0xffff;
+                                       -> pci_setup_device(dev)
+                                    -> pci_device_add(dev, bus)
+                                       -> list_add_tail(&dev->bus_list, &bus->devices)
+                                       -> dev->match_driver = false;		// [NOTE1]
+                                       -> device_add(&dev->dev)
+                                          /*
+                                           * 向用户空间广播netlink uevent，进程udevd负责加载模块，参见:
+                                           * 15.7.5 kobject_uevent()节和
+                                           * 10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序节
+                                           */
+                                          -> kobject_uevent(&dev->kobj, KOBJ_ADD)
+                                             -> kobject_uevent_env(&dev->kobj, KOBJ_ADD, NULL)
+                                                -> netlink_broadcast_filtered()
+                                                   -> sk_for_each_bound(sk, &nl_table[ssk->sk_protocol].mc_list)
+                                                      -> do_one_broadcast()
+                                                         -> netlink_broadcast_deliver(sk, p->skb2)
+                                                            -> __netlink_sendskb(sk, skb)
+                                                               -> skb_queue_tail(&sk->sk_receive_queue, skb)
+                                                               -> sk->sk_data_ready(sk)
+                                                   -> consume_skb(skb)
+                                                   -> consume_skb(info.skb2)
+                                          -> bus_probe_device(dev)
+                                             -> device_initial_probe(dev)
+                                                -> __device_attach(dev, true)
+                                                   -> bus_for_each_drv(dev->bus, NULL, &data, __device_attach_driver)
+                                                      -> __device_attach_driver()
+                                                         -> driver_match_device(drv, dev)
+                                                            -> drv->bus->match()
+                                                               -> pci_bus_match()
+                                                                  -> return 0;	// see [NOTE1]
+                                          /* list the device dev to bus->p->p->klist_devices */
+                                          -> bus_add_device(dev)
+                                             -> klist_add_tail(&dev->p->knode_bus, &bus->p->klist_devices)
+                              }
+                     -> pci_bus_add_devices(bus)
+                        /* loop each device on list bus->devices */
+                        -> list_for_each_entry(dev, &bus->devices, bus_list) {
+                           -> pci_bus_add_device(dev)
+                              -> dev->match_driver = true;			// [NOTE2] 
+                                 -> device_attach(&dev->dev) 
+                                 -> __device_attach(dev, false)
+                                    -> bus_for_each_drv(dev->bus, NULL, &data, __device_attach_driver)
+                                       -> __device_attach_driver()
+                                          -> driver_match_device(drv, dev)
+                                             -> drv->bus->match()
+                                                -> pci_bus_match()
+                                                   /*
+                                                    * cannot find match driver yet, because
+                                                    * the driver is not registered yet.
+                                                    */
+                                                   -> pci_match_device(pci_drv, pci_dev)
+                              -> dev->is_added = 1;
+                           }
+                        /* loop each device on list bus->devices */
+                        -> list_for_each_entry(dev, &bus->devices, bus_list) {
+                           -> child = dev->subordinate;
+                           -> pci_bus_add_devices(child)
+                           }
+      /*
+       * Part 2: Register drivers and bind it to supported devices.
+       *         This is happened when udevd loads the specified driver module.
+       */
+      -> module_init(e1000_init_module)
+         -> pci_register_driver(&e1000_driver)
+            -> __pci_register_driver(driver, THIS_MODULE, KBUILD_MODNAME)
+               -> drv->driver.bus = &pci_bus_type;
+               -> driver_register(&drv->driver)
+                  -> bus_add_driver(drv)
+                     -> klist_add_tail(&priv->knode_bus, &bus->p->klist_drivers);
+                     -> driver_attach(drv)
+                        /*
+                         * loop each device on list bus->p->klist_devices,
+                         * and call __driver_attach() with each device.
+                         */
+                        -> bus_for_each_dev(drv->bus, NULL, drv, __driver_attach)
+                           -> __driver_attach()
+                              -> driver_match_device(drv, dev)
+                                 -> drv->bus->match(dev, drv)
+                                    -> pci_bus_match()
+                                       /* find the supported device here */
+                                       -> pci_match_device(pci_drv, pci_dev)
+                              -> driver_probe_device(drv, dev)
+                                 -> really_probe(dev, drv)
+                                    /* bound the dev and its driver drv together */
+                                    -> dev->driver = drv;
+```
+
+### 10.2B.3 守护进程udevd接收uevent并加载对应的驱动程序
+
+#### 10.2B.3.1 udev
+
+systemd中包含了udev程序:
+
+```
+# 下载systemd的源代码
+chenwx@chenwx ~ $ git clone git://anongit.freedesktop.org/systemd/systemd
+
+# udev的源代码
+chenwx@chenwx ~ $ ll systemd/src/udev/ 
+lrwxrwxrwx 1 chenwx chenwx   11 Oct 28  2014 Makefile -> ../Makefile 
+drwxr-xr-x 2 chenwx chenwx 4.0K Oct  1 10:30 ata_id 
+drwxr-xr-x 2 chenwx chenwx 4.0K May 10 19:18 cdrom_id 
+drwxr-xr-x 2 chenwx chenwx 4.0K Mar 20  2015 collect 
+drwxr-xr-x 2 chenwx chenwx 4.0K Mar 20  2015 mtd_probe 
+drwxr-xr-x 2 chenwx chenwx 4.0K Jun 22 22:22 net 
+drwxr-xr-x 2 chenwx chenwx 4.0K May 10 19:18 scsi_id 
+-rw-r--r-- 1 chenwx chenwx  12K May 10 19:18 udev-builtin-blkid.c 
+-rw-r--r-- 1 chenwx chenwx 1.7K Mar 20  2015 udev-builtin-btrfs.c 
+-rw-r--r-- 1 chenwx chenwx 6.7K Oct  1 10:30 udev-builtin-hwdb.c 
+-rw-r--r-- 1 chenwx chenwx  14K Jun 22 22:22 udev-builtin-input_id.c 
+-rw-r--r-- 1 chenwx chenwx 9.3K Jun 22 22:22 udev-builtin-keyboard.c 
+-rw-r--r-- 1 chenwx chenwx 3.9K Oct  1 18:36 udev-builtin-kmod.c 
+-rw-r--r-- 1 chenwx chenwx  21K Jun 22 22:22 udev-builtin-net_id.c 
+-rw-r--r-- 1 chenwx chenwx 3.3K Jan 13  2015 udev-builtin-net_setup_link.c 
+-rw-r--r-- 1 chenwx chenwx  25K Jun 22 22:22 udev-builtin-path_id.c 
+-rw-r--r-- 1 chenwx chenwx 2.6K Mar 20  2015 udev-builtin-uaccess.c 
+-rw-r--r-- 1 chenwx chenwx  18K Jun 22 22:22 udev-builtin-usb_id.c 
+-rw-r--r-- 1 chenwx chenwx 3.9K Mar 20  2015 udev-builtin.c 
+-rw-r--r-- 1 chenwx chenwx  14K May 19 23:34 udev-ctrl.c 
+-rw-r--r-- 1 chenwx chenwx  37K Oct  1 10:30 udev-event.c 
+-rw-r--r-- 1 chenwx chenwx  15K May 10 19:18 udev-node.c 
+-rw-r--r-- 1 chenwx chenwx 112K Oct  1 10:30 udev-rules.c 
+-rw-r--r-- 1 chenwx chenwx 5.1K Mar 20  2015 udev-watch.c 
+-rw-r--r-- 1 chenwx chenwx   49 Oct 20  2014 udev.conf 
+-rw-r--r-- 1 chenwx chenwx 8.6K Oct  1 10:30 udev.h 
+-rw-r--r-- 1 chenwx chenwx   74 Oct 20  2014 udev.pc.in 
+-rw-r--r-- 1 chenwx chenwx 6.4K Mar 20  2015 udevadm-control.c 
+-rw-r--r-- 1 chenwx chenwx  24K Mar 20  2015 udevadm-hwdb.c 
+-rw-r--r-- 1 chenwx chenwx  19K May 10 19:18 udevadm-info.c 
+-rw-r--r-- 1 chenwx chenwx  12K May 10 19:18 udevadm-monitor.c 
+-rw-r--r-- 1 chenwx chenwx 5.4K May 10 19:18 udevadm-settle.c 
+-rw-r--r-- 1 chenwx chenwx 3.4K Mar 20  2015 udevadm-test-builtin.c 
+-rw-r--r-- 1 chenwx chenwx 5.7K Jun 22 22:22 udevadm-test.c 
+-rw-r--r-- 1 chenwx chenwx  13K Oct  1 10:30 udevadm-trigger.c 
+-rw-r--r-- 1 chenwx chenwx 1.7K Feb 17  2015 udevadm-util.c 
+-rw-r--r-- 1 chenwx chenwx  913 Feb 17  2015 udevadm-util.h 
+-rw-r--r-- 1 chenwx chenwx 4.2K Mar 20  2015 udevadm.c 
+-rw-r--r-- 1 chenwx chenwx  63K Oct  1 10:30 udevd.c 
+drwxr-xr-x 2 chenwx chenwx 4.0K Mar 20  2015 v4l_id 
+```
+
+通过下列命令查看udev的man page:
+
+```
+chenwx@chenwx ~ $ man udev
+NAME 
+       udev - Linux dynamic device management 
+
+DESCRIPTION 
+       udev supplies the system software with device events, manages permissions of device nodes
+       and may create additional symlinks in the /dev directory, or renames network interfaces.
+       The kernel usually just assigns unpredictable device names based on the order of discovery.
+       Meaningful symlinks or network device names provide a way to reliably identify devices based
+       on their properties or current configuration. 
+
+       The udev daemon, systemd-udevd.service(8), receives device uevents directly from the kernel
+       whenever a device is added or removed from the system, or it changes its state. When udev
+       receives a device event, it matches its configured set of rules against various device
+       attributes to identify the device. Rules that match may provide additional device information
+       to be stored in the udev database or to be used to create meaningful symlink names. 
+
+       All device information udev processes is stored in the udev database and sent out to
+       possible event subscribers. Access to all stored data and the event sources is provided
+       by the library libudev.
+```
+
+通过下列命令查看守护进程udevd的man page:
+
+```
+chenwx@chenwx ~ $ man udevd
+
+NAME 
+       systemd-udevd.service, systemd-udevd-control.socket, systemd-udevd-kernel.socket,
+       systemd-udevd - Device event managing daemon 
+
+SYNOPSIS 
+       systemd-udevd.service 
+       systemd-udevd-control.socket 
+       systemd-udevd-kernel.socket 
+
+       /usr/lib/systemd/systemd-udevd [--daemon] [--debug] [--children-max=] [--exec-delay=]
+       [--resolve-names=early|late|never] [--version] [--help] 
+
+DESCRIPTION 
+       systemd-udevd listens to kernel uevents. For every event, systemd-udevd executes matching
+       instructions specified in udev rules. See udev(7). 
+
+       The behavior of the running daemon can be changed with udevadm control. 
+
+OPTIONS 
+       --daemon 
+           Detach and run in the background. 
+
+       --debug 
+           Print debug messages to stderr. 
+
+       --children-max= 
+           Limit the number of events executed in parallel. 
+
+       --exec-delay= 
+           Delay the execution of RUN instruction by the given number of seconds. This option
+           might be useful when debugging system crashes during coldplug caused by loading
+           non-working kernel modules. 
+
+       --resolve-names= 
+           Specify when systemd-udevd should resolve names of users and groups. When set to
+           early (the default) names will be resolved when the rules are parsed. When set to
+           late names will be resolved for every event. When set to never names will never be
+           resolved and all devices will be owned by root. 
+
+       --version 
+           Print version number. 
+
+       --help 
+           Print help text. 
+
+ENVIRONMENT 
+       $UDEV_LOG= 
+           Set the logging priority. 
+
+KERNEL COMMAND LINE 
+       Parameters starting with "rd." will be read when systemd-udevd is used in an initrd. 
+
+       udev.log-priority=, rd.udev.log-priority= 
+           Set the logging priority. 
+
+       udev.children-max=, rd.udev.children-max= 
+           Limit the number of events executed in parallel. 
+
+       udev.exec-delay=, rd.udev.exec-delay= 
+           Delay the execution of RUN instruction by the given number of seconds. This option
+           might be useful when debugging system crashes during coldplug caused by loading
+           non-working kernel modules. 
+
+       net.ifnames= 
+           Network interfaces are renamed to give them predictable names when possible. It is
+           enabled by default, specifying 0 disables it. 
+
+CONFIGURATION FILE 
+       udev expects its main configuration file at /etc/udev/udev.conf. It consists of a set of
+       variables allowing the user to override default udev values. All empty lines or lines
+       beginning with '#' are ignored. The following variables can be set: 
+
+       udev_log 
+           The logging priority. Valid values are the numerical syslog priorities or their textual
+           representations: err, info and debug. 
+
+SEE ALSO 
+       udev(7), udevadm(8) 
+```
+
+#### 10.2B.3.2 系统启动时如何启动udevd守护进程
+
+系统启动时，init进程执行配置文件/etc/init/udev.conf来启动udevd:
+
+```
+# udev - device node and kernel event manager 
+# 
+# The udev daemon receives events from the kernel about changes in the 
+# /sys filesystem and manages the /dev filesystem. 
+
+description	"device node and kernel event manager" 
+
+start on virtual-filesystems 
+stop on runlevel [06] 
+
+expect fork 
+respawn 
+
+exec /lib/systemd/systemd-udevd --daemon
+```
+
+系统启动后，在dmesg中可查看到如下信息:
+
+```
+chenwx@chenwx ~ $ dmesg | grep udevd
+[    2.363533] systemd-udevd[103]: starting version 204 
+[    6.080163] systemd-udevd[379]: starting version 204
+```
+
+#### 10.2B.3.3 编写udev规则
+
+系统管理员编写的udev规则保存在/etc/udev/rules.d/目录，规则文件名要以.rules结尾。各种软件包提供的规则文件位于/lib/udev/rules.d/目录。若这两个目录中存在相同名字的文件，则udev使用/etc中的文件。
+
+如何编写udev规则:
+* [Writing udev rules](http://www.reactivated.net/writing_udev_rules.html)
+* [使用 udev 进行动态内核设备管理](https://www.suse.com/zh-cn/documentation/sles11/singlehtml/book_sle_admin/cha.udev.html)
+
+程序udevadm monitor可将驱动程序核心事件和udev事件处理的计时可视化。在输出结果中，UEVENT行显示内核已经通过netlink发送的事件，而UDEV行显示已经完成的udev事件处理程序，计时以微秒为单位显示。UEVENT和UDEV之间的时间是udev用于处理此事件或者udev守护程序延迟执行从而同步此事件与相关以及已运行的事件的时间。例如，硬盘分区的事件总是等待主磁盘设备事件完成，因为分区事件可能依赖于主磁盘事件从硬件查询的数据。
+
+```
+chenwx@chenwx ~ $ udevadm monitor
+monitor will print the received events for: 
+UDEV - the event which udev sends out after rule processing 
+KERNEL - the kernel uevent 
+
+KERNEL[19749.454359] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/input/input7/mouse0 (input) 
+KERNEL[19749.459136] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/input/input7/event5 (input) 
+UDEV  [19749.460452] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/input/input7/mouse0 (input) 
+UDEV  [19749.460922] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/input/input7/event5 (input) 
+KERNEL[19749.463189] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/input/input7 (input) 
+KERNEL[19749.463359] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/hidraw/hidraw0 (hidraw) 
+KERNEL[19749.463374] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001 (hid) 
+KERNEL[19749.463386] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 (usb) 
+KERNEL[19749.463490] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1 (usb) 
+UDEV  [19749.463938] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/hidraw/hidraw0 (hidraw) 
+UDEV  [19749.468204] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001/input/input7 (input) 
+UDEV  [19749.468806] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0001 (hid) 
+UDEV  [19749.489601] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 (usb) 
+UDEV  [19749.491286] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1 (usb) 
+KERNEL[19752.074349] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1 (usb) 
+KERNEL[19752.077144] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 (usb) 
+KERNEL[19752.094874] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002 (hid) 
+KERNEL[19752.095059] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13 (input) 
+KERNEL[19752.095224] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13/mouse0 (input) 
+KERNEL[19752.149251] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13/event5 (input) 
+KERNEL[19752.149478] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/hidraw/hidraw0 (hidraw) 
+UDEV  [19752.389412] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1 (usb) 
+UDEV  [19752.396916] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 (usb) 
+UDEV  [19752.400218] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002 (hid) 
+UDEV  [19752.401058] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/hidraw/hidraw0 (hidraw) 
+UDEV  [19752.402641] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13 (input) 
+UDEV  [19752.405595] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13/event5 (input) 
+UDEV  [19752.407068] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13/mouse0 (input)
+```
+
+命令udevadm monitor --env显示完整的事件环境：
+
+```
+chenwx@chenwx ~ $ udevadm monitor --env
+
+monitor will print the received events for: 
+UDEV - the event which udev sends out after rule processing 
+KERNEL - the kernel uevent 
+
+KERNEL[19950.203666] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0003/input/input14/mouse0 (input) 
+ACTION=remove 
+DEVNAME=/dev/input/mouse0 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0003/input/input14/mouse0 
+MAJOR=13 
+MINOR=32 
+SEQNUM=2272 
+SUBSYSTEM=input 
+
+UDEV  [19950.205943] remove   /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0003/input/input14/mouse0 (input) 
+ACTION=remove 
+DEVLINKS=/dev/input/by-id/usb-Logitech_USB-PS_2_Optical_Mouse-mouse /dev/input/by-path/pci-0000:00:1a.1-usb-0:1:1.0-mouse 
+DEVNAME=/dev/input/mouse0 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0003/input/input14/mouse0 
+ID_BUS=usb 
+ID_INPUT=1 
+ID_INPUT_MOUSE=1 
+ID_MODEL=USB-PS_2_Optical_Mouse 
+ID_MODEL_ENC=USB-PS\x2f2\x20Optical\x20Mouse 
+ID_MODEL_ID=c050 
+ID_PATH=pci-0000:00:1a.1-usb-0:1:1.0 
+ID_PATH_TAG=pci-0000_00_1a_1-usb-0_1_1_0 
+ID_REVISION=2720 
+ID_SERIAL=Logitech_USB-PS_2_Optical_Mouse 
+ID_TYPE=hid 
+ID_USB_DRIVER=usbhid 
+ID_USB_INTERFACES=:030102: 
+ID_USB_INTERFACE_NUM=00 
+ID_VENDOR=Logitech 
+ID_VENDOR_ENC=Logitech 
+ID_VENDOR_ID=046d 
+MAJOR=13 
+MINOR=32 
+SEQNUM=2272 
+SUBSYSTEM=input 
+USEC_INITIALIZED=4770015 
+
+......
+
+KERNEL[19952.179325] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1 (usb) 
+ACTION=add 
+BUSNUM=004 
+DEVNAME=/dev/bus/usb/004/005 
+DEVNUM=005 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1 
+DEVTYPE=usb_device 
+MAJOR=189 
+MINOR=388 
+PRODUCT=46d/c050/2720 
+SEQNUM=2279 
+SUBSYSTEM=usb 
+TYPE=0/0/0 
+
+KERNEL[19952.182198] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 (usb) 
+ACTION=add 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 
+DEVTYPE=usb_interface 
+INTERFACE=3/1/2 
+MODALIAS=usb:v046DpC050d2720dc00dsc00dp00ic03isc01ip02in00 
+PRODUCT=46d/c050/2720 
+SEQNUM=2280 
+SUBSYSTEM=usb 
+TYPE=0/0/0 
+
+......
+
+UDEV  [19952.250889] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1 (usb) 
+ACTION=add 
+BUSNUM=004 
+DEVNAME=/dev/bus/usb/004/005 
+DEVNUM=005 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1 
+DEVTYPE=usb_device 
+ID_BUS=usb 
+ID_MODEL=USB-PS_2_Optical_Mouse 
+ID_MODEL_ENC=USB-PS\x2f2\x20Optical\x20Mouse 
+ID_MODEL_FROM_DATABASE=RX 250 Optical Mouse 
+ID_MODEL_ID=c050 
+ID_REVISION=2720 
+ID_SERIAL=Logitech_USB-PS_2_Optical_Mouse 
+ID_USB_INTERFACES=:030102: 
+ID_VENDOR=Logitech 
+ID_VENDOR_ENC=Logitech 
+ID_VENDOR_FROM_DATABASE=Logitech, Inc. 
+ID_VENDOR_ID=046d 
+MAJOR=189 
+MINOR=388 
+PRODUCT=46d/c050/2720 
+SEQNUM=2279 
+SUBSYSTEM=usb 
+TYPE=0/0/0 
+UPOWER_VENDOR=Logitech, Inc. 
+USEC_INITIALIZED=2179402 
+
+UDEV  [19952.255182] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 (usb) 
+ACTION=add 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0 
+DEVTYPE=usb_interface 
+ID_MODEL_FROM_DATABASE=RX 250 Optical Mouse 
+ID_VENDOR_FROM_DATABASE=Logitech, Inc. 
+INTERFACE=3/1/2 
+MODALIAS=usb:v046DpC050d2720dc00dsc00dp00ic03isc01ip02in00 
+PRODUCT=46d/c050/2720 
+SEQNUM=2280 
+SUBSYSTEM=usb 
+TYPE=0/0/0 
+USEC_INITIALIZED=2182309 
+
+......
+```
+
+udev也将消息发送给syslog。用于控制将哪些消息发送到系统日志的默认系统日志优先级在udev配置文件/etc/udev/udev.conf中指定，可用命令udevadm control log_priority=level/number来更改正在运行的守护程序的日志优先权。
+
+#### 10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序
+
+udevd通过创建netlink socket来接收内核发出的netlink uevent:
+
+```
+/* systemd/src/udev/udevd.c */
+main()
+->  listen_fds() 
+        /* systemd/src/libudev/libudev-monitor.c */
+    ->  udev_monitor_new_from_netlink(udev, "kernel")
+        ->  udev_monitor_new_from_netlink_fd(udev, name, -1) 
+            ->  udev_monitor = udev_monitor_new(udev); 
+                /* receive netlink uevent broadcase from kernel */
+            ->  udev_monitor->sock = socket(PF_NETLINK,
+                                            SOCK_RAW|SOCK_CLOEXEC|SOCK_NONBLOCK,
+                                            NETLINK_KOBJECT_UEVENT);
+            ->  udev_monitor->snl.nl.nl_family = AF_NETLINK; 
+            ->  udev_monitor->snl.nl.nl_groups = group; 
+                /* default destination for sending */ 
+            ->  udev_monitor->snl_destination.nl.nl_family = AF_NETLINK; 
+            ->  udev_monitor->snl_destination.nl.nl_groups = UDEV_MONITOR_UDEV; 
+```
+
+当udevd接收到内核广播的netlink uevent后，根据如下信息来加载对应的驱动程序:
+* 内核广播的netlink uevent中的参数MODALIAS;
+* /lib/modules/\`uname -r\`/modules.alias, 参见3.5.5.1.1 cmd_depmod节;
+* /lib/udev/rules.d/80-drivers.rules.
+
+其中，/lib/udev/rules.d/80-drivers.rules包含下列规则:
+
+```
+# do not edit this file, it will be overwritten on update 
+
+ACTION=="remove", GOTO="drivers_end" 
+
+# 以驱动程序e1000e为例，MODALIAS=pci:v00008086d00001049sv*sd*bc*sc*i*
+# 通过执行kmod load $env{MODALIAS}来加载匹配的驱动程序模块，参见源文件
+# systemd/src/udev/udev-builtin-kmod.c中的函数builtin_kmod()
+ENV{MODALIAS}=="?*", RUN{builtin}="kmod load $env{MODALIAS}" 
+SUBSYSTEM=="tifm", ENV{TIFM_CARD_TYPE}=="SD", RUN{builtin}="kmod load tifm_sd" 
+SUBSYSTEM=="tifm", ENV{TIFM_CARD_TYPE}=="MS", RUN{builtin}="kmod load tifm_ms" 
+SUBSYSTEM=="memstick", RUN{builtin}="kmod load ms_block mspro_block" 
+SUBSYSTEM=="i2o", RUN{builtin}="kmod load i2o_block" 
+SUBSYSTEM=="module", KERNEL=="parport_pc", RUN{builtin}="kmod load ppdev" 
+SUBSYSTEM=="serio", ENV{MODALIAS}=="?*", RUN{builtin}="kmod load $env{MODALIAS}" 
+SUBSYSTEM=="graphics", RUN{builtin}="kmod load fbcon" 
+KERNEL=="mtd*ro", ENV{MTD_FTL}=="smartmedia", RUN{builtin}="kmod load sm_ftl" 
+
+LABEL="drivers_end"
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

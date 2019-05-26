@@ -39517,6 +39517,2567 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
                                             +-- 其中的.initcall1.init
 ```
 
+# 9 中断处理
+
+内核的中断处理代码是几乎所有的微处理器所特有的。x86体系结构的中断处理代码在arch/x86/kernel/irq.c中。
+
+## 9.1 中断处理简介
+
+Intel x86系列处理器共支持256种向量中断，为了使处理器较容易地识别每种中断源，将它们从0到255编号，即赋与一个中断类型码n，Intel把这个八位的无符号整数叫做一个向量，因而也称为中断向量。所有256种中断可分为两大类：异常(Exception)和中断(Interrupt)。
+
+* 异常(Exception)又分为故障(Fault)、陷阱(Trap)和终止(Abort)，它们的共同点是既不使用中断控制器，又不能被屏蔽；
+* 中断(Interrupt)又分为外部可屏蔽中断(INTR，Maskable Interrupt)和外部非屏蔽中断(NMI，Nomaskable Interrupt)，所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断，而紧急的事件(如硬件故障)引起的故障产生非屏蔽中断。
+
+**异常(Exception)**
+
+| 中断分类 | 原因 | 异/同步 | 返回行为 | 备注 |
+| :----- | :--- | :----- | :----- | :--- |
+| 陷阱(Trap) | 有意的异常 | 同步 | 总是返回到下一条指令 | 既不使用中断控制器，又不能被屏蔽。参见异常(Exception)/非屏蔽中断(NMI节 |
+| 故障(Fault) | 潜在可恢复的错误 | 同步 | 返回到当前指令 | 既不使用中断控制器，又不能被屏蔽。参见异常(Exception)/非屏蔽中断(NMI节 |
+| 终止(Abort) | 不可恢复的错误 | 同步 | 不会返回 | |
+
+<p/>
+
+**中断(Interrupt)**
+
+| 中断分类 | 原因 | 异/同步 | 返回行为 | 备注 |
+| :----- | :--- | :----- | :----- | :--- |
+| 可屏蔽中断(INTR) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断。参见节 |
+| 非屏蔽中断(NMI) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 紧急的事件(如硬件故障)引起非屏蔽中断。参见异常(Exception)/非屏蔽中断(NMI)节 |
+
+<p/>
+
+<Add table: 中断向量(vector)取值>
+
+### 9.1.1 可屏蔽中断(INTR)
+
+在x86体系架构下，存在两个中断控制器：8159A可编程中断控制器，高级可编程中断控制器(APIC)。在命令行执行下列命令，如果输出结果中列出了IO-APIC，则说明系统正在使用高级可编程中断控制器(APIC)；如果是XT-PIC，则意味着系统正在使用8259A可编程中断控制器。
+
+```
+# cat /proc/interrupts
+           CPU0       
+  0:        257	XT-PIC-XT-PIC    timer
+  1:      24662	XT-PIC-XT-PIC    i8042
+  2:          0	XT-PIC-XT-PIC    cascade
+  5:     105116	XT-PIC-XT-PIC    ahci, snd_intel8x0
+  8:          0	XT-PIC-XT-PIC    rtc0
+  9:     143985	XT-PIC-XT-PIC    acpi, vboxguest
+ 10:      50733	XT-PIC-XT-PIC    eth0
+ 11:        452	XT-PIC-XT-PIC    ohci_hcd:usb1
+ 12:      14983	XT-PIC-XT-PIC    i8042
+ 14:          0	XT-PIC-XT-PIC    ata_piix
+ 15:      97176	XT-PIC-XT-PIC    ata_piix
+NMI:          0	Non-maskable interrupts
+LOC:   7839086	Local timer interrupts
+SPU:          0	Spurious interrupts
+PMI:          0	Performance monitoring interrupts
+IWI:          0	IRQ work interrupts
+RTR:          0	APIC ICR read retries
+RES:          0	Rescheduling interrupts
+CAL:          0	Function call interrupts
+TLB:          0	TLB shootdowns
+TRM:          0	Thermal event interrupts
+THR:          0	Threshold APIC interrupts
+MCE:          0	Machine check exceptions
+MCP:        333	Machine check polls
+ERR:          0
+MIS:          0
+
+# cat /proc/interrupts
+           CPU0       
+  0:      90504	IO-APIC-edge  timer
+  1:        131	IO-APIC-edge  i8042
+  8:          4	IO-APIC-edge  rtc
+  9:          0	IO-APIC-level  acpi
+ 12:        111	IO-APIC-edge  i8042
+ 14:       1862	IO-APIC-edge  ide0
+ 15:         28	IO-APIC-edge  ide1
+177:          9	IO-APIC-level  eth0
+185:          0	IO-APIC-level  via82cxxx
+...
+```
+
+9.1.1.1 8259A可编程中断控制器(PIC)
+
+8259A可编程中断控制器:
+
+![8259A_PIC](/assets/8259A_PIC.png)
+
+Intel x86通过两片中断控制器8259A来响应15个外中断源，每个8259A可管理8个中断源。第一级8259A(称主片)的第二个中断请求输入端，与第二级8259A(称从片)的中断输出端INT相连。与中断控制器相连的每条线叫做中断线。要使用中断线，就要先申请中断线，即IRQ(Interrupt ReQuirement)。
+
+并不是每个设备都可以向中断线上发中断信号的，只有对某一条确定的中断线拥有了控制权，才可以向这条中断线上发送信号。由于计算机的外部设备越来越多，所以15条中断线已经不够用了，中断线是非常宝贵的资源，只有当设备需要中断时才申请占用一个IRQ，或者是在申请IRQ时采用共享中断的方式，这样可以让更多的设备使用中断。
+
+中断控制器8259A执行如下操作：
+* 1) 监视中断线，检查产生的中断请求(IRQ)信号；
+* 2) 如果中断线上产生了一个中断请求信号：
+	* a) 把接收到的IRQ信号转换成一个对应的向量；
+	* b) 把该向量存放到中断控制器的一个I/O端口，从而允许CPU通过数据总线读取此向量；
+	* c) 把产生的IRQ信号发送到CPU的INTR引脚，即发出一个中断请求；
+	* d) 等待，直到CPU确认该中断请求，然后把它写进可编程中断控制器的一个I/O端口；此时，清INTR线。
+* 3) 返回到第一步。
+
+对于外部I/O请求的屏蔽可分为两种情况：
+* 一种是从CPU的角度，也就是清除eflag的中断标志位(IF)。当IF=0时，禁止任何外部I/O的中断请求，即关中断；
+* 一种是从中断控制器的角度，因为中断控制器中有一个8位的中断屏蔽寄存器(IMR)，每比特位对应8259A中的一条中断线，如果要禁用某条中断线，则把IMR相应位置1，若要启用该中断线，则置0。
+
+可屏蔽中断(INTR)的取值范围为[0x30, 0xFF]，参见错误：引用源未找到。这些可屏蔽中断对应的处理程序是由init_IRQ()设置的，参见init_IRQ()节。
+
+#### 9.1.1.2 高级可编程中断控制器(APIC)
+
+8259A可编程中断控制器只适合单CPU的情况，为了充分挖掘SMP体系结构的并行性，能够把中断传递给系统中的每个CPU是至关重要的。基于此，Intel引入了一种名为I/O高级可编程控制器(APIC)的新组件来替代老式的8259A可编程中断控制器。参见中断处理节。
+
+### 9.1.2 异常(Exception)/非屏蔽中断(NMI)
+
+异常是CPU内部出现的中断，也就是说，在CPU执行特定指令时出现的非法情况。非屏蔽中断是计算机内部硬件出错时引起的异常情况。Intel把非屏蔽中断作为异常的一种来处理，因此后面所提到的异常也包括了非屏蔽中断。在CPU执行一个异常处理程序时，就不再为其他异常或可屏蔽中断请求服务，也就是说，当某个异常被响应后，CPU清除eflag的中IF位，禁止任何可屏蔽中断。但如果又有异常产生，则由CPU锁存(CPU具有缓冲异常的能力)，待这个异常处理完后，才响应被锁存的异常。此处讨论的异常中断向量取值范围为[0, 31]。
+
+Intel x86处理器发布了大约20种异常(具体数字与处理器模式有关，参见<<Intel 64 and IA-32 Architectures Software Developer’s Manual>> Table 6-1. Exceptions and Interrupts)，其取值范围为[0x0, 0x1F]。Linux内核必须为每种异常提供一个专门的异常处理程序，当系统启动时由trap_init()设置，参见trap_init()节。需要特别说明的是，在某些异常处理程序开始执行之前，CPU控制单元会产生一个硬件错误码，内核先把这个错误码压入内核栈中。
+
+## 9.2 与中断处理有关的数据结构
+
+### 9.2.1 struct irq_desc/irq_desc[]
+
+该结构体定义于include/linux/irqdesc.h:
+
+```
+struct irq_desc {
+	struct irq_data			irq_data;
+	struct timer_rand_state 	*timer_rand_state;
+	unsigned int __percpu	 	*kstat_irqs;
+	irq_flow_handler_t		handle_irq;
+#ifdef CONFIG_IRQ_PREFLOW_FASTEOI
+	irq_preflow_handler_t	  	preflow_handler;
+#endif
+	struct irqaction		*action;		/* IRQ action list */
+	unsigned int			status_use_accessors;
+	unsigned int			core_internal_state__do_not_mess_with_it;
+	unsigned int			depth;			/* nested irq disables */
+	unsigned int			wake_depth;		/* nested wake enables */
+	unsigned int			irq_count;		/* For detecting broken IRQs */
+	unsigned long			last_unhandled;		/* Aging timer for unhandled count */
+	unsigned int			irqs_unhandled;
+	raw_spinlock_t			lock;
+	struct cpumask			*percpu_enabled;
+#ifdef CONFIG_SMP
+	const struct cpumask		*affinity_hint;
+	struct irq_affinity_notify	*affinity_notify;
+#ifdef CONFIG_GENERIC_PENDING_IRQ
+	cpumask_var_t			pending_mask;
+#endif
+#endif
+	unsigned long			threads_oneshot;
+	atomic_t			threads_active;
+	wait_queue_head_t		wait_for_threads;
+#ifdef CONFIG_PROC_FS
+	struct proc_dir_entry		*dir;
+#endif
+	struct module			*owner;
+	const char			*name;
+} ____cacheline_internodealigned_in_smp;
+```
+
+在kernel/irq/irqdesc.c中定义了一个struct irq_desc类型的全局数组irq_desc[]:
+
+```
+#ifdef CONFIG_SPARSE_IRQ
+...
+else
+
+struct irq_desc irq_desc[NR_IRQS] __cacheline_aligned_in_smp = {
+	[0 ... NR_IRQS-1] = {
+		.handle_irq	= handle_bad_irq,
+		.depth		= 1,
+		.lock		= __RAW_SPIN_LOCK_UNLOCKED(irq_desc->lock),
+	}
+};
+
+endif
+```
+
+数组irq_desc[]的结构，参见:
+
+![Interrupt_01](/assets/Interrupt_01.jpg)
+
+数组irq_desc[]的初始化及赋值：
+* 由early_irq_init()初始化，参见early_irq_init()节；
+* 由init_IRQ()->native_init_IRQ()->init_ISA_irqs()将其中的中断处理函数设置为handle_level_irq()，参见init_IRQ()节。
+
+### 9.2.2 struct softirq_action/softirq_vec[]
+
+该结构定义于include/linux/interrupt.h:
+
+```
+struct softirq_action
+{
+	void (*action)(struct softirq_action *);
+};
+```
+
+系统定义了一个全局数组softirq_vec[]，参见kernel/softirq.c:
+
+```
+static struct softirq_action softirq_vec[NR_SOFTIRQS] __cacheline_aligned_in_smp;
+
+char *softirq_to_name[NR_SOFTIRQS] = {
+	"HI", "TIMER", "NET_TX", "NET_RX", "BLOCK", "BLOCK_IOPOLL",
+	"TASKLET", "SCHED", "HRTIMER", "RCU"
+};
+```
+
+该数组是个全局变量，系统中每个CPU所看到的是同一个数组，不过每个CPU均有自己的“软中断控制/状态”结构，这些数据结构形成一个以CPU编号为下标的数组irq_stat[]，参见irq_stat[]节。
+
+**NOTE**: The index of the softirq_vec[] determines its priority: a lower index means higher priority because softirq functions will be executed starting from index 0. 参见__do_softirq()节的函数__do_softirq()。
+
+#### 9.2.2.1 注册软中断处理函数/open_softirq()
+
+函数open_softirq()用于注册软中断处理函数，即为数组softirq_vec[]中的action赋值。其定义于kernel/softirq.c:
+
+```
+void open_softirq(int nr, void (*action)(struct softirq_action *))
+{
+	softirq_vec[nr].action = action;
+}
+```
+
+函数softirq_init()(参见softirq_init()节)和各相关模块的初始化函数为数组softirq_vec[]赋值，其结果参见下表。这些软中断处理函数在__do_softirq()中被调用，参见__do_softirq()节。
+
+软中断处理函数
+
+| i | softirq_vec[i].action | 赋值函数 | 调用关系 |
+| HI_SOFTIRQ | tasklet_hi_action()，参见Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
+| TIMER_SOFTIRQ | run_timer_softirq()，参见定时器的超时处理/run_timer_softirq()节和run_local_timers()节 | kernel/timer.c: init_timers() | start_kernel() -> init_timers() |
+| NET_TX_SOFTIRQ | net_tx_action() | net/core/dev.c: net_dev_init() | net模块加载到系统中时 |
+| NET_RX_SOFTIRQ | net_rx_action() | net/core/dev.c: net_dev_init() | net模块加载到系统中时 |
+| BLOCK_SOFTIRQ | blk_done_softirq() | block/blk-softirq.c: blk_softirq_init() | block模块加载到系统中时 |
+| BLOCK_IOPOLL_SOFTIRQ | blk_iopoll_softirq() | block/blk-iopoll.c: blk_iopoll_setup() | block模块加载到系统中时 |
+| TASKLET_SOFTIRQ | tasklet_action()，参见Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
+| SCHED_SOFTIRQ | run_rebalance_domains() | kernel/sched.c: sched_init() | start_kernel() -> sched_init() |
+| HRTIMER_SOFTIRQ | run_hrtimer_softirq() | kernel/hrtimer.c: hrtimers_init() | start_kernel() -> hrtimers_init() |
+| RCU_SOFTIRQ | rcu_process_callbacks()，参见RCU的初始化节 | kernel/rcutiny_plugin.h, kernel/rcutree.c: rcu_init() | start_kernel() -> rcu_init() |
+
+<p/>
+
+By convention, HI_SOFTIRQ is always the first and RCU_SOFTIRQ is always the last entry.
+
+The softirq handlers run with interrupts enabled and cannot sleep. While a handler runs, softirqs on the current processor are disabled. Another processor, however, can execute other softirqs. If the same softirq is raised again while it is executing, another processor can run it simultaneously.
+
+### 9.2.3 irq_stat[]
+
+数组irq_stat[]定义于arch/x86/kernel/irq_32.c:
+
+```
+DEFINE_PER_CPU_SHARED_ALIGNED(irq_cpustat_t, irq_stat);
+#define __ARCH_IRQ_STAT
+```
+
+或者kernel/softirq.c:
+
+```
+#ifndef __ARCH_IRQ_STAT
+irq_cpustat_t irq_stat[NR_CPUS] ____cacheline_aligned;
+#endif
+```
+
+数组irq_stat[]是一个全局变量，各CPU可以按其自身的编号访问相应的域。
+
+Q: 数组irq_stat[]是如何初始化和赋值的？
+
+A: irq_stat[cpu]. __softirq_pending表示在cpu上存在待处理的软中断，即若irq_stat[cpu]. __softirq_pending的nr比特位置位，则表示存在类型为softirq_vec[nr]的软中断等待处理，参见struct softirq_节。
+
+**NOTE**: In Symmetric Multiprocessing model (SMP), when a hardware device raises an IRQ signal, the multi-APIC system selects one of the CPUs and delivers the signal to the corresponding local APIC, which in turn interrupts its CPU. No other CPUs are notified of the event.
+
+#### 9.2.3.1 激活软中断/raise_softirq()/raise_softirq_irqoff()
+
+通过函数raise_softirq()激活指定的软中断，即将irq_stat[cpu].__softirq_pending中的某位置位，其定义于kernel/softirq.c：
+
+```
+void raise_softirq(unsigned int nr)
+{
+	unsigned long flags;
+
+	local_irq_save(flags);
+	raise_softirq_irqoff(nr);
+	local_irq_restore(flags);
+}
+
+/*
+ * This function must run with irqs disabled!
+ */
+inline void raise_softirq_irqoff(unsigned int nr)
+{
+	__raise_softirq_irqoff(nr);
+
+	/*
+	 * If we're in an interrupt or softirq, we're done
+	 * (this also catches softirq-disabled code). We will
+	 * actually run the softirq once we return from
+	 * the irq or softirq.
+	 *
+	 * Otherwise we wake up ksoftirqd to make sure we
+	 * schedule the softirq soon.
+	 */
+	if (!in_interrupt())		// 参见struct thread_info->preempt_count节
+		wakeup_softirqd();	// 参见ksoftirqd节
+}
+```
+
+其中函数__raise_softirq_irqoff()定义于include/linux/interrupt.h:
+
+```
+// nr表示哪种类型的软中断，参见struct softirq_节中的宏xxx_SOFTIRQ
+static inline void __raise_softirq_irqoff(unsigned int nr)
+{
+	trace_softirq_raise(nr);
+	or_softirq_pending(1UL << nr); 	// 将指定类型的软中断置位
+}
+```
+
+宏or_softirq_pending()定义于arch/x86/include/linux/hardirq.h:
+
+```
+#define or_softirq_pending(x)		percpu_or(irq_stat.__softirq_pending, (x))
+```
+
+其中，irq_stat.__softirq_pending的每个比特位表示数组irq_desc[]相应元素的状态，参见错误：引用源未找到。
+
+#### 9.2.3.2 取消软中断/set_softirq_pending()
+
+该宏定义于arch/x86/include/linux/hardirq.h:
+
+```
+#define set_softirq_pending(x)	percpu_write(irq_stat.__softirq_pending, (x))
+```
+
+如下语句取消所有软中断：
+
+```
+set_softirq_pending(0);
+```
+
+如下语句取消特定的软中断，例如NET_TX_SOFTIRQ：
+
+```
+__u32 pending;
+
+pending = local_softirq_pending() & ~(1 << NET_TX_SOFTIRQ);
+set_softirq_pending(pending);
+```
+
+#### 9.2.3.3 查询软中断状态/local_softirq_pending()
+
+该宏用于查询软中断状态，其定义于arch/x86/include/linux/hardirq.h:
+
+```
+#define local_softirq_pending()		percpu_read(irq_stat.__softirq_pending)
+```
+
+### 9.2.4 softirq_work_list[]
+
+该数组定义于kernel/softirq.c:
+
+```
+DEFINE_PER_CPU(struct list_head [NR_SOFTIRQS], softirq_work_list);
+EXPORT_PER_CPU_SYMBOL(softirq_work_list);
+```
+
+该数组在softirq_init()中被初始化，参见softirq_init()节。
+
+### 9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]
+
+Tasklets resemble kernel timers in some ways. They are always run at interrupt time, they always run on the same CPU that schedules them, and they receive an unsigned long argument. Unlike kernel timers, however, you can't ask to execute the function at a specific time. By scheduling a tasklet, you simply ask for it to be executed at a later time chosen by the kernel. This behavior is especially useful with interrupt handlers, where the hardware interrupt must be managed as quickly as possible, but most of the data management can be safely delayed to a later time. Actually, a tasklet, just like a kernel timer, is executed (in atomic mode) in the context of a "soft interrupt", a kernel mechanism that executes asynchronous tasks with hardware interrupts enabled.
+
+Tasklets offer a number of interesting features: 
+* A tasklet can be disabled and re-enabled later; it won't be executed until it is enabled as many times as it has been disabled.
+* Just like timers, a tasklet can reregister itself. 
+* A tasklet can be scheduled to execute at normal priority or high priority. The latter group is always executed first. 
+* Tasklets may be run immediately if the system is not under heavy load but never later than the next timer tick. 
+* A tasklets can be concurrent with other tasklets but is strictly serialized with respect to itself - the same tasklet never runs simultaneously on more than one processor. Also, as already noted, a tasklet always runs on the same CPU that schedules it.
+
+该结构定义于include/linux/interrupt.h:
+
+```
+struct tasklet_struct
+{
+	struct tasklet_struct	*next;			// 将tasklet链接成一个队列
+	unsigned long		state;			// 见下文
+	atomic_t		count;			// 用来禁用(1)或者启用(0)该tasklet
+	void			(*func)(unsigned long);	// Tasklet处理函数
+	unsigned long		data;			// 函数void (*func)(unsigned long)的入参
+};
+
+// struct tasklet_struct -> state的取值范围
+enum
+{
+	TASKLET_STATE_SCHED,	/* Tasklet is scheduled for execution */
+	TASKLET_STATE_RUN	/* Tasklet is running (SMP only) */
+};
+```
+
+在kernel/softirq.c中定义了两个全局数组tasklet_vec[]和tasklet_hi_vec[]:
+
+```
+/*
+ * Tasklets
+ */
+struct tasklet_head
+{
+	struct tasklet_struct *head;
+	struct tasklet_struct **tail;
+};
+
+static DEFINE_PER_CPU(struct tasklet_head, tasklet_vec);
+static DEFINE_PER_CPU(struct tasklet_head, tasklet_hi_vec);
+```
+
+该数组结构，参见:
+
+![Interrupt_05](/assets/Interrupt_05.jpg)
+
+该数组在softirq_init()中初始化，参见softirq_init()节。
+
+#### 9.2.5.1 Takslet的定义及初始化
+
+如下宏或函数用于定义或初始化Tasklet:
+* DECLARE_TASKLET()
+* DECLARE_TASKLET_DISABLED()
+* tasklet_init()
+
+宏DECLARE_TASKLET()和DECLARE_TASKLET_DISABLED()用于定义并初始化Tasklet，其定义于include/linux/interrupt.h:
+
+```
+#define DECLARE_TASKLET(name, func, data)		\
+struct tasklet_struct name = { NULL, 0, ATOMIC_INIT(0), func, data }
+
+#define DECLARE_TASKLET_DISABLED(name, func, data)	\
+struct tasklet_struct name = { NULL, 0, ATOMIC_INIT(1), func, data }
+```
+
+The difference between the two macros is the initial reference count. The first macro creates the tasklet with a count of zero, and the tasklet is enabled. The second macro sets count to one, and the tasklet is disabled.
+
+或者，先定义struct tasklet_struct类型的变量，然后再调用函数tasklet_init()初始化，其定义于kernel/softirq.c:
+
+```
+void tasklet_init(struct tasklet_struct *t,
+		  void (*func)(unsigned long),
+		  unsigned long data)
+{
+	t->next = NULL;
+	t->state = 0;
+	atomic_set(&t->count, 0);
+	t->func = func;
+	t->data = data;
+}
+```
+
+这与宏DECLARE_TASKLET()的效果相同。
+
+#### 9.2.5.2 Tasklet的启用与禁用
+
+函数tasklet_enable()和tasklet_hi_enable()用于启用指定的Tasklet，其定义于include/linux/interrupt.h:
+
+```
+/*
+ * This function also must be called before a tasklet
+ * created with DECLARE_TASKLET_DISABLED() is usable.
+ */
+static inline void tasklet_enable(struct tasklet_struct *t)
+{
+	smp_mb__before_atomic_dec();
+	atomic_dec(&t->count);
+}
+
+static inline void tasklet_hi_enable(struct tasklet_struct *t)
+{
+	smp_mb__before_atomic_dec();
+	atomic_dec(&t->count);
+}
+```
+
+函数tasklet_disable()和tasklet_disable_nosync()用于禁用指定的Tasklet，其定义于include/linux/interrupt.h:
+
+```
+/*
+ * Disables the given tasklet.
+ * If the tasklet is currently running, the function will
+ * not return until it finishes executing.
+ */
+static inline void tasklet_disable(struct tasklet_struct *t)
+{
+	tasklet_disable_nosync(t);
+	tasklet_unlock_wait(t);
+	smp_mb();
+}
+
+/*
+ * Disables the given tasklet but does not wait for the tasklet
+ * to complete prior to returning.  This is usually not safe
+ * because you cannot assume the tasklet is not still running.
+ */
+static inline void tasklet_disable_nosync(struct tasklet_struct *t)
+{
+	atomic_inc(&t->count);
+	smp_mb__after_atomic_inc();
+}
+```
+
+#### 9.2.5.3 Tasklet的调度 / tasklet_schedule(), tasklet_hi_schedule()
+
+函数```tasklet_schedule()```和```tasklet_hi_schedule()```用于将指定的Tasklet分别添加到链表tasklet_vec和tasklet_hi_vec的末尾，其定义于include/linux/interrupt.h:
+
+```
+static inline void tasklet_schedule(struct tasklet_struct *t)
+{
+	/*
+	 * 若标志位TASKLET_STATE_SCHED置位，则表示该Tasklet已经被
+	 * 调度运行，此时直接返回；否则，进行调度
+	 */
+	if (!test_and_set_bit(TASKLET_STATE_SCHED, &t->state))
+		__tasklet_schedule(t);
+}
+
+static inline void tasklet_hi_schedule(struct tasklet_struct *t)
+{
+	/*
+	 * 若标志位TASKLET_STATE_SCHED置位，则表示该Tasklet已经被
+	 * 调度运行，此时直接返回；否则，进行调度
+	 */
+	if (!test_and_set_bit(TASKLET_STATE_SCHED, &t->state))
+		__tasklet_hi_schedule(t);
+}
+```
+
+其中，```__tasklet_schedule()```和```__tasklet_hi_schedule()```定义于kernel/softirq.c:
+
+```
+void __tasklet_schedule(struct tasklet_struct *t)
+{
+	unsigned long flags;
+
+	local_irq_save(flags);
+	t->next = NULL;
+	*__this_cpu_read(tasklet_vec.tail) = t;
+	__this_cpu_write(tasklet_vec.tail, &(t->next));
+	// 激活该Tasklet，参见激活软中断/raise_softirq()/raise_softirq_irqoff()节
+	raise_softirq_irqoff(TASKLET_SOFTIRQ);
+	local_irq_restore(flags);
+}
+
+void __tasklet_hi_schedule(struct tasklet_struct *t)
+{
+	unsigned long flags;
+
+	local_irq_save(flags);
+	t->next = NULL;
+	*__this_cpu_read(tasklet_hi_vec.tail) = t;
+	__this_cpu_write(tasklet_hi_vec.tail,  &(t->next));
+	// 激活该Tasklet，参见激活软中断/raise_softirq()/raise_softirq_irqoff()节
+	raise_softirq_irqoff(HI_SOFTIRQ);
+	local_irq_restore(flags);
+}
+```
+
+#### 9.2.5.4 Tasklet的移除 / tasklet_kill(), tasklet_kill_immediate()
+
+该函数定义于kernel/softirq.c:
+
+```
+void tasklet_kill(struct tasklet_struct *t)
+{
+	if (in_interrupt())
+		printk("Attempt to kill tasklet from interrupt\n");
+
+	/*
+	 * 标志位TASKLET_STATE_SCHED是通过函数task_schedule()设置的，
+	 * 参见Tasklet的调度 / tasklet_schedule(), tasklet_hi_schedule()节
+	 */
+	while (test_and_set_bit(TASKLET_STATE_SCHED, &t->state)) {
+		do {
+			yield();
+		} while (test_bit(TASKLET_STATE_SCHED, &t->state));
+	}
+	tasklet_unlock_wait(t);
+	clear_bit(TASKLET_STATE_SCHED, &t->state);
+}
+
+/*
+ * tasklet_kill_immediate is called to remove a tasklet which can already be
+ * scheduled for execution on @cpu.
+ *
+ * Unlike tasklet_kill, this function removes the tasklet
+ * _immediately_, even if the tasklet is in TASKLET_STATE_SCHED state.
+ *
+ * When this function is called, @cpu must be in the CPU_DEAD state.
+ */
+void tasklet_kill_immediate(struct tasklet_struct *t, unsigned int cpu)
+{
+	struct tasklet_struct **i;
+
+	BUG_ON(cpu_online(cpu));
+	BUG_ON(test_bit(TASKLET_STATE_RUN, &t->state));
+
+	if (!test_bit(TASKLET_STATE_SCHED, &t->state))
+		return;
+
+	/* CPU is dead, so no lock needed. */
+	for (i = &per_cpu(tasklet_vec, cpu).head; *i; i = &(*i)->next) {
+		if (*i == t) {
+			*i = t->next;
+			/* If this was the tail element, move the tail ptr */
+			if (*i == NULL)
+				per_cpu(tasklet_vec, cpu).tail = i;
+			return;
+		}
+	}
+	BUG();
+}
+```
+
+#### 9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()
+
+链表tasklet_vec和tasklet_hi_vec的处理函数分别为```tasklet_action()```和```tasklet_hi_action()```。这两个处理函数是由```softirq_init()```设置的(参见softirq_init()节)，由```__do_softirq()```调用的(参见__do_softirq()节)。
+
+函数tasklet_action()和tasklet_hi_action()定义于kernel/softirq.c:
+
+```
+static void tasklet_action(struct softirq_action *a)
+{
+	struct tasklet_struct *list;
+
+	// Clear the list takslet_vec[] for this processor by setting it equal to NULL
+	local_irq_disable();
+	list = __this_cpu_read(tasklet_vec.head);
+	__this_cpu_write(tasklet_vec.head, NULL);
+	__this_cpu_write(tasklet_vec.tail, &__get_cpu_var(tasklet_vec).head);
+	local_irq_enable();
+
+	while (list) {
+		struct tasklet_struct *t = list;
+
+		list = list->next;
+
+		/*
+		 * If this is a multiprocessing machine, check whether the tasklet
+		 * is running on another processor by checking the TASKLET_STATE_RUN
+		 * flag.
+		 */
+		if (tasklet_trylock(t)) {
+			/*
+			 * Check for a zero t->count value, to ensure that the tasklet
+			 * is not disabled. NOTE: Unless the tasklet function reactivates
+			 * itself, every tasklet activation triggers at most one execution
+			 * of the tasklet function.
+			 */
+			if (!atomic_read(&t->count)) {
+				if (!test_and_clear_bit(TASKLET_STATE_SCHED, &t->state))
+					BUG();
+				// 调用每个Tasklet的处理函数，参见错误：引用源未找到
+				t->func(t->data);
+				// Clear TASKLET_STATE_RUN flag in the tasklet’s state field
+				tasklet_unlock(t);
+				continue;
+			}
+			tasklet_unlock(t);
+		}
+
+		/*
+		 * If the tasklet is currently running on another CPU, don’t
+		 * execute it now and skip to the next pending tasklet. Add
+		 * the taskle to tasklet_vec[] again and tasklet. So, the
+		 * same tasklet will not run concurrently, even on two
+		 * different processors.
+		 */
+		local_irq_disable();
+		t->next = NULL;
+		*__this_cpu_read(tasklet_vec.tail) = t;
+		__this_cpu_write(tasklet_vec.tail, &(t->next));
+		__raise_softirq_irqoff(TASKLET_SOFTIRQ);
+		local_irq_enable();
+	}
+}
+
+static void tasklet_hi_action(struct softirq_action *a)
+{
+	struct tasklet_struct *list;
+
+	/*
+	 * Clear the list tasklet_hi_vec[] for this processor
+	 * by setting it equal to NULL
+	 */
+	local_irq_disable();
+	list = __this_cpu_read(tasklet_hi_vec.head);
+	__this_cpu_write(tasklet_hi_vec.head, NULL);
+	__this_cpu_write(tasklet_hi_vec.tail, &__get_cpu_var(tasklet_hi_vec).head);
+	local_irq_enable();
+
+	while (list) {
+		struct tasklet_struct *t = list;
+
+		list = list->next;
+
+		/*
+		 * If this is a multiprocessing machine, check whether the
+		 * tasklet is running on another processor by checking the
+		 * TASKLET_STATE_RUN flag. If the tasklet is not currently
+		 * running, ...
+		 */
+		if (tasklet_trylock(t)) {
+			/*
+			 * Check for a zero t->count value, to ensure that the
+			 * tasklet is not disabled. NOTE: Unless the tasklet
+			 * function reactivates itself, every tasklet activation
+			 * triggers at most one execution of the tasklet function.
+			 */
+			if (!atomic_read(&t->count)) {
+				if (!test_and_clear_bit(TASKLET_STATE_SCHED, &t->state))
+					BUG();
+				// 调用每个Tasklet的处理函数，参见错误：引用源未找到
+				t->func(t->data);
+				// Clear TASKLET_STATE_RUN flag in the tasklet’s state field
+				tasklet_unlock(t);
+				continue;
+			}
+			tasklet_unlock(t);
+		}
+
+		/*
+		 * If the tasklet is currently running on another CPU, do not
+		 * execute it now and skip to the next pending tasklet. Add the
+		 * taskle to tasklet_hi_vec[] again and run it later.
+		 */
+		local_irq_disable();
+		t->next = NULL;
+		*__this_cpu_read(tasklet_hi_vec.tail) = t;
+		__this_cpu_write(tasklet_hi_vec.tail, &(t->next));
+		__raise_softirq_irqoff(HI_SOFTIRQ);
+		local_irq_enable();
+	}
+}
+```
+
+## 9.3 异常/中断处理流程
+
+当异常/中断发生后，首先根据中断号和IDTR(参见中断描述符表寄存器IDTR节)在IDT(参见中断描述符表IDT节)中查找对应项(假设为SS1)，并从该项中取出段选择子，由该段选择子和GDTR(参见全局描述符表寄存器GDTR节)在GDT(参见全局描述符表GDT节)中查找对应项(假设为SS2)。SS1中的DPL域表示中断处理程序应该在哪个级别下运行(一般是0级，即内核态下运行中断处理程序)。如果当前进程的CS中的低两位比中断处理程序的DPL还小(数值越小，级别越高，kernel的数值为0)，那么就直接出现异常，因为不可能会有某个进程的运行级别会被中断还低。经过此步骤的确认后，CS和EIP分别被赋值予SS1中的段选择子和偏移量，这意味着下一个执行的指令是：
+* 若中断号在[0, 31]范围内(即异常)，则执行trap_init()函数中指定的中断处理函数，参见trap_init()节；
+* 若中断号在[32, 255]范围内(即中断)，则执行init_IRQ()函数中指定的中断处理函数(参见init_IRQ()节)，即interrupt数组中对应项(参见interrupt[]节)，也就是跳转到common_interrupt处，并开始执行do_IRQ()进行中断处理(参见do_IRQ()节)，完成后，执行ret_from_intr(参见ret_from_intr节)从中断中返回。
+
+### 9.3.1 do_IRQ()
+
+该函数被common_interrupt程序段(参见interrupt[]节)调用，其定义于arch/x86/kernel/irq.c:
+
+```
+/*
+ * do_IRQ handles all normal device IRQ's (the special
+ * SMP cross-CPU interrupts have their own specific
+ * handlers).
+ */
+/*
+ * Because the C calling convention places function arguments
+ * at the top of the stack, the pt_regs structure contains the
+ * initial register values that were previously saved in the
+ * assembly entry routine. 参见 interrupt[]节common_interrupt程
+ * 序中的SAVE_ALL
+ */
+unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
+{
+	struct pt_regs *old_regs = set_irq_regs(regs);
+
+	/*
+	 * 由interrupt[]节的common_interrupt程序段可知，regs->orig_ax
+	 * 的取值范围为[-256, -1]，故此处vector的取值范围为[1, 256]
+	 */
+	/* high bit used in ret_from_ code  */
+	unsigned vector = ~regs->orig_ax;
+	unsigned irq;
+
+	exit_idle();
+	/*
+	 * Increases a counter representing the number of nested
+	 * interrupt handlers. The counter is stored in the
+	 * preempt_count field of the thread_info structure of the
+	 * current process. 参见struct thread_info->preempt_count节
+	 */
+	irq_enter();
+
+	// 数组vector_irq[]参见vector_irq节
+	irq = __this_cpu_read(vector_irq[vector]);
+
+	// 参见handle_irq()节
+	if (!handle_irq(irq, regs)) {
+		ack_APIC_irq();
+
+		if (printk_ratelimit())
+			pr_emerg("%s: %d.%d No irq handler for vector (irq %d)\n",
+				__func__, smp_processor_id(), vector, irq);
+	}
+
+	/*
+	 * Exit an interrupt context. Process softirqs
+	 * if needed and possible. 参见irq_exit()节
+	 */
+	irq_exit();
+
+	set_irq_regs(old_regs);
+	return 1;
+}
+```
+
+#### 9.3.1.1 vector_irq[]
+
+数组vector_irq[]定义于arch/x86/kernel/irqinit.c:
+
+```
+DEFINE_PER_CPU(vector_irq_t, vector_irq) = {
+	[0 ... NR_VECTORS - 1] = -1,
+};
+```
+
+其中，类型vector_irq_t定义于arch/x86/include/asm/hw_irq.h:
+
+```
+typedef int vector_irq_t[NR_VECTORS]; 	// NR_VECTORS取值为256
+```
+
+因此，vector_irq是包含256个元素的整型数组，每个元素表示中断号。定义时，每个元素被初始化为-1，在init_IRQ()中，IRQ 0x30-0x3F被分别设置为0-15，参见init_IRQ()节，如下表所示：
+
+vector_irq:
+
+![vector_irq](/assets/vector_irq.png)
+
+#### 9.3.1.2 handle_irq()
+
+该函数定义于arch/x86/kernel/irq_32.c:
+
+```
+bool handle_irq(unsigned irq, struct pt_regs *regs)
+{
+	struct irq_desc *desc;
+	int overflow;
+
+	overflow = check_stack_overflow();
+
+	// 从数组irq_desc[]中查找下标为irq的项，参见struct irq_desc节
+	desc = irq_to_desc(irq);
+	if (unlikely(!desc))
+		return false;
+
+	if (!execute_on_irq_stack(overflow, desc, irq)) {
+		if (unlikely(overflow))
+			print_stack_overflow();
+		desc->handle_irq(irq, desc); // 参见desc->handle_irq()节
+	}
+
+	return true;
+}
+
+static inline int execute_on_irq_stack(int overflow, struct irq_desc *desc, int irq)
+{
+	union irq_ctx *curctx, *irqctx;
+	u32 *isp, arg1, arg2;
+
+	curctx = (union irq_ctx *) current_thread_info();
+	irqctx = __this_cpu_read(hardirq_ctx);
+
+	/*
+	 * this is where we switch to the IRQ stack. However, if we are
+	 * already using the IRQ stack (because we interrupted a hardirq
+	 * handler) we can't do that and just have to keep using the
+	 * current stack (which is the irq stack already after all)
+	 */
+	if (unlikely(curctx == irqctx))
+		return 0;
+
+	/* build the stack frame on the IRQ stack */
+	isp = (u32 *) ((char *)irqctx + sizeof(*irqctx));
+	irqctx->tinfo.task = curctx->tinfo.task;
+	irqctx->tinfo.previous_esp = current_stack_pointer;
+
+	/*
+	 * Copy the softirq bits in preempt_count so that the
+	 * softirq checks work in the hardirq context.
+	 */
+	// 参见struct thread_info->preempt_count节
+	irqctx->tinfo.preempt_count =
+		(irqctx->tinfo.preempt_count & ~SOFTIRQ_MASK) |
+		(curctx->tinfo.preempt_count & SOFTIRQ_MASK);
+
+	if (unlikely(overflow))
+		call_on_stack(print_stack_overflow, isp);
+
+	asm volatile("xchgl	%%ebx,%%esp	\n"
+			  "call	*%%edi			\n"
+			  "movl	%%ebx,%%esp	\n"
+			  : "=a" (arg1), "=d" (arg2), "=b" (isp)
+			  :  "0" (irq),   "1" (desc),  "2" (isp),
+			  "D" (desc->handle_irq) // 参见desc->handle_irq()节
+			  : "memory", "cc", "ecx");
+	return 1;
+}
+```
+
+##### 9.3.1.2.1 desc->handle_irq()/handle_level_irq()
+
+在handle_irq()节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由struct irq_desc节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
+
+```
+/**
+ *	handle_level_irq - Level type irq handler
+ *	@irq:	the interrupt number
+ *	@desc:	the interrupt description structure for this irq
+ *
+ *	Level type interrupts are active as long as the hardware line has
+ *	the active level. This may require to mask the interrupt and unmask
+ *	it after the associated handler has acknowledged the device, so the
+ *	interrupt line is back to inactive.
+ */
+void handle_level_irq(unsigned int irq, struct irq_desc *desc)
+{
+	raw_spin_lock(&desc->lock);
+	mask_ack_irq(desc);
+
+	// IRQD_IRQ_INPROGRESS标志位在handle_irq_event()中设置，见下文
+	if (unlikely(irqd_irq_inprogress(&desc->irq_data)))
+		if (!irq_check_poll(desc))
+			goto out_unlock;
+
+	desc->istate &= ~(IRQS_REPLAY | IRQS_WAITING);
+	kstat_incr_irqs_this_cpu(irq, desc);
+
+	/*
+	 * If its disabled or no action available
+	 * keep it masked and get out of here
+	 */
+	if (unlikely(!desc->action || irqd_irq_disabled(&desc->irq_data)))
+		goto out_unlock;
+
+	// 进行中断处理，参见handle_irq_event()节
+	handle_irq_event(desc);
+
+	if (!irqd_irq_disabled(&desc->irq_data) && !(desc->istate & IRQS_ONESHOT))
+		unmask_irq(desc);
+out_unlock:
+	raw_spin_unlock(&desc->lock);
+}
+```
+
+###### 9.3.1.2.1.1 handle_irq_event()
+
+该函数定义于kernel/irq/handle.c:
+
+```
+irqreturn_t handle_irq_event(struct irq_desc *desc)
+{
+	struct irqaction *action = desc->action;
+	irqreturn_t ret;
+
+	desc->istate &= ~IRQS_PENDING;
+	irqd_set(&desc->irq_data, IRQD_IRQ_INPROGRESS);
+	raw_spin_unlock(&desc->lock);
+
+	// 参见handle_irq_event_percpu()节
+	ret = handle_irq_event_percpu(desc, action);
+
+	raw_spin_lock(&desc->lock);
+	irqd_clear(&desc->irq_data, IRQD_IRQ_INPROGRESS);
+	return ret;
+}
+```
+
+###### 9.3.1.2.1.1.1 handle_irq_event_percpu()
+
+该函数定义于kernel/irq/handle.c:
+
+```
+irqreturn_t handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *action)
+{
+	irqreturn_t retval = IRQ_NONE;
+	unsigned int random = 0, irq = desc->irq_data.irq;
+
+	do {
+		irqreturn_t res;
+
+		trace_irq_handler_entry(irq, action);
+		/*
+		 * 依次调用用户在desc->action链表中注册的处理函数，
+		 * 参见struct irq_desc节的该结构体定义于include/linux/irqdesc.h:;
+		 * 该handler是通过__setup_irq()设置的，直接或间接调用__setup_irq()的函数，
+		 * 	参见中断处理函数的注册/注销节：
+		 * 	* native_init_IRQ()		-> setup_irq()
+		 * 	* setup_irq()			-> __setup_irq()
+		 * 	* request_percpu_irq()		-> __setup_irq()
+		 * 	* setup_percpu_irq()		-> __setup_irq()
+		 * 	* request_threaded_irq()	-> __setup_irq()
+		 */
+		res = action->handler(irq, action->dev_id);
+		trace_irq_handler_exit(irq, action, res);
+
+		if (WARN_ONCE(!irqs_disabled(), "irq %u handler %pF enabled interrupts\n",
+					irq, action->handler))
+			local_irq_disable();
+
+		switch (res) {
+		case IRQ_WAKE_THREAD:
+			/*
+			 * Catch drivers which return WAKE_THREAD but
+			 * did not set up a thread function
+			 */
+			if (unlikely(!action->thread_fn)) {
+				warn_no_thread(irq, action);
+				break;
+			}
+
+			irq_wake_thread(desc, action);
+
+			/* Fall through to add to randomness */
+		case IRQ_HANDLED:
+			random |= action->flags;
+			break;
+
+		default:
+			break;
+		}
+
+		retval |= res;
+		// 参见struct irq_desc节的该结构体定义于include/linux/irqdesc.h:
+		action = action->next;
+	} while (action);
+
+	if (random & IRQF_SAMPLE_RANDOM)
+		add_interrupt_randomness(irq);
+
+	if (!noirqdebug)
+		note_interrupt(irq, desc, retval);
+	return retval;
+}
+```
+
+#### 9.3.1.3 irq_exit()
+
+**Q：为什么中断分为两部分来处理？**
+
+A：中断服务程序一般都是在中断请求关闭的条件下执行的，以避免嵌套而使中断控制复杂化。但是，中断是一个随机事件，它随时会到来，如果关中断的时间太长，CPU就不能及时响应其他的中断请求，从而造成中断的丢失。因此，内核的目标就是尽可能快的处理完中断请求，尽其所能把更多的处理向后推迟。例如，假设一个数据块已经达到了网线，当中断控制器接受到这个中断请求信号时，Linux内核只是简单地标志数据到来了，然后让处理器恢复到它以前运行的状态，其余的处理稍后再进行(如把数据移入一个缓冲区，接收数据的进程就可以在缓冲区找到数据)。因此，内核把中断处理分为两部分：前半部分(Top Half)和后半部分(Bottom Half)，前半部分内核立即执行，而后半部分留着稍后处理。
+
+首先，一个快速的“前半部分”来处理硬件发出的请求，它必须在一个新的中断产生之前终止。通常地，除了在设备和一些内存缓冲区(如果设备用到了DMA，就不止这些)之间移动或传送数据，确定硬件是否处于健全的状态之外，这一部分做的工作很少。
+
+然后，让一些与中断处理相关的有限个函数作为“后半部分”来运行：
+* 允许一个普通的内核函数，而不仅仅是服务于中断的一个函数，能以后半部分的身份来运行；
+* 允许几个内核函数合在一起作为一个后半部分来运行。
+
+前半部分运行时是关中断的，而后半部分运行时是允许中断请求的，这是二者之间的主要区别。
+
+**Q: Bottom Half的实现机制有哪些？**
+
+A: 参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第8. Bottom Halves and Deferring Work章第Bottom Halves节：
+
+Currently, three methods exist for deferring work:
+* softirqs (Refer to section struct softirq_action/softirq_vec[])
+* tasklets (Refer to section struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[])
+* work queues (Refer to section 工作队列/workqueue)
+Tasklets are built on softirqs and, therefore, both are similar. The work queue mechanism is an entirely different creature and is built on kernel threads.
+
+**Q: Which Bottom Half Should I Use?**
+
+A: As a device driver author, the decision whether to use softirqs versus tasklets is simple: You almost always want to use tasklets.
+
+* Softirqs, by design, provide the least serialization. This requires softirq handlers to go through extra steps to ensure that shared data is safe because two or more softirqs of the same type may run concurrently on different processors.
+
+* Tasklets make more sense if the code is not finely threaded. They have a simpler interface and, because two tasklets of the same type might not run concurrently, they are easier to implement. Tasklets are effectively softirqs that do not run concurrently. A driver developer should always choose tasklets over softirqs, unless prepared to utilize per-processor variables or similar magic to ensure that the softirq can safely run concurrently on multiple processors.
+
+If your deferred work needs to run in process context, your only choice of the three is work queues. If process context is not a requirement — specifically, if you have no need to sleep — softirqs or tasklets are perhaps better suited. Work queues involve the highest overhead because they involve kernel threads and, therefore, context switching.
+
+Bottom Half Comparison:
+
+| Bottom Half | Context | Inherent Serialization | Reference |
+| :---------- | :------ | :--------------------- | :-------- |
+| Softirq     | Interrupt context | None | Section struct softirq_action/softirq_vec[] |
+| Tasklet     | Interrupt context | Against the same tasklet | Section struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[] |
+| Work queues | Process context | None (scheduled as process context) | Section 工作队列/workqueue |
+
+<p/>
+
+In short, normal driver writers have two choices. First, do you need a schedulable entity to perform your deferred work — fundamentally, do you need to sleep for any reason? Then work queues are your only option. Otherwise, tasklets are preferred. Only if scalability becomes a concern do you investigate softirqs.
+
+在中断处理函数完成后，irq_exit()处理软中断，其定义于kernel/softirq.c:
+
+```
+/*
+ * Exit an interrupt context. Process softirqs if needed and possible:
+ */
+void irq_exit(void)
+{
+	account_system_vtime(current);
+	trace_hardirq_exit();
+	/*
+	 * Decreases the interrupt counter. 与do_IRQ()->irq_enter()对应，
+	 * 参见do_IRQ()节
+	 */
+	sub_preempt_count(IRQ_EXIT_OFFSET);
+	/*
+	 * in_interrupt()：参见tatus of the Interrupt System节，限制了软中断
+	 * 服务程序既不能在一个硬中断服务程序内部执行，也不能在一个软中断服务程序内部
+	 * 执行(即不能嵌套);
+	 * local_softirq_pending()：检查irq_stat[cpu].__softirq_pending，
+	 * 查看是否有软中断请求在等待执行。其中，irq_stat[cpu].__softirq_pending
+	 * 是通过函数__raise_softirq_irqoff()来置位的，参见irq_stat[]节
+	 */
+	if (!in_interrupt() && local_softirq_pending())
+		invoke_softirq();		// 参见invoke_softirq()节
+
+	rcu_irq_exit();
+#ifdef CONFIG_NO_HZ
+	/* Make sure that timer wheel updates are propagated */
+	if (idle_cpu(smp_processor_id()) && !in_interrupt() && !need_resched())
+		tick_nohz_stop_sched_tick(0);
+#endif
+	// 参见preempt_enable()/preempt_enable_no_resched()节
+	preempt_enable_no_resched();
+}
+```
+
+##### 9.3.1.3.1 invoke_softirq()
+
+该函数定义于kernel/softirq.c:
+
+```
+#ifdef __ARCH_IRQ_EXIT_IRQS_DISABLED
+static inline void invoke_softirq(void)
+{
+	if (!force_irqthreads)
+		__do_softirq();		// 参见__do_softirq()节
+	else {
+		__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_OFFSET);
+		wakeup_softirqd();	// 唤醒内核线程ksoftirqd，参见ksoftirqd节
+		__local_bh_enable(SOFTIRQ_OFFSET);
+	}
+}
+#else		// 内核代码中未定义__ARCH_IRQ_EXIT_IRQS_DISABLED，因此进入此分支
+static inline void invoke_softirq(void)
+{
+	if (!force_irqthreads)
+		do_softirq();		// 参见do_softirq()节
+	else {
+		__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_OFFSET);
+		wakeup_softirqd();	// 唤醒内核线程ksoftirqd，参见ksoftirqd节
+		__local_bh_enable(SOFTIRQ_OFFSET);
+	}
+}
+#endif
+```
+
+###### 9.3.1.3.1.1 do_softirq()
+
+该函数定义于kernel/softirq.c:
+
+```
+// __ARCH_HAS_DO_SOFTIRQ定义于arch/x86/include/linux/irq.h
+#ifndef __ARCH_HAS_DO_SOFTIRQ
+
+asmlinkage void do_softirq(void)
+{
+	__u32 pending;
+	unsigned long flags;
+
+	// 不在中断上下文中，才处理软中断，参见tatus of the Interrupt System节
+	if (in_interrupt())
+		/*
+		 * This situation indicates either that do_softirq()
+		 * has been invoked in interrupt context or that the
+		 * softirqs are currently disabled.
+		 */
+		return;
+
+	local_irq_save(flags);
+
+	// 查询当前CPU是否存在待处理的软中断，参见irq_stat[]节
+	pending = local_softirq_pending();
+
+	// 若存在待处理的软中断，则调用对应的软中断处理函数，参见__do_softirq()节
+	if (pending)
+		__do_softirq();
+
+	local_irq_restore(flags);
+}
+
+#endif
+```
+
+###### 9.3.1.3.1.1.1 \__do_softirq()
+
+该函数定义于kernel/softirq.c:
+
+```
+/*
+ * We restart softirq processing MAX_SOFTIRQ_RESTART times,
+ * and we fall back to softirqd after that.
+ *
+ * This number has been established via experimentation.
+ * The two things to balance is latency against fairness -
+ * we want to handle softirqs as soon as possible, but they
+ * should not be able to lock up the box.
+ */
+#define MAX_SOFTIRQ_RESTART	10
+
+asmlinkage void __do_softirq(void)
+{
+	struct softirq_action *h;
+	__u32 pending;
+	int max_restart = MAX_SOFTIRQ_RESTART;
+	int cpu;
+
+	// 获取当前CPU是否存在待处理的软中断(参见irq_stat[]节)，并保存到变量pending中
+	pending = local_softirq_pending();
+	account_system_vtime(current);
+
+	// Disable Bottom Half，参见Disable Bottom Half节
+	__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_OFFSET);
+	// 增加软中断计数，即current->softirq_context++
+	lockdep_softirq_enter();
+
+	cpu = smp_processor_id();
+restart:
+	/* Reset the pending bitmask before enabling irqs */
+	// 软中断的状态已经保存到变量pending中，因而可将irq_stat.__softirq_pending复位
+	set_softirq_pending(0);
+
+	// Enable local interrupts. 软中断处理过程中要保持开中断，这是Top Half与Bottom Half的关键区别！
+	local_irq_enable();
+
+	h = softirq_vec;
+
+	do {
+		/*
+		 * 依次查询softirq_vec[]中的每种软中断，若置位，
+		 * 则调用对应的处理函数，参见struct softirq_节；
+		 */
+		if (pending & 1) {
+			unsigned int vec_nr = h - softirq_vec;
+			int prev_count = preempt_count();
+
+			kstat_incr_softirqs_this_cpu(vec_nr);
+
+			trace_softirq_entry(vec_nr);
+			// 调用指定软中断的处理程序，参见错误：引用源未找到
+			h->action(h);
+			trace_softirq_exit(vec_nr);
+			if (unlikely(prev_count != preempt_count())) {
+				printk(KERN_ERR "huh, entered softirq %u %s %p with preempt_count %08x, exited with %08x?\n",
+						 vec_nr, softirq_to_name[vec_nr], h->action, prev_count, preempt_count());
+				preempt_count() = prev_count;
+			}
+
+			rcu_bh_qs(cpu);
+		}
+		h++;
+		/*
+		 * 右移，故低位对应的软中断具有高优先级，
+		 * 参见struct softirq_action/softirq_vec[]节
+		 */
+		pending >>= 1;
+	} while (pending);
+
+	// Disable local interrupts
+	local_irq_disable();
+
+	/*
+	 * 重新查询当前CPU是否存在待处理的软中断，若存在且查询次数
+	 * 未超过10次，则再次处理软中断；
+	 */
+	pending = local_softirq_pending();
+	if (pending && --max_restart)
+		goto restart;
+
+	/*
+	 * 若存在且查询次数超过了10次，则唤醒内核线程ksoftirqd，
+	 * 由其来处理软中断，参见ksoftirqd节；
+	 */
+	if (pending)
+		wakeup_softirqd();
+
+	// 减小软中断计数，即current->softirq_context--
+	lockdep_softirq_exit();
+
+	account_system_vtime(current);
+	// Enable Bottom Half，参见Enable Bottom Half节
+	__local_bh_enable(SOFTIRQ_OFFSET);
+}
+```
+
+Q: Why repeat MAX_SOFTIRQ_RESTART times in __do_softirq()?
+
+A: While executing a softirq function, new pending softirqs might pop up; in order to ensure a low latency time for the deferrable funtions, __do_softirq() keeps running until all pending softirqs have been executed. This mechanism, however, could force __do_softirq() to run for long periods of time, thus considerably delaying User Mode processes. For that reason, __do_softirq() performs a fixed number of iterations and then returns. The remaining pending softirqs, if any, will be handled in due time by the ksoftirqd kernel thread.
+
+###### 9.3.1.3.1.1.1.1 Disable Bottom Half
+
+函数local_bh_disable() / \__local_bh_disable()用于禁用Bottom Half，其定义于kernel/softirq.c:
+
+```
+void local_bh_disable(void)
+{
+	__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_DISABLE_OFFSET);
+}
+
+#ifdef CONFIG_TRACE_IRQFLAGS
+static void __local_bh_disable(unsigned long ip, unsigned int cnt)
+{
+	unsigned long flags;
+
+	WARN_ON_ONCE(in_irq());
+
+	raw_local_irq_save(flags);
+	/*
+	 * The preempt tracer hooks into add_preempt_count and will break
+	 * lockdep because it calls back into lockdep after SOFTIRQ_OFFSET
+	 * is set and before current->softirq_enabled is cleared.
+	 * We must manually increment preempt_count here and manually
+	 * call the trace_preempt_off later.
+	 */
+	/*
+	 * current_thread_info()->preempt_count += cnt，
+	 * 参见struct thread_info->preempt_count节
+	 */
+	preempt_count() += cnt;
+	/*
+	 * Were softirqs turned off above:
+	 */
+	if (softirq_count() == cnt)
+		trace_softirqs_off(ip);
+	raw_local_irq_restore(flags);
+
+	if (preempt_count() == cnt)
+		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
+}
+#else /* !CONFIG_TRACE_IRQFLAGS */
+static inline void __local_bh_disable(unsigned long ip, unsigned int cnt)
+{
+	// current_thread_info()->preempt_count += cnt
+	add_preempt_count(cnt);
+	barrier();
+}
+#endif /* CONFIG_TRACE_IRQFLAGS */
+```
+
+###### 9.3.1.3.1.1.1.2 Enable Bottom Half
+
+函数_local_bh_enable() / \__local_bh_enable()用于启用Bottom Half，其定义于kernel/softirq.c:
+
+```
+/*
+ * Special-case - softirqs can safely be enabled in
+ * cond_resched_softirq(), or by __do_softirq(),
+ * without processing still-pending softirqs:
+ */
+void _local_bh_enable(void)
+{
+	__local_bh_enable(SOFTIRQ_DISABLE_OFFSET);
+}
+
+static void __local_bh_enable(unsigned int cnt)
+{
+	WARN_ON_ONCE(in_irq());
+	WARN_ON_ONCE(!irqs_disabled());
+
+	if (softirq_count() == cnt)
+		trace_softirqs_on((unsigned long)__builtin_return_address(0));
+	// current_thread_info()->preempt_count -= cnt
+	sub_preempt_count(cnt);
+}
+```
+
+函数local_bh_enable()也可用于启用Bottom Half，不同之处在于，它还会检查是否存在待处理的软中断并执行这些软中断处理函数。其定义于kernel/softirq.c:
+
+```
+void local_bh_enable(void)
+{
+	_local_bh_enable_ip((unsigned long)__builtin_return_address(0));
+}
+
+static inline void _local_bh_enable_ip(unsigned long ip)
+{
+	WARN_ON_ONCE(in_irq() || irqs_disabled());
+#ifdef CONFIG_TRACE_IRQFLAGS
+	local_irq_disable();
+#endif
+	/*
+	 * Are softirqs going to be turned on now:
+	 */
+	if (softirq_count() == SOFTIRQ_DISABLE_OFFSET)
+		trace_softirqs_on(ip);
+	/*
+	 * Keep preemption disabled until we are done with
+	 * softirq processing:
+ 	 */
+	sub_preempt_count(SOFTIRQ_DISABLE_OFFSET - 1);
+
+	if (unlikely(!in_interrupt() && local_softirq_pending()))
+		do_softirq();	// 参见do_softirq()节
+
+	dec_preempt_count();
+#ifdef CONFIG_TRACE_IRQFLAGS
+	local_irq_enable();
+#endif
+	preempt_check_resched();
+}
+```
+
+###### 9.3.1.3.1.2 ksoftirqd
+
+ksoftirqd是处理软中断的内核线程，其定义于kernel/softirq.c:
+
+```
+DEFINE_PER_CPU(struct task_struct *, ksoftirqd);
+```
+
+该内核线程在系统启动softirq模块时被创建并唤醒，参见kernel/softirq.c:
+
+```
+// ksoftirqd内核线程执行本函数
+static int run_ksoftirqd(void * __bind_cpu)
+{
+	set_current_state(TASK_INTERRUPTIBLE);
+
+	while (!kthread_should_stop()) {
+		preempt_disable();
+		// 若没有待处理的软中断，则调度其他进程运行
+		if (!local_softirq_pending()) {
+			// 参见preempt_enable()/preempt_enable_no_resched()节
+			preempt_enable_no_resched();
+			schedule();
+			preempt_disable();
+		}
+
+		__set_current_state(TASK_RUNNING);
+
+		// 若存在待处理的软中断，则调用对应的处理函数
+		while (local_softirq_pending()) {
+			/* Preempt disable stops cpu going offline.
+			    If already offline, we'll be on wrong CPU:
+			    don't process */
+			if (cpu_is_offline((long)__bind_cpu))
+				goto wait_to_die;
+			local_irq_disable();
+			if (local_softirq_pending())
+				__do_softirq();	// 参见__do_softirq()节
+			local_irq_enable();
+			// 参见preempt_enable()/preempt_enable_no_resched()节
+			preempt_enable_no_resched();
+			cond_resched();		// 参见cond_resched()节
+			preempt_disable();
+			rcu_note_context_switch((long)__bind_cpu);
+		}
+		// 参见preempt_enable()/preempt_enable_no_resched()节
+		preempt_enable();
+		set_current_state(TASK_INTERRUPTIBLE);
+	}
+	__set_current_state(TASK_RUNNING);
+	return 0;
+
+wait_to_die:
+	// 参见preempt_enable()/preempt_enable_no_resched()节
+	preempt_enable();
+	/* Wait for kthread_stop */
+	set_current_state(TASK_INTERRUPTIBLE);
+	while (!kthread_should_stop()) {
+		schedule();
+		set_current_state(TASK_INTERRUPTIBLE);
+	}
+	__set_current_state(TASK_RUNNING);
+	return 0;
+}
+
+static int __cpuinit cpu_callback(struct notifier_block *nfb, unsigned long action, void *hcpu)
+{
+	int hotcpu = (unsigned long)hcpu;
+	struct task_struct *p;
+
+	switch (action) {
+	case CPU_UP_PREPARE:
+	case CPU_UP_PREPARE_FROZEN:
+		/*
+		 * There is one thread per processor.
+		 * The threads are each named ksoftirqd/n where n is the
+		 * processor number. Having a thread on each processor
+		 * ensures an idle processor, if available, can always
+		 * service softirqs. 参见kthread_run()节
+		 */
+		p = kthread_create_on_node(run_ksoftirqd, hcpu, cpu_to_node(hotcpu),
+				"ksoftirqd/%d", hotcpu);
+		if (IS_ERR(p)) {
+			printk("ksoftirqd for %i failed\n", hotcpu);
+			return notifier_from_errno(PTR_ERR(p));
+		}
+		kthread_bind(p, hotcpu);
+		// 将ksoftirqd指向新创建的内核线程
+  		per_cpu(ksoftirqd, hotcpu) = p;
+ 		break;
+	case CPU_ONLINE:
+	case CPU_ONLINE_FROZEN:
+		// 唤醒内核线程ksoftirqd，参见wake_up_process()节
+		wake_up_process(per_cpu(ksoftirqd, hotcpu));
+		break;
+#ifdef CONFIG_HOTPLUG_CPU
+	case CPU_UP_CANCELED:
+	case CPU_UP_CANCELED_FROZEN:
+		if (!per_cpu(ksoftirqd, hotcpu))
+			break;
+		/* Unbind so it can run.  Fall thru. */
+		kthread_bind(per_cpu(ksoftirqd, hotcpu),
+			     cpumask_any(cpu_online_mask));
+	case CPU_DEAD:
+	case CPU_DEAD_FROZEN: {
+		static const struct sched_param param = {
+			.sched_priority = MAX_RT_PRIO-1
+		};
+
+		p = per_cpu(ksoftirqd, hotcpu);
+		per_cpu(ksoftirqd, hotcpu) = NULL;
+		sched_setscheduler_nocheck(p, SCHED_FIFO, &param);
+		kthread_stop(p);
+		takeover_tasklets(hotcpu);
+		break;
+	}
+#endif /* CONFIG_HOTPLUG_CPU */
+ 	}
+	return NOTIFY_OK;
+}
+
+static __init int spawn_ksoftirqd(void)
+{
+	void *cpu = (void *)(long)smp_processor_id();
+	// 创建内核线程ksoftirqd
+	int err = cpu_callback(&cpu_nfb, CPU_UP_PREPARE, cpu);
+
+	BUG_ON(err != NOTIFY_OK);
+	// 唤醒内核线程ksoftirqd
+	cpu_callback(&cpu_nfb, CPU_ONLINE, cpu);
+	register_cpu_notifier(&cpu_nfb);
+	return 0;
+}
+
+/*
+ * kernel/softirq.c是直接编译进内核的，参见kernel/Makefile中的变量obj-y；
+ * 因而在系统初始化时调用spawn_ksoftirqd()，参见module被编译进内核时的初始化过程节
+ */
+early_initcall(spawn_ksoftirqd);
+```
+
+### 9.3.2 ret_from_intr
+
+函数do_IRQ()处理所有外设的中断请求，当该函数执行时，内核栈栈顶包含的就是do_IRQ()的返回地址，该地址指向ret_from_intr。实际上，ret_from_intr是一段汇编语言的入口点。虽然这里讨论的是中断的返回，但实际上中断、异常及系统调用的返回是放在一起实现的，故常以函数的形式提到如下这三个入口点：
+* ret_from_intr: 终止中断处理程序
+* ret_from_sys_call: 终止系统调用，即由0x80引起的异常
+* ret_from_exception: 终止除了0x80外的所有异常
+
+ret_from_intr定义于arch/x86/kernel/entry_32.S:
+
+```
+#define nr_syscalls ((syscall_table_size)/4)
+
+#ifdef CONFIG_PREEMPT
+#define preempt_stop(clobbers)	DISABLE_INTERRUPTS(clobbers); TRACE_IRQS_OFF
+#else
+#define preempt_stop(clobbers)
+#define resume_kernel		restore_all
+#endif
+
+	...
+
+#ifdef CONFIG_VM86
+#define resume_userspace_sig	check_userspace
+#else
+#define resume_userspace_sig	resume_userspace
+#endif
+
+	...
+
+ret_from_exception:
+	preempt_stop(CLBR_ANY)
+ret_from_intr:
+	GET_THREAD_INFO(%ebp)
+check_userspace:
+	/*
+	 * 如下两条mov指令把中断发生前的EFALGS寄存器的高16位与代码段
+	 * CS寄存器的内容拼揍成32位的长整数，其目的是要检验：
+	 * - 中断前CPU是否够运行于VM86模式
+	 * - 中断前CPU是运行在用户空间还是内核空间
+	 */
+	movl PT_EFLAGS(%esp), %eax		# mix EFLAGS and CS
+	movb PT_CS(%esp), %al
+	/*
+	 * VM86模式是为在i386保护模式下模拟运行DOS软件而设置的，EFALGS
+	 * 寄存器高16位中有个标志位表示CPU是否运行在VM86模式:
+	 * - SEGMENT_RPL_MASK定义于arch/x86/include/asm/segment.h，
+	 *   取值为0x3
+	 * - X86_EFLAGS_VM定义于arch/x86/include/asm/processor-flags.h，
+	 *   取值为0x00020000
+	 */
+	andl $(X86_EFLAGS_VM | SEGMENT_RPL_MASK), %eax
+	/*
+	 * CS的最低两位表示中断发生时CPU的运行级别CPL，若这两位为3，则说明
+	 * 中断发生于用户空间。
+	 * USER_RPL定义于arch/x86/include/asm/segment.h，取值为0x3
+	 */
+	cmpl $USER_RPL, %eax
+	/*
+	 * 如果中断发生在内核空间，则控制权直接转移到标号resume_kernel.
+	 * 若未定义CONFIG_PREEMPT，则跳转至restore_all.
+	 */
+	jb resume_kernel			# not returning to v8086 or userspace
+
+	// 否则，恢复到用户空间
+ENTRY(resume_userspace)
+	LOCKDEP_SYS_EXIT
+ 	DISABLE_INTERRUPTS(CLBR_ANY)		# make sure we don't miss an interrupt
+						# setting need_resched or sigpending
+						# between sampling and the iret
+	TRACE_IRQS_OFF
+	// _TIF_WORK_MASK定义于arch/x86/include/asm/thread_info.h，表示需要重新调度
+	movl TI_flags(%ebp), %ecx
+	andl $_TIF_WORK_MASK, %ecx		# is there any work to be done on
+						# int/exception return?
+	// 若需要重新调度，则跳转至work_pending处执行，继而执行schedule()函数
+	jne work_pending
+	// 若无需重新调度，则恢复中断现场，并彻底从中断中返回
+	jmp restore_all
+END(ret_from_exception)
+
+#ifdef CONFIG_PREEMPT
+ENTRY(resume_kernel)
+	DISABLE_INTERRUPTS(CLBR_ANY)
+	cmpl $0,TI_preempt_count(%ebp)	# non-zero preempt_count ?
+	jnz restore_all
+need_resched:
+	movl TI_flags(%ebp), %ecx		# need_resched set ?
+	testb $_TIF_NEED_RESCHED, %cl
+	jz restore_all
+	testl $X86_EFLAGS_IF,PT_EFLAGS(%esp)	# interrupts off (exception path) ?
+	jz restore_all
+	call preempt_schedule_irq
+	jmp need_resched
+END(resume_kernel)
+#endif
+	CFI_ENDPROC
+
+	...
+
+restore_all:
+	TRACE_IRQS_IRET
+restore_all_notrace:
+	movl PT_EFLAGS(%esp), %eax		# mix EFLAGS, SS and CS
+	# Warning: PT_OLDSS(%esp) contains the wrong/random values if we
+	# are returning to the kernel.
+	# See comments in process.c:copy_thread() for details.
+	movb PT_OLDSS(%esp), %ah
+	movb PT_CS(%esp), %al
+	andl $(X86_EFLAGS_VM | (SEGMENT_TI_MASK << 8) | SEGMENT_RPL_MASK), %eax
+	cmpl $((SEGMENT_LDT << 8) | USER_RPL), %eax
+	CFI_REMEMBER_STATE
+	je ldt_ss				# returning to user-space with LDT SS
+restore_nocheck:
+	RESTORE_REGS 4				# skip orig_eax/error_code
+irq_return:
+	INTERRUPT_RETURN
+
+	...
+
+	# perform work that needs to be done immediately before resumption
+	ALIGN
+	RING0_PTREGS_FRAME			# can't unwind into user space anyway
+work_pending:
+	testb $_TIF_NEED_RESCHED, %cl
+	jz work_notifysig
+work_resched:
+	call schedule				// 执行schedule()函数重新进行进程调度
+	LOCKDEP_SYS_EXIT
+	DISABLE_INTERRUPTS(CLBR_ANY)		# make sure we don't miss an interrupt
+						# setting need_resched or sigpending
+						# between sampling and the iret
+	TRACE_IRQS_OFF
+	movl TI_flags(%ebp), %ecx
+	andl $_TIF_WORK_MASK, %ecx		# is there any work to be done other
+						# than syscall tracing?
+	jz restore_all
+	// 再次检查是否需要重新调度
+	testb $_TIF_NEED_RESCHED, %cl
+	jnz work_resched
+
+work_notifysig:					# deal with pending signals and
+						# notify-resume requests
+#ifdef CONFIG_VM86
+	testl $X86_EFLAGS_VM, PT_EFLAGS(%esp)
+	movl %esp, %eax
+	jne work_notifysig_v86			# returning to kernel-space or
+						# vm86-space
+	xorl %edx, %edx
+	call do_notify_resume
+	jmp resume_userspace_sig
+
+	ALIGN
+work_notifysig_v86:
+	pushl_cfi %ecx				# save ti_flags for do_notify_resume
+	call save_v86_state			# %eax contains pt_regs pointer
+	popl_cfi %ecx
+	movl %eax, %esp
+#else
+	movl %esp, %eax
+#endif
+	xorl %edx, %edx
+	call do_notify_resume			// 参见信号的接收与处理节
+	jmp resume_userspace_sig		// 转移至check_userspace或resume_userspace处执行
+END(work_pending)
+```
+
+ret_from_intr的流程图如下：
+
+![ret_from_intr](/assets/ret_from_intr.png)
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第4. Interrupts and Exceptions章第Returning from Interrupts and Exceptions节：
+
+![Returning_from_interrupts_and_exceptions](/assets/Returning_from_interrupts_and_exceptions.png)
+
+## 9.4 中断处理函数的注册/注销
+
+中断处理程序是管理硬件的驱动程序的组成部分。每种设备都有相关的驱动程序，如果设备使用中断的方式与CPU通信，那么驱动程序就需要注册中断处理程序。
+
+### 9.4.1 request_irq()
+
+Before activating a device that is going to use an IRQ line, the corresponding driver invokes request_irq(). 该函数定义于include/linux/interrupt.h:
+
+```
+#ifdef CONFIG_GENERIC_HARDIRQS
+// 参见request_threaded_irq()节
+extern int __must_check
+request_threaded_irq(unsigned int irq, irq_handler_t handler,
+		     irq_handler_t thread_fn,
+		     unsigned long flags, const char *name, void *dev);
+
+/*
+ * 如果定义了CONFIG_GENERIC_HARDIRQS，则request_irq()调用
+ * kernel/irq/manage.c中定义的request_threaded_irq()。
+ * 并且编译时，kernel/irq目录下的文件会被编译进内核，参见
+ * kernel/Makefile中的如下语句：
+ * obj-$(CONFIG_GENERIC_HARDIRQS) += irq/
+ */
+static inline int __must_check
+request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
+			   const char *name, void *dev)
+{
+	return request_threaded_irq(irq, handler, NULL, flags, name, dev);
+}
+
+...
+
+#else
+
+/*
+ * 如果未定义CONFIG_GENERIC_HARDIRQS，则该体系架构(参见sparc, m68k ...注释)
+ * 需要提供request_irq()函数的实现。并且编译时，kernel/irq目录下的文件不会被
+ * 编译进内核，参见kernel/Makefile中的如下语句：
+ * obj-$(CONFIG_GENERIC_HARDIRQS) += irq/
+ * 因为内核其他的地方会调用request_threaded_irq()函数，所以在此定义了该函数
+ */
+extern int __must_check
+request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
+			   const char *name, void *dev);
+
+/*
+ * Special function to avoid ifdeffery in kernel/irq/devres.c which
+ * gets magically built by GENERIC_HARDIRQS=n architectures (sparc,
+ * m68k). I really love these $@%#!* obvious Makefile references:
+ * ../../../kernel/irq/devres.o
+ */
+static inline int __must_check
+request_threaded_irq(unsigned int irq, irq_handler_t handler,
+		     irq_handler_t thread_fn,
+		     unsigned long flags, const char *name, void *dev)
+{
+	return request_irq(irq, handler, flags, name, dev);
+}
+
+...
+#endif
+```
+
+函数request_irq()的入参
+
+| request_irq()函数入参 | 含义 |
+| unsigned int irq | 要分配的中断号。对于某些设备，如传统PC上的系统时钟或键盘等设备，中断号是提前确定的。而对于其它设备要么事动态探测获取，要么是编程动态确定 |
+| irq_handler_t handler | 中断处理函数指针，其定义于<br>include/linux/interrupt.h:<br>typedef irqreturn_t (*irq_handler_t)(int, void *);<br>中断处理函数的编写参见编写中断处理函数节 |
+| unsigned long flags | 标志位，参见include/linux/interrupt.h中以IRQF_开头的宏，如下图 |
+| const char *name | 设备描述信息 |
+| void *dev | 用于识别共享中断线(参见标志位IRQF_SHARED)的众多设备驱动程序的某一个设备 |
+
+<p/>
+
+Note that request_irq() can sleep and therefore cannot be called from interrupt context or other situations where code cannot block. It is a common mistake to call request_irq() when it is unsafe to sleep.
+
+#### 9.4.1.1 request_threaded_irq()
+
+该函数定义于kernel/irq/manage.c:
+
+```
+int request_threaded_irq(unsigned int irq, irq_handler_t handler,
+			 irq_handler_t thread_fn, unsigned long irqflags,
+			 const char *devname, void *dev_id)
+{
+	struct irqaction *action;
+	struct irq_desc *desc;
+	int retval;
+
+	/*
+	 * Sanity-check: shared interrupts must pass in a real dev-ID,
+	 * otherwise we'll have trouble later trying to figure out
+	 * which interrupt is which (messes up the interrupt freeing
+	 * logic etc).
+	 */
+	if ((irqflags & IRQF_SHARED) && !dev_id)
+		return -EINVAL;
+
+	/*
+	 * 根据中断号，在数组irq_desc[]查找对应的中断描述符，
+	 * 参见struct irq_desc节
+	 */
+	desc = irq_to_desc(irq);
+	if (!desc)
+		return -EINVAL;
+
+	/*
+	 * 检查desc->status_use_accessors中的标志位
+	 * IRQ_NOREQUEST和IRQ_PER_CPU_DEVID
+	 */
+	if (!irq_settings_can_request(desc) || WARN_ON(irq_settings_is_per_cpu_devid(desc)))
+		return -EINVAL;
+
+	if (!handler) {
+		if (!thread_fn)
+			return -EINVAL;
+		// 默认的中断处理函数，见下文
+		handler = irq_default_primary_handler;
+	}
+
+	action = kzalloc(sizeof(struct irqaction), GFP_KERNEL);
+	if (!action)
+		return -ENOMEM;
+
+	action->handler = handler;
+	action->thread_fn = thread_fn;
+	action->flags = irqflags;
+	action->name = devname;
+	action->dev_id = dev_id;
+
+	chip_bus_lock(desc);
+	/*
+	 * 将action结构加入到desc->action链表中，
+	 * 参见struct irq_desc节和__setup_irq()节
+	 */
+	retval = __setup_irq(irq, desc, action);
+	chip_bus_sync_unlock(desc);
+
+	if (retval)
+		kfree(action);
+
+#ifdef CONFIG_DEBUG_SHIRQ_FIXME
+	if (!retval && (irqflags & IRQF_SHARED)) {
+		/*
+		 * It's a shared IRQ -- the driver ought to be prepared for it
+		 * to happen immediately, so let's make sure....
+		 * We disable the irq to make sure that a 'real' IRQ doesn't
+		 * run in parallel with our fake.
+		 */
+		unsigned long flags;
+
+		disable_irq(irq);
+		local_irq_save(flags);
+
+		handler(irq, dev_id);
+
+		local_irq_restore(flags);
+		enable_irq(irq);
+	}
+#endif
+	return retval;
+}
+
+/*
+ * Default primary interrupt handler for threaded interrupts. Is
+ * assigned as primary handler when request_threaded_irq is called
+ * with handler == NULL. Useful for oneshot interrupts.
+ */
+static irqreturn_t irq_default_primary_handler(int irq, void *dev_id)
+{
+	return IRQ_WAKE_THREAD;
+}
+```
+
+#### 9.4.1.2 setup_irq()/__setup_irq()
+
+函数setup_irq()定义于kernel/irq/manage.c:
+
+```
+/**
+ *	setup_irq - setup an interrupt
+ *	@irq: Interrupt line to setup
+ *	@act: irqaction for the interrupt
+ *
+ * Used to statically setup interrupts in the early boot process.
+ */
+int setup_irq(unsigned int irq, struct irqaction *act)
+{
+	int retval;
+	struct irq_desc *desc = irq_to_desc(irq);
+
+	if (WARN_ON(irq_settings_is_per_cpu_devid(desc)))
+		return -EINVAL;
+	chip_bus_lock(desc);
+	retval = __setup_irq(irq, desc, act);
+	chip_bus_sync_unlock(desc);
+
+	return retval;
+}
+```
+
+函数__setup_irq()定义于kernel/irq/manage.c:
+
+```
+/*
+ * Internal function to register an irqaction - typically used to
+ * allocate special interrupts that are part of the architecture.
+ */
+static int __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
+{
+	struct irqaction *old, **old_ptr;
+	const char *old_name = NULL;
+	unsigned long flags, thread_mask = 0;
+	int ret, nested, shared = 0;
+	cpumask_var_t mask;
+
+	if (!desc)
+		return -EINVAL;
+
+	if (desc->irq_data.chip == &no_irq_chip)
+		return -ENOSYS;
+	if (!try_module_get(desc->owner))
+		return -ENODEV;
+	/*
+	 * Some drivers like serial.c use request_irq() heavily,
+	 * so we have to be careful not to interfere with a
+	 * running system.
+	 */
+	if (new->flags & IRQF_SAMPLE_RANDOM) {
+		/*
+		 * This function might sleep, we want to call it first,
+		 * outside of the atomic block.
+		 * Yes, this might clear the entropy pool if the wrong
+		 * driver is attempted to be loaded, without actually
+		 * installing a new handler, but is this really a problem,
+		 * only the sysadmin is able to do this.
+		 */
+		rand_initialize_irq(irq);
+	}
+
+	/*
+	 * Check whether the interrupt nests into another interrupt
+	 * thread.
+	 */
+	// 检查desc->status_use_accessors中的标志位IRQ_NESTED_THREAD
+	nested = irq_settings_is_nested_thread(desc);
+	if (nested) {
+		if (!new->thread_fn) {
+			ret = -EINVAL;
+			goto out_mput;
+		}
+		/*
+		 * Replace the primary handler which was provided from
+		 * the driver for non nested interrupt handling by the
+		 * dummy function which warns when called.
+		 */
+		new->handler = irq_nested_primary_handler; 	// 参见下文
+	} else {
+		// 检查desc->status_use_accessors中的标志位IRQ_NOTHREAD
+		if (irq_settings_can_thread(desc))
+			// 设置new->handler = irq_default_primary_handler
+			irq_setup_forced_threading(new); 
+	}
+
+	/*
+	 * Create a handler thread when a thread function is supplied
+	 * and the interrupt does not nest into another interrupt
+	 * thread.
+	 */
+	if (new->thread_fn && !nested) {
+		struct task_struct *t;
+
+		/*
+		 * 创建内核线程，参见kthread_run()节。
+		 * 函数irq_thread()定义于kernel/irq/manage.c
+		 */
+		t = kthread_create(irq_thread, new, "irq/%d-%s", irq, new->name);
+		if (IS_ERR(t)) {
+			ret = PTR_ERR(t);
+			goto out_mput;
+		}
+		/*
+		 * We keep the reference to the task struct even if
+		 * the thread dies to avoid that the interrupt code
+		 * references an already freed task_struct.
+		 */
+		get_task_struct(t); 	// 增加t->usage值
+		new->thread = t;
+	}
+
+	if (!alloc_cpumask_var(&mask, GFP_KERNEL)) {
+		ret = -ENOMEM;
+		goto out_thread;
+	}
+
+	/*
+	 * The following block of code has to be executed atomically
+	 */
+	raw_spin_lock_irqsave(&desc->lock, flags);
+	old_ptr = &desc->action;
+	old = *old_ptr;
+	if (old) {
+		/*
+		 * Can't share interrupts unless both agree to and are
+		 * the same type (level, edge, polarity). So both flag
+		 * fields must have IRQF_SHARED set and the bits which
+		 * set the trigger type must match. Also all must
+		 * agree on ONESHOT.
+		 */
+		if (!((old->flags & new->flags) & IRQF_SHARED) ||
+		     ((old->flags ^ new->flags) & IRQF_TRIGGER_MASK) ||
+		     ((old->flags ^ new->flags) & IRQF_ONESHOT)) {
+			old_name = old->name;
+			goto mismatch;
+		}
+
+		/* All handlers must agree on per-cpuness */
+		if ((old->flags & IRQF_PERCPU) != (new->flags & IRQF_PERCPU))
+			goto mismatch;
+
+		/* add new interrupt at end of irq queue */
+		do {
+			thread_mask |= old->thread_mask;
+			old_ptr = &old->next;
+			old = *old_ptr;
+		} while (old);
+		shared = 1;
+	}
+
+	/*
+	 * Setup the thread mask for this irqaction. Unlikely to have
+	 * 32 resp 64 irqs sharing one line, but who knows.
+	 */
+	if (new->flags & IRQF_ONESHOT && thread_mask == ~0UL) {
+		ret = -EBUSY;
+		goto out_mask;
+	}
+	// ffz() - find first zero in word
+	new->thread_mask = 1 << ffz(thread_mask);
+
+	if (!shared) {
+		init_waitqueue_head(&desc->wait_for_threads);
+
+		/* Setup the type (level, edge polarity) if configured: */
+		if (new->flags & IRQF_TRIGGER_MASK) {
+			ret = __irq_set_trigger(desc, irq, new->flags & IRQF_TRIGGER_MASK);
+
+			if (ret)
+				goto out_mask;
+		}
+
+		desc->istate &= ~(IRQS_AUTODETECT | IRQS_SPURIOUS_DISABLED | IRQS_ONESHOT | IRQS_WAITING);
+		irqd_clear(&desc->irq_data, IRQD_IRQ_INPROGRESS);
+
+		if (new->flags & IRQF_PERCPU) {
+			irqd_set(&desc->irq_data, IRQD_PER_CPU);
+			irq_settings_set_per_cpu(desc);
+		}
+
+		if (new->flags & IRQF_ONESHOT)
+			desc->istate |= IRQS_ONESHOT;
+
+		if (irq_settings_can_autoenable(desc))
+			irq_startup(desc);
+		else
+			/* Undo nested disables: */
+			desc->depth = 1;
+
+		/* Exclude IRQ from balancing if requested */
+		if (new->flags & IRQF_NOBALANCING) {
+			irq_settings_set_no_balancing(desc);
+			irqd_set(&desc->irq_data, IRQD_NO_BALANCING);
+		}
+
+		/* Set default affinity mask once everything is setup */
+		setup_affinity(irq, desc, mask);
+
+	} else if (new->flags & IRQF_TRIGGER_MASK) {
+		unsigned int nmsk = new->flags & IRQF_TRIGGER_MASK;
+		// 检查desc->status_use_accessors中的标志位IRQ_TYPE_SENSE_MASK
+		unsigned int omsk = irq_settings_get_trigger_mask(desc);
+
+		if (nmsk != omsk)
+			/* hope the handler works with current  trigger mode */
+			pr_warning("IRQ %d uses trigger mode %u; requested %u\n", irq, nmsk, omsk);
+	}
+
+	/*
+	 * 将新的action结构加入到desc->action链表中。
+	 * 该处理函数在handle_irq_event_percpu()被调用，
+	 * 参见handle_irq_event_percpu()节
+	 */
+	new->irq = irq;
+	*old_ptr = new; 
+
+	/* Reset broken irq detection when installing new handler */
+	desc->irq_count = 0;
+	desc->irqs_unhandled = 0;
+
+	/*
+	 * Check whether we disabled the irq via the spurious handler
+	 * before. Reenable it and give it another chance.
+	 */
+	if (shared && (desc->istate & IRQS_SPURIOUS_DISABLED)) {
+		desc->istate &= ~IRQS_SPURIOUS_DISABLED;
+		__enable_irq(desc, irq, false); // 参见下文
+	}
+
+	raw_spin_unlock_irqrestore(&desc->lock, flags);
+
+	/*
+	 * Strictly no need to wake it up, but hung_task complains
+	 * when no hard interrupt wakes the thread up.
+	 */
+	if (new->thread)
+		wake_up_process(new->thread);
+
+	register_irq_proc(irq, desc); 		// 创建/proc/irq/1234
+	new->dir = NULL;
+	register_handler_proc(irq, new); 	// 创建/proc/irq/1234/handler/
+	free_cpumask_var(mask);
+
+	return 0;
+
+mismatch:
+#ifdef CONFIG_DEBUG_SHIRQ
+	if (!(new->flags & IRQF_PROBE_SHARED)) {
+		printk(KERN_ERR "IRQ handler type mismatch for IRQ %d\n", irq);
+		if (old_name)
+			printk(KERN_ERR "current handler: %s\n", old_name);
+		dump_stack();
+	}
+#endif
+	ret = -EBUSY;
+
+out_mask:
+	raw_spin_unlock_irqrestore(&desc->lock, flags);
+	free_cpumask_var(mask);
+
+out_thread:
+	if (new->thread) {
+		struct task_struct *t = new->thread;
+
+		new->thread = NULL;
+		if (likely(!test_bit(IRQTF_DIED, &new->thread_flags)))
+			kthread_stop(t);
+		put_task_struct(t);
+	}
+out_mput:
+	module_put(desc->owner);
+	return ret;
+}
+```
+
+函数```__setup_irq()```中用到的两个函数```irq_nested_primary_handler()```和```__enable_irq()```：
+
+```
+/*
+ * Primary handler for nested threaded interrupts. Should never be
+ * called.
+ */
+static irqreturn_t irq_nested_primary_handler(int irq, void *dev_id)
+{
+	WARN(1, "Primary handler called for nested irq %d\n", irq);
+	return IRQ_NONE;
+}
+
+void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume)
+{
+	if (resume) {
+		if (!(desc->istate & IRQS_SUSPENDED)) {
+			if (!desc->action)
+				return;
+			if (!(desc->action->flags & IRQF_FORCE_RESUME))
+				return;
+			/* Pretend that it got disabled ! */
+			desc->depth++;
+		}
+		desc->istate &= ~IRQS_SUSPENDED;
+	}
+
+	switch (desc->depth) {
+	case 0:
+ err_out:
+		WARN(1, KERN_WARNING "Unbalanced enable for IRQ %d\n", irq);
+		break;
+	case 1: {
+		if (desc->istate & IRQS_SUSPENDED)
+			goto err_out;
+		/* Prevent probing on this irq: */
+		// 将desc->status_use_accessors中的标志位IRQ_NOPROBE置位
+		irq_settings_set_noprobe(desc);
+		irq_enable(desc);
+		check_irq_resend(desc, irq);
+		/* fall-through */
+	}
+	default:
+		desc->depth--;
+	}
+}
+```
+
+### 9.4.2 free_irq()
+
+该函数用于注销由request_irq()注册的中断，其定义于kernel/irq/manage.c:
+
+```
+/**
+ *	free_irq - free an interrupt allocated with request_irq
+ *	@irq: Interrupt line to free
+ *	@dev_id: Device identity to free
+ *
+ *	Remove an interrupt handler. The handler is removed and if the
+ *	interrupt line is no longer in use by any driver it is disabled.
+ *	On a shared IRQ the caller must ensure the interrupt is disabled
+ *	on the card it drives before calling this function. The function
+ *	does not return until any executing interrupts for this IRQ
+ *	have completed.
+ *
+ *	This function must not be called from interrupt context.
+ */
+void free_irq(unsigned int irq, void *dev_id)
+{
+	// 根据中断号，在数组irq_desc[]查找对应的中断描述符，参见struct irq_desc节
+	struct irq_desc *desc = irq_to_desc(irq);
+
+	// 检查desc->status_use_accessors中的标志位IRQ_PER_CPU_DEVID
+	if (!desc || WARN_ON(irq_settings_is_per_cpu_devid(desc)))
+		return;
+
+#ifdef CONFIG_SMP
+	if (WARN_ON(desc->affinity_notify))
+		desc->affinity_notify = NULL;
+#endif
+
+	// 调用desc->irq_data.chip->irq_bus_lock()
+	chip_bus_lock(desc);
+	// 释放__free_irq()返回的irqaction结构，参见__free_irq()节
+	kfree(__free_irq(irq, dev_id));
+	// 调用desc->irq_data.chip->irq_bus_sync_unlock()
+	chip_bus_sync_unlock(desc);
+}
+```
+
+#### 9.4.2.1 \__free_irq()
+
+该函数定义于kernel/irq/manage.c:
+
+```
+/*
+ * Internal function to unregister an irqaction - used to free
+ * regular and special interrupts that are part of the architecture.
+ */
+static struct irqaction *__free_irq(unsigned int irq, void *dev_id)
+{
+	struct irq_desc *desc = irq_to_desc(irq);
+	struct irqaction *action, **action_ptr;
+	unsigned long flags;
+
+	WARN(in_interrupt(), "Trying to free IRQ %d from IRQ context!\n", irq);
+
+	if (!desc)
+		return NULL;
+
+	raw_spin_lock_irqsave(&desc->lock, flags);
+
+	/*
+	 * There can be multiple actions per IRQ descriptor, find the right
+	 * one based on the dev_id:
+	 */
+	action_ptr = &desc->action;
+	for (;;) {
+		action = *action_ptr;
+
+		if (!action) {
+			WARN(1, "Trying to free already-free IRQ %d\n", irq);
+			raw_spin_unlock_irqrestore(&desc->lock, flags);
+
+			return NULL;
+		}
+
+		if (action->dev_id == dev_id)
+			break;
+
+		// 参见struct irq_desc节
+		action_ptr = &action->next;
+	}
+
+	/* Found it - now remove it from the list of entries: */
+	*action_ptr = action->next;
+
+	/* Currently used only by UML, might disappear one day: */
+#ifdef CONFIG_IRQ_RELEASE_METHOD
+	if (desc->irq_data.chip->release)
+		desc->irq_data.chip->release(irq, dev_id);
+#endif
+
+	/* If this was the last handler, shut down the IRQ line: */
+	if (!desc->action)
+		/*
+		 * 尝试调用如下函数关闭中断线：
+		 * desc->irq_data.chip->irq_shutdown(), or
+		 * desc->irq_data.chip->irq_disable(), or
+		 * desc->irq_data.chip->irq_mask()
+		 */
+		irq_shutdown(desc);
+
+#ifdef CONFIG_SMP
+	/* make sure affinity_hint is cleaned up */
+	if (WARN_ON_ONCE(desc->affinity_hint))
+		desc->affinity_hint = NULL;
+#endif
+
+	raw_spin_unlock_irqrestore(&desc->lock, flags);
+
+	unregister_handler_proc(irq, action);
+
+	/* Make sure it's not being used on another CPU: */
+	synchronize_irq(irq);
+
+#ifdef CONFIG_DEBUG_SHIRQ
+	/*
+	 * It's a shared IRQ -- the driver ought to be prepared for an IRQ
+	 * event to happen even now it's being freed, so let's make sure that
+	 * is so by doing an extra call to the handler ....
+	 *
+	 * ( We do this after actually deregistering it, to make sure that a
+	 *   'real' IRQ doesn't run in * parallel with our fake. )
+	 */
+	if (action->flags & IRQF_SHARED) {
+		local_irq_save(flags);
+		action->handler(irq, dev_id);
+		local_irq_restore(flags);
+	}
+#endif
+
+	if (action->thread) {
+		if (!test_bit(IRQTF_DIED, &action->thread_flags))
+			kthread_stop(action->thread);
+		put_task_struct(action->thread);
+	}
+
+	module_put(desc->owner);
+	return action;
+}
+```
+
+## 9.5 控制中断
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第5. Kernel Synchronization章第Local Interrupt Disabling节：
+
+Interrupt disabling is one of the key mechanisms used to ensure that a sequence of kernel statements is treated as a critical section. It allows a kernel control path to continue executing even when hardware devices issue IRQ signals, thus providing an effective way to protect data structures that are also accessed by interrupt handlers. By itself, however, local interrupt disabling does not protect against concurrent accesses to data structures by interrupt handlers running on other CPUs, so in multiprocessor systems, local interrupt disabling is often coupled with spin locks.
+
+### 9.5.1 Disable/Enable Interrupts
+
+To disable interrupts locally for the current processor (and only the current processor) and then later reenable them, do the following:
+
+```
+local_irq_disable(); 
+/* interrupts are disabled on the local CPU .. */ 
+local_irq_enable();
+```
+
+Or, save interrupts state first and then restore interrupts to a previous state:
+
+```
+unsigned long flags;
+
+local_irq_save(flags);		/* interrupts are now disabled */
+				/* interrupts are disabled on the local CPU .. */ 
+local_irq_restore(flags);	/* interrupts are restored to their previous state */
+```
+
+These functions are usually implemented as a single assembly operation. (Of course, this depends on the architecture.) Indeed, on x86, local_irq_disable() is a simple cli and local_irq_enable() is a simple sti instruction. cli and sti are the assembly calls to clear and set the allow interrupts flag, respectively. In other words, they disable and enable interrupt delivery on the issuing processor.
+
+Those macros are defined in include/linux/irqflags.h.
+
+### 9.5.2 Disable/Enable a Specific Interrupt Line
+
+In some cases, it is useful to disable only a specific interrupt line for the entire system. This is called masking out an interrupt line. Linux provides four interfaces for this task, which are defined in kernel/irq/manage.c:
+
+```
+void disable_irq(unsigned int irq);
+void disable_irq_nosync(unsigned int irq);
+void enable_irq(unsigned int irq);
+
+void synchronize_irq(unsigned int irq);
+```
+
+The first two functions disable a given interrupt line in the interrupt controller. This disables delivery of the given interrupt to all processors in the system. Additionally, the disable_irq()function does not return until any currently executing handler completes. Thus, callers are assured not only that new interrupts will not be delivered on the given line, but also that any already executing handlers have exited. The function disable_irq_nosync() does not wait for current handlers to complete.
+
+The function synchronize_irq() waits for a specific interrupt handler to exit, if it is executing, before returning.
+
+Calls to these functions nest. For each call to disable_irq() or disable_irq_nosync() on a given interrupt line, a corresponding call to enable_irq() is required. Only on the last call to enable_irq() is the interrupt line actually enabled. For example, if disable_irq() is called twice, the interrupt line is not actually reenabled until the second call to enable_irq().
+
+All three of these functions can be called from interrupt or process context and do not sleep. If calling from interrupt context, be careful! You do not want, for example, to enable an interrupt line while you are handling it.
+
+### 9.5.3 Status of the Interrupt System
+
+It is often useful to know the state of the interrupt system (for example, whether interrupts are enabled or disabled) or whether you are currently executing in interrupt context.
+
+The macro irq_disabled() returns nonzero if the interrupt system on the local processor is disabled. Otherwise, it returns zero. It’s defined in include/linux/irqflags.h:
+
+```
+#ifdef CONFIG_TRACE_IRQFLAGS_SUPPORT
+#define irqs_disabled()					\
+	({						\
+		unsigned long _flags;			\
+		raw_local_save_flags(_flags);		\
+		raw_irqs_disabled_flags(_flags);	\
+	})
+#else
+#define irqs_disabled()	(raw_irqs_disabled())
+#endif
+```
+
+Below macros, defined in include/linux/hardirq.h, provide an interface to check the kernel’s current context:
+
+```
+/*
+ * Are we doing bottom half or hardware interrupt processing?
+ * Are we in a softirq context? Interrupt context?
+ * in_softirq - Are we currently processing softirq or have bh disabled?
+ * in_serving_softirq - Are we currently processing softirq?
+ */
+#define in_interrupt()			(irq_count())
+#define in_irq()			(hardirq_count())
+
+#define in_softirq()			(softirq_count())
+#define in_serving_softirq()		(softirq_count() & SOFTIRQ_OFFSET)
+
+/*
+ * Are we in NMI context?
+ */
+#define in_nmi()			(preempt_count() & NMI_MASK)
+```
+
+The most useful is in_interrupt(): It returns nonzero if the kernel is performing any type of interrupt handling. This includes either executing an interrupt handler or a bottom half handler.
+
+More often, you want to check whether you are in process context. That is, you want to ensure you are not in interrupt context. This is often the case because code wants to do something that can only be done from process context, such as sleep. If in_interrupt() returns zero, the kernel is in process context.
+
+The macro in_irq() returns nonzero only if the kernel is specifically executing an interrupt handler.
+
+另参见struct thread_info->preempt_count节。
+
+## 9.6 编写中断处理函数
+
+### 9.6.1 中断处理函数原型
+
+中断处理函数的原型参见include/linux/interrupt.h:
+
+```
+typedef irqreturn_t (*irq_handler_t)(int irq, void *dev);
+```
+
+其返回类型为irqreturn_t，参见include/linux/irqreturn.h:
+
+```
+/**
+ * enum irqreturn
+ * @IRQ_NONE		interrupt was not from this device
+ * @IRQ_HANDLED		interrupt was handled by this device
+ * @IRQ_WAKE_THREAD	handler requests to wake the handler thread
+ */
+enum irqreturn {
+	IRQ_NONE		= (0 << 0),
+	IRQ_HANDLED		= (1 << 0),
+	IRQ_WAKE_THREAD		= (1 << 1),
+};
+
+typedef enum irqreturn irqreturn_t;
+
+/*
+ * If x is nonzero, this macro returns IRQ_HANDLED.
+ * Otherwise, the macro returns IRQ_NONE.
+ */
+#define IRQ_RETVAL(x)		((x) != IRQ_NONE)
+```
+
+The interrupt handler is normally marked static because it is never called directly from another file.
+
+### 9.6.2 编写中断处理函数的注意事项
+
+The role of the interrupt handler depends entirely on the device and its reasons for issuing the interrupt. At a minimum, most interrupt handlers need to provide acknowledgment to the device that they received the interrupt. Devices that are more complex need to additionally send and receive data and perform extended work in the interrupt handler.
+
+Interrupt handlers in Linux need not be reentrant. When a given interrupt handler is executing, the corresponding interrupt line is masked out on all processors, preventing another interrupt on the same line from being received. Normally all other interrupts are enabled, so other interrupts are serviced, but the current line is always disabled. Consequently, the same interrupt handler is never invoked concurrently to service a nested interrupt. This greatly simplifies writing your interrupt handler.
+
+Interrupt context is time-critical because the interrupt handler interrupts other code. Code should be quick and simple.
+
+The setup of an interrupt handler’s stacks is a configuration option. Historically, interrupt handlers did not receive their own stacks. Instead, they would share the stack of the process that they interrupted. The kernel stack is two pages in size; typically, that is 8KB on 32-bit architectures and 16KB on 64-bit architectures. Because in this setup interrupt handlers share the stack, they must be exceptionally frugal with what data they allocate there.
+
+### 9.6.3 中断处理函数示例
+
+以drivers/char/rtc.c为例，中断处理函数的写法如下：
+
+```
+static irqreturn_t rtc_interrupt(int irq, void *dev_id)
+{
+	/*
+	 * Can be an alarm interrupt, update complete interrupt,
+	 * or a periodic interrupt. We store the status in the
+	 * low byte and the number of interrupts received since
+	 * the last read in the remainder of rtc_irq_data.
+	 */
+
+	spin_lock(&rtc_lock);
+	rtc_irq_data += 0x100;
+	rtc_irq_data &= ~0xff;
+	if (is_hpet_enabled()) {
+		/*
+		 * In this case it is HPET RTC interrupt handler
+		 * calling us, with the interrupt information
+		 * passed as arg1, instead of irq.
+		 */
+		rtc_irq_data |= (unsigned long)irq & 0xF0;
+	} else {
+		rtc_irq_data |= (CMOS_READ(RTC_INTR_FLAGS) & 0xF0);
+	}
+
+	if (rtc_status & RTC_TIMER_ON)
+		mod_timer(&rtc_irq_timer, jiffies + HZ/rtc_freq + 2*HZ/100);
+
+	spin_unlock(&rtc_lock);
+
+	/* Now do the rest of the actions */
+	spin_lock(&rtc_task_lock);
+	if (rtc_callback)
+		rtc_callback->func(rtc_callback->private_data);
+	spin_unlock(&rtc_task_lock);
+	wake_up_interruptible(&rtc_wait);
+
+	kill_fasync(&rtc_async_queue, SIGIO, POLL_IN);
+
+	return IRQ_HANDLED;
+}
+```
+
+## 9.7 中断的初始化
+
+在系统启动时，需要初始化中断，参见： 
+* 中断描述符表的初步初始化节
+* 中断描述符表的最终初始化节
+* trap_init()节
+* early_irq_init()节
+* init_IRQ()节
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

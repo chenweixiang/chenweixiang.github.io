@@ -42310,7 +42310,7 @@ chenwx@chenwx ~/linux $ git diff --shortstat v3.13 v3.14
 * Block Drivers
 * Network Drivers
 
-Most device drivers represent physical hardware. However, some device drivers are virtual, providing access to kernel functionality. 参见10.3.5.1 内存设备节. Some of the most common Pseudo devices are:
+Most device drivers represent physical hardware. However, some device drivers are virtual, providing access to kernel functionality. 参见10.3.4.1 内存设备节. Some of the most common Pseudo devices are:
 * the kernel random number generator (accessible at /dev/random and /dev/urandom),
 * the null device (accessible at /dev/null)
 * the zero device (accessible at /dev/zero)
@@ -46213,6 +46213,2734 @@ SUBSYSTEM=="graphics", RUN{builtin}="kmod load fbcon"
 KERNEL=="mtd*ro", ENV{MTD_FTL}=="smartmedia", RUN{builtin}="kmod load sm_ftl" 
 
 LABEL="drivers_end"
+```
+
+## 10.3 Char Drivers (drivers/char/)
+
+<<Linux Kernel Development, 3rd Edition>> Chaper 14. The Block I/O Layer:
+
+Character devices, or char devices, are accessed as a stream of sequential data, one byte after another. Example character devices are serial ports, keyboards, mice, printers and most pseudo-devices. If the hardware device is accessed as a stream of data, it is implemented as a character device. On the other hand, if the device is accessed randomly (nonsequentially), it is a block device.
+
+下列命令输出结果中的第一列为c，则该设备为字符设备，另参见10.3.4.0 字符设备列表节：
+
+```
+chenwx@chenwx ~ $ ll /dev
+crw-rw-rw-  1 root root      1,   3 Nov 27 20:51 null
+crw-rw-rw-  1 root root      1,   8 Nov 27 20:51 random 
+crw-rw-rw-  1 root tty       5,   0 Nov 28 08:28 tty 
+crw--w----  1 root tty       4,   0 Nov 27 20:51 tty0 
+crw-rw----  1 root tty       4,   1 Nov 27 20:51 tty1 
+crw-rw-rw-  1 root root      1,   5 Nov 27 20:51 zero
+...
+```
+
+由drivers/Makefile中的如下配置可知，字符设备位于drivers/char/目录，并且被编译进内核的：
+
+```
+# tty/ comes before char/ so that the VT console is the boot-time
+# default.
+obj-y				+= tty/
+obj-y				+= char/
+```
+
+### 10.3.1 描述字符设备的数据结构
+
+数组chrdevs[]定义于fs/char_dev.c:
+
+```
+static struct char_device_struct {
+	struct char_device_struct		*next;		// 指向单链表中的下一项
+	unsigned int				major;		// 主设备号
+	unsigned int				baseminor;	// 起始次设备号
+	int					minorct;	// 次设备号的范围
+	char					name[64];	// 处理该设备编号范围内的设备驱动的名称
+	struct cdev				*cdev; /* will die */ // 指向字符设备驱动程序描述符的指针
+} *chrdevs[CHRDEV_MAJOR_HASH_SIZE];				// index可通过调用函数major_to_index(major)获得
+```
+
+其中，struct cdev用于描述字符设备，其定义于include/linux/cdev.h:
+
+```
+struct cdev {
+	struct kobject				kobj;		// 参见15.7 kobject节
+	struct module				*owner;		// 指向提供驱动程序的模块，参见13.4.1.1 struct module节
+	const struct file_operations 		*ops;		// 一组文件操作，其实现与硬件通信的具体操作
+	struct list_head			list;		// 包含cdev的双向循环链表
+	dev_t					dev;		// 主次设备号
+	unsigned int				count;		// 表示与该设备关联的次设备的数目
+};
+```
+
+其结构参见:
+
+![Char_Device_Overivew](/assets/Char_Device_Overivew.jpg)
+
+### 10.3.2 字符设备的初始化/chr_dev_init()
+
+* 字符设备初始化函数之一：chrdev_init()			// 参见4.3.4.1.4.3.11.6 chrdev_init()节
+* 字符设备初始化函数之二：chr_dev_init()			// 参见本节
+
+```
+start_kernel()						// 参见4.3.4.1.4.3 start_kernel()节
+-> vfs_caches_init()					// 参见4.3.4.1.4.3.11 vfs_caches_init()节
+   -> chrdev_init()					// 参见4.3.4.1.4.3.11.6 chrdev_init()节
+-> rest_init()						// 参见4.3.4.1.4.3.13 rest_init()节
+   -> kernel_init()					// 参见4.3.4.1.4.3.13.1 kernel_init()节
+      -> do_basic_setup()				// 参见4.3.4.1.4.3.13.1.2 do_basic_setup()节
+         -> do_initcalls()				// 参见13.5.1.1.1 do_initcalls()节
+            -> do_one_initcall()			// 参见13.5.1.1.1.2 do_one_initcall()节
+               -> fs_initcall(chr_dev_init)		// initcall5.init
+                  -> chr_dev_init()			// 参见本节
+```
+
+函数chr_dev_init()用于初始化字符设备，其定义于drivers/char/mem.c:
+
+```
+/*
+ * 数组devlist[]用于创建如下内存设备：
+ *   Name				Major			Minor (=数组devlist[]的下标)
+ *   ------------------------------------------------------------------
+ *   /dev/mem				1			1
+ *   /dev/kmem				1			2
+ *   /dev/null				1			3
+ *   /dev/port				1			4
+ *   /dev/zero				1			5
+ *   /dev/full				1			7
+ *   /dev/random			1			8
+ *   /dev/urandom			1			9
+ *   /dev/kmsg				1			11
+ *   /dev/oldmem			1			12	// which is already removed!
+ */
+static const struct memdev {
+	const char			*name;
+	mode_t				mode;
+	const struct file_operations	*fops;
+	struct backing_dev_info		*dev_info;
+} devlist[] = {
+	 [1] = { "mem",			0,		&mem_fops,	&directly_mappable_cdev_bdi },
+#ifdef CONFIG_DEVKMEM
+	 [2] = { "kmem",		0,		&kmem_fops,	&directly_mappable_cdev_bdi },
+#endif
+	 [3] = { "null",		0666,		&null_fops,	NULL },
+#ifdef CONFIG_DEVPORT
+	 [4] = { "port",		0,		&port_fops,	NULL },
+#endif
+	 [5] = { "zero",		0666,		&zero_fops,	&zero_bdi },
+	 [7] = { "full",		0666,		&full_fops,	NULL },
+	 [8] = { "random",		0666,		&random_fops,	NULL },
+	 [9] = { "urandom",		0666,		&urandom_fops,	NULL },
+	[11] = { "kmsg",		0,		&kmsg_fops,	NULL },
+#ifdef CONFIG_CRASH_DUMP
+	[12] = { "oldmem",		0,		&oldmem_fops,	NULL },
+#endif
+};
+
+static int __init chr_dev_init(void)
+{
+	int minor;
+	int err;
+
+	// 1) 初始化设备/dev/zero
+	err = bdi_init(&zero_bdi);
+	if (err)
+		return err;
+
+	/*
+	 * 2) 注册字符设备/dev/mem，其主设备号为1，共占用256个次设备号；
+	 *    参见10.3.3.1 register_chrdev()节
+	 */
+	if (register_chrdev(MEM_MAJOR, "mem", &memory_fops))
+		printk("unable to get major %d for memory devs\n", MEM_MAJOR);
+
+	// 3) 创建目录/sys/class/mem/，参见10.2.7.1 class_create()节
+	mem_class = class_create(THIS_MODULE, "mem");
+	if (IS_ERR(mem_class))
+		return PTR_ERR(mem_class);
+
+	/*
+	 * 函数mem_devnode(dev, ..)用于获取字符设备的属性:
+	 * devlist[MINOR(dev->devt)].mode
+	 */
+	mem_class->devnode = mem_devnode;
+
+	/*
+	 * 4) 依次创建数组devlist[]中的内存设备 /dev/devlist[idx].name，
+	 *    其函数调用关系为: device_create()->device_create_vargs()
+	 *    ->device_register()->device_initialize()->device_add()
+	 *    ->devtmpfsd()->handle()->handle_create()->vfs_mknod()
+	 */
+	for (minor = 1; minor < ARRAY_SIZE(devlist); minor++) {
+		if (!devlist[minor].name)
+			continue;
+
+		/*
+		 * Create /dev/port?
+		 */
+		if ((minor == DEVPORT_MINOR) && !arch_has_dev_port())
+			continue;
+
+		/*
+		 * 创建字符设备devlist[minor]，主设备号为1，次设备号为minor，
+		 * 并生成目录/sys/class/mem/<devlist[minor].name>，
+		 * 参见10.2.3.1 创建设备/device_create()节
+		 */
+		device_create(mem_class, NULL, MKDEV(MEM_MAJOR, minor),
+				NULL, devlist[minor].name);
+	}
+
+	/*
+	 * 5) 注册字符设备/dev/tty和/dev/console，
+	 * 参见10.3.2.1 tty_init()节
+	 */
+	return tty_init();
+}
+
+fs_initcall(chr_dev_init);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall5.init
+```
+
+#### 10.3.2.1 tty_init()
+
+该函数定义于drivers/tty/tty_io.c:
+
+```
+/*
+ * Ok, now we can initialize the rest of the tty devices and can count
+ * on memory allocations, interrupts etc..
+ */
+int __init tty_init(void)
+{
+	/*
+	 * 1) 创建字符设备/dev/tty
+	 */
+
+	/*
+	 * 1.1) 初始化变量tty_cdev，
+	 * 参见10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()节
+	 */
+	cdev_init(&tty_cdev, &tty_fops);
+
+	/*
+	 * 1.2) 添加字符设备/dev/tty
+	 * 参见10.3.3.3.3.1 cdev_add()节和10.3.3.3.1.2 register_chrdev_region()节
+	 */
+	if (cdev_add(&tty_cdev, MKDEV(TTYAUX_MAJOR, 0), 1) ||
+	    register_chrdev_region(MKDEV(TTYAUX_MAJOR, 0), 1, "/dev/tty") < 0)
+		panic("Couldn't register /dev/tty driver\n");
+
+	/*
+	 * 1.3) 创建字符设备/dev/tty，
+	 * 参见10.2.3.1 创建设备/device_create()节
+	 */
+	device_create(tty_class, NULL, MKDEV(TTYAUX_MAJOR, 0), NULL, "tty");
+
+	/*
+	 * 2) 创建字符设备/dev/console
+	 */
+
+	/*
+	 * 2.1) 初始化变量tty_cdev，
+	 * 参见10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()节
+	 */
+	cdev_init(&console_cdev, &console_fops);
+
+	/*
+	 * 2.2) 添加字符设备/dev/console
+	 * 参见10.3.3.3.3.1 cdev_add()节和10.3.3.3.1.2 register_chrdev_region()节
+	 */
+	if (cdev_add(&console_cdev, MKDEV(TTYAUX_MAJOR, 1), 1) ||
+	    register_chrdev_region(MKDEV(TTYAUX_MAJOR, 1), 1, "/dev/console") < 0)
+		panic("Couldn't register /dev/console driver\n");
+
+	/*
+	 * 2.3) 创建字符设备/dev/console，
+	 * 参见10.2.3.1 创建设备/device_create()节
+	 */
+	consdev = device_create(tty_class, NULL, MKDEV(TTYAUX_MAJOR, 1), NULL, "console");
+
+	if (IS_ERR(consdev))
+		consdev = NULL;
+	else
+		WARN_ON(device_create_file(consdev, &dev_attr_active) < 0);
+
+#ifdef CONFIG_VT
+	vty_init(&console_fops);
+#endif
+
+	return 0;
+}
+```
+
+### 10.3.3 注册/注销字符设备
+
+字符设备的注册与注销有如下两种方式：
+
+1) 通过函数register_chrdev()注册字符设备，通过函数unregister_chrdev()注销字符设备，参见10.3.3.1 register_chrdev()节和10.3.3.2 unregister_chrdev()节；
+
+2) 分如下步骤完成字符设备的注册与注销，这种方式是register_chrdev()/unregister_chrdev()的组成步骤，参见10.3.3.3 注册/注销字符设备的分步骤节。
+
+NOTE: If you dig through much driver code in the 2.6 kernel, you may notice that quite a few char drivers do not use the cdev interface described in section 10.3.3.3 注册/注销字符设备的分步骤. But new code should not use it; this mechanism will likely go away in a future kernel.
+
+2.1) 申请设备号
+
+register_chrdev_region(): 静态申请设备号
+alloc_chrdev_region()： 动态申请设备号
+
+参见10.3.3.3.1.1 alloc_chrdev_region()节和10.3.3.3.1.2 register_chrdev_region()节。
+
+2.2) 分配和初始化cdev对象
+
+a) 静态分配和初始化cdev对象
+
+   struct cdev mycdev;
+   cdev_init(&mycdev, &fops);
+   mycdev->owner = THIS_MODULE;
+
+其中，函数cdev_init()用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()节。
+
+b) 动态分配和初始化cdev对象
+
+   struct cdev *mycdev = cdev_alloc();
+   mycdev->ops = &fops;
+   mycdev->owner = THIS_MODULE;
+
+其中，函数cdev_alloc()用于动态分配cdev对象，参见10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()节。
+
+2.3) 添加cdev对象
+
+cdev_add(): Once the cdev structure is set up, the final step is to tell the kernel about it.
+
+There are a couple of important things to keep in mind when using cdev_add(). The first is that this call can fail. If it returns a negative error code, your device has not been added to the system. It almost always succeeds, however, and that brings up the other point: as soon as cdev_add() returns, your device is "live" and its operations can be called by the kernel. You should not call cdev_add() until your driver is completely ready to handle operations on the device.
+
+参见10.3.3.3.3.1 cdev_add()节。
+
+2.4) 访问字符设备
+
+参见10.3.3.3.4 访问字符设备节。
+
+2.5) 删除cdev对象
+
+cdev_del(): To remove a char device from the system. Clearly, you should not access the cdev structure after passing it to cdev_del.
+
+参见10.3.3.3.3.2 cdev_del()节。
+
+2.6) 释放设备号
+
+unregister_chrdev_region()
+
+参见10.3.3.3.1.4 unregister_chrdev_region()节。
+
+#### 10.3.3.1 register_chrdev()
+
+该函数定义于include/linux/fs.h:
+
+```
+/*
+ * A call to register_chrdev registers minor numbers 0–255 for the given major,
+ * and sets up a default cdev structure for each. Drivers using this interface
+ * must be prepared to handle open calls on all 256 minor numbers (whether they
+ * correspond to real devices or not), and they cannot use major or minor numbers
+ * greater than 255.
+*/
+static inline int register_chrdev(unsigned int major, const char *name,
+				  const struct file_operations *fops)
+{
+	// 分配主设备号为major，起始次设备号为0，共连续256个次设备号
+	return __register_chrdev(major, 0, 256, name, fops);
+}
+```
+
+其中，```__register_chrdev()```定义于fs/char_dev.c:
+
+```
+/**
+ * __register_chrdev() - create and register a cdev occupying a range of minors
+ * @major: major device number or 0 for dynamic allocation
+ * @baseminor: first of the requested range of minor numbers
+ * @count: the number of minor numbers required
+ * @name: name of this range of devices
+ * @fops: file operations associated with this devices
+ *
+ * If @major == 0 this functions will dynamically allocate a major and return
+ * its number.
+ *
+ * If @major > 0 this function will attempt to reserve a device with the given
+ * major number and will return zero on success.
+ *
+ * Returns a -ve errno on failure.
+ *
+ * The name of this device has nothing to do with the name of the device in
+ * /dev. It only helps to keep track of the different owners of devices. If
+ * your module name has only one type of devices it's ok to use e.g. the name
+ * of the module here.
+ */
+int __register_chrdev(unsigned int major, unsigned int baseminor,
+		      unsigned int count, const char *name,
+		      const struct file_operations *fops)
+{
+	struct char_device_struct *cd;
+	struct cdev *cdev;
+	int err = -ENOMEM;
+
+	/*
+	 * 分配/初始化struct char_device_struct类型的变量，
+	 * 并将其插入到链表chrdevs[major%255]中的适当位置，
+	 * 参见10.3.3.3.1.3 __register_chrdev_region()节
+	 */
+	cd = __register_chrdev_region(major, baseminor, count, name);
+	if (IS_ERR(cd))
+		return PTR_ERR(cd);
+
+	/*
+	 * 动态分配/初始化struct cdev类型的对象，
+	 * 并设置cdev->kobj->ktype = &ktype_cdev_dynamic;
+	 * 参见10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()节
+	 */
+	cdev = cdev_alloc();
+	if (!cdev)
+		goto out2;
+
+	cdev->owner = fops->owner;
+	cdev->ops = fops;
+
+	// 设置cdev->kobj->name = name
+	kobject_set_name(&cdev->kobj, "%s", name);
+
+	/*
+	 * 将cdev链接到cdev_map.probe[major].data中，参见10.3.3.3.3.1 cdev_add()节；
+	 * 参见Subjects/Chapter10_Device_Driver/01_Char_Device/Figures/chrdevs[]_2.jpg
+	 */
+	err = cdev_add(cdev, MKDEV(cd->major, baseminor), count);
+	if (err)
+		goto out;
+
+	cd->cdev = cdev;
+
+	// 若动态分配主设备号，则返回动态分配的主设备号，否则返回0
+	return major ? 0 : cd->major;
+
+out:
+	// 参见15.7.2.2 kobject_put()节
+	kobject_put(&cdev->kobj);
+out2:
+	kfree(__unregister_chrdev_region(cd->major, baseminor, count));
+	return err;
+}
+```
+
+#### 10.3.3.2 unregister_chrdev()
+
+If you use register_chrdev, the proper function to remove your device(s) from the system is ```unregister_chrdev()```.
+
+该函数定义于include/linux/fs.h:
+
+```
+static inline void unregister_chrdev(unsigned int major, const char *name)
+{
+	__unregister_chrdev(major, 0, 256, name);
+}
+```
+
+其中，```__unregister_chrdev()```定义于fs/char_dev.c:
+
+```
+/**
+ * __unregister_chrdev - unregister and destroy a cdev
+ * @major: major device number
+ * @baseminor: first of the range of minor numbers
+ * @count: the number of minor numbers this cdev is occupying
+ * @name: name of this range of devices
+ *
+ * Unregister and destroy the cdev occupying the region described by
+ * @major, @baseminor and @count.  This function undoes what
+ * __register_chrdev() did.
+ */
+void __unregister_chrdev(unsigned int major, unsigned int baseminor,
+			 unsigned int count, const char *name)
+{
+	struct char_device_struct *cd;
+
+	// 参见10.3.3.3.1.5 __unregister_chrdev_region()节
+	cd = __unregister_chrdev_region(major, baseminor, count);
+	if (cd && cd->cdev)
+		cdev_del(cd->cdev);	// 参见10.3.3.3.3.2 cdev_del()节
+	kfree(cd);
+}
+```
+
+#### 10.3.3.3 注册/注销字符设备的分步骤
+
+##### 10.3.3.3.1 申请/释放设备号
+
+###### 10.3.3.3.1.1 alloc_chrdev_region()
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * alloc_chrdev_region() - register a range of char device numbers
+ * @dev: output parameter for first assigned number
+ * @baseminor: first of the requested range of minor numbers
+ * @count: the number of minor numbers required
+ * @name: the name of the associated device or driver
+ *
+ * Allocates a range of char device numbers.  The major number will be
+ * chosen dynamically, and returned (along with the first minor number)
+ * in @dev.  Returns zero or a negative error code.
+ */
+int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count,
+			const char *name)
+{
+	struct char_device_struct *cd;
+
+	/*
+	 * 分配/初始化struct char_device_struct类型的对象，
+	 * 并将其插入到链表chrdevs[major%255]中的适当位置，
+	 * 参见10.3.3.3.1.3 __register_chrdev_region()节
+	 */
+	cd = __register_chrdev_region(0, baseminor, count, name);
+	if (IS_ERR(cd))
+		return PTR_ERR(cd);
+
+	// 构造主次设备号: 高12 bit为主设备号，低20 bit为次设备号
+	*dev = MKDEV(cd->major, cd->baseminor);
+
+	return 0;
+}
+```
+
+###### 10.3.3.3.1.2 register_chrdev_region()
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * register_chrdev_region() - register a range of device numbers
+ * @from: the first in the desired range of device numbers; must include
+ *        the major number.
+ * @count: the number of consecutive device numbers required
+ * @name: the name of the device or driver.
+ *
+ * Return value is zero on success, a negative error code on failure.
+ */
+int register_chrdev_region(dev_t from, unsigned count, const char *name)
+{
+	struct char_device_struct *cd;
+	dev_t to = from + count;
+	dev_t n, next;
+
+	for (n = from; n < to; n = next) {
+		next = MKDEV(MAJOR(n)+1, 0);
+		if (next > to)
+			next = to;
+		/*
+		 * 分配和初始化struct char_device_struct的对象，
+		 * 并将其插入到链表chrdevs[major%255]中的适当位置，
+		 * 参见10.3.3.3.1.3 __register_chrdev_region()节
+		 */
+		cd = __register_chrdev_region(MAJOR(n), MINOR(n), next - n, name);
+		if (IS_ERR(cd))
+			goto fail;
+	}
+	return 0;
+
+fail:
+	to = n;
+	for (n = from; n < to; n = next) {
+		next = MKDEV(MAJOR(n)+1, 0);
+		kfree(__unregister_chrdev_region(MAJOR(n), MINOR(n), next - n));
+	}
+	return PTR_ERR(cd);
+}
+```
+
+###### 10.3.3.3.1.3 \__register_chrdev_region()
+
+该函数定义于fs/char_dev.c:
+
+```
+/*
+ * Register a single major with a specified minor range.
+ *
+ * If major == 0 this functions will dynamically allocate a major and return
+ * its number.
+ *
+ * If major > 0 this function will attempt to reserve the passed range of
+ * minors and will return zero on success.
+ *
+ * Returns a -ve errno on failure.
+ */
+static struct char_device_struct *
+__register_chrdev_region(unsigned int major, unsigned int baseminor,
+			 int minorct, const char *name)
+{
+	struct char_device_struct *cd, **cp;
+	int ret = 0;
+	int i;
+
+	cd = kzalloc(sizeof(struct char_device_struct), GFP_KERNEL);
+	if (cd == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	mutex_lock(&chrdevs_lock);
+
+	/*
+	 * 若major == 0，则动态分配主设备号：
+	 * 按从后向前的顺序查找数组chrdevs[]，若某元素为空，
+	 * 则该元素对应的下标即为新分配的主设备号；由此可知，
+	 * 动态分配主设备号的顺序是由大到小
+	 */
+	/* temporary */
+	if (major == 0) {
+		for (i = ARRAY_SIZE(chrdevs)-1; i > 0; i--) {
+			if (chrdevs[i] == NULL)
+				break;
+		}
+
+		/*
+		 * 若数组chrdevs[]的255个元素全部被用，则直接返回。特例：
+		 * 若数组chrdevs[]全部占用，但某个主设备号chrdevs[major]所
+		 * 对应的辅设备号只占用了1个，这种情况下无法使用动态分配设备号，
+		 * 只能使用静态分配设备号的方式来申请！
+		 */
+		if (i == 0) {
+			ret = -EBUSY;
+			goto out;
+		}
+		major = i;
+		ret = major;
+	}
+
+	cd->major = major;
+	cd->baseminor = baseminor;
+	cd->minorct = minorct;
+	strlcpy(cd->name, name, sizeof(cd->name));
+
+	/*
+	 * 查找新元素cd应插入到链表chrdevs[major%255]中的位置，按如下条件查找：
+	 * - 按链表chrdevs[major%255]中major由小到大的顺序
+	 * - 按链表chrdevs[major%255]中baseminor由小到大的顺序
+	 */
+	i = major_to_index(major);
+	for (cp = &chrdevs[i]; *cp; cp = &(*cp)->next)
+		if ((*cp)->major > major ||
+		    ((*cp)->major == major &&
+		     (((*cp)->baseminor >= baseminor) ||
+		      ((*cp)->baseminor + (*cp)->minorct > baseminor))))
+			break;
+
+	/* Check for overlapping minor ranges. */
+	if (*cp && (*cp)->major == major) {
+		int old_min = (*cp)->baseminor;
+		int old_max = (*cp)->baseminor + (*cp)->minorct - 1;
+		int new_min = baseminor;
+		int new_max = baseminor + minorct - 1;
+
+		/* New driver overlaps from the left.  */
+		if (new_max >= old_min && new_max <= old_max) {
+			ret = -EBUSY;
+			goto out;
+		}
+
+		/* New driver overlaps from the right.  */
+		if (new_min <= old_max && new_min >= old_min) {
+			ret = -EBUSY;
+			goto out;
+		}
+	}
+
+	/*
+	 * 将对象cd插入到链表chrdevs[major%255]中,
+	 * 参见Subjects/Chapter10_Device_Driver/01_Char_Device/Figures/chrdevs[]_1.jpg
+	 */
+	cd->next = *cp;
+	*cp = cd;
+
+	mutex_unlock(&chrdevs_lock);
+	return cd;
+
+out:
+	mutex_unlock(&chrdevs_lock);
+	kfree(cd);
+	return ERR_PTR(ret);
+}
+```
+
+###### 10.3.3.3.1.4 unregister_chrdev_region()
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * unregister_chrdev_region() - return a range of device numbers
+ * @from: the first in the range of numbers to unregister
+ * @count: the number of device numbers to unregister
+ *
+ * This function will unregister a range of @count device numbers,
+ * starting with @from.  The caller should normally be the one who
+ * allocated those numbers in the first place...
+ */
+void unregister_chrdev_region(dev_t from, unsigned count)
+{
+	dev_t to = from + count;
+	dev_t n, next;
+
+	for (n = from; n < to; n = next) {
+		next = MKDEV(MAJOR(n)+1, 0);
+		if (next > to)
+			next = to;
+		// 参见10.3.3.3.1.5 __unregister_chrdev_region()节
+		kfree(__unregister_chrdev_region(MAJOR(n), MINOR(n), next - n));
+	}
+}
+```
+
+###### 10.3.3.3.1.5 \__unregister_chrdev_region()
+
+该函数定义于fs/char_dev.c:
+
+```
+static struct char_device_struct *
+__unregister_chrdev_region(unsigned major, unsigned baseminor, int minorct)
+{
+	struct char_device_struct *cd = NULL, **cp;
+	int i = major_to_index(major);
+
+	mutex_lock(&chrdevs_lock);
+	for (cp = &chrdevs[i]; *cp; cp = &(*cp)->next)
+		if ((*cp)->major == major &&
+		    (*cp)->baseminor == baseminor &&
+		    (*cp)->minorct == minorct)
+			break;
+
+	// 将符合条件的元素从链表chrdevs[i]删除
+	if (*cp) {
+		cd = *cp;
+		*cp = cd->next;
+	}
+	mutex_unlock(&chrdevs_lock);
+	return cd;
+}
+```
+
+##### 10.3.3.3.2 分配/初始化cdev对象
+
+###### 10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * cdev_alloc() - allocate a cdev structure
+ *
+ * Allocates and returns a cdev structure, or NULL on failure.
+ */
+struct cdev *cdev_alloc(void)
+{
+	struct cdev *p = kzalloc(sizeof(struct cdev), GFP_KERNEL);
+	if (p) {
+		INIT_LIST_HEAD(&p->list);
+		/*
+		 * 与cdev_init()相比，其函数指针release不同:
+		 * &p->kobj->ktype = &ktype_cdev_dynamic;
+		 */
+		kobject_init(&p->kobj, &ktype_cdev_dynamic);
+	}
+	return p;
+}
+
+static struct kobj_type ktype_cdev_dynamic = {
+	.release	= cdev_dynamic_release,
+};
+
+static void cdev_dynamic_release(struct kobject *kobj)
+{
+	struct cdev *p = container_of(kobj, struct cdev, kobj);
+	struct kobject *parent = kobj->parent;
+
+	cdev_purge(p);
+	kfree(p);
+	kobject_put(parent);
+}
+```
+
+###### 10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()
+
+该函数适用于静态创建struct cdev对象后，初始化该对象，示例如下：
+
+```
+struct cdev mycdev;
+cdev_init(&mycdev, &fops);
+```
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * cdev_init() - initialize a cdev structure
+ * @cdev: the structure to initialize
+ * @fops: the file_operations for this device
+ *
+ * Initializes @cdev, remembering @fops, making it ready to add to the
+ * system with cdev_add().
+ */
+void cdev_init(struct cdev *cdev, const struct file_operations *fops)
+{
+	memset(cdev, 0, sizeof *cdev);
+	INIT_LIST_HEAD(&cdev->list);
+	/*
+	 * 与cdev_alloc()的不同之处在于，函数release()不同:
+	 * &cdev->kobj->ktype = &ktype_cdev_default;
+	 */
+	kobject_init(&cdev->kobj, &ktype_cdev_default);
+	cdev->ops = fops;
+}
+
+static struct kobj_type ktype_cdev_default = {
+	.release	= cdev_default_release,
+};
+
+static void cdev_default_release(struct kobject *kobj)
+{
+	struct cdev *p = container_of(kobj, struct cdev, kobj);
+	struct kobject *parent = kobj->parent;
+
+	cdev_purge(p);
+	kobject_put(parent);
+}
+```
+
+##### 10.3.3.3.3 添加/删除cdev对象
+
+###### 10.3.3.3.3.1 cdev_add()
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * cdev_add() - add a char device to the system
+ * @p: the cdev structure for the device
+ * @dev: the first device number for which this device is responsible
+ * @count: the number of consecutive minor numbers corresponding to this
+ *         device
+ *
+ * cdev_add() adds the device represented by @p to the system, making it
+ * live immediately.  A negative error code is returned on failure.
+ */
+int cdev_add(struct cdev *p, dev_t dev, unsigned count)
+{
+	p->dev = dev;
+	p->count = count;
+
+	/*
+	 * 变量cdev_map是由函数chrdev_init()创建的，
+	 * 参见4.3.4.1.4.3.11.6 chrdev_init()节
+	 */
+	return kobj_map(cdev_map, dev, count, NULL, exact_match, exact_lock, p);
+}
+```
+
+其中，函数kobj_map()定义于drivers/base/map.c:
+
+```
+int kobj_map(struct kobj_map *domain, dev_t dev, unsigned long range,
+	     struct module *module, kobj_probe_t *probe,
+	     int (*lock)(dev_t, void *), void *data)
+{
+	unsigned n = MAJOR(dev + range - 1) - MAJOR(dev) + 1;
+	unsigned index = MAJOR(dev);
+	unsigned i;
+	struct probe *p;
+
+	if (n > 255)
+		n = 255;
+
+	p = kmalloc(sizeof(struct probe) * n, GFP_KERNEL);
+
+	if (p == NULL)
+		return -ENOMEM;
+
+	// 这n个struct probe类型的对象，其各元素的取值完全相同
+	for (i = 0; i < n; i++, p++) {
+		p->owner = module;
+
+		/*
+		 * 此函数被kobj_lookup()调用，参见10.3.3.3.4.1 kobj_lookup()节；
+		 * 若本函数是通过cdev_add()->kobj_map()调用的，则p->get = exact_match;
+		 */
+		p->get = probe;
+
+		/*
+		 * 此函数被kobj_lookup()调用，参见10.3.3.3.4.1 kobj_lookup()节；
+		 * 若本函数是通过cdev_add()->kobj_map()调用的，则p->lock = exact_lock;
+		 */
+		p->lock = lock;
+
+		p->dev = dev;
+		p->range = range;
+
+		// 所有的p->data均指向同一struct cdev类型的对象
+		p->data = data;
+	}
+
+	// 将这n个struct probe类型的对象插入到数组cdev_map[]中
+	mutex_lock(domain->lock);
+	for (i = 0, p -= n; i < n; i++, p++, index++) {
+		struct probe **s = &domain->probes[index % 255];
+		while (*s && (*s)->range < range)
+			s = &(*s)->next;
+		p->next = *s;
+		*s = p;
+	}
+	mutex_unlock(domain->lock);
+
+	return 0;
+}
+```
+
+###### 10.3.3.3.3.2 cdev_del()
+
+该函数定义于fs/char_dev.c:
+
+```
+/**
+ * cdev_del() - remove a cdev from the system
+ * @p: the cdev structure to be removed
+ *
+ * cdev_del() removes @p from the system, possibly freeing the structure
+ * itself.
+ */
+void cdev_del(struct cdev *p)
+{
+	cdev_unmap(p->dev, p->count);
+	kobject_put(&p->kobj);	// 参见15.7.2.2 kobject_put()节
+}
+
+static void cdev_unmap(dev_t dev, unsigned count)
+{
+	kobj_unmap(cdev_map, dev, count);
+}
+```
+
+其中，函数```kobj_unmap()```定义于drivers/base/map.c:
+
+```
+void kobj_unmap(struct kobj_map *domain, dev_t dev, unsigned long range)
+{
+	unsigned n = MAJOR(dev + range - 1) - MAJOR(dev) + 1;
+	unsigned index = MAJOR(dev);
+	unsigned i;
+	struct probe *found = NULL;
+
+	if (n > 255)
+		n = 255;
+
+	mutex_lock(domain->lock);
+	for (i = 0; i < n; i++, index++) {
+		struct probe **s;
+		for (s = &domain->probes[index % 255]; *s; s = &(*s)->next) {
+			struct probe *p = *s;
+			if (p->dev == dev && p->range == range) {
+				*s = p->next;
+				if (!found)
+					found = p;
+				break;
+			}
+		}
+	}
+	mutex_unlock(domain->lock);
+	kfree(found);
+}
+```
+
+##### 10.3.3.3.4 访问字符设备
+
+如何将read(), write()等文件操作与cdev->ops中的函数关联起来的呢？
+
+1) 字符设备的驱动程序调用函数init_special_node()设置inode->i_fop指针
+
+函数init_special_node()定义于fs/inode.c:
+
+```
+void init_special_inode(struct inode *inode, umode_t mode, dev_t rdev)
+{
+	inode->i_mode = mode;
+	if (S_ISCHR(mode)) {				// 字符设备S_IFCHR
+		inode->i_fop = &def_chr_fops;
+		inode->i_rdev = rdev;
+	} else if (S_ISBLK(mode)) {			// 块设备S_IFBLK
+		inode->i_fop = &def_blk_fops;
+		inode->i_rdev = rdev;
+	} else if (S_ISFIFO(mode))			// FIFO special file, or a pipe. S_IFIFO
+		inode->i_fop = &def_fifo_fops;
+	else if (S_ISSOCK(mode))			// 网络设备S_IFSOCK
+		inode->i_fop = &bad_sock_fops;
+	else
+		printk(KERN_DEBUG "init_special_inode: bogus i_mode (%o) for"
+			 " inode %s:%lu\n", mode, inode->i_sb->s_id,
+			 inode->i_ino);
+}
+```
+
+2) 变量def_chr_fops指定字符设备的open()函数
+
+变量def_chr_fops定义于fs/char_dev.c:
+
+```
+/*
+ * Dummy default file-operations: the only thing this does
+ * is contain the open that then fills in the correct operations
+ * depending on the special file...
+ */
+const struct file_operations def_chr_fops = {
+	.open   = chrdev_open,
+	.llseek = noop_llseek,
+};
+```
+
+3) 通过函数chrdev_open()来获取字符设备的函数指针cdev->ops
+
+函数chrdev_open()定义于fs/char_dev.c:
+
+```
+/*
+ * Called every time a character special file is opened
+ */
+static int chrdev_open(struct inode *inode, struct file *filp)
+{
+	struct cdev *p;
+	struct cdev *new = NULL;
+	int ret = 0;
+
+	spin_lock(&cdev_lock);
+
+	p = inode->i_cdev;
+	if (!p) {
+		/*
+		 * 1) 若该指针为空，则从cdev_map->probes[]中查找该字符设备
+		 */devlist[MINOR(dev→
+
+		struct kobject *kobj;
+		int idx;
+		spin_unlock(&cdev_lock);
+
+		/*
+		 * 从链表cdev_map->probes[MAJOR(inode->i_rdev)%255]中
+		 * 查找符合条件的字符设备，参见10.3.3.3.4.1 kobj_lookup()节
+		 */
+		kobj = kobj_lookup(cdev_map, inode->i_rdev, &idx);
+		if (!kobj)
+			return -ENXIO;
+		new = container_of(kobj, struct cdev, kobj);
+
+		spin_lock(&cdev_lock);
+		/* Check i_cdev again in case somebody beat us to it while
+		   we dropped the lock. */
+		p = inode->i_cdev;
+		if (!p) {
+			inode->i_cdev = p = new;
+			list_add(&inode->i_devices, &p->list);
+			new = NULL;
+		} else if (!cdev_get(p))	// 增加该字符设备的引用计数p->kobj->kref
+			ret = -ENXIO;
+	} else if (!cdev_get(p))
+		/*
+		 * 2) 若该指针不为空，则增加该字符设备的引用计数p->kobj->kref
+		 */
+		ret = -ENXIO;
+
+	spin_unlock(&cdev_lock);
+	cdev_put(new);
+
+	if (ret)
+		return ret;
+
+	ret = -ENXIO;
+	// 获取该字符设备的文件操作函数，用于后续的文件操作函数read(), write(), ...
+	filp->f_op = fops_get(p->ops);
+	if (!filp->f_op)
+		goto out_cdev_put;
+
+	// 调用该字符设备对应的open()函数
+	if (filp->f_op->open) {
+		ret = filp->f_op->open(inode, filp);
+		if (ret)
+			goto out_cdev_put;
+	}
+
+	return 0;
+
+out_cdev_put:
+	cdev_put(p);
+	return ret;
+}
+```
+
+此后，read(), write()等文件操作函数将会调用cdev->ops->read(), write()等函数，参见如下章节：
+* 11.2.4.2.0 如何查找某文件所对应的文件操作函数
+* 11.2.4.2.2 read()
+* 11.2.4.2.3 write()
+* 11.2.4.2.4 close()
+* ...
+
+###### 10.3.3.3.4.1 kobj_lookup()
+
+该函数定义于drivers/base/map.c:
+
+```
+struct kobject *kobj_lookup(struct kobj_map *domain, dev_t dev, int *index)
+{
+	struct kobject *kobj;
+	struct probe *p;
+	unsigned long best = ~0UL;
+
+retry:
+	mutex_lock(domain->lock);
+	/*
+	 * 根据主设备号MAJOR(dev)，从链表cdev_map→probes[MAJOR(dev)%255]
+	 * 中查找符合条件的字符设备
+	 */
+	for (p = domain->probes[MAJOR(dev) % 255]; p; p = p->next) {
+		struct kobject *(*probe)(dev_t, int *, void *);
+		struct module *owner;
+		void *data;
+
+		// 查找符合条件的字符设备
+		if (p->dev > dev || p->dev + p->range - 1 < dev)
+			continue;
+		if (p->range - 1 >= best)
+			break;
+
+		// 增加模块的引用计数p->owner->refptr->incs
+		if (!try_module_get(p->owner))
+			continue;
+
+		owner = p->owner;
+		data = p->data;
+		probe = p->get;
+		best = p->range - 1;
+		*index = dev – p->dev;
+
+		/*
+		 * 调用该字符设备的lock()函数来锁定该字符设备; 其中，函数
+		 * 指针p->lock是由函数cdev_add()->kobj_map()设置的，
+		 * 即exact_lock(),参见10.3.3.3.3.1 cdev_add()节
+		 */
+		if (p->lock && p->lock(dev, data) < 0) {
+			module_put(owner);
+			continue;
+		}
+		mutex_unlock(domain->lock);
+
+		/*
+		 * 调用该字符设备的get()函数来查看该字符设备是否符合条件;
+		 * 其中，函数指针p->get是由函数cdev_add()->kobj_map()
+		 * 设置的，即exact_match()，参见10.3.3.3.3.1 cdev_add()节
+		 */
+		kobj = probe(dev, index, data);
+		/* Currently ->owner protects _only_ ->probe() itself. */
+		module_put(owner);
+		if (kobj)
+			return kobj;
+
+		goto retry;
+	}
+	mutex_unlock(domain->lock);
+	return NULL;
+}
+```
+
+### 10.3.4 具体的字符设备
+
+#### 10.3.4.0 字符设备列表
+
+运行命令"ls -l /dev"来查看系统中的字符设备，另参见10.1.2 设备驱动程序的分类节：
+
+```
+chenwx@chenwx ~/linux $ ls -l /dev
+
+/* (1) MEM_MAJOR = 1 */
+
+// 内存设备，参见10.3.4.1 内存设备节
+crw-r-----  1 root kmem      1,   1 Dec 30 08:20 mem
+crw-rw-rw-  1 root root      1,   3 Dec 30 08:20 null
+crw-r-----  1 root kmem      1,   4 Dec 30 08:20 port
+crw-rw-rw-  1 root root      1,   5 Dec 30 08:20 zero
+crw-rw-rw-  1 root root      1,   7 Dec 30 08:20 full
+crw-rw-rw-  1 root root      1,   8 Dec 30 08:20 random
+crw-rw-rw-  1 root root      1,   9 Dec 30 08:20 urandom
+crw-r--r--  1 root root      1,  11 Dec 30 08:20 kmsg
+
+/* (2) TTY_MAJOR = 4 */
+
+// 参见vty_init()
+crw--w----  1 root tty       4,   0 Dec 30 08:20 tty0
+crw-rw----  1 root tty       4,   1 Dec 30 08:20 tty1
+crw-rw----  1 root tty       4,   2 Dec 30 08:20 tty2
+crw-rw----  1 root tty       4,   3 Dec 30 08:20 tty3
+crw-rw----  1 root tty       4,   4 Dec 30 08:20 tty4
+crw-rw----  1 root tty       4,   5 Dec 30 08:20 tty5
+crw-rw----  1 root tty       4,   6 Dec 30 08:20 tty6
+crw--w----  1 root tty       4,   7 Dec 30 08:20 tty7
+crw--w----  1 root tty       4,   8 Dec 30 08:20 tty8
+crw--w----  1 root tty       4,   9 Dec 30 08:20 tty9
+crw--w----  1 root tty       4,  10 Dec 30 08:20 tty10
+crw--w----  1 root tty       4,  11 Dec 30 08:20 tty11
+crw--w----  1 root tty       4,  12 Dec 30 08:20 tty12
+crw--w----  1 root tty       4,  13 Dec 30 08:20 tty13
+crw--w----  1 root tty       4,  14 Dec 30 08:20 tty14
+crw--w----  1 root tty       4,  15 Dec 30 08:20 tty15
+crw--w----  1 root tty       4,  16 Dec 30 08:20 tty16
+crw--w----  1 root tty       4,  17 Dec 30 08:20 tty17
+crw--w----  1 root tty       4,  18 Dec 30 08:20 tty18
+crw--w----  1 root tty       4,  19 Dec 30 08:20 tty19
+crw--w----  1 root tty       4,  20 Dec 30 08:20 tty20
+crw--w----  1 root tty       4,  21 Dec 30 08:20 tty21
+crw--w----  1 root tty       4,  22 Dec 30 08:20 tty22
+crw--w----  1 root tty       4,  23 Dec 30 08:20 tty23
+crw--w----  1 root tty       4,  24 Dec 30 08:20 tty24
+crw--w----  1 root tty       4,  25 Dec 30 08:20 tty25
+crw--w----  1 root tty       4,  26 Dec 30 08:20 tty26
+crw--w----  1 root tty       4,  27 Dec 30 08:20 tty27
+crw--w----  1 root tty       4,  28 Dec 30 08:20 tty28
+crw--w----  1 root tty       4,  29 Dec 30 08:20 tty29
+crw--w----  1 root tty       4,  30 Dec 30 08:20 tty30
+crw--w----  1 root tty       4,  31 Dec 30 08:20 tty31
+crw--w----  1 root tty       4,  32 Dec 30 08:20 tty32
+crw--w----  1 root tty       4,  33 Dec 30 08:20 tty33
+crw--w----  1 root tty       4,  34 Dec 30 08:20 tty34
+crw--w----  1 root tty       4,  35 Dec 30 08:20 tty35
+crw--w----  1 root tty       4,  36 Dec 30 08:20 tty36
+crw--w----  1 root tty       4,  37 Dec 30 08:20 tty37
+crw--w----  1 root tty       4,  38 Dec 30 08:20 tty38
+crw--w----  1 root tty       4,  39 Dec 30 08:20 tty39
+crw--w----  1 root tty       4,  40 Dec 30 08:20 tty40
+crw--w----  1 root tty       4,  41 Dec 30 08:20 tty41
+crw--w----  1 root tty       4,  42 Dec 30 08:20 tty42
+crw--w----  1 root tty       4,  43 Dec 30 08:20 tty43
+crw--w----  1 root tty       4,  44 Dec 30 08:20 tty44
+crw--w----  1 root tty       4,  45 Dec 30 08:20 tty45
+crw--w----  1 root tty       4,  46 Dec 30 08:20 tty46
+crw--w----  1 root tty       4,  47 Dec 30 08:20 tty47
+crw--w----  1 root tty       4,  48 Dec 30 08:20 tty48
+crw--w----  1 root tty       4,  49 Dec 30 08:20 tty49
+crw--w----  1 root tty       4,  50 Dec 30 08:20 tty50
+crw--w----  1 root tty       4,  51 Dec 30 08:20 tty51
+crw--w----  1 root tty       4,  52 Dec 30 08:20 tty52
+crw--w----  1 root tty       4,  53 Dec 30 08:20 tty53
+crw--w----  1 root tty       4,  54 Dec 30 08:20 tty54
+crw--w----  1 root tty       4,  55 Dec 30 08:20 tty55
+crw--w----  1 root tty       4,  56 Dec 30 08:20 tty56
+crw--w----  1 root tty       4,  57 Dec 30 08:20 tty57
+crw--w----  1 root tty       4,  58 Dec 30 08:20 tty58
+crw--w----  1 root tty       4,  59 Dec 30 08:20 tty59
+crw--w----  1 root tty       4,  60 Dec 30 08:20 tty60
+crw--w----  1 root tty       4,  61 Dec 30 08:20 tty61
+crw--w----  1 root tty       4,  62 Dec 30 08:20 tty62
+crw--w----  1 root tty       4,  63 Dec 30 08:20 tty63
+// 参见vty_init()->tty_register_driver(console_driver)->tty_register_device()
+crw-rw----  1 root dialout   4,  64 Dec 30 08:20 ttyS0
+crw-rw----  1 root dialout   4,  65 Dec 30 08:20 ttyS1
+crw-rw----  1 root dialout   4,  66 Dec 30 08:20 ttyS2
+crw-rw----  1 root dialout   4,  67 Dec 30 08:20 ttyS3
+crw-rw----  1 root dialout   4,  68 Dec 30 08:20 ttyS4
+crw-rw----  1 root dialout   4,  69 Dec 30 08:20 ttyS5
+crw-rw----  1 root dialout   4,  70 Dec 30 08:20 ttyS6
+crw-rw----  1 root dialout   4,  71 Dec 30 08:20 ttyS7
+crw-rw----  1 root dialout   4,  72 Dec 30 08:20 ttyS8
+crw-rw----  1 root dialout   4,  73 Dec 30 08:20 ttyS9
+crw-rw----  1 root dialout   4,  74 Dec 30 08:20 ttyS10
+crw-rw----  1 root dialout   4,  75 Dec 30 08:20 ttyS11
+crw-rw----  1 root dialout   4,  76 Dec 30 08:20 ttyS12
+crw-rw----  1 root dialout   4,  77 Dec 30 08:20 ttyS13
+crw-rw----  1 root dialout   4,  78 Dec 30 08:20 ttyS14
+crw-rw----  1 root dialout   4,  79 Dec 30 08:20 ttyS15
+crw-rw----  1 root dialout   4,  80 Dec 30 08:20 ttyS16
+crw-rw----  1 root dialout   4,  81 Dec 30 08:20 ttyS17
+crw-rw----  1 root dialout   4,  82 Dec 30 08:20 ttyS18
+crw-rw----  1 root dialout   4,  83 Dec 30 08:20 ttyS19
+crw-rw----  1 root dialout   4,  84 Dec 30 08:20 ttyS20
+crw-rw----  1 root dialout   4,  85 Dec 30 08:20 ttyS21
+crw-rw----  1 root dialout   4,  86 Dec 30 08:20 ttyS22
+crw-rw----  1 root dialout   4,  87 Dec 30 08:20 ttyS23
+crw-rw----  1 root dialout   4,  88 Dec 30 08:20 ttyS24
+crw-rw----  1 root dialout   4,  89 Dec 30 08:20 ttyS25
+crw-rw----  1 root dialout   4,  90 Dec 30 08:20 ttyS26
+crw-rw----  1 root dialout   4,  91 Dec 30 08:20 ttyS27
+crw-rw----  1 root dialout   4,  92 Dec 30 08:20 ttyS28
+crw-rw----  1 root dialout   4,  93 Dec 30 08:20 ttyS29
+crw-rw----  1 root dialout   4,  94 Dec 30 08:20 ttyS30
+crw-rw----  1 root dialout   4,  95 Dec 30 08:20 ttyS31
+
+/* (3) TTYAUX_MAJOR = 5 */
+
+// 参见10.3.2.1 tty_init()节
+crw-rw-rw-  1 root tty       5,   0 Dec 30 08:20 tty
+crw-------  1 root root      5,   1 Dec 30 08:20 console
+// 参见devpts_mount()->mknod_ptmx()
+crw-rw-rw-  1 root tty       5,   2 Dec 31 08:38 ptmx
+// 参见ttyprintk_init()
+crw-------  1 root root      5,   3 Dec 30 08:20 ttyprintk
+
+/* (4) VCS_MAJOR = 7 */
+
+// 参见vcs_make_sysfs()
+crw-rw----  1 root tty       7,   0 Dec 30 08:20 vcs
+crw-rw----  1 root tty       7,   1 Dec 30 08:20 vcs1
+crw-rw----  1 root tty       7,   2 Dec 30 08:20 vcs2
+crw-rw----  1 root tty       7,   3 Dec 30 08:20 vcs3
+crw-rw----  1 root tty       7,   4 Dec 30 08:20 vcs4
+crw-rw----  1 root tty       7,   5 Dec 30 08:20 vcs5
+crw-rw----  1 root tty       7,   6 Dec 30 08:20 vcs6
+crw-rw----  1 root tty       7,   7 Dec 30 08:20 vcs7
+crw-rw----  1 root tty       7,   8 Dec 30 08:20 vcs8
+crw-rw----  1 root tty       7, 128 Dec 30 08:20 vcsa
+crw-rw----  1 root tty       7, 129 Dec 30 08:20 vcsa1
+crw-rw----  1 root tty       7, 130 Dec 30 08:20 vcsa2
+crw-rw----  1 root tty       7, 131 Dec 30 08:20 vcsa3
+crw-rw----  1 root tty       7, 132 Dec 30 08:20 vcsa4
+crw-rw----  1 root tty       7, 133 Dec 30 08:20 vcsa5
+crw-rw----  1 root tty       7, 134 Dec 30 08:20 vcsa6
+crw-rw----  1 root tty       7, 135 Dec 30 08:20 vcsa7
+crw-rw----  1 root tty       7, 136 Dec 30 08:20 vcsa8
+
+/* (5) MISC_MAJOR = 10 */
+
+// 参见mousedev_init()
+crw-------  1 root root     10,   1 Dec 30 08:20 psaux
+crw-------  1 root root     10,  58 Dec 30 08:20 network_throughput
+crw-------  1 root root     10,  59 Dec 30 08:20 network_latency
+crw-------  1 root root     10,  60 Dec 30 08:20 cpu_dma_latency
+// 参见ecryptfs_init()->ecryptfs_init_messaging()->ecryptfs_init_ecryptfs_miscdev()
+crw-------  1 root root     10,  61 Dec 30 08:20 ecryptfs
+crw-rw-r--+ 1 root root     10,  62 Dec 30 08:20 rfkill			// 参见rfkill_init()
+crw-------  1 root root     10,  63 Dec 30 08:20 vga_arbiter		// 参见vga_arb_device_init()
+crw-------  1 root root     10, 144 Dec 30 08:20 nvram			// 参见nvram_init()
+crw-rw----  1 root video    10, 175 Dec 30 08:20 agpgart		// 参见agp_frontend_initialize()
+crw-------  1 root root     10, 203 Dec 30 08:20 cuse			// 参见cuse_init()
+crw-------  1 root root     10, 223 Dec 30 08:20 uinput			// 参见uinput_init()
+crw-------  1 root root     10, 224 Dec 30 08:20 tpm0			// 参见tpm_register_hardware()
+crw-------  1 root root     10, 227 Dec 30 08:20 mcelog			// 参见mcheck_init_device()
+crw-------  1 root root     10, 228 Dec 30 08:20 hpet			// 参见hpet_init()
+crw-rw-rw-  1 root root     10, 229 Dec 30 08:20 fuse			// 参见fuse_dev_init()
+crw-------  1 root root     10, 231 Dec 30 08:20 snapshot		// 参见snapshot_device_init()
+crw-------  1 root root     10, 234 Dec 30 08:20 btrfs-control		// 参见btrfs_interface_init()
+crw-------  1 root root     10, 235 Dec 30 08:20 autofs			// 参见autofs_dev_ioctl_init()
+crw-------  1 root root     10, 237 Dec 30 08:20 loop-control		// 参见loop_init()
+crw-------  1 root root     10, 238 Dec 30 08:20 vhost-net		// 参见vhost_net_init()
+crw-------  1 root root     10, 239 Dec 30 08:20 uhid
+
+/* (6) SCSI_GENERIC_MAJOR = 21 */
+
+// 参见sg_add()
+crw-rw----  1 root disk     21,   0 Dec 30 08:20 sg0
+crw-rw----  1 root disk     21,   1 Dec 30 08:20 sg1
+
+/* (7) FB_MAJOR = 29 */
+
+crw-rw----  1 root video    29,   0 Dec 30 08:20 fb0			// 参见do_register_framebuffer()
+
+/* (8) COMPAQ_CISS_MAJOR4 = 108 */
+
+crw-------  1 root root    108,   0 Dec 30 08:20 ppp			// 参见ppp_init()
+
+/* (9) 动态分配的主设备号248 */
+
+crw-------  1 root root    248,   0 Dec 30 08:20 hidraw0		// 参见hidraw_connect()
+
+/* (10) 动态分配的主设备号249 */
+
+// 参见cxacru_heavy_init()->cxacru_find_firmware()->request_firmware()
+//     ->_request_firmware()->fw_create_instance()
+crw-------  1 root root    249,   0 Dec 30 08:20 fw0
+
+/* (11) 动态分配的主设备号254 */
+
+crw-------  1 root root    254,   0 Dec 30 08:20 rtc0
+```
+
+主设备号均定义于include/linux/major.h
+
+#### 10.3.4.1 内存设备
+
+系统中存在下列特殊内存设备，其主设备号均为1，次设备号为数组devlist[]的下标。这些内存设备是由函数chr_dev_init()根据数组devlist[]创建的，参见10.3.2 字符设备的初始化/chr_dev_init()节：
+
+```
+Name				Major			Minor (=数组devlist[]的下标)
+-----------------------------------------------------------------
+/dev/mem			1			1
+/dev/kmem			1			2
+/dev/null			1			3
+/dev/port			1			4
+/dev/zero			1			5
+/dev/full			1			7
+/dev/random			1			8
+/dev/urandom			1			9
+/dev/kmsg			1			11
+```
+
+##### 10.3.4.1.1 /dev/mem, /dev/kmem, /dev/port
+
+**/dev/mem**
+
+/dev/mem is a character device file that is an image of the main memory of the computer. It may be used, for example, to examine (and even patch) the system.
+
+Byte addresses in /dev/mem are interpreted as physical memory addresses.  References to nonexistent locations cause errors to  be returned.
+
+Refer to ```man mem```.
+
+可以用来访问物理内存，比如X用来访问显卡的物理内存，或嵌入式中访问GPIO。用法一般就是open，然后mmap，接着可以使用map之后的地址来访问物理内存。这其实就是实现用户空间驱动的一种方法。
+
+
+mmap内存镜像/dev/mem到用户空间：
+1. 在内核(驱动)中，使用函数_get_fre_pages()申请物理页面，返回物理首地址X;
+2. 在用户空间，mmap文件/dem/mem的偏移X处到自己进程空间，对其操作;
+3. /dev/mem是系统物理内存的全镜像文件，在该文件中偏移X即在内存偏移X;
+4. 内核(驱动)向设备文件，比如/dev/video1，写一定格式的数据;
+5. 在用户空间，mmap文件/dev/video1到进程空间，然后进行读写即可.
+
+**/dev/kmem**
+
+The file /dev/kmem is the same as /dev/mem, except that the kernel virtual memory rather than physical memory is accessed. Refer to man mem.
+
+可以用来访问kernel的变量。参见http://lwn.net/Articles/147902/
+
+**/dev/port**
+
+/dev/port is similar to /dev/mem, but the I/O ports are accessed. Refer to man mem.
+
+##### 10.3.4.1.2 /dev/null, /dev/zero, /dev/full
+
+**/dev/null**
+
+In some operating systems, the null device is a device file that discards all data written to it but reports that the write operation succeeded. This device is called /dev/null on Unix or Unix-like systems
+
+```
+chenwx@chenwx ~ $ cat /dev/null
+chenwx@chenwx ~ $ echo "discard this piece of data" > /dev/null
+```
+
+**/dev/zero**
+
+/dev/zero is a special file in Unix-like operating systems that provides as many null characters (ASCII NUL, 0x00) as are read from it. One of the typical uses is to provide a character stream for initializing data storage.
+
+```
+/*
+ * 创建大小为1MB的文件foobar，并初始化其内容为null
+ **/
+chenwx@chenwx ~ $ dd if=/dev/zero of=foobar count=1024 bs=1024
+1024+0 records in
+1024+0 records out
+1048576 bytes (1.0 MB, 1.0 MiB) copied, 0.00347384 s, 302 MB/s
+
+/*
+ * 文件foobar大小为1MB，但是用cat命令无法显示其内容，因为cat认为null为文件结束;
+ * 而通过vim可以显示foobar的内容: @^@^@^@^@^@^@^@ ...
+ */
+chenwx@chenwx ~ $ ll foobar 
+-rw-rw-r-- 1 chenwx chenwx 1.0M Aug  5 22:11 foobar
+
+chenwx@chenwx ~ $ cat foobar 
+chenwx@chenwx ~ $ 
+
+chenwx@chenwx ~ $ vim foobar 
+^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@^@
+```
+
+**/dev/full**
+
+In Linux /dev/full or the always full device is a special file that always returns the error code ENOSPC (meaning "No space left on device") on writing, and provides an infinite number of null characters to any process that reads from it (similar to /dev/zero). This device is usually used when testing the behaviour of a program when it encounters a "disk full" error.
+
+```
+chenwx@chenwx ~ $ echo "Hello world" > /dev/full
+bash: echo: write error: No space left on device
+```
+
+##### 10.3.4.1.3 /dev/random, /dev/urandom
+
+* [wikipedia: /dev/random](https://zh.wikipedia.org/wiki//dev/random]
+
+**/dev/random**
+
+特殊的设备文件，可以用作随机数发生器或伪随机数发生器。它允许程序访问来自设备驱动程序或其它来源的背景噪声，Linux是第一个以背景噪声产生真正的随机数的实现。
+
+**/dev/urandom**
+
+/dev/random的一个副本是/dev/urandom，其中u表示unlocked，即非阻塞的随机数发生器。它会重复使用熵池中的数据以产生伪随机数据。这表示对/dev/urandom的读取操作不会产生阻塞，但其输出的熵可能小于/dev/random的。
+
+```
+/*
+ * 特殊设备文件/dev/random, /dev/urandom
+ * 及其配置文件/proc/sys/kernel/random/
+ */
+chenwx@chenwx ~ $ ll /dev/*random
+crw-rw-rw- 1 root root 1, 8 Aug  5 18:57 /dev/random
+crw-rw-rw- 1 root root 1, 9 Aug  5 18:57 /dev/urandom
+
+chenwx@chenwx ~ $ ll /proc/sys/kernel/random
+-r--r--r-- 1 root root 0 Aug  5 18:57 boot_id
+-r--r--r-- 1 root root 0 Aug  5 21:14 entropy_avail
+-r--r--r-- 1 root root 0 Aug  5 18:57 poolsize
+-rw-r--r-- 1 root root 0 Aug  5 21:14 read_wakeup_threshold
+-rw-r--r-- 1 root root 0 Aug  5 21:14 urandom_min_reseed_secs
+-r--r--r-- 1 root root 0 Aug  5 21:14 uuid
+-rw-r--r-- 1 root root 0 Aug  5 21:14 write_wakeup_threshold
+
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/boot_id 
+676341b5-2d07-41f6-bd7d-80b3730aaebd
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/entropy_avail
+907
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/poolsize 
+4096
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/read_wakeup_threshold
+64
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/urandom_min_reseed_secs
+60
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/uuid
+c1f08f01-bc29-4bfb-9ed8-bc0fbc1ca800
+chenwx@chenwx ~ $ cat /proc/sys/kernel/random/write_wakeup_threshold 
+896
+
+/*
+ * 由于/dev/urandom的数据是非常多，不能直接用cat读取，这里取首行。输出为乱码。
+ */
+chenwx@chenwx ~ $ head -1 /dev/urandom 
+j-��F<��
+
+/*
+ * cksum将读取的文件内容生成唯一的整型数据，只有文件内容不变，生成结果就不会变化；
+ * cut以" "分割，然后得到分割的第一个字段数据。
+ */
+chenwx@chenwx ~ $ head -10 /dev/urandom | cksum | cut -f1 -d" "
+1880117834
+
+/*
+ * 获取一个 8 位的随机数，除了 0, 1, o，O, l 之外
+ */
+chenwx@chenwx ~ $ tr -dc A-NP-Za-kmnp-z2-9 < /dev/urandom | head -c 8
+bs2afZRp
+chenwx@chenwx ~ $ tr -dc A-NP-Za-kmnp-z2-9 < /dev/urandom | head -c 8
+UvPg32sP
+```
+
+此外，还可以通过环境变量RANDOM来获取随机数:
+
+```
+chenwx@chenwx ~ $ echo $RANDOM
+15154
+chenwx@chenwx ~ $ echo $RANDOM
+84
+chenwx@chenwx ~ $ echo $RANDOM
+6412
+```
+
+##### 10.3.4.1.4 /dev/kmsg
+
+**/dev/kmsg**
+
+The /dev/kmsg character device node provides userspace access to the kernel's printk buffer.
+
+```
+/*
+ * 直接显示/dev/kmsg中的日志信息
+ */
+chenwx@chenwx ~ $ cat /dev/kmsg
+...
+4,1062,1506008763,-;ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+4,1063,4266009097,-;ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+4,1064,4758330408,-;perf interrupt took too long (5018 > 5000), lowering kernel.perf_event_max_sample_rate to 25000
+4,1065,6666002792,-;ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+
+/*
+ * 通过dmesg命令显示kernel's printk buffer.
+ * 日志内容是相同的，只是输出格式不同而已
+ */
+chenwx@chenwx ~ $ dmesg | tail
+[ 1506.008763] ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+[ 4266.009097] ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+[ 4758.330408] perf interrupt took too long (5018 > 5000), lowering kernel.perf_event_max_sample_rate to 25000
+[ 6666.002792] ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+
+/*
+ * 向/dev/kmsg写入日志信息
+ */
+chenwx@chenwx ~ $ sudo -c 'echo write to /dev/kmsg > /dev/kmsg'
+
+chenwx@chenwx ~ $ cat /dev/kmsg
+...
+4,1061,223934777,-;perf interrupt took too long (2510 > 2500), lowering kernel.perf_event_max_sample_rate to 50000
+4,1062,1506008763,-;ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+4,1063,4266009097,-;ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+4,1064,4758330408,-;perf interrupt took too long (5018 > 5000), lowering kernel.perf_event_max_sample_rate to 25000
+4,1065,6666002792,-;ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+12,1066,10858919792,-;write to /dev/kmsg
+
+chenwx@chenwx ~ $ dmesg | tail -5
+[ 1506.008763] ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+[ 4266.009097] ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+[ 4758.330408] perf interrupt took too long (5018 > 5000), lowering kernel.perf_event_max_sample_rate to 25000
+[ 6666.002792] ath5k: ath5k_hw_get_isr: ISR: 0x00000080 IMR: 0x00000000
+[10858.919792] write to /dev/kmsg
+```
+
+#### 10.3.4.2 USB drivers
+
+由drivers/Makefile中的如下配置可知，USB drivers实现于drivers/usb/目录，且其核心代码位于drivers/usb/core目录中:
+
+```
+obj-$(CONFIG_USB_OTG_UTILS)		+= usb/
+obj-$(CONFIG_USB)			+= usb/
+obj-$(CONFIG_PCI)			+= usb/
+obj-$(CONFIG_USB_GADGET)		+= usb/
+```
+
+##### 10.3.4.2.0 查看USB设备信息
+
+可运行下列命令查看USB设备信息：
+
+```
+# list USB devices
+chenwx@chenwx ~/linux-next $ lsusb
+Bus 002 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub 
+Bus 007 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub 
+Bus 006 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub 
+Bus 005 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub 
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub 
+Bus 004 Device 003: ID 046d:c050 Logitech, Inc. RX 250 Optical Mouse 
+Bus 004 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub 
+Bus 003 Device 002: ID 0a5c:2110 Broadcom Corp. BCM2045B (BDC-2) [Bluetooth Controller] 
+Bus 003 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub 
+
+chenwx@chenwx ~ $ lsusb -t
+/:  Bus 07.Port 1: Dev 1, Class=root_hub, Driver=uhci_hcd/2p, 12M 
+/:  Bus 06.Port 1: Dev 1, Class=root_hub, Driver=uhci_hcd/2p, 12M 
+/:  Bus 05.Port 1: Dev 1, Class=root_hub, Driver=uhci_hcd/2p, 12M 
+/:  Bus 04.Port 1: Dev 1, Class=root_hub, Driver=uhci_hcd/2p, 12M 
+    |__ Port 1: Dev 3, If 0, Class=Human Interface Device, Driver=usbhid, 1.5M 
+/:  Bus 03.Port 1: Dev 1, Class=root_hub, Driver=uhci_hcd/2p, 12M 
+    |__ Port 1: Dev 2, If 0, Class=Wireless, Driver=btusb, 12M 
+    |__ Port 1: Dev 2, If 1, Class=Wireless, Driver=btusb, 12M 
+    |__ Port 1: Dev 2, If 2, Class=Vendor Specific Class, Driver=, 12M 
+    |__ Port 1: Dev 2, If 3, Class=Application Specific Interface, Driver=, 12M 
+/:  Bus 02.Port 1: Dev 1, Class=root_hub, Driver=ehci-pci/6p, 480M 
+/:  Bus 01.Port 1: Dev 1, Class=root_hub, Driver=ehci-pci/4p, 480M 
+
+# print USB device details
+chenwx@chenwx /proc/bus $ usb-devices 
+...
+T:  Bus=04 Lev=01 Prnt=01 Port=00 Cnt=01 Dev#=  3 Spd=1.5 MxCh= 0 
+D:  Ver= 2.00 Cls=00(>ifc ) Sub=00 Prot=00 MxPS= 8 #Cfgs=  1 
+P:  Vendor=046d ProdID=c050 Rev=27.20 
+S:  Manufacturer=Logitech 
+S:  Product=USB-PS/2 Optical Mouse 
+C:  #Ifs= 1 Cfg#= 1 Atr=a0 MxPwr=98mA 
+I:  If#= 0 Alt= 0 #EPs= 1 Cls=03(HID  ) Sub=01 Prot=02 Driver=usbhid 
+...
+
+# 参见10.3.4.2.2.1 usb_debugfs_init()节
+chenwx@chenwx ~ $ sudo cat /sys/kernel/debug/usb/devices
+
+...
+T:  Bus=04 Lev=01 Prnt=01 Port=00 Cnt=01 Dev#=  2 Spd=1.5  MxCh= 0 
+D:  Ver= 2.00 Cls=00(>ifc ) Sub=00 Prot=00 MxPS= 8 #Cfgs=  1 
+P:  Vendor=046d ProdID=c050 Rev=27.20 
+S:  Manufacturer=Logitech 
+S:  Product=USB-PS/2 Optical Mouse 
+C:* #Ifs= 1 Cfg#= 1 Atr=a0 MxPwr= 98mA 
+I:* If#= 0 Alt= 0 #EPs= 1 Cls=03(HID  ) Sub=01 Prot=02 Driver=usbhid 
+E:  Ad=81(I) Atr=03(Int.) MxPS=   5 Ivl=10ms 
+...
+
+chenwx@chenwx ~ $ udevadm info -p /sys/bus/usb/devices/4-1 -q property 
+BUSNUM=004 
+DEVNAME=/dev/bus/usb/004/003 
+DEVNUM=003 
+DEVPATH=/devices/pci0000:00/0000:00:1a.1/usb4/4-1 
+DEVTYPE=usb_device 
+DRIVER=usb 
+ID_BUS=usb 
+ID_MODEL=USB-PS_2_Optical_Mouse 
+ID_MODEL_ENC=USB-PS\x2f2\x20Optical\x20Mouse 
+ID_MODEL_FROM_DATABASE=RX 250 Optical Mouse 
+ID_MODEL_ID=c050 
+ID_REVISION=2720 
+ID_SERIAL=Logitech_USB-PS_2_Optical_Mouse 
+ID_USB_INTERFACES=:030102: 
+ID_VENDOR=Logitech 
+ID_VENDOR_ENC=Logitech 
+ID_VENDOR_FROM_DATABASE=Logitech, Inc. 
+ID_VENDOR_ID=046d 
+MAJOR=189 
+MINOR=386 
+PRODUCT=46d/c050/2720 
+SUBSYSTEM=usb 
+TYPE=0/0/0 
+UPOWER_VENDOR=Logitech, Inc. 
+USEC_INITIALIZED=543730949 
+
+# 查看该USB鼠标的驱动程序信息
+chenwx@chenwx ~ $ modinfo usbhid 
+filename:       /lib/modules/3.13.0-24-generic/kernel/drivers/hid/usbhid/usbhid.ko 
+license:        GPL 
+description:    USB HID core driver 
+author:         Jiri Kosina 
+author:         Vojtech Pavlik 
+author:         Andreas Gal 
+srcversion:     5723C9E26D102FADB8376D9 
+alias:          usb:v*p*d*dc*dsc*dp*ic03isc*ip*in* 
+depends:        hid 
+intree:         Y 
+vermagic:       3.13.0-24-generic SMP mod_unload modversions 
+signer:         Magrathea: Glacier signing key 
+sig_key:        00:A5:A6:57:59:DE:47:4B:C5:C4:31:20:88:0C:1B:94:A5:39:F4:31 
+sig_hashalgo:   sha512 
+parm:           mousepoll:Polling interval of mice (uint) 
+parm:           ignoreled:Autosuspend with active leds (uint) 
+parm:           quirks:Add/modify USB HID quirks by specifying  quirks=vendorID:productID:quirks where vendorID, productID, and quirks are all in 0x-prefixed hex (array of charp) 
+
+# provide a graphical summary of USB devices connected to the system
+chenwx@chenwx ~ $ usbview &
+```
+
+##### 10.3.4.2.1 与USB有关的数据结构
+
+```
+struct usb_device;
+sturct usb_device_driver;	// 参见10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节
+struct usb_driver;		// 参见10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver节
+struct usb_interface;
+struct usb_class_driver;
+```
+
+##### 10.3.4.2.2 USB的初始化/usb_init()
+
+该函数定义于drivers/usb/core/usb.c:
+
+```
+static int __init usb_init(void)
+{
+	int retval;
+
+	// To disable USB, use kernel command line parameter 'nousb'
+	if (nousb) {
+		pr_info("%s: USB support disabled\n", usbcore_name);
+		return 0;
+	}
+
+	/*
+	 * 创建目录/sys/kernel/debug/usb和文件/sys/kernel/debug/usb/devices
+	 * 参见10.3.4.2.2.1 usb_debugfs_init()节
+	 */
+	retval = usb_debugfs_init();
+	if (retval)
+		goto out;
+
+	// 创建目录/sys/bus/usb，参见10.2.2.1 bus_register()节
+	retval = bus_register(&usb_bus_type);
+	if (retval)
+		goto bus_register_failed;
+
+	// 将元素usb_bus_nb插入到链表usb_bus_type->p->bus_notifier中
+	retval = bus_register_notifier(&usb_bus_type, &usb_bus_nb);
+	if (retval)
+		goto bus_notifier_failed;
+
+	/*
+	 * 注册USB主设备号USB_MAJOR = 180，
+	 * 参见10.3.4.2.2.2 usb_major_init()节
+	 */
+	retval = usb_major_init();
+	if (retval)
+		goto major_init_failed;
+
+	/*
+	 * 注册USB接口驱动程序usbfs_driver
+	 * 参见10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver节
+	 */
+	retval = usb_register(&usbfs_driver);
+	if (retval)
+		goto driver_register_failed;
+
+	// 注册字符设备usb_device_cdev
+	retval = usb_devio_init();
+	if (retval)
+		goto usb_devio_init_failed;
+
+	/*
+	 * 注册文件系统usbfs，并创建目录/proc/bus/usb
+	 * 参见10.3.4.2.2.3 usbfs_init()节
+	 */
+	retval = usbfs_init();
+	if (retval)
+		goto fs_init_failed;
+
+	// 参见10.3.4.2.2.4 usb_hub_init()节
+	retval = usb_hub_init();
+	if (retval)
+		goto hub_init_failed;
+
+	/*
+	 * 注册USB子系统中唯一的设备驱动程序
+	 * 参见10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节
+	 */
+	retval = usb_register_device_driver(&usb_generic_driver, THIS_MODULE);
+	if (!retval)
+		goto out;
+
+	usb_hub_cleanup();
+
+hub_init_failed:
+	usbfs_cleanup();
+fs_init_failed:
+	usb_devio_cleanup();
+usb_devio_init_failed:
+	usb_deregister(&usbfs_driver);
+driver_register_failed:
+	usb_major_cleanup();
+major_init_failed:
+	bus_unregister_notifier(&usb_bus_type, &usb_bus_nb);
+bus_notifier_failed:
+	bus_unregister(&usb_bus_type);
+bus_register_failed:
+	usb_debugfs_cleanup();
+out:
+	return retval;
+}
+```
+
+###### 10.3.4.2.2.1 usb_debugfs_init()
+
+该函数定义于drivers/usb/core/usb.c:
+
+```
+static int usb_debugfs_init(void)
+{
+	// 创建目录/sys/kernel/debug/usb
+	usb_debug_root = debugfs_create_dir("usb", NULL);
+	if (!usb_debug_root)
+		return -ENOENT;
+
+	// 创建文件/sys/kernel/debug/usb/devices
+	usb_debug_devices = debugfs_create_file("devices", 0444,
+						usb_debug_root, NULL, &usbfs_devices_fops);
+	if (!usb_debug_devices) {
+		debugfs_remove(usb_debug_root);
+		usb_debug_root = NULL;
+		return -ENOENT;
+	}
+
+	return 0;
+}
+```
+
+###### 10.3.4.2.2.2 usb_major_init()
+
+该函数定义于drivers/usb/core/file.c:
+
+```
+int usb_major_init(void)
+{
+	int error;
+
+	// 参见10.3.3.1 register_chrdev()节
+	error = register_chrdev(USB_MAJOR, "usb", &usb_fops);
+	if (error)
+		printk(KERN_ERR "Unable to get major %d for usb devices\n", USB_MAJOR);
+
+	return error;
+}
+```
+
+###### 10.3.4.2.2.3 usbfs_init()
+
+该函数定义于drivers/usb/core/inode.c:
+
+```
+static struct file_system_type usb_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "usbfs",
+	.mount		= usb_mount,
+	.kill_sb	= kill_litter_super,
+};
+
+int __init usbfs_init(void)
+{
+	int retval;
+
+	// 注册文件系统usbfs，用于将系统中的USB设备信息挂载到目录/proc/bus/usb中
+	retval = register_filesystem(&usb_fs_type);
+	if (retval)
+		return retval;
+
+	// 将元素usbfs_nb插入到链表usb_notifier_list中
+	usb_register_notify(&usbfs_nb);
+
+	/* create mount point for usbfs */
+	// 创建目录/proc/bus/usb
+	usbdir = proc_mkdir("bus/usb", NULL);
+
+	return 0;
+}
+```
+
+###### 10.3.4.2.2.4 usb_hub_init()
+
+该函数定义于drivers/usb/core/inode.c:
+
+```
+int usb_hub_init(void)
+{
+	/*
+	 * 注册USB接口驱动程序hub_driver
+	 * 参见10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver节
+	 */
+	if (usb_register(&hub_driver) < 0) {
+		printk(KERN_ERR "%s: can't register hub driver\n", usbcore_name);
+		return -1;
+	}
+
+	/*
+	 * 创建内核线程khubd，该内核线程执行函数hub_thread()
+	 * 参见10.3.4.2.2.4.1 hub_thread()节
+	 */
+	khubd_task = kthread_run(hub_thread, NULL, "khubd");
+	if (!IS_ERR(khubd_task))
+		return 0;
+
+	/* Fall through if kernel_thread failed */
+	usb_deregister(&hub_driver);
+	printk(KERN_ERR "%s: can't start khubd\n", usbcore_name);
+
+	return -1;
+}
+```
+
+###### 10.3.4.2.2.4.1 hub_thread()
+
+内核线程khubd执行该函数，其定义于drivers/usb/core/inode.c:
+
+```
+/*
+ * 该链表用于链接struct usb_hub中的域event_list；
+ * 由函数kick_khubd()向该链表添加元素，参见下文
+ */
+static LIST_HEAD(hub_event_list);		/* List of hubs needing servicing */
+
+static int hub_thread(void *__unused)
+{
+	/* khubd needs to be freezable to avoid intefering with USB-PERSIST
+	 * port handover.  Otherwise it might see that a full-speed device
+	 * was gone before the EHCI controller had handed its port over to
+	 * the companion full-speed controller.
+	 */
+	set_freezable();
+
+	do {
+		// 依次处理链表hub_event_list中的请求
+		hub_events();
+		wait_event_freezable(khubd_wait,
+			!list_empty(&hub_event_list) || kthread_should_stop());
+	} while (!kthread_should_stop() || !list_empty(&hub_event_list));
+
+	pr_debug("%s: khubd exiting\n", usbcore_name);
+	return 0;
+}
+
+static void kick_khubd(struct usb_hub *hub)
+{
+	unsigned long	flags;
+
+	spin_lock_irqsave(&hub_event_lock, flags);
+	if (!hub->disconnected && list_empty(&hub->event_list)) {
+		// 将hub添加到链表hub_event_list的尾部
+		list_add_tail(&hub->event_list, &hub_event_list);
+
+		/* Suppress autosuspend until khubd runs */
+		usb_autopm_get_interface_no_resume(to_usb_interface(hub->intfdev));
+		wake_up(&khubd_wait);
+	}
+	spin_unlock_irqrestore(&hub_event_lock, flags);
+}
+```
+
+###### 10.3.4.2.2.4.2 插入USB设备后的函数调用
+
+当插入USB鼠标时，日志如下：
+
+```
+[  502.848215] usb 4-1: USB disconnect, device number 2
+[  504.368161] usb 4-1: new low-speed USB device number 3 using uhci_hcd
+[  504.544973] usb 4-1: New USB device found, idVendor=046d, idProduct=c050
+[  504.544980] usb 4-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[  504.544985] usb 4-1: Product: USB-PS/2 Optical Mouse
+[  504.544990] usb 4-1: Manufacturer: Logitech
+```
+
+函数调用关系如下：
+
+```
+subsys_initcall(usb_init)
+-> usb_init()			// 参见10.3.4.2.2 USB的初始化/usb_init()节
+   -> usb_hub_init()
+      -> khubd_task = kthread_run(hub_thread, NULL, "khubd");
+
+hub_thread()			// 参见10.3.4.2.2.4.1 hub_thread()节
+-> hub_events()
+   -> hub_port_connect_change()
+      -> usb_new_device()
+         -> announce_device()	// (1) Print above logs
+         -> device_add(&udev->dev)
+            -> bus_probe_device()
+               -> device_attach()
+                  -> bus_for_each_drv(.., __device_attach)
+                     -> __device_attach()
+                        -> driver_match_device(drv, dev)
+                           // (2) Call hid_bus_match() here
+                           -> drv->bus->match(dev, drv)
+                              -> hid_bus_match()
+                                 -> hid_match_device()
+                                    -> hid_match_one_id()
+                        -> driver_probe_device(drv, dev)
+                           -> really_probe(dev, drv)
+                              // (3) Call hid_device_probe()
+                              -> dev->bus->probe()
+                              -> drv->probe()
+                              -> driver_bound()
+```
+
+```
+[  504.563215] input: Logitech USB-PS/2 Optical Mouse as /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/input/input13
+[  504.563524] hid-generic 0003:046D:C050.0002: input,hidraw0: USB HID v1.10 Mouse [Logitech USB-PS/2 Optical Mouse] on usb-0000:00:1a.1-1/input0
+```
+
+```
+hid_device_probe()	// (4) called by really_probe()
+-> hid_open_report()
+-> hid_hw_start()
+   -> hid_connect()
+      -> hid_info(hdev, "%s: %s HID v%x.%02x %s [%s] on %s\n",
+                  buf, bus, hdev->version >> 8, hdev->version & 0xff,
+                  type, hdev->name, hdev->phys);
+```
+
+由上述打印可知，函数```hid_info()```中各域的取值如下：
+
+```
+hid-generic 0003:046D:C050.0002:
+-> hdev's driver points to hid_generic
+
+buf = input,hidraw0
+bus = USB
+hdev->version >> 8 = 1
+hdev->version & 0xff = 10
+type = Mouse
+hdev->name = Logitech USB-PS/2 Optical Mouse
+hdev->phys = usb-0000:00:1a.1-1/input0
+```
+
+##### 10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver
+
+USB子系统中唯一的设备驱动程序是usb_generic_driver，其定义于drivers/usb/core/generic.c:
+
+```
+struct usb_device_driver usb_generic_driver = {
+	.name			= "usb",
+
+	/*
+	 * 该函数通过如下函数调用，参见10.3.4.2.3.1.1.1 generic_probe()节：
+	 * driver_register()->bus_add_driver()->driver_attach()
+	 * ->__driver_attach()->driver_probe_device()->really_probe()
+	 * ->probe()->usb_probe_device()->probe()
+	 */
+	.probe			= generic_probe,
+
+	/*
+	 * 该函数通过如下函数调用，参见10.3.4.2.3.2.1.1 generic_disconnect()节：
+	 * driver_unregister()->bus_remove_driver()->driver_detach()
+	 * ->__device_release_driver()->remove()->usb_unbind_device()
+	 * ->disconnect()
+	 */
+	.disconnect		= generic_disconnect,
+
+#ifdef CONFIG_PM
+	.suspend		= generic_suspend,
+	.resume			= generic_resume,
+#endif
+
+	/*
+	 * 函数usb_probe_device()会判断此字段，
+	 * 参见10.3.4.2.3.1.1 usb_probe_device()节
+	 */
+	.supports_autosuspend	= 1,
+};
+```
+
+该设备驱动程序是由如下函数注册：
+
+```
+usb_init()			// 参见10.3.4.2.2 USB的初始化/usb_init()节
+->  usb_register_device_driver(&usb_generic_driver, THIS_MODULE);
+```
+
+###### 10.3.4.2.3.1 注册USB设备驱动程序/usb_register_device_driver()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/**
+ * usb_register_device_driver - register a USB device (not interface) driver
+ * @new_udriver: USB operations for the device driver
+ * @owner: module owner of this driver.
+ *
+ * Registers a USB device driver with the USB core.  The list of
+ * unattached devices will be rescanned whenever a new driver is
+ * added, allowing the new driver to attach to any recognized devices.
+ * Returns a negative error code on failure and 0 on success.
+ */
+int usb_register_device_driver(struct usb_device_driver *new_udriver,
+				struct module *owner)
+{
+	int retval = 0;
+
+	if (usb_disabled())
+		return -ENODEV;
+
+	new_udriver->drvwrap.for_devices = 1;
+	new_udriver->drvwrap.driver.name = (char *) new_udriver->name;
+	new_udriver->drvwrap.driver.bus = &usb_bus_type;
+
+	/*
+	 * 函数probe()由如下函数调用，参见10.3.4.2.3.1.1 usb_probe_device()节
+	 * driver_register()->bus_add_driver()->driver_attach()->__driver_attach()
+	 * ->driver_probe_device()->really_probe()->probe()->usb_probe_device()
+	 */
+	new_udriver->drvwrap.driver.probe = usb_probe_device;
+
+	/*
+	 * 函数remove()由如下函数调用，参见10.3.4.2.3.2.1 usb_unbind_device()节
+	 * driver_unregister()->bus_remove_driver()->driver_detach()
+	 * ->__device_release_driver()->remove()->usb_unbind_device()
+	 */
+	new_udriver->drvwrap.driver.remove = usb_unbind_device;
+
+	new_udriver->drvwrap.driver.owner = owner;
+
+	// 参见10.2.4.1 注册驱动程序/driver_register()节
+	retval = driver_register(&new_udriver->drvwrap.driver);
+
+	if (!retval) {
+		pr_info("%s: registered new device driver %s\n",
+				  usbcore_name, new_udriver->name);
+		usbfs_update_special();
+	} else {
+		printk(KERN_ERR "%s: error %d registering device "
+			 "	driver %s\n", usbcore_name, retval, new_udriver->name);
+	}
+
+	return retval;
+}
+```
+
+###### 10.3.4.2.3.1.1 usb_probe_device()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/* called from driver core with dev locked */
+static int usb_probe_device(struct device *dev)
+{
+	struct usb_device_driver *udriver = to_usb_device_driver(dev->driver);
+	struct usb_device *udev = to_usb_device(dev);
+	int error = 0;
+
+	dev_dbg(dev, "%s\n", __func__);
+
+	/* TODO: Add real matching code */
+
+	/* The device should always appear to be in use
+	 * unless the driver suports autosuspend.
+	 */
+	/*
+	 * 由10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节可知，
+	 * usb_generic_driver.supports_autosuspend = 1，故不进入此分支
+	 */
+	if (!udriver->supports_autosuspend)
+		error = usb_autoresume_device(udev);
+
+	/*
+	 * 调用USB设备驱动程序的probe()函数，即函数generic_probe(),
+	 * 参见10.3.4.2.3.1.1.1 generic_probe()节
+	 */
+	if (!error)
+		error = udriver->probe(udev);
+	return error;
+}
+```
+
+###### 10.3.4.2.3.1.1.1 generic_probe()
+
+该函数定义于drivers/usb/core/generic.c:
+
+```
+static int generic_probe(struct usb_device *udev)
+{
+	int err, c;
+
+	/* Choose and set the configuration.  This registers the interfaces
+	 * with the driver core and lets interface drivers bind to them.
+	 */
+	if (usb_device_is_owned(udev))
+		;		/* Don't configure if the device is owned */
+	else if (udev->authorized == 0)
+		dev_err(&udev->dev, "Device is not authorized for usage\n");
+	else {
+		c = usb_choose_configuration(udev);
+		if (c >= 0) {
+			err = usb_set_configuration(udev, c);
+			if (err) {
+				dev_err(&udev->dev, "can't set config #%d, error %d\n", c, err);
+				/* This need not be fatal.  The user can try to
+				 * set other configurations. */
+			}
+		}
+	}
+	/* USB device state == configured ... usable */
+	usb_notify_add_device(udev);
+
+	return 0;
+}
+```
+
+###### 10.3.4.2.3.2 注销USB设备驱动程序/usb_deregister_device_driver()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/**
+ * usb_deregister_device_driver - unregister a USB device (not interface) driver
+ * @udriver: USB operations of the device driver to unregister
+ * Context: must be able to sleep
+ *
+ * Unlinks the specified driver from the internal USB driver list.
+ */
+void usb_deregister_device_driver(struct usb_device_driver *udriver)
+{
+	pr_info("%s: deregistering device driver %s\n",
+			  usbcore_name, udriver->name);
+
+	// 参见10.2.4.2 注销驱动程序/driver_unregister()节
+	driver_unregister(&udriver->drvwrap.driver);
+	usbfs_update_special();
+}
+```
+
+###### 10.3.4.2.3.2.1 usb_unbind_device()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/* called from driver core with dev locked */
+static int usb_unbind_device(struct device *dev)
+{
+	struct usb_device *udev = to_usb_device(dev);
+	struct usb_device_driver *udriver = to_usb_device_driver(dev->driver);
+
+	/*
+	 * 调用USB设备驱动程序的disconnect()函数，即函数generic_disconnect(),
+	 * 参见10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节
+	 */
+	udriver->disconnect(udev);
+
+	/*
+	 * 由10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节可知，
+	 * usb_generic_driver.supports_autosuspend = 1，故不进入此分支
+	 */
+	if (!udriver->supports_autosuspend)
+		usb_autosuspend_device(udev);
+
+	return 0;
+}
+```
+
+###### 10.3.4.2.3.2.1.1 generic_disconnect()
+
+该函数定义于drivers/usb/core/generic.c:
+
+```
+static void generic_disconnect(struct usb_device *udev)
+{
+	usb_notify_remove_device(udev);
+
+	/* if this is only an unbind, not a physical disconnect, then
+	 * unconfigure the device */
+	if (udev->actconfig)
+		usb_set_configuration(udev, -1);
+}
+```
+
+##### 10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver
+
+###### 10.3.4.2.4.1 注册USB接口驱动程序/usb_register()
+
+该宏定义于include/linux/usb.h:
+
+```
+/* use a define to avoid include chaining to get THIS_MODULE & friends */
+#define usb_register(driver) \
+	usb_register_driver(driver, THIS_MODULE, KBUILD_MODNAME)
+```
+
+其中，函数```usb_register_driver()```定义于drivers/usb/core/driver.c:
+
+```
+/**
+ * usb_register_driver - register a USB interface driver
+ * @new_driver: USB operations for the interface driver
+ * @owner: module owner of this driver.
+ * @mod_name: module name string
+ *
+ * Registers a USB interface driver with the USB core.  The list of
+ * unattached interfaces will be rescanned whenever a new driver is
+ * added, allowing the new driver to attach to any recognized interfaces.
+ * Returns a negative error code on failure and 0 on success.
+ *
+ * NOTE: if you want your driver to use the USB major number, you must call
+ * usb_register_dev() to enable that functionality.  This function no longer
+ * takes care of that.
+ */
+int usb_register_driver(struct usb_driver *new_driver, struct module *owner,
+			const char *mod_name)
+{
+	int retval = 0;
+
+	if (usb_disabled())
+		return -ENODEV;
+
+	new_driver->drvwrap.for_devices = 0;
+	new_driver->drvwrap.driver.name = (char *) new_driver->name;
+	new_driver->drvwrap.driver.bus = &usb_bus_type;
+
+	/*
+	 * 函数probe()由如下函数调用，参见10.3.4.2.4.1.1 usb_probe_interface()节
+	 * driver_register()->bus_add_driver()->driver_attach()->__driver_attach()
+	 * ->driver_probe_device()->really_probe()->probe()->usb_probe_interface()
+	 */
+	new_driver->drvwrap.driver.probe = usb_probe_interface;
+
+	/*
+	 * 函数remove()由如下函数调用，参见10.3.4.2.4.2.1 usb_unbind_interface()节
+	 * driver_unregister()->bus_remove_driver()->driver_detach()
+	 * ->__device_release_driver()->remove()->usb_unbind_interface()
+	 */
+	new_driver->drvwrap.driver.remove = usb_unbind_interface;
+
+	new_driver->drvwrap.driver.owner = owner;
+	new_driver->drvwrap.driver.mod_name = mod_name;
+	spin_lock_init(&new_driver->dynids.lock);
+	INIT_LIST_HEAD(&new_driver->dynids.list);
+
+	// 参见10.2.4.1 注册驱动程序/driver_register()节
+	retval = driver_register(&new_driver->drvwrap.driver);
+	if (retval)
+		goto out;
+
+	usbfs_update_special();
+
+	// 创建文件new_id
+	retval = usb_create_newid_file(new_driver);
+	if (retval)
+		goto out_newid;
+
+	// 创建文件remove_id
+	retval = usb_create_removeid_file(new_driver);
+	if (retval)
+		goto out_removeid;
+
+	pr_info("%s: registered new interface driver %s\n",
+			  usbcore_name, new_driver->name);
+
+out:
+	return retval;
+
+out_removeid:
+	usb_remove_newid_file(new_driver);
+out_newid:
+	driver_unregister(&new_driver->drvwrap.driver);
+
+	printk(KERN_ERR "%s: error %d registering interface "
+		 "	driver %s\n", usbcore_name, retval, new_driver->name);
+	goto out;
+}
+```
+
+###### 10.3.4.2.4.1.1 usb_probe_interface()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/* called from driver core with dev locked */
+static int usb_probe_interface(struct device *dev)
+{
+	struct usb_driver *driver = to_usb_driver(dev->driver);
+	struct usb_interface *intf = to_usb_interface(dev);
+	struct usb_device *udev = interface_to_usbdev(intf);
+	const struct usb_device_id *id;
+	int error = -ENODEV;
+
+	dev_dbg(dev, "%s\n", __func__);
+
+	intf->needs_binding = 0;
+
+	if (usb_device_is_owned(udev))
+		return error;
+
+	if (udev->authorized == 0) {
+		dev_err(&intf->dev, "Device is not authorized for usage\n");
+		return error;
+	}
+
+	id = usb_match_id(intf, driver->id_table);
+	if (!id)
+		id = usb_match_dynamic_id(intf, driver);
+	if (!id)
+		return error;
+
+	dev_dbg(dev, "%s - got id\n", __func__);
+
+	error = usb_autoresume_device(udev);
+	if (error)
+		return error;
+
+	intf->condition = USB_INTERFACE_BINDING;
+
+	/* Probed interfaces are initially active.  They are
+	 * runtime-PM-enabled only if the driver has autosuspend support.
+	 * They are sensitive to their children's power states.
+	 */
+	pm_runtime_set_active(dev);
+	pm_suspend_ignore_children(dev, false);
+	if (driver->supports_autosuspend)
+		pm_runtime_enable(dev);
+
+	/* Carry out a deferred switch to altsetting 0 */
+	if (intf->needs_altsetting0) {
+		error = usb_set_interface(udev, intf->altsetting[0].desc.bInterfaceNumber, 0);
+		if (error < 0)
+			goto err;
+		intf->needs_altsetting0 = 0;
+	}
+
+	error = driver->probe(intf, id);
+	if (error)
+		goto err;
+
+	intf->condition = USB_INTERFACE_BOUND;
+	usb_autosuspend_device(udev);
+	return error;
+
+err:
+	intf->needs_remote_wakeup = 0;
+	intf->condition = USB_INTERFACE_UNBOUND;
+	usb_cancel_queued_reset(intf);
+
+	/* Unbound interfaces are always runtime-PM-disabled and -suspended */
+	if (driver->supports_autosuspend)
+		pm_runtime_disable(dev);
+	pm_runtime_set_suspended(dev);
+
+	usb_autosuspend_device(udev);
+	return error;
+}
+```
+
+###### 10.3.4.2.4.2 注销USB接口驱动程序/usb_deregister()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/**
+ * usb_deregister - unregister a USB interface driver
+ * @driver: USB operations of the interface driver to unregister
+ * Context: must be able to sleep
+ *
+ * Unlinks the specified driver from the internal USB driver list.
+ *
+ * NOTE: If you called usb_register_dev(), you still need to call
+ * usb_deregister_dev() to clean up your driver's allocated minor numbers,
+ * this * call will no longer do it for you.
+ */
+void usb_deregister(struct usb_driver *driver)
+{
+	pr_info("%s: deregistering interface driver %s\n",
+			  usbcore_name, driver->name);
+
+	usb_remove_removeid_file(driver);
+	usb_remove_newid_file(driver);
+	usb_free_dynids(driver);
+
+	// 参见10.2.4.2 注销驱动程序/driver_unregister()节
+	driver_unregister(&driver->drvwrap.driver);
+
+	usbfs_update_special();
+}
+```
+
+###### 10.3.4.2.4.2.1 usb_unbind_interface()
+
+该函数定义于drivers/usb/core/driver.c:
+
+```
+/* called from driver core with dev locked */
+static int usb_unbind_interface(struct device *dev)
+{
+	struct usb_driver *driver = to_usb_driver(dev->driver);
+	struct usb_interface *intf = to_usb_interface(dev);
+	struct usb_device *udev;
+	int error, r;
+
+	intf->condition = USB_INTERFACE_UNBINDING;
+
+	/* Autoresume for set_interface call below */
+	udev = interface_to_usbdev(intf);
+	error = usb_autoresume_device(udev);
+
+	/* Terminate all URBs for this interface unless the driver
+	 * supports "soft" unbinding.
+	 */
+	if (!driver->soft_unbind)
+		usb_disable_interface(udev, intf, false);
+
+	driver->disconnect(intf);
+	usb_cancel_queued_reset(intf);
+
+	/* Reset other interface state.
+	 * We cannot do a Set-Interface if the device is suspended or
+	 * if it is prepared for a system sleep (since installing a new
+	 * altsetting means creating new endpoint device entries).
+	 * When either of these happens, defer the Set-Interface.
+	 */
+	if (intf->cur_altsetting->desc.bAlternateSetting == 0) {
+		/* Already in altsetting 0 so skip Set-Interface.
+		 * Just re-enable it without affecting the endpoint toggles.
+		 */
+		usb_enable_interface(udev, intf, false);
+	} else if (!error && !intf->dev.power.is_prepared) {
+		r = usb_set_interface(udev, intf->altsetting[0].desc.bInterfaceNumber, 0);
+		if (r < 0)
+			intf->needs_altsetting0 = 1;
+	} else {
+		intf->needs_altsetting0 = 1;
+	}
+	usb_set_intfdata(intf, NULL);
+
+	intf->condition = USB_INTERFACE_UNBOUND;
+	intf->needs_remote_wakeup = 0;
+
+	/* Unbound interfaces are always runtime-PM-disabled and -suspended */
+	if (driver->supports_autosuspend)
+		pm_runtime_disable(dev);
+	pm_runtime_set_suspended(dev);
+
+	/* Undo any residual pm_autopm_get_interface_* calls */
+	for (r = atomic_read(&intf->pm_usage_cnt); r > 0; --r)
+		usb_autopm_put_interface_no_suspend(intf);
+	atomic_set(&intf->pm_usage_cnt, 0);
+
+	if (!error)
+		usb_autosuspend_device(udev);
+
+	return 0;
+}
+```
+
+##### 10.3.4.2.5 注册/注销USB设备
+
+###### 10.3.4.2.5.1 注册USB设备/usb_register_dev()
+
+该函数定义于drivers/usb/core/file.c:
+
+```
+/**
+ * usb_register_dev - register a USB device, and ask for a minor number
+ * @intf: pointer to the usb_interface that is being registered
+ * @class_driver: pointer to the usb_class_driver for this device
+ *
+ * This should be called by all USB drivers that use the USB major number.
+ * If CONFIG_USB_DYNAMIC_MINORS is enabled, the minor number will be
+ * dynamically allocated out of the list of available ones.  If it is not
+ * enabled, the minor number will be based on the next available free minor,
+ * starting at the class_driver->minor_base.
+ *
+ * This function also creates a usb class device in the sysfs tree.
+ *
+ * usb_deregister_dev() must be called when the driver is done with
+ * the minor numbers given out by this function.
+ *
+ * Returns -EINVAL if something bad happens with trying to register a
+ * device, and 0 on success.
+ */
+int usb_register_dev(struct usb_interface *intf,
+		     struct usb_class_driver *class_driver)
+{
+	int retval;
+	int minor_base = class_driver->minor_base;
+	int minor;
+	char name[20];
+	char *temp;
+
+#ifdef CONFIG_USB_DYNAMIC_MINORS
+	/* 
+	 * We don't care what the device tries to start at, we want to start
+	 * at zero to pack the devices into the smallest available space with
+	 * no holes in the minor range.
+	 */
+	minor_base = 0;
+#endif
+
+	if (class_driver->fops == NULL)
+		return -EINVAL;
+	if (intf->minor >= 0)
+		return -EADDRINUSE;
+
+	// 参见10.3.4.2.5.1.1 init_usb_class()节
+	retval = init_usb_class();
+	if (retval)
+		return retval;
+
+	dev_dbg(&intf->dev, "looking for a minor, starting at %d", minor_base);
+
+	/*
+	 * 分配次设备号：若数组usb_minors[minor] == NULL，
+	 * 则该下标minor所代表的次设备号可用
+	 */
+	down_write(&minor_rwsem);
+	for (minor = minor_base; minor < MAX_USB_MINORS; ++minor) {
+		if (usb_minors[minor])
+			continue;
+
+		usb_minors[minor] = class_driver->fops;
+		intf->minor = minor;
+		break;
+	}
+	up_write(&minor_rwsem);
+	if (intf->minor < 0)
+		return -EXFULL;
+
+	/* create a usb class device for this usb interface */
+	snprintf(name, sizeof(name), class_driver->name, minor - minor_base);
+	temp = strrchr(name, '/');
+	if (temp && (temp[1] != '\0'))
+		++temp;
+	else
+		temp = name;
+
+	// 参见10.2.3.1 创建设备/device_create()节
+	intf->usb_dev = device_create(usb_class->class, &intf->dev,
+				      MKDEV(USB_MAJOR, minor), class_driver, "%s", temp);
+	if (IS_ERR(intf->usb_dev)) {
+		down_write(&minor_rwsem);
+		usb_minors[minor] = NULL;
+		intf->minor = -1;
+		up_write(&minor_rwsem);
+		retval = PTR_ERR(intf->usb_dev);
+	}
+	return retval;
+}
+```
+
+###### 10.3.4.2.5.1.1 init_usb_class()
+
+该函数定义于drivers/usb/core/file.c:
+
+```
+static struct usb_class {
+	struct kref	kref;
+	struct class	*class;
+} *usb_class;
+
+static int init_usb_class(void)
+{
+	int result = 0;
+
+	// 若已创建该对象，则增加其引用计数
+	if (usb_class != NULL) {
+		kref_get(&usb_class->kref);
+		goto exit;
+	}
+
+	usb_class = kmalloc(sizeof(*usb_class), GFP_KERNEL);
+	if (!usb_class) {
+		result = -ENOMEM;
+		goto exit;
+	}
+
+	kref_init(&usb_class->kref);
+
+	// 参见10.2.7.1 class_create()节
+	usb_class->class = class_create(THIS_MODULE, "usb");
+	if (IS_ERR(usb_class->class)) {
+		result = IS_ERR(usb_class->class);
+		printk(KERN_ERR "class_create failed for usb devices\n");
+		kfree(usb_class);
+		usb_class = NULL;
+		goto exit;
+	}
+	usb_class->class->devnode = usb_devnode;
+
+exit:
+	return result;
+}
+```
+
+###### 10.3.4.2.5.2 注销USB设备/usb_deregister_dev()
+
+该函数定义于drivers/usb/core/file.c:
+
+```
+/**
+ * usb_deregister_dev - deregister a USB device's dynamic minor.
+ * @intf: pointer to the usb_interface that is being deregistered
+ * @class_driver: pointer to the usb_class_driver for this device
+ *
+ * Used in conjunction with usb_register_dev().  This function is called
+ * when the USB driver is finished with the minor numbers gotten from a
+ * call to usb_register_dev() (usually when the device is disconnected
+ * from the system.)
+ *
+ * This function also removes the usb class device from the sysfs tree.
+ *
+ * This should be called by all drivers that use the USB major number.
+ */
+void usb_deregister_dev(struct usb_interface *intf,
+			struct usb_class_driver *class_driver)
+{
+	if (intf->minor == -1)
+		return;
+
+	dbg ("removing %d minor", intf->minor);
+
+	down_write(&minor_rwsem);
+	usb_minors[intf->minor] = NULL;
+	up_write(&minor_rwsem);
+
+	// 参见10.2.3.2 销毁设备/destroy_device()节
+	device_destroy(usb_class->class, MKDEV(USB_MAJOR, intf->minor));
+	intf->usb_dev = NULL;
+	intf->minor = -1;
+
+	/*
+	 * 减小usb_class->kref的引用计数；若减至0,则调用
+	 * 函数release_usb_class()释放变量usb_class
+	 */
+	destroy_usb_class();
+}
 ```
 
 # Appendixes

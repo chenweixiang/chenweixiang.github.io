@@ -35572,6 +35572,2746 @@ int wake_up_state(struct task_struct *p, unsigned int state)
 }
 ```
 
+### 8.3.4 信号的接收与处理
+
+The kernel checks the value of the TIF_SIGPENDING flag of the process before allowing the process to resume its execution in User Mode. Thus, the kernel checks for the existence of pending signals every time it finishes handling an interrupt or an exception. If it has pending signals, then calling handler do_notify_resume()->do_signal(), refer to section ret_from_intr.
+
+函数do_notify_resume()定义于arch/x86/kernel/signal.c:
+
+```
+/*
+ * notification of userspace execution resumption
+ * - triggered by the TIF_WORK_MASK flags
+ */
+/*
+ * regs: The address of the stack area where the User Mode
+ * register contents of the current process are saved.
+ */
+void do_notify_resume(struct pt_regs *regs, void *unused, __u32 thread_info_flags)
+{
+#ifdef CONFIG_X86_MCE
+	/* notify userspace of pending MCEs */
+	if (thread_info_flags & _TIF_MCE_NOTIFY)
+		mce_notify_process();
+#endif /* CONFIG_X86_64 && CONFIG_X86_MCE */
+
+	/* deal with pending signal delivery */
+	if (thread_info_flags & _TIF_SIGPENDING) 	// 该标志为的设置参见通知目标进程接收信号节
+		do_signal(regs);			// 参见do_signal()节
+
+	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+		clear_thread_flag(TIF_NOTIFY_RESUME);
+		tracehook_notify_resume(regs);
+		if (current->replacement_session_keyring)
+			key_replace_session_keyring();
+	}
+	if (thread_info_flags & _TIF_USER_RETURN_NOTIFY)
+		fire_user_return_notifiers();
+
+#ifdef CONFIG_X86_32
+	clear_thread_flag(TIF_IRET);
+#endif /* CONFIG_X86_32 */
+}
+```
+
+#### 8.3.4.1 do_signal()
+
+该函数定义于arch/x86/kernel/signal.c:
+
+```
+/*
+ * Note that 'init' is a special process: it doesn't get signals it doesn't
+ * want to handle. Thus you cannot kill init even with a SIGKILL even by
+ * mistake.
+ */
+static void do_signal(struct pt_regs *regs)
+{
+	struct k_sigaction ka;
+	siginfo_t info;
+	int signr;
+
+	/*
+	 * We want the common case to go fast, which is why we may in certain
+	 * cases get here from kernel mode. Just return without doing anything
+	 * if so.
+	 * X86_32: vm86 regs switched out by assembly code before reaching
+	 * here, so testing against kernel CS suffices.
+	 */
+	if (!user_mode(regs))
+		return;
+
+	/*
+	 * 参见get_signal_to_deliver()节，信号处理方式1(忽略)
+	 * 和信号处理方式3(使用默认处理函数)在该函数中实现
+	 */
+	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+	if (signr > 0) {
+		/* Whee! Actually deliver the signal.  */
+		/*
+		 * 参见handle_signal()节，信号处理方式2(使用用户
+		 * 指定的信号处理函数)在该函数中实现
+		 */
+		handle_signal(signr, &info, &ka, regs); 
+		return;
+	}
+
+	/* Did we come from a system call? */
+	if (syscall_get_nr(current, regs) >= 0) {
+		/* Restart the system call - no handlers present */
+		switch (syscall_get_error(current, regs)) {
+		case -ERESTARTNOHAND:
+		case -ERESTARTSYS:
+		case -ERESTARTNOINTR:
+			regs->ax = regs->orig_ax;
+			regs->ip -= 2;
+			break;
+
+		/*
+		 * 若系统调用返回错误码为ERESTART_RESTARTBLOCK，则需要
+		 * 重新执行该系统调用。例子参见hrtimer_nanosleep()节；
+		 * 另参见<<Understanding Linux Kernel, 3rd Edition>>
+		 * Chaper 11: Reexecution of System Calls
+		 */
+		case -ERESTART_RESTARTBLOCK:
+			/*
+			 * 执行系统调用sys_restart_syscall()，
+			 * 参见sys_restart_syscall()节
+			 */
+			regs->ax = NR_restart_syscall;
+			regs->ip -= 2;
+			break;
+		}
+	}
+
+	/*
+	 * If there's no signal to deliver, we just put the saved sigmask back.
+	 */
+	if (current_thread_info()->status & TS_RESTORE_SIGMASK) {
+		current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+		set_current_blocked(&current->saved_sigmask);
+	}
+}
+```
+
+##### 8.3.4.1.1 get_signal_to_deliver()
+
+该函数用来获取pending signal queue中的信号，其定义参见kernel/signal.c:
+
+```
+int get_signal_to_deliver(siginfo_t *info, struct k_sigaction *return_ka, struct pt_regs *regs, void *cookie)
+{
+	struct sighand_struct *sighand = current->sighand;
+	struct signal_struct *signal = current->signal;
+	int signr;
+
+relock:
+	/*
+	 * We'll jump back here after any time we were stopped in TASK_STOPPED.
+	 * While in TASK_STOPPED, we were considered "frozen enough".
+	 * Now that we woke up, it's crucial if we're supposed to be
+	 * frozen that we freeze now before running anything substantial.
+	 */
+	try_to_freeze();
+
+	spin_lock_irq(&sighand->siglock);
+	/*
+	 * Every stopped thread goes here after wakeup. Check to see if
+	 * we should notify the parent, prepare_signal(SIGCONT) encodes
+	 * the CLD_ si_code into SIGNAL_CLD_MASK bits.
+	 */
+	if (unlikely(signal->flags & SIGNAL_CLD_MASK)) {
+		int why;
+
+		if (signal->flags & SIGNAL_CLD_CONTINUED)
+			why = CLD_CONTINUED;
+		else
+			why = CLD_STOPPED;
+
+		signal->flags &= ~SIGNAL_CLD_MASK;
+
+		spin_unlock_irq(&sighand->siglock);
+
+		/*
+		 * Notify the parent that we're continuing.  This event is
+		 * always per-process and doesn't make whole lot of sense
+		 * for ptracers, who shouldn't consume the state via
+		 * wait(2) either, but, for backward compatibility, notify
+		 * the ptracer of the group leader too unless it's gonna be
+		 * a duplicate.
+		 */
+		read_lock(&tasklist_lock);
+		do_notify_parent_cldstop(current, false, why);
+
+		if (ptrace_reparented(current->group_leader))
+			do_notify_parent_cldstop(current->group_leader, true, why);
+		read_unlock(&tasklist_lock);
+
+		goto relock;
+	}
+
+	for (;;) {
+		struct k_sigaction *ka;
+
+		if (unlikely(current->jobctl & JOBCTL_STOP_PENDING) &&
+			 do_signal_stop(0))
+			goto relock;
+
+		if (unlikely(current->jobctl & JOBCTL_TRAP_MASK)) {
+			do_jobctl_trap();
+			spin_unlock_irq(&sighand->siglock);
+			goto relock;
+		}
+
+		/*
+		 * 从Private pending signal queue或Shared pending
+		 * signal queue中取出一个信号，参见dequeue_signal()节
+		 */
+		signr = dequeue_signal(current, &current->blocked, info);
+
+		if (!signr)
+			break; /* will return 0 */
+
+		if (unlikely(current->ptrace) && signr != SIGKILL) {
+			signr = ptrace_signal(signr, info, regs, cookie);
+			if (!signr)
+				continue;
+		}
+
+		// 获取指定信号的处理函数
+		ka = &sighand->action[signr-1];
+
+		/* Trace actually delivered signals. */
+		trace_signal_deliver(signr, info, ka);
+
+		// 信号处理方式1：忽略该信号
+		if (ka->sa.sa_handler == SIG_IGN) /* Do nothing.  */
+			continue;
+		// 信号处理方式2：使用用户指定的信号处理函数
+		if (ka->sa.sa_handler != SIG_DFL) {
+			/* Run the handler.  */
+			*return_ka = *ka;
+
+			/*
+			 * 若设置表示位SA_ONESHOT，则该信号第一次处理使用
+			 * 用户指定的处理函数，此后使用默认处理函数
+			 */
+			if (ka->sa.sa_flags & SA_ONESHOT)
+				ka->sa.sa_handler = SIG_DFL;
+
+			break; /* will return non-zero "signr" value */
+		}
+
+		// 信号处理方式3：使用信号的默认处理函数
+		/*
+		 * Now we are doing the default action for this signal.
+		 */
+		// - for signals: SIGCONT, SIGCHLD, SIGWINCH, SIGURG
+		if (sig_kernel_ignore(signr)) /* Default is nothing. */
+			continue;
+
+		/*
+		 * Global init gets no signals it doesn't want.
+		 * Container-init gets no signals it doesn't want from same
+		 * container.
+		 *
+		 * Note that if global/container-init sees a sig_kernel_only()
+		 * signal here, the signal must have been generated internally
+		 * or must have come from an ancestor namespace. In either
+		 * case, the signal cannot be dropped.
+		 */
+		/*
+		 * - for signals: SIGKILL, SIGSTOP
+		 * The SIGKILL and SIGSTOP signals cannot be ignored, caught,
+		 * or blocked, and their default actions must always be executed.
+		 * Therefore, SIGKILL and SIGSTOP allow a user with appropriate
+		 * privileges to terminate and to stop, respectively, every process,
+		 * regardless of the defenses taken by the program it is executing.
+		 */
+		if (unlikely(signal->flags & SIGNAL_UNKILLABLE) && !sig_kernel_only(signr))
+			continue;
+
+		// - for signals: SIGSTOP, SIGTSTP, SIGTTIN, SIGTTOU
+		if (sig_kernel_stop(signr)) {
+			/*
+			 * The default action is to stop all threads in
+			 * the thread group.  The job control signals
+			 * do nothing in an orphaned pgrp, but SIGSTOP
+			 * always works.  Note that siglock needs to be
+			 * dropped during the call to is_orphaned_pgrp()
+			 * because of lock ordering with tasklist_lock.
+			 * This allows an intervening SIGCONT to be posted.
+			 * We need to check for that and bail out if necessary.
+			 */
+			if (signr != SIGSTOP) {
+				spin_unlock_irq(&sighand->siglock);
+
+				/* signals can be posted during this window */
+
+				if (is_current_pgrp_orphaned())
+					goto relock;
+
+				spin_lock_irq(&sighand->siglock);
+			}
+
+			/*
+			 * do_signal_stop() handles group stop for SIGSTOP and
+			 * other stop signals. 检查当前进程是否是线程组中的第一个正在
+			 * 被停止的进程，如果是，它就激活一个组停(group stop)。本质上，
+			 * 它会把信号描述符的group_stop_count字段设置为正值，并且唤醒
+			 * 线程组中的每一个进程。每一个进程都会查看该字段，从而认识到正在
+			 * 停止整个线程组，并把自己的状态改为 TASK_STOPPED，然后调用
+			 * schedule()
+			 */
+			if (likely(do_signal_stop(info->si_signo))) {
+				/* It released the siglock.  */
+				goto relock;
+			}
+
+			/*
+			 * We didn't actually stop, due to a race
+			 * with SIGCONT or something like that.
+			 */
+			continue;
+		}
+
+		spin_unlock_irq(&sighand->siglock);
+
+		/*
+		 * Anything else is fatal, maybe with a core dump.
+		 */
+		current->flags |= PF_SIGNALED;
+
+		/*
+		 * - for signals: SIGQUIT, SIGILL, SIGTRAP, SIGABRT,
+		 *   		SIGFPE, SIGSEGV, SIGBUS, SIGSYS, SIGXCPU,
+		 * 		SIGXFSZ, SIGEMT
+		 */
+		if (sig_kernel_coredump(signr)) {
+			if (print_fatal_signals)
+				print_fatal_signal(regs, info->si_signo);
+			/*
+			 * If it was able to dump core, this kills all
+			 * other threads in the group and synchronizes with
+			 * their demise.  If we lost the race with another
+			 * thread getting here, it set group_exit_code
+			 * first and our do_group_exit call below will use
+			 * that value and ignore the one we pass it.
+			 */
+			do_coredump(info->si_signo, info->si_signo, regs);
+		}
+
+		/*
+		 * Death signals, no core dump.
+		 */
+		do_group_exit(info->si_signo);
+		/* NOTREACHED */
+	}
+	spin_unlock_irq(&sighand->siglock);
+	return signr;
+}
+```
+
+###### 8.3.4.1.1.1 dequeue_signal()
+
+该函数定义于kernel/signal.c:
+
+```
+/*
+ * Dequeue a signal and return the element to the caller, which is expected to free it.
+ *
+ * All callers have to hold the siglock.
+ */
+int dequeue_signal(struct task_struct *tsk, sigset_t *mask, siginfo_t *info)
+{
+	int signr;
+
+	/* 
+	 * We only dequeue private signals from ourselves, we don't let signalfd steal them
+	 */
+	// 从Private pending signal queue中获取信号
+	signr = __dequeue_signal(&tsk->pending, mask, info);
+	if (!signr) {
+		// 从Shared pending signal queue中获取信号
+		signr = __dequeue_signal(&tsk->signal->shared_pending, mask, info);
+		/*
+		 * itimer signal ?
+		 *
+		 * itimers are process shared and we restart periodic
+		 * itimers in the signal delivery path to prevent DoS
+		 * attacks in the high resolution timer case. This is
+		 * compliant with the old way of self-restarting
+		 * itimers, as the SIGALRM is a legacy signal and only
+		 * queued once. Changing the restart behaviour to
+		 * restart the timer in the signal dequeue path is
+		 * reducing the timer noise on heavy loaded !highres
+		 * systems too.
+		 */
+		if (unlikely(signr == SIGALRM)) {
+			struct hrtimer *tmr = &tsk->signal->real_timer;
+
+			if (!hrtimer_is_queued(tmr) && tsk->signal->it_real_incr.tv64 != 0) {
+				hrtimer_forward(tmr, tmr->base->get_time(), tsk->signal->it_real_incr);
+				hrtimer_restart(tmr);
+			}
+		}
+	}
+
+	// 重置TIF_SIGPENDING标志
+	recalc_sigpending();
+
+	if (!signr)
+		return 0;
+
+	if (unlikely(sig_kernel_stop(signr))) {
+		/*
+		 * Set a marker that we have dequeued a stop signal.  Our
+		 * caller might release the siglock and then the pending
+		 * stop signal it is about to process is no longer in the
+		 * pending bitmasks, but must still be cleared by a SIGCONT
+		 * (and overruled by a SIGKILL).  So those cases clear this
+		 * shared flag after we've set it.  Note that this flag may
+		 * remain set after the signal we return is ignored or
+		 * handled.  That doesn't matter because its only purpose
+		 * is to alert stop-signal processing code when another
+		 * processor has come along and cleared the flag.
+		 */
+		current->jobctl |= JOBCTL_STOP_DEQUEUED;
+	}
+
+	if ((info->si_code & __SI_MASK) == __SI_TIMER && info->si_sys_private) {
+		/*
+		 * Release the siglock to ensure proper locking order
+		 * of timer locks outside of siglocks.  Note, we leave
+		 * irqs disabled here, since the posix-timers code is
+		 * about to disable them again anyway.
+		 */
+		spin_unlock(&tsk->sighand->siglock);
+		do_schedule_next_timer(info);
+		spin_lock(&tsk->sighand->siglock);
+	}
+	return signr;
+}
+```
+
+##### 8.3.4.1.2 handle_signal()
+
+下图描述了信号处理函数的执行流程。假设一个非阻塞的信号发给目标进程。当一个中断或异常发生后，目标进程从用户态(U1)进入核心态，在它切换回用户态(U1)之前，内核调用do_signal()逐一处理悬挂的非阻塞信号(参见do_signal()节)。而如果目标进程设置了对信号的处理函数，那么它会调用handle_signal()来调用自定义的信号处理函数(使用setup_rt_frame()来为信号处理函数设置栈)，此时当切换到用户态时，目标进程执行的是信号处理函数而不是U1。当信号处理函数结束后，位于setup_rt_frame()栈上的返回代码(return code)被执行，该返回代码会执行rt_sigreturn，从而把U1的上下文从setup_rt_frame栈中拷贝到核心栈。此后，内核可以切换回U1。
+
+注意：在信号的三种处理方式中，只有使用自定义的信号处理函数才需要这样麻烦。
+
+![Handle_Signal](/assets/Handle_Signal.png)
+
+该函数定义于arch/x86/kernel/signal.c:
+
+```
+static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka, struct pt_regs *regs)
+{
+	sigset_t blocked;
+	int ret;
+
+	/* Are we from a system call? */
+	if (syscall_get_nr(current, regs) >= 0) {
+		/* If so, check system call restarting.. */
+		switch (syscall_get_error(current, regs)) {
+		case -ERESTART_RESTARTBLOCK:
+		case -ERESTARTNOHAND:
+			regs->ax = -EINTR;
+			break;
+
+		case -ERESTARTSYS:
+			if (!(ka->sa.sa_flags & SA_RESTART)) {
+				regs->ax = -EINTR;
+				break;
+			}
+		/* fallthrough */
+		case -ERESTARTNOINTR:
+			regs->ax = regs->orig_ax;
+			regs->ip -= 2;
+			break;
+		}
+	}
+
+	/*
+	 * If TF is set due to a debugger (TIF_FORCED_TF), clear the TF
+	 * flag so that register information in the sigcontext is correct.
+	 */
+	if (unlikely(regs->flags & X86_EFLAGS_TF) && likely(test_and_clear_thread_flag(TIF_FORCED_TF)))
+		regs->flags &= ~X86_EFLAGS_TF;
+
+	ret = setup_rt_frame(sig, ka, info, regs);	// 参见setup_rt_frame()节
+
+	if (ret)
+		return ret;
+
+	/*
+	 * Clear the direction flag as per the ABI for function entry.
+	 */
+	regs->flags &= ~X86_EFLAGS_DF;
+
+	/*
+	 * Clear TF when entering the signal handler, but
+	 * notify any tracer that was single-stepping it.
+	 * The tracer may want to single-step inside the
+	 * handler too.
+	 */
+	regs->flags &= ~X86_EFLAGS_TF;
+
+	sigorsets(&blocked, &current->blocked, &ka->sa.sa_mask);
+	/*
+	 * 若未设置SA_NODEFER，那么在执行信号处理函数时，就要阻塞
+	 * sigaction.sa_mask中指定的所有信号以及sig本身
+	 */
+	if (!(ka->sa.sa_flags & SA_NODEFER))
+		sigaddset(&blocked, sig);
+	set_current_blocked(&blocked);
+
+	tracehook_signal_handler(sig, info, ka, regs, test_thread_flag(TIF_SINGLESTEP));
+
+	return 0;
+}
+```
+
+###### 8.3.4.1.2.1 setup_rt_frame()
+
+该函数定义于arch/x86/kernel/signal.c:
+
+```
+static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info, struct pt_regs *regs)
+{
+	int usig = signr_convert(sig);
+	sigset_t *set = &current->blocked;
+	int ret;
+
+	if (current_thread_info()->status & TS_RESTORE_SIGMASK)
+		set = &current->saved_sigmask;
+
+	/* Set up the stack frame */
+	if (is_ia32) {
+		if (ka->sa.sa_flags & SA_SIGINFO)
+			ret = ia32_setup_rt_frame(usig, ka, info, set, regs);
+		else
+			ret = ia32_setup_frame(usig, ka, set, regs);
+	} else
+		ret = __setup_rt_frame(sig, ka, info, set, regs);
+
+	if (ret) {
+		force_sigsegv(sig, current);
+		return -EFAULT;
+	}
+
+	current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+	return ret;
+}
+
+static int __setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+			    sigset_t *set, struct pt_regs *regs)
+{
+	struct rt_sigframe __user *frame;
+	void __user *restorer;
+	int err = 0;
+	void __user *fpstate = NULL;
+
+	frame = get_sigframe(ka, regs, sizeof(*frame), &fpstate);
+
+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+		return -EFAULT;
+
+	put_user_try {
+		put_user_ex(sig, &frame->sig);
+		put_user_ex(&frame->info, &frame->pinfo);
+		put_user_ex(&frame->uc, &frame->puc);
+		err |= copy_siginfo_to_user(&frame->info, info);
+
+		/* Create the ucontext.  */
+		if (cpu_has_xsave)
+			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+		else
+			put_user_ex(0, &frame->uc.uc_flags);
+		put_user_ex(0, &frame->uc.uc_link);
+		put_user_ex(current->sas_ss_sp, &frame->uc.uc_stack.ss_sp);
+		put_user_ex(sas_ss_flags(regs->sp), &frame->uc.uc_stack.ss_flags);
+		put_user_ex(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
+		err |= setup_sigcontext(&frame->uc.uc_mcontext, fpstate, regs, set->sig[0]);
+		err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
+
+		/*
+		 * 当用户自定的信号处理函数在用户态执行结束后，会执行系统调用
+		 * sys_rt_sigreturn，因而会从用户态再次转换到内核态
+		 */
+		/* Set up to return from userspace.  */
+		restorer = VDSO32_SYMBOL(current->mm->context.vdso, rt_sigreturn);
+		if (ka->sa.sa_flags & SA_RESTORER)
+			restorer = ka->sa.sa_restorer;
+		put_user_ex(restorer, &frame->pretcode);
+
+		/*
+		 * This is movl $__NR_rt_sigreturn, %ax ; int $0x80
+		 *
+		 * WE DO NOT USE IT ANY MORE! It's only left here for historical
+		 * reasons and because gdb uses it as a signature to notice
+		 * signal handler stack frames.
+		 */
+		put_user_ex(*((u64 *)&rt_retcode), (u64 *)frame->retcode);
+	} put_user_catch(err);
+
+	if (err)
+		return -EFAULT;
+
+	/* Set up registers for signal handler */
+	regs->sp = (unsigned long)frame;
+	/*
+	 * 当本函数返回到do_signal()且do_signal()执行结束后，
+	 * 进程由核心态切换到用户态，并开始执行此信号处理函数
+	 */
+	regs->ip = (unsigned long)ka->sa.sa_handler;
+	regs->ax = (unsigned long)sig;
+	regs->dx = (unsigned long)&frame->info;
+	regs->cx = (unsigned long)&frame->uc;
+
+	regs->ds = __USER_DS;
+	regs->es = __USER_DS;
+	regs->ss = __USER_DS;
+	regs->cs = __USER_CS;
+
+	return 0;
+}
+```
+
+其中，函数__setup_rt_frame()定义于arch/x86/kernel/signal.c:
+
+```
+static int __setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+			    sigset_t *set, struct pt_regs *regs)
+{
+	struct rt_sigframe __user *frame;
+	void __user *restorer;
+	int err = 0;
+	void __user *fpstate = NULL;
+
+	frame = get_sigframe(ka, regs, sizeof(*frame), &fpstate);
+
+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+		return -EFAULT;
+
+	put_user_try {
+		put_user_ex(sig, &frame->sig);
+		put_user_ex(&frame->info, &frame->pinfo);
+		put_user_ex(&frame->uc, &frame->puc);
+		err |= copy_siginfo_to_user(&frame->info, info);
+
+		/* Create the ucontext.  */
+		if (cpu_has_xsave)
+			put_user_ex(UC_FP_XSTATE, &frame->uc.uc_flags);
+		else
+			put_user_ex(0, &frame->uc.uc_flags);
+		put_user_ex(0, &frame->uc.uc_link);
+		put_user_ex(current->sas_ss_sp, &frame->uc.uc_stack.ss_sp);
+		put_user_ex(sas_ss_flags(regs->sp), &frame->uc.uc_stack.ss_flags);
+		put_user_ex(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
+		err |= setup_sigcontext(&frame->uc.uc_mcontext, fpstate, regs, set->sig[0]);
+		err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
+
+		/*
+		 * 当用户自定的信号处理函数在用户态执行结束后，会执行系统调用
+		 * sys_rt_sigreturn，因而会从用户态再次转换到内核态
+		 */
+		/* Set up to return from userspace.  */
+		restorer = VDSO32_SYMBOL(current->mm->context.vdso, rt_sigreturn);
+		if (ka->sa.sa_flags & SA_RESTORER)
+			restorer = ka->sa.sa_restorer;
+		put_user_ex(restorer, &frame->pretcode);
+
+		/*
+		 * This is movl $__NR_rt_sigreturn, %ax ; int $0x80
+		 *
+		 * WE DO NOT USE IT ANY MORE! It's only left here for historical
+		 * reasons and because gdb uses it as a signature to notice
+		 * signal handler stack frames.
+		 */
+		put_user_ex(*((u64 *)&rt_retcode), (u64 *)frame->retcode);
+	} put_user_catch(err);
+
+	if (err)
+		return -EFAULT;
+
+	/* Set up registers for signal handler */
+	regs->sp = (unsigned long)frame;
+	/*
+	 * 当本函数返回到do_signal()且do_signal()执行结束后，
+	 * 进程由核心态切换到用户态，并开始执行此信号处理函数
+	 */
+	regs->ip = (unsigned long)ka->sa.sa_handler;
+	regs->ax = (unsigned long)sig;
+	regs->dx = (unsigned long)&frame->info;
+	regs->cx = (unsigned long)&frame->uc;
+
+	regs->ds = __USER_DS;
+	regs->es = __USER_DS;
+	regs->ss = __USER_DS;
+	regs->cs = __USER_CS;
+
+	return 0;
+}
+```
+
+##### 8.3.4.1.3 sys_restart_syscall()
+
+该系统调用定义于kernel/signal.c:
+
+```
+SYSCALL_DEFINE0(restart_syscall)
+{
+	struct restart_block *restart = &current_thread_info()->restart_block;
+	return restart->fn(restart);
+}
+```
+
+#### 8.3.4.2 设置信号处理函数/sys_sigaction()/sys_rt_sigaction()
+
+函数sys_sigaction()定义于arch/x86/kernel/signal.c:
+
+```
+asmlinkage int sys_sigaction(int sig, const struct old_sigaction __user *act,
+			     struct old_sigaction __user *oact)
+{
+	struct k_sigaction new_ka, old_ka;
+	int ret = 0;
+
+	if (act) {
+		old_sigset_t mask;
+
+		if (!access_ok(VERIFY_READ, act, sizeof(*act)))
+			return -EFAULT;
+
+		get_user_try {
+			get_user_ex(new_ka.sa.sa_handler, &act->sa_handler);
+			get_user_ex(new_ka.sa.sa_flags, &act->sa_flags);
+			get_user_ex(mask, &act->sa_mask);
+			get_user_ex(new_ka.sa.sa_restorer, &act->sa_restorer);
+		} get_user_catch(ret);
+
+		if (ret)
+			return -EFAULT;
+		siginitset(&new_ka.sa.sa_mask, mask);
+	}
+
+	// 参见do_sigaction()节
+	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
+
+	// oact用来保存该信号原来的信号处理函数，后续可能需要恢复原来的信号处理函数
+	if (!ret && oact) {
+		if (!access_ok(VERIFY_WRITE, oact, sizeof(*oact)))
+			return -EFAULT;
+
+		put_user_try {
+			put_user_ex(old_ka.sa.sa_handler, &oact->sa_handler);
+			put_user_ex(old_ka.sa.sa_flags, &oact->sa_flags);
+			put_user_ex(old_ka.sa.sa_mask.sig[0], &oact->sa_mask);
+			put_user_ex(old_ka.sa.sa_restorer, &oact->sa_restorer);
+		} put_user_catch(ret);
+
+		if (ret)
+			return -EFAULT;
+	}
+
+	return ret;
+}
+```
+
+函数sys_rt_sigaction()定义参见kernel/signal.c:
+
+```
+/**
+ *  sys_rt_sigaction - alter an action taken by a process
+ *  @sig: signal to be sent
+ *  @act: new sigaction
+ *  @oact: used to save the previous sigaction
+ *  @sigsetsize: size of sigset_t type
+ */
+SYSCALL_DEFINE4(rt_sigaction, int, sig, const struct sigaction __user *, act,
+		struct sigaction __user *, oact, size_t, sigsetsize)
+{
+	struct k_sigaction new_sa, old_sa;
+	int ret = -EINVAL;
+
+	/* XXX: Don't preclude handling different sized sigset_t's.  */
+	if (sigsetsize != sizeof(sigset_t))
+		goto out;
+
+	if (act) {
+		if (copy_from_user(&new_sa.sa, act, sizeof(new_sa.sa)))
+			return -EFAULT;
+	}
+
+	// 参见do_sigaction()节
+	ret = do_sigaction(sig, act ? &new_sa : NULL, oact ? &old_sa : NULL); 
+
+	if (!ret && oact) {
+		if (copy_to_user(oact, &old_sa.sa, sizeof(old_sa.sa)))
+			return -EFAULT;
+	}
+out:
+	return ret;
+}
+```
+
+此外，因为兼容问题，系统调用sys_signal()还是存在的，但其功能已被sys_sigaction()替代，参见kernel/signal.c:
+
+```
+/*
+ * For backwards compatibility.  Functionality superseded by sigaction.
+ */
+SYSCALL_DEFINE2(signal, int, sig, __sighandler_t, handler)
+{
+	struct k_sigaction new_sa, old_sa;
+	int ret;
+
+	new_sa.sa.sa_handler = handler;
+	new_sa.sa.sa_flags = SA_ONESHOT | SA_NOMASK;
+	sigemptyset(&new_sa.sa.sa_mask);
+
+	ret = do_sigaction(sig, &new_sa, &old_sa); 	// 参见do_sigaction()节
+
+	return ret ? ret : (unsigned long)old_sa.sa.sa_handler;
+}
+```
+
+##### 8.3.4.2.1 do_sigaction()
+
+该函数定义于kernel/signal.c:
+
+```
+int do_sigaction(int sig, struct k_sigaction *act, struct k_sigaction *oact)
+{
+	struct task_struct *t = current;
+	struct k_sigaction *k;
+	sigset_t mask;
+
+	if (!valid_signal(sig) || sig < 1 || (act && sig_kernel_only(sig)))
+		return -EINVAL;
+
+	k = &t->sighand->action[sig-1];
+
+	spin_lock_irq(&current->sighand->siglock);
+	if (oact)
+		*oact = *k;
+
+	if (act) {
+		// SIGKILL和SIGSTOP信号不会被屏蔽掉
+		sigdelsetmask(&act->sa.sa_mask, sigmask(SIGKILL) | sigmask(SIGSTOP));
+		*k = *act;
+		/*
+		 * POSIX 3.3.1.3:
+		 *  "Setting a signal action to SIG_IGN for a signal that is
+		 *   pending shall cause the pending signal to be discarded,
+		 *   whether or not it is blocked."
+		 *
+		 *  "Setting a signal action to SIG_DFL for a signal that is
+		 *   pending and whose default action is to ignore the signal
+		 *   (for example, SIGCHLD), shall cause the pending signal to
+		 *   be discarded, whether or not it is blocked"
+		 */
+		if (sig_handler_ignored(sig_handler(t, sig), sig)) {
+			sigemptyset(&mask);
+			sigaddset(&mask, sig);
+			// Shared pending signal queue
+			rm_from_queue_full(&mask, &t->signal->shared_pending);
+			do {
+				// Private pending signal queue
+				rm_from_queue_full(&mask, &t->pending);
+				t = next_thread(t);
+			} while (t != current);
+		}
+	}
+
+	spin_unlock_irq(&current->sighand->siglock);
+	return 0;
+}
+```
+
+#### 8.3.4.3 获取被阻塞的悬挂信号/sys_sigpending()/sys_rt_sigpending()
+
+该函数定义于kernel/signal.c:
+
+```
+/**
+ *  sys_sigpending - examine pending signals
+ *  @set: where mask of pending signal is returned
+ */
+SYSCALL_DEFINE1(sigpending, old_sigset_t __user *, set)
+{
+	return do_sigpending(set, sizeof(*set));
+}
+
+/**
+ *  sys_rt_sigpending - examine a pending signal that has been raised while blocked
+ *  @set: stores pending signals
+ *  @sigsetsize: size of sigset_t type or larger
+ */
+SYSCALL_DEFINE2(rt_sigpending, sigset_t __user *, set, size_t, sigsetsize)
+{
+	return do_sigpending(set, sigsetsize);
+}
+```
+
+其中，函数do_sigpending()定义于kernel/signal.c:
+
+```
+long do_sigpending(void __user *set, unsigned long sigsetsize)
+{
+	long error = -EINVAL;
+	sigset_t pending;
+
+	if (sigsetsize > sizeof(sigset_t))
+		goto out;
+
+	spin_lock_irq(&current->sighand->siglock);
+	sigorsets(&pending, &current->pending.signal, &current->signal->shared_pending.signal);
+	spin_unlock_irq(&current->sighand->siglock);
+
+	/* Outside the lock because only this thread touches it.  */
+	sigandsets(&pending, &current->blocked, &pending);
+
+	error = -EFAULT;
+	if (!copy_to_user(set, &pending, sigsetsize))
+		error = 0;
+
+out:
+	return error;
+}
+```
+
+#### 8.3.4.4 修改被阻塞信号的集合/sys_sigprocmask()/sys_rt_sigprocmask()/sigprocmask()
+
+其定义参见kernel/signal.c:
+
+```
+/**
+ *  sys_sigprocmask - examine and change blocked signals
+ *  @how: whether to add, remove, or set signals
+ *  @nset: signals to add or remove (if non-null)
+ *  @oset: previous value of signal mask if non-null
+ *
+ * Some platforms have their own version with special arguments;
+ * others support only sys_rt_sigprocmask.
+ */
+
+SYSCALL_DEFINE3(sigprocmask, int, how, old_sigset_t __user *, nset, old_sigset_t __user *, oset)
+{
+	old_sigset_t old_set, new_set;
+	sigset_t new_blocked;
+
+	old_set = current->blocked.sig[0];
+
+	if (nset) {
+		if (copy_from_user(&new_set, nset, sizeof(*nset)))
+			return -EFAULT;
+		new_set &= ~(sigmask(SIGKILL) | sigmask(SIGSTOP));
+
+		new_blocked = current->blocked;
+
+		switch (how) {
+		case SIG_BLOCK:
+			sigaddsetmask(&new_blocked, new_set);
+			break;
+		case SIG_UNBLOCK:
+			sigdelsetmask(&new_blocked, new_set);
+			break;
+		case SIG_SETMASK:
+			new_blocked.sig[0] = new_set;
+			break;
+		default:
+			return -EINVAL;
+		}
+
+		set_current_blocked(&new_blocked);
+	}
+
+	if (oset) {
+		if (copy_to_user(oset, &old_set, sizeof(*oset)))
+			return -EFAULT;
+	}
+
+	return 0;
+}
+
+/**
+ *  sys_rt_sigprocmask - change the list of currently blocked signals
+ *  @how: whether to add, remove, or set signals
+ *  @nset: stores pending signals
+ *  @oset: previous value of signal mask if non-null
+ *  @sigsetsize: size of sigset_t type
+ */
+SYSCALL_DEFINE4(rt_sigprocmask, int, how, sigset_t __user *, nset,
+		sigset_t __user *, oset, size_t, sigsetsize)
+{
+	sigset_t old_set, new_set;
+	int error;
+
+	/* XXX: Don't preclude handling different sized sigset_t's.  */
+	if (sigsetsize != sizeof(sigset_t))
+		return -EINVAL;
+
+	old_set = current->blocked;
+
+	if (nset) {
+		if (copy_from_user(&new_set, nset, sizeof(sigset_t)))
+			return -EFAULT;
+		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
+
+		error = sigprocmask(how, &new_set, NULL);
+		if (error)
+			return error;
+	}
+
+	if (oset) {
+		if (copy_to_user(oset, &old_set, sizeof(sigset_t)))
+			return -EFAULT;
+	}
+
+	return 0;
+}
+
+/*
+ * This is also useful for kernel threads that want to temporarily
+ * (or permanently) block certain signals.
+ *
+ * NOTE! Unlike the user-mode sys_sigprocmask(), the kernel
+ * interface happily blocks "unblockable" signals like SIGKILL
+ * and friends.
+ */
+int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
+{
+	struct task_struct *tsk = current;
+	sigset_t newset;
+
+	/* Lockless, only current can change ->blocked, never from irq */
+	if (oldset)
+		*oldset = tsk->blocked;
+
+	switch (how) {
+	case SIG_BLOCK:
+		sigorsets(&newset, &tsk->blocked, set);
+		break;
+	case SIG_UNBLOCK:
+		sigandnsets(&newset, &tsk->blocked, set);
+		break;
+	case SIG_SETMASK:
+		newset = *set;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	set_current_blocked(&newset);
+	return 0;
+}
+```
+
+#### 8.3.4.5 暂停进程/sys_sigsuspend()/sys_rt_sigsuspend()
+
+系统调用sys_sigsuspend()定义于arch/x86/kernel/signal.c:
+
+```
+/*
+ * Atomically swap in the new signal mask, and wait for a signal.
+ */
+asmlinkage int sys_sigsuspend(int history0, int history1, old_sigset_t mask)
+{
+	sigset_t blocked;
+
+	current->saved_sigmask = current->blocked;
+
+	// 复位信号SIGKILL和SIGSTOP的掩码
+	mask &= _BLOCKABLE;
+	siginitset(&blocked, mask);
+	set_current_blocked(&blocked);
+
+	// 调度其他进程来运行，参见schedule()节
+	current->state = TASK_INTERRUPTIBLE;
+	schedule();
+
+	set_restore_sigmask();
+	return -ERESTARTNOHAND;
+}
+```
+
+系统调用sys_rt_sigsuspend()定义于kernel/signal.c:
+
+```
+/**
+ *  sys_rt_sigsuspend - replace the signal mask for a value with the
+ *	@unewset value until a signal is received
+ *  @unewset: new signal mask value
+ *  @sigsetsize: size of sigset_t type
+ */
+SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
+{
+	sigset_t newset;
+
+	/* XXX: Don't preclude handling different sized sigset_t's.  */
+	if (sigsetsize != sizeof(sigset_t))
+		return -EINVAL;
+
+	if (copy_from_user(&newset, unewset, sizeof(newset)))
+		return -EFAULT;
+	sigdelsetmask(&newset, sigmask(SIGKILL)|sigmask(SIGSTOP));
+
+	current->saved_sigmask = current->blocked;
+	set_current_blocked(&newset);
+
+	// 调度其他进程来运行，参见schedule()节
+	current->state = TASK_INTERRUPTIBLE;
+	schedule();
+	set_restore_sigmask();
+	return -ERESTARTNOHAND;
+}
+```
+
+### 8.3.5 信号的初始化
+
+在系统启动时，start_kernel()调用signals_init()对信号进行初始化，参见start_kernel()节。
+
+函数signals_init()定义于kernel/signal.c:
+
+```
+/*
+ * SLAB caches for signal bits.
+ */
+static struct kmem_cache *sigqueue_cachep;
+
+void __init signals_init(void)
+{
+	/*
+	 * 宏KMEM_CACHE()替换后的代码如下，参见Create a Specific Cache/kmem_cache_create()节：
+	 * kmem_cache_create("sigqueue", sizeof(struct sigqueue),
+	 * 		__alignof__(struct sigqueue), SLAB_PANIC, NULL)
+	 */
+	sigqueue_cachep = KMEM_CACHE(sigqueue, SLAB_PANIC);
+}
+```
+
+如下函数用于操作变量sigqueue_cachep，参见kernel/signal.c:
+
+```
+/*
+ * allocate a new signal queue record
+ * - this may be called without locks if and only if t == current, otherwise an
+ *   appropriate lock must be held to stop the target task from exiting
+ */
+/*
+ * 函数调用关系：send_signal() -> __send_signal() -> __sigqueue_alloc()，
+ * 参见send_signal()节
+ */
+static struct sigqueue *__sigqueue_alloc(int sig, struct task_struct *t, gfp_t flags, int override_rlimit)
+{
+	struct sigqueue *q = NULL;
+	struct user_struct *user;
+
+	/*
+	 * Protect access to @t credentials. This can go away when all
+	 * callers hold rcu read lock.
+	 */
+	rcu_read_lock();
+	user = get_uid(__task_cred(t)->user);
+	atomic_inc(&user->sigpending);
+	rcu_read_unlock();
+
+	if (override_rlimit ||
+		 atomic_read(&user->sigpending) <= task_rlimit(t, RLIMIT_SIGPENDING)) {
+		// 参见kmem_cache_zalloc()节
+		q = kmem_cache_alloc(sigqueue_cachep, flags);
+	} else {
+		print_dropped_signal(sig);
+	}
+
+	if (unlikely(q == NULL)) {
+		atomic_dec(&user->sigpending);
+		free_uid(user);
+	} else {
+		INIT_LIST_HEAD(&q->list);
+		q->flags = 0;
+		q->user = user;
+	}
+
+	return q;
+}
+
+/*
+ * 函数调用关系之一：
+ * release_task() -> __exit_signal() -> flush_sigqueue() -> __sigqueue_free()
+ */
+static void __sigqueue_free(struct sigqueue *q)
+{
+	if (q->flags & SIGQUEUE_PREALLOC)
+		return;
+	atomic_dec(&q->user->sigpending);
+	free_uid(q->user);
+	kmem_cache_free(sigqueue_cachep, q);
+}
+```
+
+## 8.4 消息队列/message queue
+
+### 8.4.1 消息队列简介
+
+消息队列的最佳定义是：内核地址空间中的内部链表。消息可以顺序地发送到消息队列中，并以几种不同的方式从消息队列中获取。当然，每个消息队列都是由IPC标识符所唯一标识的。
+
+### 8.4.2 与消息队列有关的数据结构
+
+#### 8.4.2.1 struct idr
+
+struct idr可通过进程描述符引用到，参见：
+
+![IPC_03](/assets/IPC_03.jpg)
+
+idr结构中的id_free链表由idr_pre_get()创建的，参见分配节点空间/idr_pre_get()节。
+
+idr结构中的top域是指向一个32叉树的树根，其结构参见：
+
+![IPC_05](/assets/IPC_05.jpg)
+
+另参见[idr机制(32叉树)](http://blog.csdn.net/orz415678659/article/details/8539794)。其中，pa[*]->ary[id & IDR_MASK]域指向了消息队列中的q_perm域，即msq.q_perm(参见struct msg_queue/struct msg_msg节)，其调用函数关系如下(参见newque()节)：
+
+```
+newque() -> ipc_addid() -> idr_get_new() -> idr_get_new_above_int() -> rcu_assign_pointer()
+```
+
+#### 8.4.2.1 struct msg_queue/struct msg_msg
+
+struct msg_queue和struct msg_msg定义于include/linux/msg.h，其结构参见：
+
+![IPC_06](/assets/IPC_06.jpg)
+
+struct msg_queue类型的对象即为消息队列，假设为msq，则msq.q_perm域指明了该消息队列的属性，其中msq.q_perm.key和msq.q_perm.id建立了对应关系，参见newque()节。
+
+#### 8.4.2.2 struct msgbuf
+
+struct msgbuf的定义参见include/linux/msg.h:
+
+```
+/* message buffer for msgsnd and msgrcv calls */
+struct msgbuf {
+	long mtype; 	/* type of message */
+	/*
+	 * 消息的开始，其长度由另外的参数指定；
+	 * 消息的结构由发送进程和接收进程协商确定
+	 */
+	char mtext[1]; 	/* message text */
+};
+```
+
+### 8.4.3 创建/打开消息队列
+
+#### 8.4.3.1 sys_msgget()
+
+系统调用sys_msgget()用于创建一个新的消息队列，或者打开一个已存在的消息队列，其定义参见ipc/msg.c:
+
+```
+// 参数key由ftok()产生，参见ftok手册：
+/* 
+ * #include <sys/types.h>
+ * #include <sys/ipc.h>
+ * key_t ftok(const char *pathname, int proj_id);
+ *
+ * The ftok() function uses the identity of the file named
+ * by the given pathname (which must refer to an existing,
+ * accessible file) and the least significant 8 bits of
+ * proj_id (which must be nonzero) to generate a key_t type
+ * System V IPC key.
+ * /
+SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
+{
+	struct ipc_namespace *ns;
+	struct ipc_ops msg_ops;
+	struct ipc_params msg_params;
+
+	ns = current->nsproxy->ipc_ns;
+
+	/*
+	 * 设置newque()函数指针，该函数在ipcget_new()或ipcget_public()
+	 * 中被调用，参见ipcget_new()/ipcget_public()节
+	 */
+	msg_ops.getnew = newque;
+	msg_ops.associate = msg_security;
+	msg_ops.more_checks = NULL;
+
+	msg_params.key = key;
+	msg_params.flg = msgflg;
+
+	return ipcget(ns, &msg_ids(ns), &msg_ops, &msg_params);
+}
+```
+
+##### 8.4.3.1.1 ipcget()
+
+函数ipcget()定义于ipc/util.c:
+
+```
+/**
+ * ipcget - Common sys_*get() code
+ * @ns : namsepace
+ * @ids : IPC identifier set
+ * @ops : operations to be called on ipc object creation, permission checks
+ *        and further checks
+ * @params : the parameters needed by the previous operations.
+ *
+ * Common routine called by sys_msgget(), sys_semget() and sys_shmget().
+ */
+int ipcget(struct ipc_namespace *ns, struct ipc_ids *ids, struct ipc_ops *ops, struct ipc_params *params)
+{
+	// 创建消息队列的两种方法之一：key == IPC_PRIVATE
+	if (params->key == IPC_PRIVATE)
+		return ipcget_new(ns, ids, ops, params);
+	/*
+	 * 创建消息队列的两种方法之二：key未与特定类型的IPC结构相结合，
+	 * 且params.flg中指定了IPC_CREAT标志
+	 */
+	else
+		return ipcget_public(ns, ids, ops, params);
+}
+```
+
+###### 8.4.3.1.1.1 ipcget_new()/ipcget_public()
+
+函数ipcget_new()和ipcget_public()定义于ipc/util.c:
+
+```
+/**
+ *	ipcget_new	-	create a new ipc object
+ *	@ns: namespace
+ *	@ids: IPC identifer set
+ *	@ops: the actual creation routine to call
+ *	@params: its parameters
+ *
+ *	This routine is called by sys_msgget, sys_semget() and sys_shmget()
+ *	when the key is IPC_PRIVATE.
+ */
+static int ipcget_new(struct ipc_namespace *ns, struct ipc_ids *ids,
+		struct ipc_ops *ops, struct ipc_params *params)
+{
+	int err;
+retry:
+	err = idr_pre_get(&ids->ipcs_idr, GFP_KERNEL);
+
+	if (!err)
+		return -ENOMEM;
+
+	down_write(&ids->rw_mutex);
+	/*
+	 * 调用函数newque()创建新的消息队列，参见sys_msgget()节；
+	 * 或者，调用函数newseg()创建新的共享内存段，参见newseg()节；
+	 * 或者，调用函数newary()创建新的信号量，参见newary()节
+	 */
+	err = ops->getnew(ns, params);
+	up_write(&ids->rw_mutex);
+
+	if (err == -EAGAIN)
+		goto retry;
+
+	return err;
+}
+
+/**
+ *	ipcget_public - get an ipc object or create a new one
+ *	@ns: namespace
+ *	@ids: IPC identifer set
+ *	@ops: the actual creation routine to call
+ *	@params: its parameters
+ *
+ *	This routine is called by sys_msgget, sys_semget() and sys_shmget()
+ *	when the key is not IPC_PRIVATE.
+ *	It adds a new entry if the key is not found and does some permission
+ *      / security checkings if the key is found.
+ *
+ *	On success, the ipc id is returned.
+ */
+static int ipcget_public(struct ipc_namespace *ns, struct ipc_ids *ids,
+		struct ipc_ops *ops, struct ipc_params *params)
+{
+	struct kern_ipc_perm *ipcp;
+	int flg = params->flg;
+	int err;
+retry:
+	err = idr_pre_get(&ids->ipcs_idr, GFP_KERNEL);
+
+	/*
+	 * Take the lock as a writer since we are potentially going to add
+	 * a new entry + read locks are not "upgradable"
+	 */
+	down_write(&ids->rw_mutex);
+	ipcp = ipc_findkey(ids, params->key);
+	if (ipcp == NULL) {
+		/* key not used */
+		if (!(flg & IPC_CREAT))
+			err = -ENOENT;
+		else if (!err)
+			err = -ENOMEM;
+		else
+			/*
+			 * 调用函数newque()创建新的消息队列，参见sys_msgget()节；
+			 * 或者调用函数newseg()创建新的共享内存段，参见newseg()节
+			 */
+			err = ops->getnew(ns, params);
+	} else {
+		/* ipc object has been locked by ipc_findkey() */
+
+		if (flg & IPC_CREAT && flg & IPC_EXCL)
+			err = -EEXIST;
+		else {
+			err = 0;
+			if (ops->more_checks)
+				err = ops->more_checks(ipcp, params);
+			if (!err)
+				/*
+				 * ipc_check_perms returns the IPC id on
+				 * success
+				 */
+				err = ipc_check_perms(ns, ipcp, ops, params);
+		}
+		ipc_unlock(ipcp);
+	}
+	up_write(&ids->rw_mutex);
+
+	if (err == -EAGAIN)
+		goto retry;
+
+	return err;
+}
+```
+
+###### 8.4.3.1.1.2 newque()
+
+函数newque()用于创建新的消息队列，其定义于ipc/msg.c:
+
+```
+/**
+ * newque - Create a new msg queue
+ * @ns: namespace
+ * @params: ptr to the structure that contains the key and msgflg
+ *
+ * Called with msg_ids.rw_mutex held (writer)
+ */
+static int newque(struct ipc_namespace *ns, struct ipc_params *params)
+{
+	struct msg_queue *msq;
+	int id, retval;
+	key_t key = params->key;
+	int msgflg = params->flg;
+
+	// 分配消息队列空间
+	msq = ipc_rcu_alloc(sizeof(*msq));
+	if (!msq)
+		return -ENOMEM;
+
+	msq->q_perm.mode = msgflg & S_IRWXUGO;
+	// 为q_perm.key赋值，后续为q_perm.id赋值，因而key与id建立了映射关系
+	msq->q_perm.key = key; 
+
+	msq->q_perm.security = NULL;
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	retval = security_msg_queue_alloc(msq);
+	if (retval) {
+		ipc_rcu_putref(msq);
+		return retval;
+	}
+
+	/*
+	 * ipc_addid() locks msq
+	 */
+	/*
+	 * ipc_addid()为q_perm.id赋值，先前已为q_perm.key赋值，因而key
+	 * 与id建立了映射关系；另外，通过ipc_addid() -> idr_get_new()
+	 * -> idr_get_new_above_int() -> rcu_assign_pointer()将
+	 * pa[0]->ary[id & IDR_MASK]指向msq->q_perm，参见struct idr节
+	 */
+	id = ipc_addid(&msg_ids(ns), &msq->q_perm, ns->msg_ctlmni);
+	if (id < 0) {
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		security_msg_queue_free(msq);
+		ipc_rcu_putref(msq);
+		return id;
+	}
+
+	msq->q_stime = msq->q_rtime = 0;
+	msq->q_ctime = get_seconds();
+	msq->q_cbytes = msq->q_qnum = 0;
+	msq->q_qbytes = ns->msg_ctlmnb;
+	msq->q_lspid = msq->q_lrpid = 0;
+	INIT_LIST_HEAD(&msq->q_messages);
+	INIT_LIST_HEAD(&msq->q_receivers);
+	INIT_LIST_HEAD(&msq->q_senders);
+
+	msg_unlock(msq);
+
+	return msq->q_perm.id;
+}
+```
+
+### 8.4.4 发送消息
+
+#### 8.4.4.1 sys_msgsnd()
+
+系统调用sys_msgsnd()用于发送消息，其定义于ipc/msg.c:
+
+```
+SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz, int, msgflg)
+{
+	long mtype;
+
+	if (get_user(mtype, &msgp->mtype))
+		return -EFAULT;
+	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
+}
+
+long do_msgsnd(int msqid, long mtype, void __user *mtext, size_t msgsz, int msgflg)
+{
+	struct msg_queue *msq;
+	struct msg_msg *msg;
+	int err;
+	struct ipc_namespace *ns;
+
+	ns = current->nsproxy->ipc_ns;
+
+	if (msgsz > ns->msg_ctlmax || (long) msgsz < 0 || msqid < 0)
+		return -EINVAL;
+	if (mtype < 1)
+		return -EINVAL;
+
+	/*
+	 * 重新组装消息体，参见struct msg_queue节；
+	 * 与store_msg()对应，参见sys_msgrcv()节
+	 */
+	msg = load_msg(mtext, msgsz);
+	if (IS_ERR(msg))
+		return PTR_ERR(msg);
+
+	msg->m_type = mtype;
+	msg->m_ts = msgsz;
+
+	msq = msg_lock_check(ns, msqid);
+	if (IS_ERR(msq)) {
+		err = PTR_ERR(msq);
+		goto out_free;
+	}
+
+	for (;;) {
+		struct msg_sender s;
+
+		err = -EACCES;
+		// 检查权限，消息发送者应该在消息队列上有写的权限
+		if (ipcperms(ns, &msq->q_perm, S_IWUGO))
+			goto out_unlock_free;
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_msg_queue_msgsnd(msq, msg, msgflg);
+		if (err)
+			goto out_unlock_free;
+
+		/*
+		 * 若消息队列可以容纳该消息，则跳出for(;;)循环，并发送该消息；
+		 * 否则，根据是否设置了IPC_NOWAIT标志进行处理
+		 */
+		if (msgsz + msq->q_cbytes <= msq->q_qbytes &&
+			 1 + msq->q_qnum <= msq->q_qbytes) {
+			break;
+		}
+
+		/*
+		 * 若设置了IPC_NOWAIT标志，且消息队列无法容纳该消息，则发送
+		 * 进程不会阻塞，而是立即返回
+		 */
+		/* queue full, wait: */
+		if (msgflg & IPC_NOWAIT) {
+			err = -EAGAIN;
+			goto out_unlock_free;
+		}
+		/*
+		 * 若未设置IPC_NOWAIT标志，则发送进程阻塞，并等待消息队列唤醒
+		 * 本进程重新发送该消息。将本进程放入消息队列的等待发送队列，等
+		 * 消息队列有空间时再唤醒发送进程
+		 */
+		ss_add(msq, &s);
+		ipc_rcu_getref(msq);
+		msg_unlock(msq);
+		schedule();	// 当前进程阻塞，调度其他进程运行
+
+		ipc_lock_by_ptr(&msq->q_perm);
+		ipc_rcu_putref(msq);
+		if (msq->q_perm.deleted) {
+			err = -EIDRM;
+			goto out_unlock_free;
+		}
+		// 将本进程移出消息队列的等待发送队列，并尝试重新发送该消息
+		ss_del(&s);
+
+		if (signal_pending(current)) {
+			err = -ERESTARTNOHAND;
+			goto out_unlock_free;
+		}
+	}
+
+	msq->q_lspid = task_tgid_vnr(current);
+	msq->q_stime = get_seconds();
+
+	/*
+	 * pipelined_send()依次检查消息队列的接收进程列表。如果找到
+	 * 了接收该消息的进程，则直接发送消息给该进程，并尝试唤醒该进程；
+	 */
+	if (!pipelined_send(msq, msg)) {
+		/* no one is waiting for this message, enqueue it */
+		/*
+		 * 否则，将消息添加到消息队列末尾，
+		 * 参见struct msg_queue/struct msg_msg节
+		 */
+		list_add_tail(&msg->m_list, &msq->q_messages);
+		msq->q_cbytes += msgsz;
+		msq->q_qnum++;
+		atomic_add(msgsz, &ns->msg_bytes);
+		atomic_inc(&ns->msg_hdrs);
+	}
+
+	err = 0;
+	msg = NULL;
+
+out_unlock_free:
+	msg_unlock(msq);
+out_free:
+	if (msg != NULL)
+		free_msg(msg);
+	return err;
+}
+```
+
+### 8.4.5 接收消息
+
+#### 8.4.5.1 sys_msgrcv()
+
+系统调用sys_msgrcv()用于接收消息，其定义于ipc/msg.c:
+
+```
+SYSCALL_DEFINE5(msgrcv, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz, long, msgtyp, int, msgflg)
+{
+	long err, mtype;
+
+	err =  do_msgrcv(msqid, &mtype, msgp->mtext, msgsz, msgtyp, msgflg);
+	if (err < 0)
+		goto out;
+
+	if (put_user(mtype, &msgp->mtype))
+		err = -EFAULT;
+out:
+	return err;
+}
+
+long do_msgrcv(int msqid, long *pmtype, void __user *mtext,
+		size_t msgsz, long msgtyp, int msgflg)
+{
+	struct msg_queue *msq;
+	struct msg_msg *msg;
+	int mode;
+	struct ipc_namespace *ns;
+
+	if (msqid < 0 || (long) msgsz < 0)
+		return -EINVAL;
+	mode = convert_mode(&msgtyp, msgflg);
+	ns = current->nsproxy->ipc_ns;
+
+	msq = msg_lock_check(ns, msqid);
+	if (IS_ERR(msq))
+		return PTR_ERR(msq);
+
+	for (;;) {
+		struct msg_receiver msr_d;
+		struct list_head *tmp;
+
+		msg = ERR_PTR(-EACCES);
+		// 消息接收进程应该有读消息队列的权限
+		if (ipcperms(ns, &msq->q_perm, S_IRUGO))
+			goto out_unlock;
+
+		msg = ERR_PTR(-EAGAIN);
+		tmp = msq->q_messages.next;
+		// 依次检查消息队列中的各消息
+		while (tmp != &msq->q_messages) {
+			struct msg_msg *walk_msg;
+
+			walk_msg = list_entry(tmp, struct msg_msg, m_list);
+			// 调用变量security_ops中的对应函数，参见security_xxx()节
+			if (testmsg(walk_msg, msgtyp, mode) &&
+			     !security_msg_queue_msgrcv(msq, walk_msg, current, msgtyp, mode)) {
+				msg = walk_msg;
+				if (mode == SEARCH_LESSEQUAL && walk_msg->m_type != 1) {
+					msg = walk_msg;
+					msgtyp = walk_msg->m_type - 1;
+				} else {
+					msg = walk_msg;
+					break;
+				}
+			}
+			tmp = tmp->next;
+		}
+		/*
+		 * 如果找到了指定的消息，则跳出for(;;)循环，并接收该消息；
+		 * 否则，根据是否设置了IPC_NOWAIT标志进行处理
+		 */
+		if (!IS_ERR(msg)) {
+			/*
+			 * Found a suitable message.
+			 * Unlink it from the queue.
+			 */
+			if ((msgsz < msg->m_ts) && !(msgflg & MSG_NOERROR)) {
+				msg = ERR_PTR(-E2BIG);
+				goto out_unlock;
+			}
+			list_del(&msg->m_list); 	// 从消息队列中取出该消息
+			msq->q_qnum--;
+			msq->q_rtime = get_seconds();
+			msq->q_lrpid = task_tgid_vnr(current);
+			msq->q_cbytes -= msg->m_ts;
+			atomic_sub(msg->m_ts, &ns->msg_bytes);
+			atomic_dec(&ns->msg_hdrs);
+			ss_wakeup(&msq->q_senders, 0); 	// 唤醒该消息的发送进程
+			msg_unlock(msq);
+			break;
+		}
+		/*
+		 * 若设置了IPC_NOWAIT标志，且消息队列中没有找到指定的消息，
+		 * 则接收进程不会阻塞，而是立即返回
+		 */
+		/* No message waiting. Wait for a message */
+		if (msgflg & IPC_NOWAIT) {
+			msg = ERR_PTR(-ENOMSG);
+			goto out_unlock;
+		}
+		/*
+		 * 若未设置IPC_NOWAIT标志，则接收进程阻塞，并等待消息队列唤醒本进程
+		 * 重新接收该消息。将当前进程放入消息队列的接收进程列表，等待接该消息
+		 */
+		list_add_tail(&msr_d.r_list, &msq->q_receivers);
+		msr_d.r_tsk = current;
+		msr_d.r_msgtype = msgtyp;
+		msr_d.r_mode = mode;
+		if (msgflg & MSG_NOERROR)
+			msr_d.r_maxsize = INT_MAX;
+		else
+			msr_d.r_maxsize = msgsz;
+		msr_d.r_msg = ERR_PTR(-EAGAIN);
+		current->state = TASK_INTERRUPTIBLE;
+		msg_unlock(msq);
+
+		schedule();	// 当前进程阻塞，调度其他进程运行
+
+		/* Lockless receive, part 1:
+		 * Disable preemption.  We don't hold a reference to the queue
+		 * and getting a reference would defeat the idea of a lockless
+		 * operation, thus the code relies on rcu to guarantee the
+		 * existence of msq:
+		 * Prior to destruction, expunge_all(-EIRDM) changes r_msg.
+		 * Thus if r_msg is -EAGAIN, then the queue not yet destroyed.
+		 * rcu_read_lock() prevents preemption between reading r_msg
+		 * and the spin_lock() inside ipc_lock_by_ptr().
+		 */
+		rcu_read_lock();
+
+		/* Lockless receive, part 2:
+		 * Wait until pipelined_send or expunge_all are outside of
+		 * wake_up_process(). There is a race with exit(), see
+		 * ipc/mqueue.c for the details.
+		 */
+		msg = (struct msg_msg*)msr_d.r_msg;
+		while (msg == NULL) {
+			cpu_relax();
+			msg = (struct msg_msg *)msr_d.r_msg;
+		}
+
+		/* Lockless receive, part 3:
+		 * If there is a message or an error then accept it without
+		 * locking.
+		 */
+		if (msg != ERR_PTR(-EAGAIN)) {
+			rcu_read_unlock();
+			break;
+		}
+
+		/* Lockless receive, part 3:
+		 * Acquire the queue spinlock.
+		 */
+		ipc_lock_by_ptr(&msq->q_perm);
+		rcu_read_unlock();
+
+		/* Lockless receive, part 4:
+		 * Repeat test after acquiring the spinlock.
+		 */
+		msg = (struct msg_msg*)msr_d.r_msg;
+		if (msg != ERR_PTR(-EAGAIN))
+			goto out_unlock;
+
+		// 接收到指定消息，将当前进程移出消息队列的接收进程列表
+		list_del(&msr_d.r_list);
+		if (signal_pending(current)) {
+			msg = ERR_PTR(-ERESTARTNOHAND);
+out_unlock:
+			msg_unlock(msq);
+			break;
+		}
+	}
+	if (IS_ERR(msg))
+		return PTR_ERR(msg);
+
+	msgsz = (msgsz > msg->m_ts) ? msg->m_ts : msgsz;
+	*pmtype = msg->m_type;
+	/*
+	 * 重新组装该消息体，参见struct msg_queue/struct msg_msg节；
+	 * 与load_msg()对应，参见sys_msgsnd()节
+	 */
+	if (store_msg(mtext, msg, msgsz))
+		msgsz = -EFAULT;
+
+	free_msg(msg);
+
+	return msgsz;
+}
+```
+
+### 8.4.6 操纵消息队列
+
+#### 8.4.6.1 sys_msgctl()
+
+系统调用sys_msgctl()用于操纵消息队列，包含如下四种操作：
+* IPC_RMID
+* IPC_SET
+* IPC_STAT
+* IPC_INFO
+
+该系统调用的定义于ipc/msg.c:
+
+```
+SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
+{
+	struct msg_queue *msq;
+	int err, version;
+	struct ipc_namespace *ns;
+
+	if (msqid < 0 || cmd < 0)
+		return -EINVAL;
+
+	version = ipc_parse_version(&cmd);
+	ns = current->nsproxy->ipc_ns;
+
+	switch (cmd) {
+	case IPC_INFO:
+	case MSG_INFO:
+	{
+		struct msginfo msginfo;
+		int max_id;
+
+		if (!buf)
+			return -EFAULT;
+		/*
+		 * We must not return kernel stack data.
+		 * due to padding, it's not enough
+		 * to set all member fields.
+		 */
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_msg_queue_msgctl(NULL, cmd);
+		if (err)
+			return err;
+
+		memset(&msginfo, 0, sizeof(msginfo));
+		msginfo.msgmni = ns->msg_ctlmni;
+		msginfo.msgmax = ns->msg_ctlmax;
+		msginfo.msgmnb = ns->msg_ctlmnb;
+		msginfo.msgssz = MSGSSZ;
+		msginfo.msgseg = MSGSEG;
+		down_read(&msg_ids(ns).rw_mutex);
+		if (cmd == MSG_INFO) {
+			msginfo.msgpool = msg_ids(ns).in_use;
+			msginfo.msgmap = atomic_read(&ns->msg_hdrs);
+			msginfo.msgtql = atomic_read(&ns->msg_bytes);
+		} else {
+			msginfo.msgmap = MSGMAP;
+			msginfo.msgpool = MSGPOOL;
+			msginfo.msgtql = MSGTQL;
+		}
+		max_id = ipc_get_maxid(&msg_ids(ns));
+		up_read(&msg_ids(ns).rw_mutex);
+		if (copy_to_user(buf, &msginfo, sizeof(struct msginfo)))
+			return -EFAULT;
+		return (max_id < 0) ? 0 : max_id;
+	}
+	case MSG_STAT:	/* msqid is an index rather than a msg queue id */
+	case IPC_STAT:
+	{
+		struct msqid64_ds tbuf;
+		int success_return;
+
+		if (!buf)
+			return -EFAULT;
+
+		if (cmd == MSG_STAT) {
+			msq = msg_lock(ns, msqid);
+			if (IS_ERR(msq))
+				return PTR_ERR(msq);
+			success_return = msq->q_perm.id;
+		} else {
+			msq = msg_lock_check(ns, msqid);
+			if (IS_ERR(msq))
+				return PTR_ERR(msq);
+			success_return = 0;
+		}
+		err = -EACCES;
+		if (ipcperms(ns, &msq->q_perm, S_IRUGO))
+			goto out_unlock;
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_msg_queue_msgctl(msq, cmd);
+		if (err)
+			goto out_unlock;
+
+		memset(&tbuf, 0, sizeof(tbuf));
+
+		kernel_to_ipc64_perm(&msq->q_perm, &tbuf.msg_perm);
+		tbuf.msg_stime  = msq->q_stime;
+		tbuf.msg_rtime  = msq->q_rtime;
+		tbuf.msg_ctime  = msq->q_ctime;
+		tbuf.msg_cbytes = msq->q_cbytes;
+		tbuf.msg_qnum   = msq->q_qnum;
+		tbuf.msg_qbytes = msq->q_qbytes;
+		tbuf.msg_lspid  = msq->q_lspid;
+		tbuf.msg_lrpid  = msq->q_lrpid;
+		msg_unlock(msq);
+		if (copy_msqid_to_user(buf, &tbuf, version))
+			return -EFAULT;
+		return success_return;
+	}
+	case IPC_SET:
+	case IPC_RMID:
+		err = msgctl_down(ns, msqid, cmd, buf, version);
+		return err;
+	default:
+		return  -EINVAL;
+	}
+
+out_unlock:
+	msg_unlock(msq);
+	return err;
+}
+```
+
+#### 8.4.7 消息队列的初始化
+
+当消息队列模块编译进内核时，在系统初始化时，会调用消息队列的初始化函数msg_init()，其调用关系如下：
+
+```
+ipc_init()
+-> msg_init()
+   -> msg_init_ns(&init_ipc_ns)
+      -> ipc_init_ids(&ns->ids[IPC_MSG_IDS]);
+```
+
+在ipc/util.c中包含如下代码：
+
+```
+static int __init ipc_init(void)
+{
+	sem_init();
+	msg_init();
+	shm_init();
+	hotplug_memory_notifier(ipc_memory_callback, IPC_CALLBACK_PRI);
+	register_ipcns_notifier(&init_ipc_ns);
+	return 0;
+}
+__initcall(ipc_init);
+```
+
+其中，__initcall()的定义参见include/linux/init.h:
+
+```
+#define __initcall(fn) 		device_initcall(fn)
+```
+
+而device_initcall()的定义参见module被编译进内核时的初始化过程节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+### 8.4.8 消息队列示例
+
+创建源文件test_thread.c:
+
+```
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+#include <errno.h>
+
+int qid = 0;
+int sndCnt = 10;
+int rcvCnt = 10;
+
+volatile int flag = 0;
+typedef struct msg {
+	long mtype;
+	int test;
+} MyMsg;
+
+
+void* msgRev(void * args)
+{
+
+	MyMsg rcmsg;
+
+	while(--rcvCnt)
+	{
+		int msgsz = msgrcv(qid, &rcmsg, sizeof(MyMsg)-4, 0, 0);
+		printf("** Msg recv, type: %ld, test: %d\n", rcmsg.mtype, rcmsg.test);
+	}
+
+	pthread_exit(NULL);
+}
+
+
+void* msgSnd(void * args)
+{
+	while (--sndCnt)
+	{
+		MyMsg mymsg;
+		mymsg.mtype = sndCnt;
+		mymsg.test = sndCnt + 100;
+
+		int ret = msgsnd(qid, &mymsg, sizeof(MyMsg)-4, 0);
+
+		if (ret != 0)
+			printf("*** ERROR, ret = %d, errno = %d\n", ret, errno);
+		else
+			printf("*** Msg send, type: %ld, test: %d\n", mymsg.mtype, mymsg.test);
+	}
+
+	pthread_exit(NULL);
+}
+
+int main(void)
+{
+	pthread_t pid, mainpid;
+
+	qid = msgget(IPC_PRIVATE, IPC_CREAT | S_IRUSR | S_IWUSR);
+
+	printf("*** Msg queue id: %d created.\n", qid);
+
+	int result = pthread_create(&pid, NULL, msgSnd, NULL);
+	if (result != 0)
+	{
+		printf("Create msgSnd thread failed!\n");
+	}
+
+	result = pthread_create(&mainpid, NULL, msgRev, NULL);
+	if (result != 0)
+	{
+		printf("Create msgRev thread failed!\n");
+	}
+
+	sleep(5);
+	
+	return 0;
+}
+```
+
+执行下列命令编译、执行该文件：
+
+```
+chenwx@chenwx ~/alex $ ipcs -q
+
+------ Message Queues --------
+key        msqid      owner      perms      used-bytes   messages    
+
+chenwx@chenwx ~/alex $ gcc -pthread -o test_thread test_thread.c
+chenwx@chenwx ~/alex $ ./test_thread 
+*** Msg queue id: 360449 created.
+*** Msg send, type: 9, test: 109
+*** Msg send, type: 8, test: 108
+*** Msg send, type: 7, test: 107
+*** Msg send, type: 6, test: 106
+*** Msg send, type: 5, test: 105
+*** Msg send, type: 4, test: 104
+*** Msg send, type: 3, test: 103
+*** Msg send, type: 2, test: 102
+*** Msg send, type: 1, test: 101
+*** Msg recv, type: 9, test: 109
+*** Msg recv, type: 8, test: 108
+*** Msg recv, type: 7, test: 107
+*** Msg recv, type: 6, test: 106
+*** Msg recv, type: 5, test: 105
+*** Msg recv, type: 4, test: 104
+*** Msg recv, type: 3, test: 103
+*** Msg recv, type: 2, test: 102
+*** Msg recv, type: 1, test: 101
+chenwx@chenwx ~/alex $ ipcs -q
+
+------ Message Queues --------
+key        msqid      owner      perms      used-bytes   messages    
+0x00000000 360449     chenwx     600        0            0           
+```
+
+## 8.5 共享内存/share memory
+
+### 8.5.1 共享内存简介
+
+共享内存允许两个或多个进程共享同一块内存(这块内存会映射到各进程自己独立的地址空间)，从而使这些进程可以相互通信。在GNU/Linux中，所有进程都有唯一的虚拟地址空间，而共享内存允许一个进程使用公共内存段。但是对内存的共享访问其复杂度也相应增加。
+
+共享内存的优点是简易性。使用消息队列时，一个进程要向消息队列中写入消息，这会引起从用户地址空间向内核地址空间的一次复制，同样一个进程读取消息时也要进行一次复制。而共享内存完全省去了这些操作。共享内存会映射到进程的虚拟地址空间，进程对其可以直接访问，避免了数据的复制过程。因此，共享内存是GNU/Linux现在可用的最快速的IPC机制。
+
+### 8.5.2 与共享内存有关的数据结构
+
+#### 8.5.2.1 struct idr
+
+与消息队列类似，struct idr可通过进程描述符引用到，参见struct idr节。
+
+#### 8.5.2.2 struct shmid_kernel
+
+其定义于include/linux/shm.h，参见Subjects/Chapter08_IPC/Figures/IPC_07.jpg
+
+### 8.5.3 创建/打开共享内存
+
+#### 8.5.3.1 sys_shmget()
+
+系统调用sys_shmget()用于创建新的共享内存段，或打开已存在的共享内存段，其定义于ipc/shm.c:
+
+```
+SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
+{
+	struct ipc_namespace *ns;
+	struct ipc_ops shm_ops;
+	struct ipc_params shm_params;
+
+	ns = current->nsproxy->ipc_ns;
+
+	/*
+	 * 设置newseg()函数指针，该函数在ipcget_new()或ipcget_public()
+	 * 中被调用，参见ipcget_new()/ipcget_public()节
+	 */
+	shm_ops.getnew = newseg;
+	shm_ops.associate = shm_security;
+	shm_ops.more_checks = shm_more_checks;
+
+	shm_params.key = key;
+	shm_params.flg = shmflg;
+	shm_params.u.size = size;
+
+	// 与消息队列类似，参见ipcget()节
+	return ipcget(ns, &shm_ids(ns), &shm_ops, &shm_params);
+}
+```
+
+##### 8.5.3.1.1 newseg()
+
+函数newseg()的定义于ipc/shm.c:
+
+```
+/**
+ * newseg - Create a new shared memory segment
+ * @ns: namespace
+ * @params: ptr to the structure that contains key, size and shmflg
+ *
+ * Called with shm_ids.rw_mutex held as a writer.
+ */
+
+static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
+{
+	key_t key = params->key;
+	int shmflg = params->flg;
+	size_t size = params->u.size;
+	int error;
+	struct shmid_kernel *shp;
+	int numpages = (size + PAGE_SIZE -1) >> PAGE_SHIFT;
+	struct file * file;
+	char name[13];
+	int id;
+	vm_flags_t acctflag = 0;
+
+	if (size < SHMMIN || size > ns->shm_ctlmax)
+		return -EINVAL;
+
+	if (ns->shm_tot + numpages > ns->shm_ctlall)
+		return -ENOSPC;
+
+	shp = ipc_rcu_alloc(sizeof(*shp));
+	if (!shp)
+		return -ENOMEM;
+
+	// 为shm_perm.key赋值，后续为shm_perm.id赋值，因而key与id建立了映射关系
+	shp->shm_perm.key = key;
+	shp->shm_perm.mode = (shmflg & S_IRWXUGO);
+	shp->mlock_user = NULL;
+
+	shp->shm_perm.security = NULL;
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	error = security_shm_alloc(shp);
+	if (error) {
+		ipc_rcu_putref(shp);
+		return error;
+	}
+
+	sprintf (name, "SYSV%08x", key);
+	if (shmflg & SHM_HUGETLB) {
+		/* hugetlb_file_setup applies strict accounting */
+		if (shmflg & SHM_NORESERVE)
+			acctflag = VM_NORESERVE;
+		file = hugetlb_file_setup(name, size, acctflag, &shp->mlock_user, HUGETLB_SHMFS_INODE);
+	} else {
+		/*
+		 * Do not allow no accounting for OVERCOMMIT_NEVER, even
+	 	 * if it's asked for.
+		 */
+		if  ((shmflg & SHM_NORESERVE) && sysctl_overcommit_memory != OVERCOMMIT_NEVER)
+			acctflag = VM_NORESERVE;
+		file = shmem_file_setup(name, size, acctflag);
+	}
+	error = PTR_ERR(file);
+	if (IS_ERR(file))
+		goto no_file;
+
+	/*
+	 * ipc_addid()为shm_perm.id赋值，先前已为shm_perm.key赋值，因而key
+	 * 与id建立了映射关系；另外，通过ipc_addid() -> idr_get_new() ->
+	 * idr_get_new_above_int() -> rcu_assign_pointer()将
+	 * pa[0]->ary[id & IDR_MASK]指向msq->shm_perm，参见struct idr节
+	 */
+	id = ipc_addid(&shm_ids(ns), &shp->shm_perm, ns->shm_ctlmni);
+	if (id < 0) {
+		error = id;
+		goto no_id;
+	}
+
+	shp->shm_cprid = task_tgid_vnr(current);
+	shp->shm_lprid = 0;
+	shp->shm_atim = shp->shm_dtim = 0;
+	shp->shm_ctim = get_seconds();
+	shp->shm_segsz = size;
+	shp->shm_nattch = 0;
+	shp->shm_file = file;
+	shp->shm_creator = current;
+	/*
+	 * shmid gets reported as "inode#" in /proc/pid/maps.
+	 * proc-ps tools use this. Changing this will break them.
+	 */
+	file->f_dentry->d_inode->i_ino = shp->shm_perm.id;
+
+	ns->shm_tot += numpages;
+	error = shp->shm_perm.id;
+	shm_unlock(shp);
+	return error;
+
+no_id:
+	if (is_file_hugepages(file) && shp->mlock_user)
+		user_shm_unlock(size, shp->mlock_user);
+	fput(file);
+no_file:
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	security_shm_free(shp);
+	ipc_rcu_putref(shp);
+	return error;
+}
+```
+
+### 8.5.4 操纵共享内存
+
+#### 8.5.4.1 sys_shmctl()
+
+系统调用sys_shmctl()用于操纵共享内存，其定义于ipc/shm.c：
+
+```
+SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
+{
+	struct shmid_kernel *shp;
+	int err, version;
+	struct ipc_namespace *ns;
+
+	if (cmd < 0 || shmid < 0) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	version = ipc_parse_version(&cmd);
+	ns = current->nsproxy->ipc_ns;
+
+	switch (cmd) { /* replace with proc interface ? */
+	case IPC_INFO:
+	{
+		struct shminfo64 shminfo;
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_shm_shmctl(NULL, cmd);
+		if (err)
+			return err;
+
+		memset(&shminfo, 0, sizeof(shminfo));
+		shminfo.shmmni = shminfo.shmseg = ns->shm_ctlmni;
+		shminfo.shmmax = ns->shm_ctlmax;
+		shminfo.shmall = ns->shm_ctlall;
+
+		shminfo.shmmin = SHMMIN;
+		if(copy_shminfo_to_user(buf, &shminfo, version))
+			return -EFAULT;
+
+		down_read(&shm_ids(ns).rw_mutex);
+		err = ipc_get_maxid(&shm_ids(ns));
+		up_read(&shm_ids(ns).rw_mutex);
+
+		if(err<0)
+			err = 0;
+		goto out;
+	}
+	case SHM_INFO:
+	{
+		struct shm_info shm_info;
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_shm_shmctl(NULL, cmd);
+		if (err)
+			return err;
+
+		memset(&shm_info, 0, sizeof(shm_info));
+		down_read(&shm_ids(ns).rw_mutex);
+		shm_info.used_ids = shm_ids(ns).in_use;
+		shm_get_stat(ns, &shm_info.shm_rss, &shm_info.shm_swp);
+		shm_info.shm_tot = ns->shm_tot;
+		shm_info.swap_attempts = 0;
+		shm_info.swap_successes = 0;
+		err = ipc_get_maxid(&shm_ids(ns));
+		up_read(&shm_ids(ns).rw_mutex);
+		if (copy_to_user(buf, &shm_info, sizeof(shm_info))) {
+			err = -EFAULT;
+			goto out;
+		}
+
+		err = err < 0 ? 0 : err;
+		goto out;
+	}
+	case SHM_STAT:
+	case IPC_STAT:
+	{
+		struct shmid64_ds tbuf;
+		int result;
+
+		if (cmd == SHM_STAT) {
+			shp = shm_lock(ns, shmid);
+			if (IS_ERR(shp)) {
+				err = PTR_ERR(shp);
+				goto out;
+			}
+			result = shp->shm_perm.id;
+		} else {
+			shp = shm_lock_check(ns, shmid);
+			if (IS_ERR(shp)) {
+				err = PTR_ERR(shp);
+				goto out;
+			}
+			result = 0;
+		}
+		err = -EACCES;
+		if (ipcperms(ns, &shp->shm_perm, S_IRUGO))
+			goto out_unlock;
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_shm_shmctl(shp, cmd);
+		if (err)
+			goto out_unlock;
+		memset(&tbuf, 0, sizeof(tbuf));
+		kernel_to_ipc64_perm(&shp->shm_perm, &tbuf.shm_perm);
+		tbuf.shm_segsz	= shp->shm_segsz;
+		tbuf.shm_atime	= shp->shm_atim;
+		tbuf.shm_dtime	= shp->shm_dtim;
+		tbuf.shm_ctime	= shp->shm_ctim;
+		tbuf.shm_cpid	= shp->shm_cprid;
+		tbuf.shm_lpid	= shp->shm_lprid;
+		tbuf.shm_nattch	= shp->shm_nattch;
+		shm_unlock(shp);
+		if(copy_shmid_to_user(buf, &tbuf, version))
+			err = -EFAULT;
+		else
+			err = result;
+		goto out;
+	}
+	case SHM_LOCK:
+	case SHM_UNLOCK:
+	{
+		struct file *uninitialized_var(shm_file);
+
+		lru_add_drain_all();  /* drain pagevecs to lru lists */
+
+		shp = shm_lock_check(ns, shmid);
+		if (IS_ERR(shp)) {
+			err = PTR_ERR(shp);
+			goto out;
+		}
+
+		audit_ipc_obj(&(shp->shm_perm));
+
+		if (!ns_capable(ns->user_ns, CAP_IPC_LOCK)) {
+			uid_t euid = current_euid();
+			err = -EPERM;
+			if (euid != shp->shm_perm.uid && euid != shp->shm_perm.cuid)
+				goto out_unlock;
+			if (cmd == SHM_LOCK && !rlimit(RLIMIT_MEMLOCK))
+				goto out_unlock;
+		}
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		err = security_shm_shmctl(shp, cmd);
+		if (err)
+			goto out_unlock;
+		
+		if(cmd==SHM_LOCK) {
+			struct user_struct *user = current_user();
+			if (!is_file_hugepages(shp->shm_file)) {
+				err = shmem_lock(shp->shm_file, 1, user);
+				if (!err && !(shp->shm_perm.mode & SHM_LOCKED)){
+					shp->shm_perm.mode |= SHM_LOCKED;
+					shp->mlock_user = user;
+				}
+			}
+		} else if (!is_file_hugepages(shp->shm_file)) {
+			shmem_lock(shp->shm_file, 0, shp->mlock_user);
+			shp->shm_perm.mode &= ~SHM_LOCKED;
+			shp->mlock_user = NULL;
+		}
+		shm_unlock(shp);
+		goto out;
+	}
+	case IPC_RMID:
+	case IPC_SET:
+		err = shmctl_down(ns, shmid, cmd, buf, version);
+		return err;
+	default:
+		return -EINVAL;
+	}
+
+out_unlock:
+	shm_unlock(shp);
+out:
+	return err;
+}
+```
+
+### 8.5.5 挂接共享内存
+
+#### 8.5.5.1 sys_shmat()
+
+系统调用sys_shmat()用于挂接一个共享内存段，其定义于ipc/shm.c:
+
+```
+SYSCALL_DEFINE3(shmat, int, shmid, char __user *, shmaddr, int, shmflg)
+{
+	unsigned long ret;
+	long err;
+
+	err = do_shmat(shmid, shmaddr, shmflg, &ret);
+	if (err)
+		return err;
+	force_successful_syscall_return();
+	return (long)ret;
+}
+
+/*
+ * Fix shmaddr, allocate descriptor, map shm, add attach descriptor to lists.
+ *
+ * NOTE! Despite the name, this is NOT a direct system call entrypoint. The
+ * "raddr" thing points to kernel space, and there has to be a wrapper around
+ * this.
+ */
+long do_shmat(int shmid, char __user *shmaddr, int shmflg, ulong *raddr)
+{
+	struct shmid_kernel *shp;
+	unsigned long addr;
+	unsigned long size;
+	struct file * file;
+	int    err;
+	unsigned long flags;
+	unsigned long prot;
+	int acc_mode;
+	unsigned long user_addr;
+	struct ipc_namespace *ns;
+	struct shm_file_data *sfd;
+	struct path path;
+	fmode_t f_mode;
+
+	err = -EINVAL;
+	if (shmid < 0)
+		goto out;
+	else if ((addr = (ulong)shmaddr)) {
+		if (addr & (SHMLBA-1)) {
+			if (shmflg & SHM_RND)
+				addr &= ~(SHMLBA-1);	   /* round down */
+			else
+#ifndef __ARCH_FORCE_SHMLBA
+				if (addr & ~PAGE_MASK)
+#endif
+					goto out;
+		}
+		flags = MAP_SHARED | MAP_FIXED;
+	} else {
+		if ((shmflg & SHM_REMAP))
+			goto out;
+
+		flags = MAP_SHARED;
+	}
+
+	if (shmflg & SHM_RDONLY) {
+		prot = PROT_READ;
+		acc_mode = S_IRUGO;
+		f_mode = FMODE_READ;
+	} else {
+		prot = PROT_READ | PROT_WRITE;
+		acc_mode = S_IRUGO | S_IWUGO;
+		f_mode = FMODE_READ | FMODE_WRITE;
+	}
+	if (shmflg & SHM_EXEC) {
+		prot |= PROT_EXEC;
+		acc_mode |= S_IXUGO;
+	}
+
+	/*
+	 * We cannot rely on the fs check since SYSV IPC does have an
+	 * additional creator id...
+	 */
+	ns = current->nsproxy->ipc_ns;
+	shp = shm_lock_check(ns, shmid);
+	if (IS_ERR(shp)) {
+		err = PTR_ERR(shp);
+		goto out;
+	}
+
+	err = -EACCES;
+	if (ipcperms(ns, &shp->shm_perm, acc_mode))
+		goto out_unlock;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	err = security_shm_shmat(shp, shmaddr, shmflg);
+	if (err)
+		goto out_unlock;
+
+	path = shp->shm_file->f_path;
+	path_get(&path);
+	shp->shm_nattch++;
+	size = i_size_read(path.dentry->d_inode);
+	shm_unlock(shp);
+
+	err = -ENOMEM;
+	sfd = kzalloc(sizeof(*sfd), GFP_KERNEL);
+	if (!sfd)
+		goto out_put_dentry;
+
+	file = alloc_file(&path, f_mode,
+				is_file_hugepages(shp->shm_file) ? &shm_file_operations_huge : &shm_file_operations);
+	if (!file)
+		goto out_free;
+
+	file->private_data = sfd;
+	file->f_mapping = shp->shm_file->f_mapping;
+	sfd->id = shp->shm_perm.id;
+	sfd->ns = get_ipc_ns(ns);
+	sfd->file = shp->shm_file;
+	sfd->vm_ops = NULL;
+
+	down_write(&current->mm->mmap_sem);
+	if (addr && !(shmflg & SHM_REMAP)) {
+		err = -EINVAL;
+		if (find_vma_intersection(current->mm, addr, addr + size))
+			goto invalid;
+		/*
+		 * If shm segment goes below stack, make sure there is some
+		 * space left for the stack to grow (at least 4 pages).
+		 */
+		if (addr < current->mm->start_stack &&
+		    addr > current->mm->start_stack - size - PAGE_SIZE * 5)
+			goto invalid;
+	}
+
+	// 参见Allocate a Linear Address Interval节
+	user_addr = do_mmap(file, addr, size, prot, flags, 0);
+	*raddr = user_addr;
+	err = 0;
+	if (IS_ERR_VALUE(user_addr))
+		err = (long)user_addr;
+invalid:
+	up_write(&current->mm->mmap_sem);
+
+	fput(file);
+
+out_nattch:
+	down_write(&shm_ids(ns).rw_mutex);
+	shp = shm_lock(ns, shmid);
+	BUG_ON(IS_ERR(shp));
+	shp->shm_nattch--;
+	if (shm_may_destroy(ns, shp))
+		shm_destroy(ns, shp);
+	else
+		shm_unlock(shp);
+	up_write(&shm_ids(ns).rw_mutex);
+
+out:
+	return err;
+
+out_unlock:
+	shm_unlock(shp);
+	goto out;
+
+out_free:
+	kfree(sfd);
+out_put_dentry:
+	path_put(&path);
+	goto out_nattch;
+}
+```
+
+### 8.5.6 分离共享内存
+
+进程退出时会自动分离已挂接的共享内存段，但是仍建议当进程不再使用共享段时调用sys_shmdt()来卸载共享内存段。注意，当一个进程fork出父进程和子进程时，父进程先前创建的所有共享内存区段都会被子进程继承。如果该段已经做了删除标记(在前面以IPC_RMID指令调用shmctl)，而当前挂接数已经变为0，这个区段就会被移除。
+
+#### 8.5.6.1 sys_shmdt()
+
+该系统调用定义于ipc/shm.c:
+
+```
+/*
+ * detach and kill segment if marked destroyed.
+ * The work is done in shm_close.
+ */
+SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
+{
+	struct mm_struct *mm = current->mm;
+	struct vm_area_struct *vma;
+	unsigned long addr = (unsigned long)shmaddr;
+	int retval = -EINVAL;
+#ifdef CONFIG_MMU
+	loff_t size = 0;
+	struct vm_area_struct *next;
+#endif
+
+	if (addr & ~PAGE_MASK)
+		return retval;
+
+	down_write(&mm->mmap_sem);
+
+	/*
+	 * This function tries to be smart and unmap shm segments that
+	 * were modified by partial mlock or munmap calls:
+	 * - It first determines the size of the shm segment that should be
+	 *   unmapped: It searches for a vma that is backed by shm and that
+	 *   started at address shmaddr. It records it's size and then unmaps
+	 *   it.
+	 * - Then it unmaps all shm vmas that started at shmaddr and that
+	 *   are within the initially determined size.
+	 * Errors from do_munmap are ignored: the function only fails if
+	 * it's called with invalid parameters or if it's called to unmap
+	 * a part of a vma. Both calls in this function are for full vmas,
+	 * the parameters are directly copied from the vma itself and always
+	 * valid - therefore do_munmap cannot fail. (famous last words?)
+	 */
+	/*
+	 * If it had been mremap()'d, the starting address would not
+	 * match the usual checks anyway. So assume all vma's are
+	 * above the starting address given.
+	 */
+	vma = find_vma(mm, addr);
+
+#ifdef CONFIG_MMU
+	while (vma) {
+		next = vma->vm_next;
+
+		/*
+		 * Check if the starting address would match, i.e. it's
+		 * a fragment created by mprotect() and/or munmap(), or it
+		 * otherwise it starts at this address with no hassles.
+		 */
+		if ((vma->vm_ops == &shm_vm_ops) &&
+			 (vma->vm_start - addr)/PAGE_SIZE == vma->vm_pgoff) {
+
+
+			size = vma->vm_file->f_path.dentry->d_inode->i_size;
+			do_munmap(mm, vma->vm_start, vma->vm_end - vma->vm_start);
+			/*
+			 * We discovered the size of the shm segment, so
+			 * break out of here and fall through to the next
+			 * loop that uses the size information to stop
+			 * searching for matching vma's.
+			 */
+			retval = 0;
+			vma = next;
+			break;
+		}
+		vma = next;
+	}
+
+	/*
+	 * We need look no further than the maximum address a fragment
+	 * could possibly have landed at. Also cast things to loff_t to
+	 * prevent overflows and make comparisons vs. equal-width types.
+	 */
+	size = PAGE_ALIGN(size);
+	while (vma && (loff_t)(vma->vm_end - addr) <= size) {
+		next = vma->vm_next;
+
+		/* finding a matching vma now does not alter retval */
+		if ((vma->vm_ops == &shm_vm_ops) &&
+			(vma->vm_start - addr)/PAGE_SIZE == vma->vm_pgoff)
+
+			do_munmap(mm, vma->vm_start, vma->vm_end - vma->vm_start);
+		vma = next;
+	}
+
+#else /* CONFIG_MMU */
+	/* under NOMMU conditions, the exact address to be destroyed must be
+	 * given */
+	retval = -EINVAL;
+	if (vma->vm_start == addr && vma->vm_ops == &shm_vm_ops) {
+		do_munmap(mm, vma->vm_start, vma->vm_end - vma->vm_start);
+		retval = 0;
+	}
+
+#endif
+
+	up_write(&mm->mmap_sem);
+	return retval;
+}
+```
+
+### 8.5.7 共享内存的初始化
+
+当共享内存模块编译进内核时，在系统初始化时，会调用共享内存的初始化函数。在ipc/shm.c中，包含如下代码：
+
+```
+static int __init ipc_ns_init(void)
+{
+	shm_init_ns(&init_ipc_ns);
+	return 0;
+}
+
+pure_initcall(ipc_ns_init);
+```
+
+其中，pure_initcall()定义与include/linux/init.h中，参见module被编译进内核时的初始化过程节。当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall0.init
+```
+
+此后，还存在如下初始化调用：
+
+```
+ipc_init()		// 参见消息队列的初始化节
+-> shm_init()
+   -> ipc_init_proc_interface()
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

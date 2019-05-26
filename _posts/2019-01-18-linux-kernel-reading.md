@@ -31126,6 +31126,823 @@ chenwx@chenwx ~/alex/module/workqueue $ dmesg | tail
 [46161.764209] workqueue module exit
 ```
 
+## 7.6 Time Management
+
+### 7.6.1 The Tick Rate: HZ
+
+The frequency of the system timer (the tick rate) is programmed on system boot based on a static preprocessor define, HZ. The value of HZ differs for each supported architecture. On some supported architectures, it even differs between machine types.
+
+The tick rate has a frequency of HZ hertz and a period of 1/HZ seconds.
+
+在arch/x86/include/asm/param.h中，包含如下内容：
+
+```
+#include <asm-generic/param.h>
+```
+
+而在include/asm-generic/param.h中，包含HZ的定义：
+
+```
+#ifdef __KERNEL__
+# define HZ				CONFIG_HZ		/* Internal kernel timer frequency */
+# define USER_HZ			100			/* some user interfaces are */
+# define CLOCKS_PER_SEC			(USER_HZ)		/* in "ticks" like times() */
+#endif
+
+#ifndef HZ
+#define HZ				100
+#endif
+```
+
+CONFIG_HZ的配置文件为kernel/Kconfig.hz，其对应的配置选项为：
+
+```
+Processor type and features  --->
+  Timer frequency (250 HZ)  --->		// CONFIG_HZ
+    ( ) 100 HZ 					// CONFIG_HZ_100
+    (X) 250 HZ 					// CONFIG_HZ_250
+    ( ) 300 HZ 					// CONFIG_HZ_300
+    ( ) 1000 HZ					// CONFIG_HZ_1000
+```
+
+若CONFIG_HZ=250，则tick rate为250Hz，即每个tick时长为：1/250 = 4 ms
+
+### 7.6.2 Jiffies
+
+The global variable jiffies holds the number of ticks that have occurred since the system booted. On boot, the kernel initializes the variable to zero, and it is incremented by one during each timer interrupt. Thus, because there are HZ timer interrupts in a second, there are HZ jiffies in a second. The system uptime (see /proc/uptime) is therefore jiffies/HZ seconds.
+
+在函数do_timer()中更新jiffies，参见do_timer()节。
+
+在include/linux/jiffies.h中，包含如下变量声明：
+
+```
+/*
+ * some arch's have a small-data section that can be accessed register-relative
+ * but that can only take up to, say, 4-byte variables. jiffies being part of
+ * an 8-byte variable may not be correctly accessed unless we force the issue
+ */
+#define __jiffy_data  __attribute__((section(".data")))
+
+/*
+ * The 64-bit value is not atomic - you MUST NOT read it
+ * without sampling the sequence number in xtime_lock.
+ * get_jiffies_64() will do this for you as appropriate.
+ */
+extern u64 __jiffy_data jiffies_64;
+extern unsigned long volatile __jiffy_data jiffies;
+```
+
+在arch/x86/kernel/vmlinux.lds.S中，包含如下内容：
+
+```
+#ifdef CONFIG_X86_32
+
+OUTPUT_ARCH(i386)
+ENTRY(phys_startup_32)
+jiffies = jiffies_64;
+
+#else
+
+OUTPUT_ARCH(i386:x86-64)
+ENTRY(phys_startup_64)
+jiffies_64 = jiffies;
+
+#endif
+```
+
+The **ld** scripts vmlinux.lds.S overlays the **jiffies** variable over the start of the **jiffies_64** variable: ```jiffies = jiffies_64;```
+
+Thus, **jiffies** is the lower 32 bits of the full 64-bit **jiffies_64** variable. The layout of **jiffies** and **jiffies_64**：
+
+![assets/Jiffies_1.jpg](/assets/Jiffies_1.jpg)
+
+在kernel/timer.c中，包含jiffies_64的定义：
+
+```
+u64 jiffies_64 __cacheline_aligned_in_smp = INITIAL_JIFFIES;
+```
+
+其中，INITIAL_JIFFIES定义于include/linux/jiffies.h:
+
+```
+/*
+ * Have the 32 bit jiffies value wrap 5 minutes after boot
+ * so jiffies wrap bugs show up earlier.
+ */
+#define INITIAL_JIFFIES	((unsigned long)(unsigned int) (-300*HZ))
+```
+
+The kernel initializes jiffies to a special initial value INITIAL_JIFFIES, causing the variable to overflow more often, catching bugs. When the actual value of jiffies is sought, this "offset" is first subtracted. See method sched_clock() in kernel/sched_clock.c:
+
+```
+/*
+ * Scheduler clock - returns current time in nanosec units.
+ * This is default implementation.
+ * Architectures and sub-architectures can override this.
+ */
+unsigned long long __attribute__((weak)) sched_clock(void)
+{
+	return (unsigned long long)(jiffies - INITIAL_JIFFIES) * (NSEC_PER_SEC / HZ);
+}
+```
+
+**NOTE1**: You might wonder why jiffies has not been directly declared as a 64-bit unsigned long long integer on the 80×86 architecture. The answer is that accesses to 64-bit variables in 32-bit architectures cannot be done atomically. Therefore, every read operation on the whole 64 bits requires some synchronization technique to ensure that the counter is not updated while the two 32-bit half-counters are read; as a consequence, every 64-bit read operation is significantly slower than a 32-bit read operation.
+
+**NOTE2**: Needless to say, both jiffies and jiffies_64 must be considered read-only.
+
+#### 7.6.2.1 获得Jiffies的取值
+
+**On 32-bit architectures**, code that accesses jiffies simply reads the lower 32 bits of jiffies_64. The function ```get_jiffies_64()``` can be used to read the full 64-bit value.
+
+**On 64-bit architectures**, jiffies_64 and jiffies refer to the same thing. Code can either read jiffies or call ```get_jiffies_64()``` as both actions have the same effect.
+
+函数get_jiffies_64()声明/定义于include/linux/jiffies.h:
+
+```
+#if (BITS_PER_LONG < 64)
+u64 get_jiffies_64(void);
+#else
+static inline u64 get_jiffies_64(void)
+{
+	return (u64)jiffies;
+}
+#endif
+```
+
+和kernel/time/jiffies.c:
+
+```
+#if (BITS_PER_LONG < 64)
+u64 get_jiffies_64(void)
+{
+	unsigned long seq;
+	u64 ret;
+
+	do {
+		seq = read_seqbegin(&xtime_lock);	// 参见read_seqbegin()节
+		ret = jiffies_64;
+	} while (read_seqretry(&xtime_lock, seq));	// 参见read_seqretry()节
+	return ret;
+}
+#endif
+```
+
+#### 7.6.2.2 比较Jiffies的大小
+
+在include/linux/jiffies.h中，包含如下用于比较jiffies大小的宏：
+
+```
+/*
+ *	These inlines deal with timer wrapping correctly. You are
+ *	strongly encouraged to use them
+ *	1. Because people otherwise forget
+ *	2. Because if the timer wrap changes in future you won't have to
+ *	   alter your driver code.
+ *
+ * time_after(a,b) returns true if the time a is after time b.
+ *
+ * Do this with "<0" and ">=0" to only test the sign of the result. A
+ * good compiler would generate better code (and a really good compiler
+ * wouldn't care). Gcc is currently neither.
+ */
+#define time_after(a,b)				\
+	(typecheck(unsigned long, a) && 	\
+	 typecheck(unsigned long, b) && 	\
+	 ((long)(b) - (long)(a) < 0))
+#define time_before(a,b)		time_after(b,a)
+
+#define time_after_eq(a,b)			\
+	(typecheck(unsigned long, a) && 	\
+	 typecheck(unsigned long, b) && 	\
+	 ((long)(a) - (long)(b) >= 0))
+#define time_before_eq(a,b)		time_after_eq(b,a)
+
+/*
+ * These four macros compare jiffies and 'a' for convenience.
+ */
+
+/* time_is_before_jiffies(a) return true if a is before jiffies */
+#define time_is_before_jiffies(a)	time_after(jiffies, a)
+
+/* time_is_after_jiffies(a) return true if a is after jiffies */
+#define time_is_after_jiffies(a)	time_before(jiffies, a)
+
+/* time_is_before_eq_jiffies(a) return true if a is before or equal to jiffies*/
+#define time_is_before_eq_jiffies(a)	time_after_eq(jiffies, a)
+
+/* time_is_after_eq_jiffies(a) return true if a is after or equal to jiffies*/
+#define time_is_after_eq_jiffies(a)	time_before_eq(jiffies, a)
+```
+
+##### 7.6.2.2.1 Jiffies的溢出
+
+以time_after(a,b)为例，入参为unsigned long类型，在比较大小时先将其转变为long类型:
+
+```
+#define time_after(a,b)				\
+	(typecheck(unsigned long, a) && 	\
+	 typecheck(unsigned long, b) && 	\
+	 ((long)(b) - (long)(a) < 0))
+```
+
+![Jiffies_3](/assets/Jiffies_3.jpg)
+
+上图中，每个方格表示一个unsigned long类型的数值。当b = 0xFFFF
+* 若a取浅绿色方格内的数值，则time_after(a, b)返回的结果为True，正确
+* 若a取浅红色方格内的数值，则time_after(a, b)返回的结果为False，错误
+
+因此，只有当a与b之差的绝对值小于0x8000 0000时，这些宏才能返回正确结果，否则结果是错误的。若HZ = 250，则0x8000 0000表示0x8000 0000 / HZ = 0x0083 126E秒(即99天)，而内核代码中，用这些宏比较的两个值之差不会超过99天，因此可以安全使用。
+
+#### 7.6.2.3 Jiffies与时间的转换
+
+在include/linux/jiffies.h中，包含如下时间与Jiffies之间的转换函数：
+
+```
+/*
+ * jiffies <=> microseconds (毫秒: 1/1000s)
+ */
+extern unsigned int jiffies_to_msecs(const unsigned long j);
+extern unsigned long msecs_to_jiffies(const unsigned int m);
+
+/*
+ * jiffies <=> useconds (微秒: 1/1000000s)
+ */
+extern unsigned int jiffies_to_usecs(const unsigned long j);
+extern unsigned long usecs_to_jiffies(const unsigned int u);
+
+/*
+ * jiffies <=> nanoseconds (纳秒: 1/1000000000s)
+ */
+extern u64 nsec_to_clock_t(u64 x);
+extern u64 nsecs_to_jiffies64(u64 n);
+extern unsigned long nsecs_to_jiffies(u64 n);
+
+/*
+ * jiffies <=> struct timeval (seconds and microseconds)
+ */
+extern void jiffies_to_timeval(const unsigned long jiffies, struct timeval *value);
+extern unsigned long timeval_to_jiffies(const struct timeval *value);
+
+/*
+ * jiffies <=> struct timespec (seconds and nanoseconds)
+ */
+extern void jiffies_to_timespec(const unsigned long jiffies, struct timespec *value);
+extern unsigned long timespec_to_jiffies(const struct timespec *value);
+
+/*
+ * jiffies <=> clock_t
+ */
+extern clock_t jiffies_to_clock_t(unsigned long x);
+extern unsigned long clock_t_to_jiffies(unsigned long x);
+extern u64 jiffies_64_to_clock_t(u64 x);
+```
+
+### 7.6.3 xtime
+
+The xtime variable stores the current time and date. 其定义于kernel/time/timekeeping.c:
+
+```
+__cacheline_aligned_in_smp DEFINE_SEQLOCK(xtime_lock);
+static struct timespec xtime __attribute__ ((aligned (16)));
+```
+
+变量xtime由函数```update_wall_time()```更新，参见do_timer()节。
+
+The current time is also available (though with jiffy granularity) from the xtime variable, a struct timespec value. Direct use of this variable is discouraged because it is difficult to atomically access both the fields. Therefore, the kernel offers the utility function:
+
+```
+#include <linux/time.h>
+struct timespec current_kernel_time(void);
+```
+
+#### 7.6.3.1 struct timespec / struct timespec64
+
+struct timespec定义于include/linux/time.h:
+
+```
+#ifndef _STRUCT_TIMESPEC
+
+#define _STRUCT_TIMESPEC
+struct timespec {
+	/*
+	 * Stores the number of seconds that have
+	 * elapsed since midnight of January 1, 1970 (UTC)
+	 */
+	__kernel_time_t		tv_sec;		/* seconds */
+	/*
+	 * Stores the number of nanoseconds that have
+	 * elapsed within the last second; its value
+	 * ranges between 0 and 999,999,999
+	 */
+	long			tv_nsec;	/* nanoseconds */
+};
+
+#endif
+```
+
+struct timespec64定义于include/linux/time64.h:
+
+```
+typedef __s64 time64_t;
+
+/*
+ * This wants to go into uapi/linux/time.h once we agreed about the
+ * userspace interfaces.
+ */
+#if __BITS_PER_LONG == 64
+
+# define timespec64 timespec
+
+#else
+
+struct timespec64 {
+	time64_t	tv_sec;		/* seconds */
+	long		tv_nsec;	/* nanoseconds */
+};
+
+#endif
+```
+
+#### 7.6.3.2 struct timeval
+
+struct timeval定义于include/linux/time.h:
+
+```
+struct timeval {
+	__kernel_time_t		tv_sec;		/* seconds */
+	__kernel_suseconds_t	tv_usec;	/* microseconds */
+};
+```
+
+### 7.6.4 Hardware Clocks and Timers
+
+#### 7.6.4.1 Real-Time Clock (RTC)
+
+The real-time clock (RTC) provides a nonvolatile device for storing the system time. The RTC continues to keep track of time even when the system is off by way of a small battery typically included on the system board.
+
+On boot, the kernel reads the RTC and uses it to initialize the wall time, which is stored in the xtime variable. Nonetheless, the real time clock’s primary importance is only during boot, when the xtime variable is initialized.
+
+#### 7.6.4.2 System Timer
+
+The system timer serves a much more important (and frequent) role in the kernel’s timekeeping. The idea behind the system timer, regardless of architecture, is the same - to provide a mechanism for driving an interrupt at a periodic rate.
+
+On x86, the primary system timer is the programmable interrupt timer (PIT). The PIT exists on all PC machines and has been driving interrupts since the days of DOS. The kernel programs the PIT on boot to drive the system timer interrupt (interrupt zero) at HZ frequency. It is a simple device with limited functionality, but it gets the job done. Other x86 time sources include the local APIC timer and the processor’s time stamp counter (TSC).
+
+##### 7.6.4.2.1 Timer Interrupt Handler
+
+The timer interrupt is broken into two pieces: an architecture-dependent and an architecture-independent routine.
+
+###### 7.6.4.2.1.1 Architecture-dependent routine / tick_handle_periodic()
+
+PIT: Programmable Interrupt Timer
+
+在x86体系架构下，通过tick_init()节至late_time_init()节将PIT的处理函数设置为tick_handle_periodic()。通过timer_interrupt()节执行该函数。
+
+在系统启动时，函数start_kernel()通过调用如下函数设置PIT的处理函数：
+
+```
+asmlinkage void __init start_kernel(void)
+{
+	...
+	tick_init();			// 参见tick_init()节
+	...
+	time_init();			// 参见time_init()节
+	...
+	if (late_time_init)
+		late_time_init();	// 参见late_time_init()节
+	...
+}
+```
+
+###### 7.6.4.2.1.1.1 tick_init()
+
+函数tick_init()用于将tick_notifier注册到链表clockevents_chain中，其调用关系如下：
+
+```
+tick_init()							// 参见kernel/time/tick-common.c
+-> clockevents_register_notifier(&tick_notifier)
+   -> raw_notifier_chain_register(&clockevents_chain, nb)	// nb = &tick_notifier
+      -> notifier_chain_register(&nh->head, n)			// nh = &clockevents_chain
+								// n = &tick_notifier
+```
+
+变量tick_notifier定义于kernel/time/tick-common.c:
+
+```
+static struct notifier_block tick_notifier = {
+	.notifier_call = tick_notify,
+};
+```
+
+链表clockevents_chain的结构:
+
+![Jiffies_2](/assets/Jiffies_2.jpg)
+
+###### 7.6.4.2.1.1.2 time_init()
+
+该函数定义于arch/x86/kernel/time.c:
+
+```
+/* Default late time init is NULL. archs can override this later. */
+void (*__initdata late_time_init)(void);
+
+void __init time_init(void)
+{
+	// 在late_time_init()节调用late_time_init()，即调用x86_late_time_init()
+	late_time_init = x86_late_time_init;
+}
+```
+
+###### 7.6.4.2.1.1.3 late_time_init()
+
+由time_init()节可知，late_time_init被设置为x86_late_time_init()，而该函数定义于arch/x86/kernel/time.c:
+
+```
+static __init void x86_late_time_init(void)
+{
+	x86_init.timers.timer_init();
+	tsc_init();
+}
+```
+
+其中，变量x86_init定义于arch/x86/kernel/x86_init.c:
+
+```
+struct x86_init_ops x86_init __initdata = {
+	...
+	.timers = {
+		.setup_percpu_clockev	= setup_boot_APIC_clock,
+		.tsc_pre_init		= x86_init_noop,
+		.timer_init		= hpet_time_init,
+		.wallclock_init		= x86_init_noop,
+	},
+	...
+};
+```
+
+因而调用x86_init.timers.timer_init()就是调用函数hpet_time_init()，其定义于arch/x86/kernel/time.c:
+
+```
+void __init hpet_time_init(void)
+{
+	if (!hpet_enable())		// 此处，假设没有启用High Precision Event Timer (HPET)
+		setup_pit_timer();	// 参见setup_pit_timer()节
+	setup_default_timer_irq();	// 参见setup_default_timer_irq()节
+}
+```
+
+###### 7.6.4.2.1.1.3.1 setup_pit_timer()
+
+该函数定义于arch/x86/kernel/i8253.c:
+
+```
+struct clock_event_device *global_clock_event;
+
+void __init setup_pit_timer(void)
+{
+	/*
+	 * 将i8253_clockevent.event_handler设置为tick_handle_periodic，
+	 * 参见clockevent_i8253_init()节
+	 */
+	clockevent_i8253_init(true);
+	/*
+	 * 在timer_interrupt()中，通过变量global_clock_event调用函数
+	 * tick_handle_periodic()，参见timer_interrupt()节
+	 */
+	global_clock_event = &i8253_clockevent;
+}
+```
+
+###### 7.6.4.2.1.1.3.1.1 clockevent_i8253_init()
+
+该函数定义于drivers/clocksource/i8253.c，其调用关系如下：
+
+```
+clockevent_i8253_init(true)
+-> i8253_clockevent.features |= CLOCK_EVT_FEAT_ONESHOT;
+-> clockevents_config_and_register(&i8253_clockevent, PIT_TICK_RATE, 0xF, 0x7FFF)
+   -> clockevents_register_device(dev) 				// dev = &i8253_clockevent
+      // 将i8253_clockevent添加到链表clockevent_devices
+      -> list_add(&dev->list, &clockevent_devices);
+      -> clockevents_do_notify(CLOCK_EVT_NOTIFY_ADD, dev);	// dev = &i8253_clockevent
+```
+
+函数```clockevents_do_notify()```将指定设备的event_handler设置为```tick_handle_periodic()```，此处即：
+
+```
+i8253_clockevent.event_handler = tick_handle_periodic;
+```
+
+其调用关系如下：
+
+```
+clockevents_do_notify(CLOCK_EVT_NOTIFY_ADD, dev);			// dev = &i8253_clockevent
+-> raw_notifier_call_chain(&clockevents_chain, reason, dev)		// reason = CLOCK_EVT_NOTIFY_ADD
+   -> __raw_notifier_call_chain(nh, val, v, -1, NULL)			// nh = &clockevents_chain
+      -> notifier_call_chain(&nh->head, val, v, nr_to_call, nr_calls)
+         -> nb->notifier_call(nb, val, v)
+```
+
+由于tick_init()节可知，链表clockevents_chain中的第一个元素为tick_notifier，且：
+
+```
+tick_notifier->notifier_call = tick_notify;
+```
+
+故，调用nb->notifier_call(nb, val, v)就是调用：
+
+```
+tick_notifier->notifier_call(&tick_notifier, CLOCK_EVT_NOTIFY_ADD, &i8253_clockevent);
+```
+
+即调用：
+
+```
+tick_notify(&tick_notifier, CLOCK_EVT_NOTIFY_ADD, &i8253_clockevent);
+```
+
+此后，其调用关系如下：
+
+```
+tick_notify(&tick_notifier, CLOCK_EVT_NOTIFY_ADD, &i8253_clockevent)
+-> tick_check_new_device(dev) 					// dev = &i8253_clockevent
+   -> tick_setup_device(td, newdev, cpu, cpumask_of(cpu)) 	// td = &tick_cpu_device
+      -> tick_setup_periodic(newdev, 0); 			// newdev = &i8253_clockevent
+         // dev = &i8253_clockevent, broadcast=0
+         -> tick_set_periodic_handler(dev, broadcast)
+            -> dev->event_handler = tick_handle_periodic;
+```
+
+故:
+
+```
+i8253_clock.event_handler = tick_handle_periodic;
+```
+
+###### 7.6.4.2.1.1.3.2 setup_default_timer_irq()
+
+该函数定义于arch/x86/kernel/time.c:
+
+```
+static struct irqaction irq0  = {
+	.handler	= timer_interrupt,
+	.flags		= IRQF_DISABLED | IRQF_NOBALANCING | IRQF_IRQPOLL | IRQF_TIMER,
+	.name		= "timer"
+};
+
+void __init setup_default_timer_irq(void)
+{
+	/*
+	 * 将IRQ0 (参见9.1 中断处理简介表格中的0x30，即Timer)的中断处理函数设
+	 * 置为timer_interrupt()，参见9.4.1.2 setup_irq()/__setup_irq()节;
+	 * 当接收到Timer中断时，系统将调用其处理函数timer_interrupt()，
+	 * 参见timer_interrupt()节
+	 */
+	setup_irq(0, &irq0);
+}
+```
+
+###### 7.6.4.2.1.1.4 timer_interrupt()
+
+该函数定义于arch/x86/kernel/time.c:
+
+```
+/*
+ * Default timer interrupt handler for PIT/HPET
+ */
+static irqreturn_t timer_interrupt(int irq, void *dev_id)
+{
+	/* Keep nmi watchdog up to date */
+	// 增加irq_stat.irq0_irqs的计数，参见irq_stat[]节。NMI watchdog参见下文
+	inc_irq_stat(irq0_irqs);
+
+	/*
+	 * 由setup_pit_timer()节可知，global_clock_event = &i8253_clockevent;
+	 * 由clockevent_i8253_init()节可知，i8253_clockevent.event_handler = tick_handle_periodic;
+	 * 故此处调用函数tick_handle_periodic()，参见tick_handle_periodic()节
+	 */
+	global_clock_event->event_handler(global_clock_event);
+
+	/* MCA bus quirk: Acknowledge irq0 by setting bit 7 in port 0x61 */
+	if (MCA_bus)
+		outb_p(inb_p(0x61)| 0x80, 0x61);
+
+	return IRQ_HANDLED;
+}
+```
+
+**NOTE: NMI Watchdog**
+
+In multiprocessor systems, Linux offers yet another feature to kernel developers: a watchdog system, which might be quite useful to detect kernel bugs that cause a system freeze. To activate such a watchdog, the kernel must be booted with the nmi_watchdog parameter.
+
+The watchdog is based on a clever hardware feature of local and I/O APICs: they can generate periodic NMI interrupts on every CPU. Because NMI interrupts are not masked by thecliassembly language instruction, the watchdog can detect deadlocks even when interrupts are disabled.
+
+As a consequence, once every tick, all CPUs, regardless of what they are doing, start executing the NMI interrupt handler; in turn, the handler invokes do_nmi(). This function gets the logical number n of the CPU, and then checks the apic_timer_irqs field of the nth entry of irq_stat(see section irq_stat[]). If the CPU is working properly, the value must be different from the value read at the previous NMI interrupt. When the CPU is running properly, the nth entry of the apic_timer_irqs field is increased by the local timer interrupt handler; if the counter is not increased, the local timer interrupt handler has not been executed in a whole tick. Not a good thing, you know.
+
+When the NMI interrupt handler detects a CPU freeze, it rings all the bells: it logs scary messages in the system logfiles, dumps the contents of the CPU registers and of the kernel stack (kernel oops), and finally kills the current process. This gives kernel developers a chance to discover what’s gone wrong.
+
+###### 7.6.4.2.1.1.4.1 tick_handle_periodic()
+
+该函数定义于kernel/time/tick-common.c:
+
+```
+/*
+ * Event handler for periodic ticks
+ */
+void tick_handle_periodic(struct clock_event_device *dev)
+{
+	int cpu = smp_processor_id();
+	ktime_t next;
+
+	/*
+	 * 调用与体系架构无关的处理函数，
+	 * 参见Architecture-independent routine/tick_periodic()节
+	 */
+	tick_periodic(cpu);
+
+	if (dev->mode != CLOCK_EVT_MODE_ONESHOT)
+		return;
+	/*
+	 * Setup the next period for devices, which do not have
+	 * periodic mode:
+	 */
+	next = ktime_add(dev->next_event, tick_period);
+	for (;;) {
+		if (!clockevents_program_event(dev, next, false))
+			return;
+		/*
+		 * Have to be careful here. If we're in oneshot mode,
+		 * before we call tick_periodic() in a loop, we need
+		 * to be sure we're using a real hardware clocksource.
+		 * Otherwise we could get trapped in an infinite
+		 * loop, as the tick_periodic() increments jiffies,
+		 * when then will increment time, posibly causing
+		 * the loop to trigger again and again.
+		 */
+		/*
+		 * 调用与体系架构无关的处理函数，
+		 * 参见Architecture-independent routine/tick_periodic()节
+		 */
+		if (timekeeping_valid_for_hres())
+			tick_periodic(cpu);
+		next = ktime_add(next, tick_period);
+	}
+}
+```
+
+###### 7.6.4.2.1.2 Architecture-independent routine/tick_periodic()
+
+由tick_handle_periodic()节可知，函数tick_handle_periodic()调用与体系架构无关的函数tick_periodic()。该函数定义于kernel/time/tick-common.c:
+
+```
+static void tick_periodic(int cpu)
+{
+	if (tick_do_timer_cpu == cpu) {
+		write_seqlock(&xtime_lock);
+
+		/* Keep track of the next tick event */
+		tick_next_period = ktime_add(tick_next_period, tick_period);
+
+		// 参见do_timer()节
+		do_timer(1);
+		write_sequnlock(&xtime_lock);
+	}
+
+	// 参见update_process_times()节
+	update_process_times(user_mode(get_irq_regs()));
+	profile_tick(CPU_PROFILING);
+}
+```
+
+###### 7.6.4.2.1.2.1 do_timer()
+
+该函数定义于kernel/time/timekeeping.c:
+
+```
+/*
+ * The 64-bit jiffies value is not atomic - you MUST NOT read it
+ * without sampling the sequence number in xtime_lock.
+ * jiffies is defined in the linker script...
+ */
+void do_timer(unsigned long ticks)
+{
+	// 更新jiffies
+	jiffies_64 += ticks;
+
+	/*
+	 * Updates the wall time (xtime) in accordance
+	 * with the elapsed ticks. 参见xtime节
+	 */
+	update_wall_time();
+
+	// updates the system’s load average statistics
+	calc_global_load(ticks);
+}
+```
+
+###### 7.6.4.2.1.2.2 update_process_times()
+
+该函数定义于kernel/timer.c:
+
+```
+/*
+ * Called from the timer interrupt handler to charge one tick to the current
+ * process.  user_tick is 1 if the tick is user time, 0 for system.
+ */
+void update_process_times(int user_tick)
+{
+	struct task_struct *p = current;
+	int cpu = smp_processor_id();
+
+	/* Note: this timer irq context must be accounted for as well. */
+	// does the actual updating of the process’s times
+	account_process_tick(p, user_tick);
+	run_local_timers();	// 参见run_local_timers()节
+	rcu_check_callbacks(cpu, user_tick);
+	printk_tick();
+#ifdef CONFIG_IRQ_WORK
+	if (in_irq())
+		irq_work_run();
+#endif
+	/*
+	 * Decrements the currently running process’s timeslice
+	 * and sets need_resched if needed. On SMP machines, it
+	 * also balances the perprocessor runqueues as needed.
+	 * 参见scheduler_tick()节
+	 */
+	scheduler_tick();
+	run_posix_cpu_timers(p);
+}
+```
+
+###### 7.6.4.2.1.2.2.1 run_local_timers()
+
+The run_local_timers() function marks a softirq to handle the execution of any expired timers. 该函数定义于kernel/timer.c:
+
+```
+/*
+ * Called by the local, per-CPU timer interrupt on SMP.
+ */
+void run_local_timers(void)
+{
+	hrtimer_run_queues();		// 参见低精度模式/hrtimer_run_queues()节
+	raise_softirq(TIMER_SOFTIRQ);	// 参见定时器的超时处理/run_timer_softirq()节
+}
+```
+
+### 7.6.5 mktime() / mktime_64()
+
+There is a kernel function that turns a wallclock time into a jiffies value in include/linux/time.h:
+
+```
+/**
+ * Deprecated. Use mktime64().
+ */
+static inline unsigned long mktime(const unsigned int year, const unsigned int mon,
+				const unsigned int day, const unsigned int hour,
+				const unsigned int min, const unsigned int sec)
+{
+	return mktime64(year, mon, day, hour, min, sec);
+}
+```
+
+其中，mktime64()定义于kernel/time/time.c:
+
+```
+/*
+ * mktime64 - Converts date to seconds.
+ * Converts Gregorian date to seconds since 1970-01-01 00:00:00.
+ * Assumes input in normal date format, i.e. 1980-12-31 23:59:59
+ * => year=1980, mon=12, day=31, hour=23, min=59, sec=59.
+ *
+ * [For the Julian calendar (which was used in Russia before 1917,
+ * Britain & colonies before 1752, anywhere else before 1582,
+ * and is still in use by some communities) leave out the
+ * -year/100+year/400 terms, and add 10.]
+ *
+ * This algorithm was first published by Gauss (I think).
+ */
+time64_t mktime64(const unsigned int year0, const unsigned int mon0,
+		  const unsigned int day, const unsigned int hour,
+		  const unsigned int min, const unsigned int sec)
+{
+	unsigned int mon = mon0, year = year0;
+
+	/* 1..12 -> 11,12,1..10 */
+	if (0 >= (int) (mon -= 2)) {
+		mon += 12;	/* Puts Feb last since it has leap day */
+		year -= 1;
+	}
+
+	return ((((time64_t)
+		  (year/4 - year/100 + year/400 + 367*mon/12 + day) +
+		  year*365 - 719499
+	    )*24 + hour /* now have hours */
+	  )*60 + min /* now have minutes */
+	)*60 + sec; /* finally seconds */
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

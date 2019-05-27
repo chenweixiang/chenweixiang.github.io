@@ -54837,6 +54837,8915 @@ struct mnt_namespace {
 
 ![Filesystem_29](/assets/Filesystem_29.jpg)
 
+### 11.2.2 虚拟文件系统(VFS)相关操作
+
+VFS是虚拟的，它无法涉及到具体文件系统的细节，所以必然在VFS和具体文件系统之间有一些接口，这就是VFS设计的一些有关操作的数据结构。这些数据结构就好象是一个标准，具体文件系统要想被Linux支持，就必须按这个标准来编写自己操作函数。实际上，也正是这样，各种Linux支持的具体文件系统都有一套自己的操作函数，在安装时，这些结构体的成员指针将被初始化，指向对应的函数。如果说VFS体现了Linux的优越性的话，那么这些数据结构的设计就体现了VFS的优越性所在。VFS和具体文件系统的关系，如下图所示：
+
+![VFS](/assets/VFS.png)
+
+#### 11.2.2.1 注册/注销文件系统
+
+函数```register_filesystem()```用于注册指定的文件系统，其定义于fs/filesystem.c:
+
+```
+/**
+ *	register_filesystem - register a new filesystem
+ *	@fs: the file system structure
+ *
+ *	Adds the file system passed to the list of file systems the kernel
+ *	is aware of for mount and other syscalls. Returns 0 on success,
+ *	or a negative errno code on an error.
+ *
+ *	The &struct file_system_type that is passed is linked into the kernel 
+ *	structures and must not be freed until the file system has been
+ *	unregistered.
+ */
+int register_filesystem(struct file_system_type * fs)
+{
+	int res = 0;
+	struct file_system_type ** p;
+
+	// 文件系统的名字不能包含"."，参见11.2.2.4.1.2.1.2 fs_set_subtype()节
+	BUG_ON(strchr(fs->name, '.'));
+
+	// 一次只能注册一个文件系统，即fs->next = NULL;
+	if (fs->next)
+		return -EBUSY;
+
+	/*
+	 * 初始化该文件系统的超级块链表，
+	 * 参见11.2.1.1.1 文件系统链表/file_systems节
+	 */
+	INIT_LIST_HEAD(&fs->fs_supers);
+	write_lock(&file_systems_lock);
+
+	/*
+	 * 根据文件系统的名字，检查链表file_systems中是否已
+	 * 存在该文件系统，参见文件系统链表/file_systems节。
+	 * 若链表file_systems中已存在该文件系统，则注册失败；
+	 * 否则，将该文件系统添加至链表file_systems的末尾
+	 */
+	p = find_filesystem(fs->name, strlen(fs->name));
+	if (*p)
+		res = -EBUSY;
+	else
+		*p = fs;
+
+	write_unlock(&file_systems_lock);
+
+	return res;
+}
+```
+
+函数```unregister_filesystem()```用于注销指定的文件系统，其定义于fs/filesystem.c:
+
+```
+/**
+ *	unregister_filesystem - unregister a file system
+ *	@fs: filesystem to unregister
+ *
+ *	Remove a file system that was previously successfully registered
+ *	with the kernel. An error is returned if the file system is not found.
+ *	Zero is returned on a success.
+ *	
+ *	Once this function has returned the &struct file_system_type structure
+ *	may be freed or reused.
+ */
+int unregister_filesystem(struct file_system_type * fs)
+{
+	struct file_system_type ** tmp;
+
+	write_lock(&file_systems_lock);
+	/*
+	 * 从链表file_systems中查找指定的文件系统并注销
+	 * 该文件系统，参见文件系统链表/file_systems节
+	 */
+	tmp = &file_systems;
+	while (*tmp) {
+		if (fs == *tmp) {
+			*tmp = fs->next;
+			fs->next = NULL;
+			write_unlock(&file_systems_lock);
+			synchronize_rcu();
+			return 0;
+		}
+		tmp = &(*tmp)->next;
+	}
+	write_unlock(&file_systems_lock);
+
+	return -EINVAL;
+}
+```
+
+#### 11.2.2.2 安装文件系统(1)/kern_mount()
+
+When a filesystem is mounted on a directory, the contents of the directory in the parent filesystem are no longer accessible, because every pathname, including the mount point, will refer to the mounted filesystem. However, the original directory’s content shows up again when the filesystem is unmounted. This somewhat surprising feature of Unix filesystems is used by system administrators to hide files; they simply mount a filesystem on the directory containing the files to be hidden.
+
+宏```kern_mount()```用来安装文件系统，其定义于include/linux/fs.h:
+
+```
+/*
+ * 参数type为struct file_system_type类型，
+ * 参见文件系统类型/struct file_system_type节
+ */
+#define kern_mount(type) 	kern_mount_data(type, NULL)
+
+其中，函数```kern_mount_data()```定义于fs/namespace.c:
+struct vfsmount *kern_mount_data(struct file_system_type *type, void *data)
+{
+	struct vfsmount *mnt;
+	// 安装type类型的文件系统，并返回该文件系统的挂载点，参见vfs_kern_mount()节
+	mnt = vfs_kern_mount(type, MS_KERNMOUNT, type->name, data);
+	if (!IS_ERR(mnt)) {
+		/*
+		 * it is a longterm mount, don't release mnt until
+		 * we unmount before file sys is unregistered
+		 */
+		/*
+		 * increment atomic variable: mnt->mnt_longterm
+	 	 * 与kern_unmount()->mnt_make_shortterm()相对应，
+		 * 参见卸载文件系统(1)/kern_unmount()节
+		 */
+		mnt_make_longterm(mnt);
+	}
+	return mnt;
+}
+```
+
+函数```kern_mount()```的调用关系如下:
+
+```
+fs_initcall(anon_inode_init)
+-> anon_inode_init()
+   -> register_filesystem(&anon_inode_fs_type);
+   -> anon_inode_mnt = kern_mount(&anon_inode_fs_type);
+
+vfs_caches_init()
+-> bdev_cache_init()
+   -> register_filesystem(&bd_type);
+   -> bd_mnt = kern_mount(&bd_type);
+
+module_init(init_devpts_fs)
+-> init_devpts_fs()
+   -> register_filesystem(&devpts_fs_type);
+   -> devpts_mnt = kern_mount(&devpts_fs_type);
+
+module_init(init_hugetlbfs_fs)
+-> init_hugetlbfs_fs()
+   -> register_filesystem(&hugetlbfs_fs_type);
+   -> vfsmount = kern_mount(&hugetlbfs_fs_type);
+
+mnt_init()
+-> sysfs_init()
+   -> register_filesystem(&sysfs_fs_type);
+   -> sysfs_mnt = kern_mount(&sysfs_fs_type);
+
+module_init(init_mtdchar)
+-> init_mtdchar()
+   -> register_filesystem(&mtd_inodefs_type);
+   -> mtd_inode_mnt = kern_mount(&mtd_inodefs_type);
+
+__initcall(pfm_init)
+-> pfm_init()
+   -> init_pfm_fs()
+      -> register_filesystem(&pfm_fs_type);
+      -> pfmfs_mnt = kern_mount(&pfm_fs_type);
+
+fs_initcall(init_pipe_fs)
+-> init_pipe_fs()
+   -> register_filesystem(&pipe_fs_type);
+   -> pipe_mnt = kern_mount(&pipe_fs_type);
+
+__initcall(init_sel_fs)
+-> init_sel_fs()
+   -> register_filesystem(&sel_fs_type);
+   -> selinuxfs_mount = kern_mount(&sel_fs_type);
+
+do_basic_setup()
+-> shmem_init()
+   -> register_filesystem(&shmem_fs_type);
+   -> shm_mnt = kern_mount(&shmem_fs_type);
+
+__initcall(init_smk_fs)
+-> init_smk_fs()
+   -> register_filesystem(&smk_fs_type);
+   -> smackfs_mount = kern_mount(&smk_fs_type);
+
+core_initcall(sock_init)
+-> sock_init()
+   -> register_filesystem(&sock_fs_type);
+   -> sock_mnt = kern_mount(&sock_fs_type);
+```
+
+##### 11.2.2.2.1 vfs_kern_mount()
+
+该函数定义于fs/namespace.c:
+
+```
+struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
+				const char *name, void *data)
+{
+	struct vfsmount *mnt;
+	struct dentry *root;
+
+	if (!type)
+		return ERR_PTR(-ENODEV);
+
+	/*
+	 * Allocate a new mounted filesystem descriptor and
+	 * stores its address in the mnt local variable.
+	 * 从缓存mnt_cache(由mnt_init()分配，参见mnt_init()节)
+	 * 中分配并初始化类型为struct vfsmount的内存，
+	 * 参见alloc_vfsmnt()节
+	 */
+	mnt = alloc_vfsmnt(name);
+	if (!mnt)
+		return ERR_PTR(-ENOMEM);
+
+	/*
+	 * 通过kern_mount()调用本函数时，设置MS_KERNMOUNT标志，
+	 * 参见安装文件系统(1)/kern_mount()节
+	 */
+	if (flags & MS_KERNMOUNT)
+		mnt->mnt_flags = MNT_INTERNAL;
+
+	/*
+	 * 挂载指定类型的文件系统，并返回挂载后根目录的目录项dentry，
+	 * 参见mount_fs()节
+	 */
+	root = mount_fs(type, flags, name, data);
+	if (IS_ERR(root)) {
+		free_vfsmnt(mnt);
+		return ERR_CAST(root);
+	}
+
+	mnt->mnt_root = root;
+	mnt->mnt_sb = root->d_sb;
+	// 该文件系统挂载后根目录的目录项
+	mnt->mnt_mountpoint = mnt->mnt_root;
+	/*
+	 * 此处先将mnt_parent指向自己，当调用do_add_mount()时
+	 * 再将其指向父目录的挂载点，参见do_add_mount()节
+	 */
+	mnt->mnt_parent = mnt;
+	return mnt;
+}
+```
+
+函数```vfs_kern_mount()```执行后的示意图:
+
+![Filesystem_23](/assets/Filesystem_23.jpg)
+
+###### 11.2.2.2.1.1 alloc_vfsmnt()
+
+该函数用于分配类型为struct vfsmount的对象，其定义于fs/namespace.c:
+
+```
+static struct vfsmount *alloc_vfsmnt(const char *name)
+{
+	// 从缓存mnt_cache中为mnt分配空间，参见mnt_init()节和kmem_cache_zalloc()节
+	struct vfsmount *mnt = kmem_cache_zalloc(mnt_cache, GFP_KERNEL);
+	if (mnt) {
+		int err;
+
+		// 分配mnt->mnt_id
+		err = mnt_alloc_id(mnt);
+		if (err)
+			goto out_free_cache;
+
+		// 根据文件系统名或者设备名为mnt->mnt_devname赋值
+		if (name) {
+			mnt->mnt_devname = kstrdup(name, GFP_KERNEL);
+			if (!mnt->mnt_devname)
+				goto out_free_id;
+		}
+
+#ifdef CONFIG_SMP
+		mnt->mnt_pcp = alloc_percpu(struct mnt_pcp);
+		if (!mnt->mnt_pcp)
+			goto out_free_devname;
+
+		this_cpu_add(mnt->mnt_pcp->mnt_count, 1);
+#else
+		mnt->mnt_count = 1;
+		mnt->mnt_writers = 0;
+#endif
+
+		// 初始化各链表头
+		INIT_LIST_HEAD(&mnt->mnt_hash);
+		INIT_LIST_HEAD(&mnt->mnt_child);
+		INIT_LIST_HEAD(&mnt->mnt_mounts);
+		INIT_LIST_HEAD(&mnt->mnt_list);
+		INIT_LIST_HEAD(&mnt->mnt_expire);
+		INIT_LIST_HEAD(&mnt->mnt_share);
+		INIT_LIST_HEAD(&mnt->mnt_slave_list);
+		INIT_LIST_HEAD(&mnt->mnt_slave);
+#ifdef CONFIG_FSNOTIFY
+		INIT_HLIST_HEAD(&mnt->mnt_fsnotify_marks);
+#endif
+	}
+	return mnt;
+
+#ifdef CONFIG_SMP
+out_free_devname:
+	kfree(mnt->mnt_devname);
+#endif
+out_free_id:
+	mnt_free_id(mnt);
+out_free_cache:
+	kmem_cache_free(mnt_cache, mnt);
+	return NULL;
+}
+```
+
+###### 11.2.2.2.1.2 mount_fs()
+
+该函数安装指定类型的文件系统，其定义于fs/super.c:
+
+```
+struct dentry *mount_fs(struct file_system_type *type, int flags,
+			const char *name, void *data)
+{
+	struct dentry *root;
+	struct super_block *sb;
+	char *secdata = NULL;
+	int error = -ENOMEM;
+
+	/*
+	 * 通过kern_mount()->vfs_kern_mount()->mount_fs()调用时，
+	 * data = NULL; 参见安装文件系统(1)/kern_mount()节
+	 */
+	if (data && !(type->fs_flags & FS_BINARY_MOUNTDATA)) {
+		secdata = alloc_secdata();
+		if (!secdata)
+			goto out;
+
+		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		error = security_sb_copy_data(data, secdata);
+		if (error)
+			goto out_free_secdata;
+	}
+
+	/*
+	 * 调用指定文件系统的安装函数(参见文件系统类型/struct file_system_type节)
+	 * 来挂载文件系统，并返回挂载后根目录的目录项。
+	 *
+	 * 根据文件系统类型的不同，其安装函数也不同:
+	 * - 若文件系统为sysfs_fs_type，则调用sysfs_mount()，参见sysfs_init()节和sysfs_mount()节；
+	 * - 若文件系统为rootfs_fs_type，则调用rootfs_mount()，参见init_rootfs()节和rootfs_mount()节；
+	 * - 若文件系统为bd_type，则调用bd_mount()，参见bdev_cache_init()节和bd_mount()节；
+	 * - 若文件系统为proc，则调用proc_mount()，参见proc_root_init()节和proc_mount()节；
+	 * - 若文件系统为debugfs，则调用debug_mount()，参见Debugfs的编译及初始化节和debug_mount()节；
+	 * - ...
+	 * 其共同点为: 1) 分配该文件系统的超级块； 2) 分配挂载点dentry结构
+	 */
+	root = type->mount(type, flags, name, data);
+	if (IS_ERR(root)) {
+		error = PTR_ERR(root);
+		goto out_free_secdata;
+	}
+	sb = root->d_sb;
+	BUG_ON(!sb);
+	WARN_ON(!sb->s_bdi);
+	WARN_ON(sb->s_bdi == &default_backing_dev_info);
+	sb->s_flags |= MS_BORN;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	error = security_sb_kern_mount(sb, flags, secdata);
+	if (error)
+		goto out_sb;
+
+	/*
+	 * filesystems should never set s_maxbytes larger than MAX_LFS_FILESIZE
+	 * but s_maxbytes was an unsigned long long for many releases. Throw
+	 * this warning for a little while to try and catch filesystems that
+	 * violate this rule.
+	 */
+	WARN((sb->s_maxbytes < 0), "%s set sb->s_maxbytes to "
+		"negative value (%lld)\n", type->name, sb->s_maxbytes);
+
+	up_write(&sb->s_umount);
+	free_secdata(secdata);
+	return root;
+
+out_sb:
+	dput(root);
+	deactivate_locked_super(sb);
+out_free_secdata:
+	free_secdata(secdata);
+out:
+	return ERR_PTR(error);
+}
+```
+
+###### 11.2.2.2.1.2.1 sysfs_mount()
+
+该函数用于安装sysfs文件系统(参见sysfs_init()节)，其定义于fs/sysfs/mount.c:
+
+```
+static struct dentry *sysfs_mount(struct file_system_type *fs_type, int flags,
+				  const char *dev_name, void *data)
+{
+	struct sysfs_super_info *info;
+	enum kobj_ns_type type;
+	struct super_block *sb;
+	int error;
+
+	// info保存了sysfs文件系统的超级块的私有信息
+	info = kzalloc(sizeof(*info), GFP_KERNEL);
+	if (!info)
+		return ERR_PTR(-ENOMEM);
+
+	/*
+	 * 函数kobj_ns_grab_current()通过kobj_ns_ops_tbl[type]->grab_current_ns()
+	 * 返回current->nsproxy->net_ns;
+	 * kobj_ns_ops_tbl[]通过如下函数调用注册sysfs的命名空间：
+	 * subsys_initcall(net_dev_init)
+	 * -> netdev_kobject_init()
+	 *    -> kobj_ns_type_register(&net_ns_type_operations)
+	 */
+	for (type = KOBJ_NS_TYPE_NONE; type < KOBJ_NS_TYPES; type++)
+		info->ns[type] = kobj_ns_grab_current(type);
+
+	/*
+	 * 创建超级块，并将其链接到super_blocks链表
+	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 */
+	sb = sget(fs_type, sysfs_test_super, sysfs_set_super, info);
+	if (IS_ERR(sb) || sb->s_fs_info != info)
+		free_sysfs_super_info(info);
+	if (IS_ERR(sb))
+		return ERR_CAST(sb);
+	if (!sb->s_root) {
+		sb->s_flags = flags;
+		// 分配根节点sb->s_root，参见sysfs_fill_super()节
+		error = sysfs_fill_super(sb, data, flags & MS_SILENT ? 1 : 0);
+		if (error) {
+			deactivate_locked_super(sb);
+			return ERR_PTR(error);
+		}
+		sb->s_flags |= MS_ACTIVE;
+	}
+
+	// 增加根目录的目录项的使用计数，并返回该目录项，参见dget()节
+	return dget(sb->s_root);
+}
+```
+
+###### 11.2.2.2.1.2.1.1 sysfs_fill_super()
+
+该函数定义于fs/sysfs/mount.c:
+
+```
+static int sysfs_fill_super(struct super_block *sb, void *data, int silent)
+{
+	struct inode *inode;
+	struct dentry *root;
+
+	sb->s_blocksize = PAGE_CACHE_SIZE;
+	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
+	sb->s_magic = SYSFS_MAGIC;
+	sb->s_op = &sysfs_ops;
+	sb->s_time_gran = 1;
+
+	/* get root inode, initialize and unlock it */
+	mutex_lock(&sysfs_mutex);
+	inode = sysfs_get_inode(sb, &sysfs_root);	// 参见sysfs_get_inode()节
+	mutex_unlock(&sysfs_mutex);
+	if (!inode) {
+		pr_debug("sysfs: could not get root inode\n");
+		return -ENOMEM;
+	}
+
+	/* instantiate and link root dentry */
+	root = d_alloc_root(inode);			// 参见d_alloc_root()节
+	if (!root) {
+		pr_debug("%s: could not get root dentry!\n",__func__);
+		iput(inode);
+		return -ENOMEM;
+	}
+	root->d_fsdata = &sysfs_root;
+	sb->s_root = root;				// 该超级块所在的根目录
+	return 0;
+}
+```
+
+###### 11.2.2.2.1.2.1.1.1 sysfs_get_inode()
+
+该函数定义于fs/sysfs/inode.c:
+
+```
+struct inode *sysfs_get_inode(struct super_block *sb, struct sysfs_dirent *sd)
+{
+	struct inode *inode;
+
+	inode = iget_locked(sb, sd->s_ino);
+	if (inode && (inode->i_state & I_NEW))
+		sysfs_init_inode(sd, inode);
+
+	return inode;
+}
+```
+
+其中，函数sysfs_init_inode()定义于fs/sysfs/inode.c:
+
+```
+static void sysfs_init_inode(struct sysfs_dirent *sd, struct inode *inode)
+{
+	struct bin_attribute *bin_attr;
+
+	inode->i_private = sysfs_get(sd);
+	inode->i_mapping->a_ops = &sysfs_aops;
+	inode->i_mapping->backing_dev_info = &sysfs_backing_dev_info;
+	inode->i_op = &sysfs_inode_operations;
+
+	set_default_inode_attr(inode, sd->s_mode);
+	sysfs_refresh_inode(sd, inode);
+
+	/* initialize inode according to type */
+	switch (sysfs_type(sd)) {
+	// 1) 设置目录操作函数，参见fs/sysfs/dir.c
+	case SYSFS_DIR:
+		inode->i_op = &sysfs_dir_inode_operations;
+		inode->i_fop = &sysfs_dir_operations;
+		break;
+	// 2) 设置文件操作函数，参见fs/sysfs/file.c和sysfs_file_operations节
+	case SYSFS_KOBJ_ATTR:
+		inode->i_size = PAGE_SIZE;
+		inode->i_fop = &sysfs_file_operations;
+		break;
+	// 3) 设置二进制文件操作函数，参见fs/sysfs/bin.c
+	case SYSFS_KOBJ_BIN_ATTR:
+		bin_attr = sd->s_bin_attr.bin_attr;
+		inode->i_size = bin_attr->size;
+		inode->i_fop = &bin_fops;
+		break;
+	// 4) 设置链接操作函数，参见fs/sysfs/symlink.c
+	case SYSFS_KOBJ_LINK:
+		inode->i_op = &sysfs_symlink_inode_operations;
+		break;
+	default:
+		BUG();
+	}
+
+	unlock_new_inode(inode);
+}
+```
+
+###### 11.2.2.2.1.2.1.1.2 d_alloc_root()
+
+该函数定义于fs/dcache.c:
+
+```
+/**
+ * d_alloc_root - allocate root dentry
+ * @root_inode: inode to allocate the root for
+ *
+ * Allocate a root ("/") dentry for the inode given. The inode is
+ * instantiated and returned. %NULL is returned if there is insufficient
+ * memory or the inode passed is %NULL.
+ */
+struct dentry * d_alloc_root(struct inode * root_inode)
+{
+	struct dentry *res = NULL;
+
+	if (root_inode) {
+		// 根目录名和长度
+		static const struct qstr name = { .name = "/", .len = 1 };
+
+		/*
+		 * 从缓存dentry_cache中(参见dcache_init()节)分配根目录项，
+		 * 并赋值，参见__d_alloc()节
+		 */
+		res = __d_alloc(root_inode->i_sb, &name);
+
+		// 填写根目录项对应的inode信息，参见d_instantiate()节
+		if (res)
+			d_instantiate(res, root_inode);
+	}
+	return res;
+}
+```
+
+函数d_alloc_root()执行后的目录项结构:
+
+![Filesystem_9](/assets/Filesystem_9.jpg)
+
+###### 11.2.2.2.1.2.1.1.3 \__d_alloc()
+
+该函数定义于fs/dcache.c:
+
+```
+/**
+ * __d_alloc	-	allocate a dcache entry
+ * @sb: filesystem it will belong to
+ * @name: qstr of the name
+ *
+ * Allocates a dentry. It returns %NULL if there is insufficient memory
+ * available. On a success the dentry is returned. The name passed in is
+ * copied and the copy passed in may be reused after this call.
+ */ 
+struct dentry *__d_alloc(struct super_block *sb, const struct qstr *name)
+{
+	struct dentry *dentry;
+	char *dname;
+
+	/*
+	 * 从缓存dentry_cache中获取目录项，参见dcache_init()节
+	 * 和6.5.1.1.3.1 kmem_cache_zalloc()节
+	 */
+	dentry = kmem_cache_alloc(dentry_cache, GFP_KERNEL);
+	if (!dentry)
+		return NULL;
+
+	// 初始化该目录项
+	if (name->len > DNAME_INLINE_LEN-1) {
+		dname = kmalloc(name->len + 1, GFP_KERNEL);
+		if (!dname) {
+			kmem_cache_free(dentry_cache, dentry); 
+			return NULL;
+		}
+	} else  {
+		dname = dentry->d_iname;
+	}	
+	dentry->d_name.name = dname;
+	dentry->d_name.len = name->len;
+	dentry->d_name.hash = name->hash;
+	memcpy(dname, name->name, name->len);
+	dname[name->len] = 0;
+
+	dentry->d_count = 1;
+	dentry->d_flags = 0;
+	spin_lock_init(&dentry->d_lock);
+	seqcount_init(&dentry->d_seq);
+	dentry->d_inode = NULL;
+	dentry->d_parent = dentry;
+	dentry->d_sb = sb;
+	dentry->d_op = NULL;
+	dentry->d_fsdata = NULL;
+	INIT_HLIST_BL_NODE(&dentry->d_hash);
+	INIT_LIST_HEAD(&dentry->d_lru);
+	INIT_LIST_HEAD(&dentry->d_subdirs);
+	INIT_LIST_HEAD(&dentry->d_alias);
+	INIT_LIST_HEAD(&dentry->d_u.d_child);
+
+	/*
+	 * 为下列变量赋值:
+	 * - dentry->d_op = dentry->d_sb->s_d_op;
+	 * - dentry→d_flags = ...
+	 */
+	d_set_d_op(dentry, dentry->d_sb->s_d_op);
+
+	this_cpu_inc(nr_dentry);
+
+	return dentry;
+}
+```
+
+###### 11.2.2.2.1.2.1.1.4 d_instantiate()
+
+该函数定义于fs/dcache.c:
+
+```
+/**
+ * d_instantiate - fill in inode information for a dentry
+ * @entry: dentry to complete
+ * @inode: inode to attach to this dentry
+ *
+ * Fill in inode information in the entry.
+ *
+ * This turns negative dentries into productive full members
+ * of society.
+ *
+ * NOTE! This assumes that the inode count has been incremented
+ * (or otherwise set) by the caller to indicate that it is now
+ * in use by the dcache.
+ */
+void d_instantiate(struct dentry *entry, struct inode * inode)
+{
+	BUG_ON(!list_empty(&entry->d_alias));
+	if (inode)
+		spin_lock(&inode->i_lock);
+	__d_instantiate(entry, inode);
+	if (inode)
+		spin_unlock(&inode->i_lock);
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	security_d_instantiate(entry, inode);
+}
+
+static void __d_instantiate(struct dentry *dentry, struct inode *inode)
+{
+	spin_lock(&dentry->d_lock);
+	if (inode) {
+		if (unlikely(IS_AUTOMOUNT(inode)))
+			dentry->d_flags |= DCACHE_NEED_AUTOMOUNT;
+		list_add(&dentry->d_alias, &inode->i_dentry);
+	}
+	dentry->d_inode = inode;
+	dentry_rcuwalk_barrier(dentry);
+	spin_unlock(&dentry->d_lock);
+
+	// 更新dentry->d_flags
+	fsnotify_d_instantiate(dentry, inode);
+}
+```
+
+###### 11.2.2.2.1.2.1.2 dget()
+
+该函数定义于include/linux/dcache.h:
+
+```
+static inline struct dentry *dget(struct dentry *dentry)
+{
+	if (dentry) {
+		spin_lock(&dentry->d_lock);
+		dget_dlock(dentry);
+		spin_unlock(&dentry->d_lock);
+	}
+	return dentry;
+}
+
+/**
+ *	dget, dget_dlock -	get a reference to a dentry
+ *	@dentry: dentry to get a reference to
+ *
+ *	Given a dentry or %NULL pointer increment the reference count
+ *	if appropriate and return the dentry. A dentry will not be 
+ *	destroyed when it has references.
+ */
+static inline struct dentry *dget_dlock(struct dentry *dentry)
+{
+	if (dentry)
+		dentry->d_count++;
+	return dentry;
+}
+```
+
+###### 11.2.2.2.1.2.2 rootfs_mount()
+
+该函数定义于fs/ramfs/inode.c:
+
+```
+static struct dentry *rootfs_mount(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
+{
+	return mount_nodev(fs_type, flags|MS_NOUSER, data, ramfs_fill_super);
+}
+```
+
+其中，函数```mount_nodev(fs_type, flags|MS_NOUSER, data, ramfs_fill_super)```被扩展为：
+
+```
+mount_nodev(rootfs_fs_type, 0|MS_NOUSER, NULL, ramfs_fill_super)
+```
+
+函数```mount_nodev()```定义于fs/super.c:
+
+```
+struct dentry *mount_nodev(struct file_system_type *fs_type, int flags, void *data,
+			   int (*fill_super)(struct super_block *, void *, int))
+{
+	int error;
+	/*
+	 * 创建超级块，并将其链接到super_blocks链表
+	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 */
+	struct super_block *s = sget(fs_type, NULL, set_anon_super, NULL);
+
+	if (IS_ERR(s))
+		return ERR_CAST(s);
+
+	s->s_flags = flags;
+
+	// 根据入参，此处实际调用了函数ramfs_fill_super(s, NULL, 0)，参见下文
+	error = fill_super(s, data, flags & MS_SILENT ? 1 : 0);
+	if (error) {
+		deactivate_locked_super(s);
+		return ERR_PTR(error);
+	}
+	s->s_flags |= MS_ACTIVE;
+	return dget(s->s_root);
+}
+```
+
+函数```ramfs_fill_super()```定义于fs/ramfs/inode.c:
+
+```
+static const struct super_operations ramfs_ops = {
+	.statfs		= simple_statfs,
+	.drop_inode	= generic_delete_inode,
+	.show_options	= generic_show_options,
+};
+
+int ramfs_fill_super(struct super_block *sb, void *data, int silent)
+{
+	struct ramfs_fs_info *fsi;
+	struct inode *inode = NULL;
+	struct dentry *root;
+	int err;
+
+	// 为sb->s_options赋值
+	save_mount_options(sb, data);
+
+	fsi = kzalloc(sizeof(struct ramfs_fs_info), GFP_KERNEL);
+	sb->s_fs_info = fsi;
+	if (!fsi) {
+		err = -ENOMEM;
+		goto fail;
+	}
+
+	err = ramfs_parse_options(data, &fsi->mount_opts);
+	if (err)
+		goto fail;
+
+	sb->s_maxbytes		= MAX_LFS_FILESIZE;
+	sb->s_blocksize		= PAGE_CACHE_SIZE;
+	sb->s_blocksize_bits	= PAGE_CACHE_SHIFT;
+	sb->s_magic		= RAMFS_MAGIC;
+	sb->s_op			= &ramfs_ops;
+	sb->s_time_gran		= 1;
+
+	// 创建索引节点，并初始化
+	inode = ramfs_get_inode(sb, NULL, S_IFDIR | fsi->mount_opts.mode, 0);
+	if (!inode) {
+		err = -ENOMEM;
+		goto fail;
+	}
+
+	// 创建根目录项，参见d_alloc_root()节
+	root = d_alloc_root(inode);
+	sb->s_root = root;
+	if (!root) {
+		err = -ENOMEM;
+		goto fail;
+	}
+
+	return 0;
+fail:
+	kfree(fsi);
+	sb->s_fs_info = NULL;
+	iput(inode);
+	return err;
+}
+```
+
+###### 11.2.2.2.1.2.3 bd_mount()
+
+该函数用来安装bdev文件系统，其定义于fs/block_dev.c:
+
+```
+static const struct super_operations bdev_sops = {
+	.statfs		= simple_statfs,
+	.alloc_inode	= bdev_alloc_inode,
+	.destroy_inode	= bdev_destroy_inode,
+	.drop_inode	= generic_delete_inode,
+	.evict_inode	= bdev_evict_inode,
+};
+
+static struct dentry *bd_mount(struct file_system_type *fs_type,
+			       int flags, const char *dev_name, void *data)
+{
+	return mount_pseudo(fs_type, "bdev:", &bdev_sops, NULL, 0x62646576);
+}
+```
+
+其中，函数```mount_pseudo()```定义于fs/libfs.c:
+
+```
+/*
+ * Common helper for pseudo-filesystems (sockfs, pipefs, bdev - stuff that
+ * will never be mountable)
+ */
+struct dentry *mount_pseudo(struct file_system_type *fs_type, char *name,
+			    const struct super_operations *ops,
+			    const struct dentry_operations *dops, unsigned long magic)
+{
+	/*
+	 * 创建超级块，并将其链接到super_blocks链表
+	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 */
+	struct super_block *s = sget(fs_type, NULL, set_anon_super, NULL);
+	struct dentry *dentry;
+	struct inode *root;
+	struct qstr d_name = {.name = name, .len = strlen(name)};
+
+	if (IS_ERR(s))
+		return ERR_CAST(s);
+
+	s->s_flags = MS_NOUSER;
+	s->s_maxbytes = MAX_LFS_FILESIZE;
+	s->s_blocksize = PAGE_SIZE;
+	s->s_blocksize_bits = PAGE_SHIFT;
+	s->s_magic = magic;
+	s->s_op = ops ? ops : &simple_super_operations;
+	s->s_time_gran = 1;
+	root = new_inode(s);
+	if (!root)
+		goto Enomem;
+	/*
+	 * since this is the first inode, make it number 1. New inodes created
+	 * after this must take care not to collide with it (by passing
+	 * max_reserved of 1 to iunique).
+	 */
+	root->i_ino = 1;
+	root->i_mode = S_IFDIR | S_IRUSR | S_IWUSR;
+	root->i_atime = root->i_mtime = root->i_ctime = CURRENT_TIME;
+	// 创建目录项，参见__d_alloc()节
+	dentry = __d_alloc(s, &d_name);
+	if (!dentry) {
+		iput(root);
+		goto Enomem;
+	}
+	// 填写根目录项对应的inode信息，参见d_instantiate()节
+	d_instantiate(dentry, root);
+	s->s_root = dentry;
+	s->s_d_op = dops;
+	s->s_flags |= MS_ACTIVE;
+	return dget(s->s_root);
+
+Enomem:
+	deactivate_locked_super(s);
+	return ERR_PTR(-ENOMEM);
+}
+```
+
+###### 11.2.2.2.1.2.4 proc_mount()
+
+该函数安装proc文件系统，其调用关系如下：
+
+```
+proc_root_init()							// 参见proc_root_init()节
+-> register_filesystem(&proc_fs_type)
+-> pid_ns_prepare_proc(&init_pid_ns)					// 参见proc_root_init()节
+   -> kern_mount_data(&proc_fs_type, &init_pid_ns);			// 参见vfs_kern_mount()节
+      -> vfs_kern_mount(type, MS_KERNMOUNT, type->name, data);		// 参见vfs_kern_mount()节
+         -> mount_fs(type, flags, name, data);				// 参见mount_fs()节
+            -> type->mount()						// 即proc_fs_type->proc_mount()
+```
+
+函数```proc_mount()```定义于fs/proc/root.c:
+
+```
+static struct dentry *proc_mount(struct file_system_type *fs_type,
+				 int flags, const char *dev_name, void *data)
+{
+	int err;
+	struct super_block *sb;
+	struct pid_namespace *ns;
+	struct proc_inode *ei;
+
+	/*
+	 * 由如下函数调用可知，flags包含标志位MS_KERNMOUNT:
+	 *   kern_mount_data()->vfs_kern_mount(type, MS_KERNMOUNT, ...)
+	 */
+	if (flags & MS_KERNMOUNT)
+		ns = (struct pid_namespace *)data;	// data = &init_pid_ns; see kernel/pid.c
+	else
+		ns = current->nsproxy->pid_ns;
+
+	/*
+	 * 创建超级块，并将其链接到super_blocks链表
+	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 */
+	sb = sget(fs_type, proc_test_super, proc_set_super, ns);
+	if (IS_ERR(sb))
+		return ERR_CAST(sb);
+
+	if (!sb->s_root) {
+		sb->s_flags = flags;
+		err = proc_fill_super(sb);	// 参见proc_fill_super()节
+		if (err) {
+			deactivate_locked_super(sb);
+			return ERR_PTR(err);
+		}
+
+		sb->s_flags |= MS_ACTIVE;
+	}
+
+	ei = PROC_I(sb->s_root->d_inode);
+	if (!ei->pid) {
+		rcu_read_lock();
+		ei->pid = get_pid(find_pid_ns(1, ns));
+		rcu_read_unlock();
+	}
+
+	return dget(sb->s_root);
+}
+```
+
+###### 11.2.2.2.1.2.4.1 proc_fill_super()
+
+该函数定义于fs/proc/inode.c:
+
+```
+static const struct super_operations proc_sops = {
+	.alloc_inode	= proc_alloc_inode,
+	.destroy_inode	= proc_destroy_inode,
+	.drop_inode	= generic_delete_inode,
+	.evict_inode	= proc_evict_inode,
+	.statfs		= simple_statfs,
+};
+
+int proc_fill_super(struct super_block *s)
+{
+	struct inode * root_inode;
+
+	s->s_flags |= MS_NODIRATIME | MS_NOSUID | MS_NOEXEC;
+	s->s_blocksize = 1024;
+	s->s_blocksize_bits = 10;
+	s->s_magic = PROC_SUPER_MAGIC;			// PROC_SUPER_MAGIC = 0x9fa0
+	s->s_op = &proc_sops;
+	s->s_time_gran = 1;
+
+	// proc_root->count++; proc_root参见下文
+	pde_get(&proc_root);
+	root_inode = proc_get_inode(s, &proc_root);	// 获取inode
+	if (!root_inode)
+		goto out_no_root;
+	root_inode->i_uid = 0;
+	root_inode->i_gid = 0;
+	s->s_root = d_alloc_root(root_inode);		// 参见d_alloc_root()节
+	if (!s->s_root)
+		goto out_no_root;
+	return 0;
+
+out_no_root:
+	printk("proc_read_super: get root inode failed\n");
+	iput(root_inode);
+	pde_put(&proc_root);
+	return -ENOMEM;
+}
+```
+
+其中，变量proc_root定义于fs/proc/root.c:
+
+```
+/*
+ * This is the root "inode" in the /proc tree..
+ */
+struct proc_dir_entry proc_root = {
+	.low_ino	= PROC_ROOT_INO,		// PROC_ROOT_INO = 1
+	.namelen	= 5,
+	.mode		= S_IFDIR | S_IRUGO | S_IXUGO,
+	.nlink		= 2,
+	.count		= ATOMIC_INIT(1),
+	.proc_iops	= &proc_root_inode_operations,
+	.proc_fops	= &proc_root_operations,
+	.parent		= &proc_root,
+	.name		= "/proc",
+};
+
+/*
+ * proc root can do almost nothing..
+ */
+static const struct inode_operations proc_root_inode_operations = {
+	.lookup		= proc_root_lookup,
+	.getattr	= proc_root_getattr,
+};
+
+/*
+ * The root /proc directory is special, as it has the
+ * <pid> directories. Thus we don't use the generic
+ * directory handling functions for that..
+ */
+static const struct file_operations proc_root_operations = {
+	.read		= generic_read_dir,
+	.readdir	= proc_root_readdir,
+	.llseek		= default_llseek,
+};
+```
+
+###### 11.2.2.2.1.2.5 debug_mount()
+
+该函数定义于fs/debugfs/inode.c:
+
+```
+static struct dentry *debug_mount(struct file_system_type *fs_type,
+				  int flags, const char *dev_name, void *data)
+{
+	return mount_single(fs_type, flags, data, debug_fill_super);
+}
+```
+
+其中，函数```mount_single()```定义于fs/super.c:
+
+```
+struct dentry *mount_single(struct file_system_type *fs_type, int flags, void *data,
+			    int (*fill_super)(struct super_block *, void *, int))
+{
+	struct super_block *s;
+	int error;
+
+	// 分配超级块，参见分配超级块/sget()节
+	s = sget(fs_type, compare_single, set_anon_super, NULL);
+	if (IS_ERR(s))
+		return ERR_CAST(s);
+	if (!s->s_root) {
+		s->s_flags = flags;
+		/*
+		 * 由函数debug_mount()可知，此处调用debug_fill_super()
+		 * 填充超级块，其定义于fs/debugfs/inode.c
+		 */
+		error = fill_super(s, data, flags & MS_SILENT ? 1 : 0);
+		if (error) {
+			deactivate_locked_super(s);
+			return ERR_PTR(error);
+		}
+		s->s_flags |= MS_ACTIVE;
+	} else {
+		// asks filesystem to change mount options
+		do_remount_sb(s, flags, data, 0);
+	}
+
+	// 返回debugfs的挂载点目录项，参见dget()节
+	return dget(s->s_root);
+}
+```
+
+#### 11.2.2.3 卸载文件系统(1)/kern_unmount()
+
+该函数定义于fs/namespace.c:
+
+```
+/*
+ * 本函数的入参struct vfsmount *mnt是函数kern_mount()的返回值，
+ * 参见安装文件系统(1)/kern_mount()节
+ */
+void kern_unmount(struct vfsmount *mnt)
+{
+	/* release long term mount so mount point can be released */
+	if (!IS_ERR_OR_NULL(mnt)) {
+		/*
+		 * decrement atomic variable: mnt->mnt_longterm
+		 * 与kern_mount()->mnt_make_longterm()相对应，
+		 * 参见安装文件系统(1)/kern_mount()节
+		 */
+		mnt_make_shortterm(mnt);
+		mntput(mnt);	// 参见mntput()节
+	}
+}
+```
+
+函数```kern_unmount()```的调用关系如下:
+
+```
+module_exit(exit_hugetlbfs_fs)
+-> exit_hugetlbfs_fs()
+   -> kern_unmount(hugetlbfs_vfsmount);
+
+put_ipc_ns()
+-> mq_put_mnt()
+   -> kern_unmount(ns->mq_mnt);
+
+module_exit(cleanup_mtdchar)
+-> cleanup_mtdchar()
+   -> kern_unmount(mtd_inode_mnt);
+
+module_exit(exit_pipe_fs)
+-> exit_pipe_fs()
+   -> kern_unmount(pipe_mnt);
+   -> unregister_filesystem(&pipe_fs_type);
+
+release_task()
+-> proc_flush_task()
+   -> pid_ns_release_proc()
+      -> kern_unmount(ns->proc_mnt);
+
+selinux_disable()
+-> exit_sel_fs()
+   -> kern_unmount(selinuxfs_mount);
+   -> unregister_filesystem(&sel_fs_type);
+```
+
+##### 11.2.2.3.1 mnt_make_shortterm()
+
+该函数定义于fs/namespace.c:
+
+```
+void mnt_make_shortterm(struct vfsmount *mnt)
+{
+#ifdef CONFIG_SMP
+	// 若mnt->mnt_longterm - 1 != 1，则返回；
+	if (atomic_add_unless(&mnt->mnt_longterm, -1, 1))
+		return;
+	/*
+	 * 否则，若mnt->mnt_longterm - 1 == 1，
+	 * 则可以卸载该文件系统，继续将mnt->mnt_longterm减1
+	 */
+	br_write_lock(vfsmount_lock);
+	atomic_dec(&mnt->mnt_longterm);
+	br_write_unlock(vfsmount_lock);
+#endif
+}
+```
+
+##### 11.2.2.3.2 mntput()
+
+该函数定义于fs/namespace.c:
+
+```
+void mntput(struct vfsmount *mnt)
+{
+	if (mnt) {
+		/* avoid cacheline pingpong, hope gcc doesn't get "smart" */
+		if (unlikely(mnt->mnt_expiry_mark))
+			mnt->mnt_expiry_mark = 0;
+		mntput_no_expire(mnt);
+	}
+}
+```
+
+其中，函数```mntput_no_expire()```定义于fs/namespace.c:
+
+```
+static void mntput_no_expire(struct vfsmount *mnt)
+{
+put_again:
+#ifdef CONFIG_SMP
+	br_read_lock(vfsmount_lock);
+	if (likely(atomic_read(&mnt->mnt_longterm))) {
+		mnt_dec_count(mnt);		// mnt->mnt_pcp->mnt_count--
+		br_read_unlock(vfsmount_lock);
+		return;
+	}
+	br_read_unlock(vfsmount_lock);
+
+	br_write_lock(vfsmount_lock);
+	mnt_dec_count(mnt);			// mnt->mnt_pcp->mnt_count--
+	if (mnt_get_count(mnt)) {
+		br_write_unlock(vfsmount_lock);
+		return;
+	}
+#else
+	mnt_dec_count(mnt);			// mnt->mnt_count--
+	if (likely(mnt_get_count(mnt)))
+		return;
+	br_write_lock(vfsmount_lock);
+#endif
+	if (unlikely(mnt->mnt_pinned)) {
+		mnt_add_count(mnt, mnt->mnt_pinned + 1);
+		mnt->mnt_pinned = 0;
+		br_write_unlock(vfsmount_lock);
+		acct_auto_close_mnt(mnt);	// 轮询链表acct_list，参见kernel/acct.c
+		goto put_again;
+	}
+	br_write_unlock(vfsmount_lock);
+	mntfree(mnt);
+}
+```
+
+其中，函数```mntfree()```用于释放mnt结构，其定义于fs/namespace.c:
+
+```
+static inline void mntfree(struct vfsmount *mnt)
+{
+	struct super_block *sb = mnt->mnt_sb;
+
+	/*
+	 * This probably indicates that somebody messed
+	 * up a mnt_want/drop_write() pair.  If this
+	 * happens, the filesystem was probably unable
+	 * to make r/w->r/o transitions.
+	 */
+	/*
+	 * The locking used to deal with mnt_count decrement provides barriers,
+	 * so mnt_get_writers() below is safe.
+	 */
+	WARN_ON(mnt_get_writers(mnt));
+	fsnotify_vfsmount_delete(mnt);		// loop variable: mnt->mnt_fsnotify_marks
+	dput(mnt->mnt_root);			// release dentry: mnt->mnt_root
+	free_vfsmnt(mnt);			// free memory of variable: mnt
+	deactivate_super(sb);			// drop an active reference to superblock: mnt->mnt_sb
+}
+```
+
+#### 11.2.2.4 安装文件系统(2)/sys_mount()
+
+该系统调用定义于fs/namespace.c:
+
+```
+/*
+ * 使用命令 "strace mount –t sysfs sysfs_name /MySysFs" 安装sysfs文件系统时，
+ * strace结果包含如下系统调用:
+ *	mount("sysfs_name", "/MySysFs", "sysfs", MS_MGC_VAL, NULL) = 0
+ */
+SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
+		char __user *, type, unsigned long, flags, void __user *, data)
+{
+	int ret;
+	char *kernel_type;
+	char *kernel_dir;
+	char *kernel_dev;
+	unsigned long data_page;
+
+	// 获取文件系统类型
+	ret = copy_mount_string(type, &kernel_type);
+	if (ret < 0)
+		goto out_type;
+
+	// 获取文件系统安装点
+	kernel_dir = getname(dir_name);
+	if (IS_ERR(kernel_dir)) {
+		ret = PTR_ERR(kernel_dir);
+		goto out_dir;
+	}
+
+	// 获取设备类型
+	ret = copy_mount_string(dev_name, &kernel_dev);
+	if (ret < 0)
+		goto out_dev;
+
+	// 获取安装选项
+	ret = copy_mount_options(data, &data_page);
+	if (ret < 0)
+		goto out_data;
+
+	/*
+	 * 安装文件系统的主函数，参见do_mount()节。示例：
+	 * do_mount("sysfs_name", "/MySysFs", "sysfs", MS_MGC_VAL, NULL)
+	 */
+	ret = do_mount(kernel_dev, kernel_dir, kernel_type, flags, (void *) data_page);
+
+	free_page(data_page);
+out_data:
+	kfree(kernel_dev);
+out_dev:
+	putname(kernel_dir);
+out_dir:
+	kfree(kernel_type);
+out_type:
+	return ret;
+}
+```
+
+命令mount和umount的配置文件是/etc/mtab，其简介如下:
+
+The file ```/etc/mtab``` is special - it is used by mount and umount to remember which filesystems were mounted, with which options, and by whom - in other words, the mount table plus some extra information. This can be useful. However, the important thing to realise about ```/etc/mtab``` is that it is only maintained by the mount and umount programs themselves - it is not a way of accessing the kernel's internal mount table (to do that on Linux systems, look at ```/proc/mounts```, which is the same format as ```/etc/mtab``` but lacks some of the extra information, as it is not remembered by the kernel). This means that if, for some reason, I wrote my own program which mounted a filesystem with the ```mount()``` system call, it would not show up in ```/etc/mtab```, because didn't use the normal mount command. This wouldn't really hurt anything, except for the fact that some of the features which rely on ```/etc/mtab```'s extra information (such as non-superuser umounts) wouldn't work.
+
+```
+chenwx@chenwx ~/ $ mount
+/dev/sda1 on / type ext4 (rw,errors=remount-ro)
+proc on /proc type proc (rw,noexec,nosuid,nodev)
+sysfs on /sys type sysfs (rw,noexec,nosuid,nodev)
+none on /sys/fs/cgroup type tmpfs (rw)
+none on /sys/fs/fuse/connections type fusectl (rw)
+none on /sys/kernel/debug type debugfs (rw)
+none on /sys/kernel/security type securityfs (rw)
+udev on /dev type devtmpfs (rw,mode=0755)
+devpts on /dev/pts type devpts (rw,noexec,nosuid,gid=5,mode=0620)
+tmpfs on /run type tmpfs (rw,noexec,nosuid,size=10%,mode=0755)
+none on /run/lock type tmpfs (rw,noexec,nosuid,nodev,size=5242880)
+none on /run/shm type tmpfs (rw,nosuid,nodev)
+none on /run/user type tmpfs (rw,noexec,nosuid,nodev,size=104857600,mode=0755)
+none on /sys/fs/pstore type pstore (rw)
+binfmt_misc on /proc/sys/fs/binfmt_misc type binfmt_misc (rw,noexec,nosuid,nodev)
+systemd on /sys/fs/cgroup/systemd type cgroup (rw,noexec,nosuid,nodev,none,name=systemd)
+vboxshare on /media/sf_vboxshare type vboxsf (gid=108,rw)
+gvfsd-fuse on /run/user/1000/gvfs type fuse.gvfsd-fuse (rw,nosuid,nodev,user=chenwx)
+
+chenwx@chenwx ~/ $ cat /etc/mtab
+/dev/sda1 / ext4 rw,errors=remount-ro 0 0
+proc /proc proc rw,noexec,nosuid,nodev 0 0
+sysfs /sys sysfs rw,noexec,nosuid,nodev 0 0
+none /sys/fs/cgroup tmpfs rw 0 0
+none /sys/fs/fuse/connections fusectl rw 0 0
+none /sys/kernel/debug debugfs rw 0 0
+none /sys/kernel/security securityfs rw 0 0
+udev /dev devtmpfs rw,mode=0755 0 0
+devpts /dev/pts devpts rw,noexec,nosuid,gid=5,mode=0620 0 0
+tmpfs /run tmpfs rw,noexec,nosuid,size=10%,mode=0755 0 0
+none /run/lock tmpfs rw,noexec,nosuid,nodev,size=5242880 0 0
+none /run/shm tmpfs rw,nosuid,nodev 0 0
+none /run/user tmpfs rw,noexec,nosuid,nodev,size=104857600,mode=0755 0 0
+none /sys/fs/pstore pstore rw 0 0
+binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc rw,noexec,nosuid,nodev 0 0
+systemd /sys/fs/cgroup/systemd cgroup rw,noexec,nosuid,nodev,none,name=systemd 0 0
+vboxshare /media/sf_vboxshare vboxsf gid=108,rw 0 0
+gvfsd-fuse /run/user/1000/gvfs fuse.gvfsd-fuse rw,nosuid,nodev,user=chenwx 0 0
+
+chenwx@chenwx ~/ $ cat /proc/mounts
+rootfs / rootfs rw 0 0
+sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
+proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+udev /dev devtmpfs rw,relatime,size=764332k,nr_inodes=191083,mode=755 0 0
+devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000 0 0
+tmpfs /run tmpfs rw,nosuid,noexec,relatime,size=154268k,mode=755 0 0
+/dev/disk/by-uuid/fe67c2d0-9b0f-4fd6-8e97-463ce95a7e0c / ext4 rw,relatime,errors=remount-ro,data=ordered 0 0
+none /sys/fs/cgroup tmpfs rw,relatime,size=4k,mode=755 0 0
+none /sys/fs/fuse/connections fusectl rw,relatime 0 0
+none /sys/kernel/debug debugfs rw,relatime 0 0
+none /sys/kernel/security securityfs rw,relatime 0 0
+none /run/lock tmpfs rw,nosuid,nodev,noexec,relatime,size=5120k 0 0
+none /run/shm tmpfs rw,nosuid,nodev,relatime 0 0
+none /run/user tmpfs rw,nosuid,nodev,noexec,relatime,size=102400k,mode=755 0 0
+none /sys/fs/pstore pstore rw,relatime 0 0
+binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc rw,nosuid,nodev,noexec,relatime 0 0
+systemd /sys/fs/cgroup/systemd cgroup rw,nosuid,nodev,noexec,relatime,name=systemd 0 0
+none /media/sf_vboxshare vboxsf rw,nodev,relatime 0 0
+gvfsd-fuse /run/user/1000/gvfs fuse.gvfsd-fuse rw,nosuid,nodev,relatime,user_id=1000,group_id=1000 0 0
+```
+
+##### 11.2.2.4.1 do_mount()
+
+该函数定义于fs/namespace.c:
+
+```
+/*
+ * Flags is a 32-bit value that allows up to 31 non-fs dependent flags to
+ * be given to the mount() call (ie: read-only, no-dev, no-suid etc).
+ *
+ * data is a (void *) that can point to any structure up to
+ * PAGE_SIZE-1 bytes, which can contain arbitrary fs-dependent
+ * information (or be NULL).
+ *
+ * Pre-0.97 versions of mount() didn't have a flags word.
+ * When the flags word was introduced its top half was required
+ * to have the magic value 0xC0ED, and this remained so until 2.4.0-test9.
+ * Therefore, if this magic number is present, it carries no information
+ * and must be discarded.
+ */
+// 示例：do_mount("sysfs_name", "/MySysFs", "sysfs", MS_MGC_VAL, NULL)
+long do_mount(char *dev_name, char *dir_name, char *type_page,
+	      unsigned long flags, void *data_page)
+{
+	struct path path;
+	int retval = 0;
+	int mnt_flags = 0;
+
+	/* Discard magic */
+	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
+		flags &= ~MS_MGC_MSK;
+
+	/* Basic sanity checks */
+	if (!dir_name || !*dir_name || !memchr(dir_name, 0, PAGE_SIZE))
+		return -EINVAL;
+
+	if (data_page)
+		((char *)data_page)[PAGE_SIZE - 1] = 0;
+
+	/*
+	 * ... and get the mountpoint
+	 * 获取安装目录dir_name所对应的安装点(path.mnt)和目录项(path.dentry)，
+	 * 参见kern_path()节和Subjects/Chapter11_Filesystem/Figures/Filesystem_21.jpg
+	 * 示例：kern_path("/MySysFs", LOOKUP_FOLLOW, &path)
+	 */
+	retval = kern_path(dir_name, LOOKUP_FOLLOW, &path);
+	if (retval)
+		return retval;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	retval = security_sb_mount(dev_name, &path, type_page, flags, data_page);
+	if (retval)
+		goto dput_out;
+
+	/* Default to relatime unless overriden */
+	if (!(flags & MS_NOATIME))
+		mnt_flags |= MNT_RELATIME;
+
+	/* Separate the per-mountpoint flags */
+	if (flags & MS_NOSUID)
+		mnt_flags |= MNT_NOSUID;
+	if (flags & MS_NODEV)
+		mnt_flags |= MNT_NODEV;
+	if (flags & MS_NOEXEC)
+		mnt_flags |= MNT_NOEXEC;
+	if (flags & MS_NOATIME)
+		mnt_flags |= MNT_NOATIME;
+	if (flags & MS_NODIRATIME)
+		mnt_flags |= MNT_NODIRATIME;
+	if (flags & MS_STRICTATIME)
+		mnt_flags &= ~(MNT_RELATIME | MNT_NOATIME);
+	if (flags & MS_RDONLY)
+		mnt_flags |= MNT_READONLY;
+
+	flags &= ~(MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_ACTIVE | MS_BORN | MS_NOATIME |
+			MS_NODIRATIME | MS_RELATIME| MS_KERNMOUNT | MS_STRICTATIME);
+
+	/*
+	 * 1) The purpose of MS_REMOUNT is usually to change the
+	 * mount flags in s_flags field of superblock object and
+	 * mounted filesystem flags in the mnt_flags field of the
+	 * mounted filesystem object.
+	 */
+	if (flags & MS_REMOUNT)
+		retval = do_remount(&path, flags & ~MS_REMOUNT, mnt_flags, data_page);
+	/*
+	 * 2) User is asking to make visible a file or directory
+	 * on another point of the system directory tree.
+	 */
+	else if (flags & MS_BIND)
+		retval = do_loopback(&path, dev_name, flags & MS_REC);
+	/*
+	 * 3) Recursively change the type of the mountpoint.
+	 */
+	else if (flags & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
+		retval = do_change_type(&path, flags);
+	/*
+	 * 4) User is asking to change the mount point of an
+	 * already mounted filesystem.
+	 */
+	else if (flags & MS_MOVE)
+		retval = do_move_mount(&path, dev_name);
+	/*
+	 * 5) User asks to mount either a special filesystem or
+	 * a regular filesystem stored in a disk partition.
+	 * 参见do_new_mount()节。示例：
+	 * do_new_mount(&path, "sysfs", 0, MNT_RELATIME, "sysfs_name", NULL)
+	 */
+	else
+		retval = do_new_mount(&path, type_page, flags, mnt_flags, dev_name, data_page);
+
+dput_out:
+	path_put(&path);
+	return retval;
+}
+```
+
+###### 11.2.2.4.1.1 kern_path()/do_path_lookup()
+
+函数kern_path()定义于fs/namei.c:
+
+```
+int kern_path(const char *name, unsigned int flags, struct path *path)
+{
+	struct nameidata nd;
+	// 示例：do_path_lookup(AT_FDCWD, "/MySysFs", LOOKUP_FOLLOW, &nd)
+	int res = do_path_lookup(AT_FDCWD, name, flags, &nd);
+
+	// 参见Subjects/Chapter11_Filesystem/Figures/Filesystem_21.jpg中的nd.path
+	if (!res)
+		*path = nd.path;
+	return res;
+}
+```
+
+其中，函数```do_path_lookup()```定义于fs/namei.c:
+
+```
+static int do_path_lookup(int dfd, const char *name, unsigned int flags,
+			  struct nameidata *nd)
+{
+	// 示例：path_lookupat(AT_FDCWD, "/MySysFs", LOOKUP_FOLLOW | LOOKUP_RCU, &nd)
+	int retval = path_lookupat(dfd, name, flags | LOOKUP_RCU, nd);
+	if (unlikely(retval == -ECHILD))		// No child processes
+		retval = path_lookupat(dfd, name, flags, nd);
+	if (unlikely(retval == -ESTALE))		// Stale NFS file handle
+		retval = path_lookupat(dfd, name, flags | LOOKUP_REVAL, nd);
+
+	if (likely(!retval)) {
+		if (unlikely(!audit_dummy_context())) {
+			if (nd->path.dentry && nd->inode)
+				audit_inode(name, nd->path.dentry);
+		}
+	}
+	return retval;
+}
+```
+
+###### 11.2.2.4.1.1.1 path_lookupat()
+
+该函数定义于fs/namei.c:
+
+```
+/* Returns 0 and nd will be valid on success; Retuns error, otherwise. */
+static int path_lookupat(int dfd, const char *name,
+			 unsigned int flags, struct nameidata *nd)
+{
+	struct file *base = NULL;
+	struct path path;
+	int err;
+
+	/*
+	 * Path walking is largely split up into 2 different synchronisation
+	 * schemes, rcu-walk and ref-walk (explained in
+	 * Documentation/filesystems/path-lookup.txt). These share much of the
+	 * path walk code, but some things particularly setup, cleanup, and
+	 * following mounts are sufficiently divergent that functions are
+	 * duplicated. Typically there is a function foo(), and its RCU
+	 * analogue, foo_rcu().
+	 *
+	 * -ECHILD is the error number of choice (just to avoid clashes) that
+	 * is returned if some aspect of an rcu-walk fails. Such an error must
+	 * be handled by restarting a traditional ref-walk (which will always
+	 * be able to complete).
+	 */
+	/*
+	 * 初始化nd，并获取变量: nd->path, nd->inode；参见path_init()节
+	 * 示例：path_init(AT_FDCWD, "/MySysFs", LOOKUP_FOLLOW | LOOKUP_RCU | LOOKUP_PARENT, nd, &base)
+	 */
+	err = path_init(dfd, name, flags | LOOKUP_PARENT, nd, &base);
+
+	if (unlikely(err))
+		return err;
+
+	/*
+	 * total_link_count用来记录符号链接的深度，每穿
+	 * 越一次符号链接该值就加一，最大允许40层符号链接，
+	 * 参见函数follow_link()
+	 */
+	current->total_link_count = 0;
+
+	/*
+	 * 示例：link_path_walk("/MySysFs", nd)，
+	 * 参见link_path_walk()节
+	 */
+	err = link_path_walk(name, nd);
+
+	if (!err && !(flags & LOOKUP_PARENT)) {
+		err = lookup_last(nd, &path);
+		while (err > 0) {
+			void *cookie;
+			struct path link = path;
+			nd->flags |= LOOKUP_PARENT;
+			err = follow_link(&link, nd, &cookie);
+			if (!err)
+				err = lookup_last(nd, &path);
+			put_link(nd, &link, cookie);
+		}
+	}
+
+	if (!err)
+		err = complete_walk(nd);	// 参见complete_walk()节
+
+	if (!err && nd->flags & LOOKUP_DIRECTORY) {
+		if (!nd->inode->i_op->lookup) {
+			path_put(&nd->path);
+			err = -ENOTDIR;
+		}
+	}
+
+	if (base)
+		fput(base);
+
+	if (nd->root.mnt && !(nd->flags & LOOKUP_ROOT)) {
+		path_put(&nd->root);
+		nd->root.mnt = NULL;
+	}
+	return err;
+}
+```
+
+###### 11.2.2.4.1.1.1.1 path_init()
+
+函数```path_init()```用于初始化nd中的如下成员变量：
+
+```
+nd->last_type
+nd->flags
+nd->depth
+nd->root
+nd->path
+nd->inode
+```
+
+struct nameidata定义于include/linux/namei.h:
+
+```
+enum { MAX_NESTED_LINKS = 8 };
+
+struct nameidata {
+	struct path			path;		// 保存当前搜索到的路径
+	struct qstr			last;		// 保存当前子路径名及其散列值
+	struct path			root;		// 保存根目录的信息
+
+	/*
+	 * path.dentry.d_inode
+	 * 指向当前找到的目录项的inode结构
+	 */
+	struct inode			*inode;
+
+	unsigned int			flags;		// 和查找相关的标志位
+	unsigned			seq;		// 相关目录项的顺序锁序号
+
+	/*
+	 * 表示当前子路径的类型，其取值为:
+	 * LAST_NORM   - 普通的路径名
+	 * LAST_ROOT   - "/"
+	 * LAST_DOT    - "."
+	 * LAST_DOTDOT - ".."
+	 * LAST_BIND   - 符号链接
+	 */
+	int				last_type;
+
+	// 记录在解析符号链接过程中的递归深度
+	unsigned			depth;
+
+	// 记录相应递归深度的符号链接的路径
+	char 				*saved_names[MAX_NESTED_LINKS + 1];
+
+	/* Intent data */
+	union {
+		struct open_intent	open;
+	} intent;
+};
+```
+
+该函数定义于fs/namei.c:
+
+```
+// 示例：path_init(AT_FDCWD, "/MySysFs", LOOKUP_FOLLOW | LOOKUP_RCU | LOOKUP_PARENT, nd, &base)
+static int path_init(int dfd, const char *name, unsigned int flags,
+		     struct nameidata *nd, struct file **fp)
+{
+	int retval = 0;
+	int fput_needed;
+	struct file *file;
+
+	/*
+	 * if there are only slashes...
+	 * 即在路径名中只有"/"
+	 */
+	nd->last_type = LAST_ROOT;
+
+	nd->flags = flags | LOOKUP_JUMPED;
+	nd->depth = 0;
+
+	/*
+	 * 若从根目录开始查找文件，则设置nd->path = nd->root;
+	 * 使用LOOKUP_ROOT标志位的函数包括:
+	 *   do_file_open_root(), vfs_path_lookup()
+	 * 这些函数在调用path_init()之前已经为下列变量赋值:
+	 *   nd.root.dentry, nd.root.mnt
+	 */
+	if (flags & LOOKUP_ROOT) {
+		struct inode *inode = nd->root.dentry->d_inode;
+		if (*name) {
+			if (!inode->i_op->lookup)
+				return -ENOTDIR;
+			retval = inode_permission(inode, MAY_EXEC);
+			if (retval)
+				return retval;
+		}
+		nd->path = nd->root;
+		nd->inode = inode;
+		if (flags & LOOKUP_RCU) {
+			br_read_lock(vfsmount_lock);
+			rcu_read_lock();
+			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
+		} else {
+			path_get(&nd->path);
+		}
+		return 0;
+	}
+
+	nd->root.mnt = NULL;
+
+	if (*name=='/') {
+		/*
+		 * 1) If the first character of the pathname is "/",
+		 *    the pathname is absolute, and the search starts
+		 *    from the directory identified by current->fs->root
+		 *    (the process root directory).
+		 */
+		if (flags & LOOKUP_RCU) {
+			br_read_lock(vfsmount_lock);
+			rcu_read_lock();
+			/*
+			 * 设置nd->root = current->fs->root;
+			 * nd->seq = nd->root.dentry->d_seq.sequence
+			 */
+			set_root_rcu(nd);
+		} else {
+			// 设置nd->root = current->fs->root
+			set_root(nd);
+			path_get(&nd->root);
+		}
+		nd->path = nd->root;
+	} else if (dfd == AT_FDCWD) {
+		/*
+		 * 2) If dfd == AT_FDCWD (-100), then the pathname is
+		 *    relative, and the search starts from the directory
+		 *    identified by current->fs->pwd (the process current
+		 *    directory).
+		 */
+		if (flags & LOOKUP_RCU) {
+			struct fs_struct *fs = current->fs;
+			unsigned seq;
+
+			br_read_lock(vfsmount_lock);
+			rcu_read_lock();
+
+			do {
+				seq = read_seqcount_begin(&fs->seq);
+				nd->path = fs->pwd;
+				nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
+			} while (read_seqcount_retry(&fs->seq, seq));
+		} else {
+			// 设置nd->path = current->fs->pwd
+			get_fs_pwd(current->fs, &nd->path);
+		}
+	} else {
+		/*
+		 * 3) Otherwise, the pathname is relative to the file specified
+		 *    by file descriptor dfd, then the search starts from the
+		 *    directory identified by current->files->fdt->fd[dfd]->f_path.
+		 */
+		struct dentry *dentry;
+
+		file = fget_raw_light(dfd, &fput_needed);
+		retval = -EBADF;
+		if (!file)
+			goto out_fail;
+
+		dentry = file->f_path.dentry;
+
+		if (*name) {
+			retval = -ENOTDIR;
+			if (!S_ISDIR(dentry->d_inode->i_mode))
+				goto fput_fail;
+
+			retval = inode_permission(dentry->d_inode, MAY_EXEC);
+			if (retval)
+				goto fput_fail;
+		}
+
+		nd->path = file->f_path;
+		if (flags & LOOKUP_RCU) {
+			if (fput_needed)
+				*fp = file;
+			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
+			br_read_lock(vfsmount_lock);
+			rcu_read_lock();
+		} else {
+			path_get(&file->f_path);
+			fput_light(file, fput_needed);
+		}
+	}
+
+	nd->inode = nd->path.dentry->d_inode;
+	return 0;
+
+fput_fail:
+	fput_light(file, fput_needed);
+out_fail:
+	return retval;
+}
+```
+
+该函数完成后，变量nd的结构如下：
+
+![Filesystem_21](/assets/Filesystem_21.jpg)
+
+###### 11.2.2.4.1.1.1.2 link_path_walk()
+
+该函数定义于fs/namei.c:
+
+```
+/*
+ * Name resolution.
+ * This is the basic name resolution function, turning a pathname into
+ * the final dentry. We expect 'base' to be positive and a directory.
+ *
+ * Returns 0 and nd will have valid dentry and mnt on success.
+ * Returns error and drops reference to input namei data on failure.
+ */
+static int link_path_walk(const char *name, struct nameidata *nd)
+{
+	struct path next;
+	int err;
+
+	/*
+	 * 跳过路径名name前部的、(连续的)路径分隔符'/'，例如:
+	 * $ ls -l /dev
+	 * $ ls -l ///dev/
+	 */
+	while (*name=='/')
+		name++;
+
+	/*
+	 * 若路径名name解析已完成，则说明整个路径只包含一个'/'，直接返回；
+	 * 此时，变量nd->last_type的取值为LAST_ROOT，参见11.2.2.4.1.1.1.1 path_init()节
+	 */
+	if (!*name)
+		return 0;
+
+	/* At this point we know we have a real path component. */
+	for(;;) {
+		unsigned long hash;
+		struct qstr this;
+		unsigned int c;
+		int type;
+
+		/*
+		 * 1) 检查nd->inode的访问权限nd->inode是由
+		 *    函数path_init()设置的，参见path_init()节
+		 */
+		err = may_lookup(nd);
+ 		if (err)
+			break;
+
+		/*
+		 * 2) 将路径名name中某节点的信息保存到this中，例如：
+		 *    将路径名"/home/chenwx/tmp"中节点chenwx的信息保存到this中
+		 */
+		this.name = name;
+
+		/*
+		 * 2.1) 计算路径名中某节点的哈希值，计算公式如下，其中c为路径中的每个字符:
+		 *      hash = (hash + (c << 4) + (c >> 4)) * 11;
+		 *
+		 * do-while循环终止的条件：
+		 * a) 不存在子目录或文件: name以'\0'结束，或者以路径分隔符'/'结束；
+		 * b) 存在子目录或文件: name以路径分隔符'/'，且其后存在其他字符。
+		 */
+		c = *(const unsigned char *)name;
+		hash = init_name_hash();
+		do {
+			name++;
+			hash = partial_name_hash(c, hash);
+			c = *(const unsigned char *)name;
+		} while (c && (c != '/'));
+		this.len = name - (const char *) this.name;
+		this.hash = end_name_hash(hash);
+
+		/*
+		 * 3) 检查本节点(this)的组成，即本级目录的可能情况：
+		 */
+		type = LAST_NORM;
+
+		/*
+		 * 3.1) 该节点为特殊目录".."或"."，例如:
+		 *      /home/../chenwx2/tmp, /home/./chenwx/tmp
+		 */
+		if (this.name[0] == '.') switch (this.len) {
+			case 2:
+				if (this.name[1] == '.') {
+					type = LAST_DOTDOT;
+					nd->flags |= LOOKUP_JUMPED;
+				}
+				break;
+			case 1:
+				type = LAST_DOT;
+		}
+		/*
+		 * 3.2) 该节点为普通目录，例如:
+		 *      /home/chenwx/tmp
+		 */
+		if (likely(type == LAST_NORM)) {
+			struct dentry *parent = nd->path.dentry;
+			nd->flags &= ~LOOKUP_JUMPED;
+			// 若标志位DCACHE_OP_HASH置位，则需要重新计算hash值
+			if (unlikely(parent->d_flags & DCACHE_OP_HASH)) {
+				err = parent->d_op->d_hash(parent, nd->inode, &this);
+				if (err < 0)
+					break;
+			}
+		}
+
+		/*
+		 * 4) 继续检查路径名name中的后续节点
+		 */
+
+		/*
+		 * 4.1) 若到达路径名name中的最后一个节点，则
+		 *      跳转到last_component标志处，并返回
+		 */
+		/* remove trailing slashes? */
+		if (!c)
+			goto last_component;
+		while (*++name == '/');
+		if (!*name)
+			goto last_component;
+
+		/*
+		 * 4.2)
+		 * 若路径名name中存在后续节点，即存在子目录或文件，则继续
+		 * 查找，参见walk_component()节。通过walk_component()
+		 * 查找本节点(this)对应的inode，并将nd->inode设置为最
+		 * 新的inode，准备继续解析后续节点。因为目录项所管理的inode
+		 * 在系统中通过hash表进行维护，因此通过hash值可以很容易
+		 * 的找到inode。若内存中还不存在inode对象，对于ext3文
+		 * 件系统则会通过函数ext3_lookup()从磁盘上获取inode的
+		 * 元数据信息，并构造目录项中所有的inode对象。
+		 *
+		 * 当walk_component()返回时，如果当前子路径是一个真正的
+		 * 目录的话，那么nd已经"站在"当前节点上并等着下一次循环再
+		 * 往前"站"一步。而如果当前子路径只是一个符号链接的话，nd
+		 * 会在原地不动，也就是说：如果不是真正的目录nd绝不会站上
+		 * 去。对于next来说，不管当前子路径是不是真正的目录它都会
+		 * 先站上去再说。接着next会和nest_symlink联手帮助nd在
+		 * 下一个真正的目录"上位"。
+		 */
+		err = walk_component(nd, &next, &this, type, LOOKUP_FOLLOW);
+		if (err < 0)
+			return err;
+
+		if (err) {
+			err = nested_symlink(&next, nd);
+			if (err)
+				return err;
+		}
+		/*
+		 * 4.3) 若变量nd->inode->i_opflags中已设置标志位IOP_LOOKUP，
+		 *      或者nd->inode->i_op->lookup != NULL，则继续查询下级
+		 *      目录；否则，终止
+		 */
+		if (can_lookup(nd->inode))
+			continue;
+
+		err = -ENOTDIR;		/* Not a directory */
+		break;
+		/* here ends the main loop */
+
+last_component:
+		/*
+		 * 路径名name中最后一个节点不需要解析处理，
+		 * 此处结束解析，正确返回
+		 */
+		nd->last = this;
+		nd->last_type = type;
+		return 0;
+	}
+
+	terminate_walk(nd);
+	return err;
+}
+```
+
+函数```link_path_walk(name, nd)```执行完成后，变量nd中的path和inode指向路径name中最后一部分所对应的dentry结构和inode结构，参见:
+
+![Filesystem_21](/assets/Filesystem_21.jpg)
+
+而函数```kern_path()```只需要变量nd.path所包含的信息。
+
+###### 11.2.2.4.1.1.1.2.1 walk_component()
+
+该函数定义于fs/namei.c:
+
+```
+static inline int walk_component(struct nameidata *nd, struct path *path,
+				 struct qstr *name, int type, int follow)
+{
+	struct inode *inode;
+	int err;
+
+	/*
+	 * 1) 若当前子路径是"."或".."，则调用handle_dots()来处理
+	 *
+	 * "." and ".." are special - ".." especially so because it
+	 * has to be able to know about the current root directory
+	 * and parent relationships.
+	 */
+	if (unlikely(type != LAST_NORM))
+		return handle_dots(nd, type);
+
+	/*
+	 * 2) 若当前子路径为普通目录
+	 * 查找最后一次挂载到目录name上的文件系统所对应的挂载点(path->mnt)、
+	 * 目录项(path->dentry)及索引节点(inode)，参见do_lookup()节
+	 */
+	err = do_lookup(nd, name, path, &inode);
+	if (unlikely(err)) {
+		terminate_walk(nd);
+		return err;
+	}
+	if (!inode) {
+		path_to_nameidata(path, nd);
+		terminate_walk(nd);
+		return -ENOENT;
+	}
+	if (should_follow_link(inode, follow)) {
+		if (nd->flags & LOOKUP_RCU) {
+			if (unlikely(unlazy_walk(nd, path->dentry))) {
+				terminate_walk(nd);
+				return -ECHILD;
+			}
+		}
+		BUG_ON(inode != path->dentry->d_inode);
+		return 1;
+	}
+
+	/*
+	 * 查找成功结束，则为变量nd中的元素赋值:
+	 * nd->path.mnt = path->mnt;
+	 * nd->path.dentry = path->dentry;
+	 * nd->inode = inode;
+	 */
+	path_to_nameidata(path, nd);
+	nd->inode = inode;
+	return 0;
+}
+```
+
+###### 11.2.2.4.1.1.1.2.2 do_lookup()
+
+该函数定义于fs/namei.c:
+
+```
+static int do_lookup(struct nameidata *nd, struct qstr *name,
+		     struct path *path, struct inode **inode)
+{
+	struct vfsmount *mnt = nd->path.mnt;
+	struct dentry *dentry, *parent = nd->path.dentry;
+	int need_reval = 1;
+	int status = 1;
+	int err;
+
+	/*
+	 * Rename seqlock is not required here because in the off chance
+	 * of a false negative due to a concurrent rename, we're going to
+	 * do the non-racy lookup, below.
+	 */
+	if (nd->flags & LOOKUP_RCU) {
+		unsigned seq;
+		*inode = nd->inode;
+		dentry = __d_lookup_rcu(parent, name, &seq, inode);
+		if (!dentry)
+			goto unlazy;
+
+		/* Memory barrier in read_seqcount_begin of child is enough */
+		if (__read_seqcount_retry(&parent->d_seq, nd->seq))
+			return -ECHILD;
+		nd->seq = seq;
+
+		if (unlikely(dentry->d_flags & DCACHE_OP_REVALIDATE)) {
+			status = d_revalidate(dentry, nd);
+			if (unlikely(status <= 0)) {
+				if (status != -ECHILD)
+					need_reval = 0;
+				goto unlazy;
+			}
+		}
+		if (unlikely(d_need_lookup(dentry)))
+			goto unlazy;
+		path->mnt = mnt;
+		path->dentry = dentry;
+		// 参见__follow_mount_rcu()节
+		if (unlikely(!__follow_mount_rcu(nd, path, inode)))
+			goto unlazy;
+		if (unlikely(path->dentry->d_flags & DCACHE_NEED_AUTOMOUNT))
+			goto unlazy;
+		return 0;
+unlazy:
+		if (unlazy_walk(nd, dentry))
+			return -ECHILD;
+	} else {
+		dentry = __d_lookup(parent, name);
+	}
+
+	if (dentry && unlikely(d_need_lookup(dentry))) {
+		dput(dentry);
+		dentry = NULL;
+	}
+retry:
+	if (unlikely(!dentry)) {
+		struct inode *dir = parent->d_inode;
+		BUG_ON(nd->inode != dir);
+
+		mutex_lock(&dir->i_mutex);
+		dentry = d_lookup(parent, name);
+		if (likely(!dentry)) {
+			dentry = d_alloc_and_lookup(parent, name, nd);
+			if (IS_ERR(dentry)) {
+				mutex_unlock(&dir->i_mutex);
+				return PTR_ERR(dentry);
+			}
+			/* known good */
+			need_reval = 0;
+			status = 1;
+		} else if (unlikely(d_need_lookup(dentry))) {
+			dentry = d_inode_lookup(parent, dentry, nd);
+			if (IS_ERR(dentry)) {
+				mutex_unlock(&dir->i_mutex);
+				return PTR_ERR(dentry);
+			}
+			/* known good */
+			need_reval = 0;
+			status = 1;
+		}
+		mutex_unlock(&dir->i_mutex);
+	}
+	if (unlikely(dentry->d_flags & DCACHE_OP_REVALIDATE) && need_reval)
+		status = d_revalidate(dentry, nd);
+	if (unlikely(status <= 0)) {
+		if (status < 0) {
+			dput(dentry);
+			return status;
+		}
+		if (!d_invalidate(dentry)) {
+			dput(dentry);
+			dentry = NULL;
+			need_reval = 1;
+			goto retry;
+		}
+	}
+
+	path->mnt = mnt;
+	path->dentry = dentry;
+	err = follow_managed(path, nd->flags);
+	if (unlikely(err < 0)) {
+		path_put_conditional(path, nd);
+		return err;
+	}
+	if (err)
+		nd->flags |= LOOKUP_JUMPED;
+	*inode = path->dentry->d_inode;
+	return 0;
+}
+```
+
+###### 11.2.2.4.1.1.1.2.3 __follow_mount_rcu()
+
+该函数定义于fs/namei.c:
+
+```
+/*
+ * Try to skip to top of mountpoint pile in rcuwalk mode.  Fail if
+ * we meet a managed dentry that would need blocking.
+ */
+static bool __follow_mount_rcu(struct nameidata *nd, struct path *path,
+			       struct inode **inode)
+{
+	for (;;) {
+		struct vfsmount *mounted;
+		/*
+		 * Don't forget we might have a non-mountpoint managed dentry
+		 * that wants to block transit.
+		 */
+		if (unlikely(managed_dentry_might_block(path->dentry)))
+			return false;
+
+		/*
+		 * 1) 若path->dentry->d_flags中置位DCACHE_MOUNTED，
+		 *    则表示有文件系统挂载到该目录项path->dentry上
+		 */
+		if (!d_mountpoint(path->dentry))
+			break;
+
+		// 2) 查找挂载到目录项path->dentry上的挂载点(mounted)
+		mounted = __lookup_mnt(path->mnt, path->dentry, 1);
+		/*
+		 * 2.1) 若未查找到挂载到目录项path->dentry上的挂载点，
+		 * 则跳出循环，返回true
+		 */
+		if (!mounted)
+			break;
+		/*
+		 * 2.2) 若查找到挂载到目录项path->dentry上的挂载点，
+		 * 则将其更新到path->mnt, path->dentry中，并继续检
+		 * 查是否有其他文件系统挂载到新的path->dentry中，直到
+		 * 找到最后一次挂载到目录项path->dentry上的文件系统所
+		 * 对应的挂载点，参见在同一目录挂载多种文件系统节
+		 */
+		path->mnt = mounted;
+		path->dentry = mounted->mnt_root;
+		nd->flags |= LOOKUP_JUMPED;
+		nd->seq = read_seqcount_begin(&path->dentry->d_seq);
+		/*
+		 * Update the inode too. We don't need to re-check the
+		 * dentry sequence number here after this d_inode read,
+		 * because a mount-point is always pinned.
+		 */
+		*inode = path->dentry->d_inode;
+	}
+	return true;
+}
+```
+
+示例: ext3的tmp目录先后挂载了两个文件系统minix和nfs
+
+![Mount_Two_Filesytem](/assets/Mount_Two_Filesytem.png)
+
+###### 11.2.2.4.1.1.1.2.4 \__lookup_mnt()
+
+该函数定义于fs/namespace.c:
+
+```
+/*
+ * find the first or last mount at @dentry on vfsmount @mnt depending on
+ * @dir. If @dir is set return the first mount else return the last mount.
+ * vfsmount_lock must be held for read or write.
+ */
+struct vfsmount *__lookup_mnt(struct vfsmount *mnt, struct dentry *dentry, int dir)
+{
+	/*
+	 * 从哈希链表mount_hashtable中查找(mnt, dentry)
+	 * 所在的链表头mount_hashtable[idx]
+	 */
+	struct list_head *head = mount_hashtable + hash(mnt, dentry);
+	struct list_head *tmp = head;
+	struct vfsmount *p, *found = NULL;
+
+	/*
+	 * 在链表mount_hashtable[idx]中查找挂载到目录项
+	 * dentry上的文件系统的挂载点
+	 */
+	for (;;) {
+		tmp = dir ? tmp->next : tmp->prev;
+		p = NULL;
+		/*
+		 * 若轮询链表mount_hashtable[idx]中的所有
+		 * 元素均为找到符合条件的挂载点，则返回NULL
+		 */
+		if (tmp == head)
+			break;
+		p = list_entry(tmp, struct vfsmount, mnt_hash);
+		// 若找到符合条件的挂载点，则返回；否则，继续查找
+		if (p->mnt_parent == mnt && p->mnt_mountpoint == dentry) {
+			found = p;
+			break;
+		}
+	}
+	return found;
+}
+```
+
+###### 11.2.2.4.1.1.1.3 complete_walk()
+
+该函数定义于fs/namei.c:
+
+```
+/**
+ * complete_walk - successful completion of path walk
+ * @nd:  pointer nameidata
+ *
+ * If we had been in RCU mode, drop out of it and legitimize nd->path.
+ * Revalidate the final result, unless we'd already done that during
+ * the path walk or the filesystem doesn't ask for it.  Return 0 on
+ * success, -error on failure.  In case of failure caller does not
+ * need to drop nd->path.
+ */
+static int complete_walk(struct nameidata *nd)
+{
+	struct dentry *dentry = nd->path.dentry;
+	int status;
+
+	if (nd->flags & LOOKUP_RCU) {
+		nd->flags &= ~LOOKUP_RCU;
+		if (!(nd->flags & LOOKUP_ROOT))
+			nd->root.mnt = NULL;
+		spin_lock(&dentry->d_lock);
+		if (unlikely(!__d_rcu_to_refcount(dentry, nd->seq))) {
+			spin_unlock(&dentry->d_lock);
+			rcu_read_unlock();
+			br_read_unlock(vfsmount_lock);
+			return -ECHILD;
+		}
+		BUG_ON(nd->inode != dentry->d_inode);
+		spin_unlock(&dentry->d_lock);
+		mntget(nd->path.mnt);
+		rcu_read_unlock();
+		br_read_unlock(vfsmount_lock);
+	}
+
+	if (likely(!(nd->flags & LOOKUP_JUMPED)))
+		return 0;
+
+	if (likely(!(dentry->d_flags & DCACHE_OP_REVALIDATE)))
+		return 0;
+
+	if (likely(!(dentry->d_sb->s_type->fs_flags & FS_REVAL_DOT)))
+		return 0;
+
+	/* Note: we do not d_invalidate() */
+	status = d_revalidate(dentry, nd);
+	if (status > 0)
+		return 0;
+
+	if (!status)
+		status = -ESTALE;
+
+	path_put(&nd->path);
+	return status;
+}
+```
+
+###### 11.2.2.4.1.2 do_new_mount()
+
+该函数定义于fs/namespace.c:
+
+```
+/*
+ * create a new mount for userspace and request it to be added into the namespace's tree
+ */
+/*
+ * 入参path中包含了安装目录所对应的安装点(path.mnt)和目录项(path.dentry)
+ * 示例：do_new_mount(&path, "sysfs", 0, MNT_RELATIME, "sysfs_name", NULL)
+ */
+static int do_new_mount(struct path *path, char *type, int flags,
+			int mnt_flags, char *name, void *data)
+{
+	struct vfsmount *mnt;
+	int err;
+
+	if (!type)
+		return -EINVAL;
+
+	/* we need capabilities... */
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	/*
+	 * 挂载指定的文件系统，并返回生成的挂载点结构mnt，参见do_kern_mount()节
+	 * 示例：do_kern_mount("sysfs", 0, "sysfs_name", NULL)
+	 */
+	mnt = do_kern_mount(type, flags, name, data);
+	if (IS_ERR(mnt))
+		return PTR_ERR(mnt);
+
+	/*
+	 * 将指定文件系统的挂载点mnt链接到安装目录所对应的安装点(path.mnt)
+	 * 和目录项(path.dentry)，参见do_add_mount()节. 示例：
+	 * do_add_mount(mnt, path, MNT_RELATIME)
+	 */
+	err = do_add_mount(mnt, path, mnt_flags);
+	if (err)
+		mntput(mnt);
+	return err;
+}
+```
+
+###### 11.2.2.4.1.2.1 do_kern_mount()
+
+该函数用来安装文件系统，其定义于fs/namespace.c:
+
+```
+/*
+ * 参数fstype用于查找文件系统，即struct file_system_type->name
+ * 示例：do_kern_mount("sysfs", 0, "sysfs_name", NULL)
+ */
+struct vfsmount *do_kern_mount(const char *fstype, int flags, const char *name, void *data)
+{
+	/*
+	 * 从链表file_systems中查找指定的文件系统类型，
+	 * 参见文件系统类型/struct file_system_type节和get_fs_type()节
+	 */
+	struct file_system_type *type = get_fs_type(fstype);
+	struct vfsmount *mnt;
+	if (!type)
+		return ERR_PTR(-ENODEV);
+
+	// 安装type类型的文件系统，并返回挂载点mnt，参见vfs_kern_mount()节
+	mnt = vfs_kern_mount(type, flags, name, data);
+
+	/*
+	 * 设置文件系统子类型，参见get_fs_type()节和fs_set_subtype()节
+	 * 设置该标志位的文件系统包括: fuse_fs_type, fuseblk_fs_type
+	 */
+	if (!IS_ERR(mnt) && (type->fs_flags & FS_HAS_SUBTYPE) && !mnt->mnt_sb->s_subtype)
+		mnt = fs_set_subtype(mnt, fstype);
+
+	/*
+	 * 增加计数: type->owner->refptr->decs
+	 * 唤醒等待进程: type->owner->waiter
+	 */
+	put_filesystem(type);
+	return mnt;
+}
+```
+
+###### 11.2.2.4.1.2.1.1 get_fs_type()
+
+该函数定义于fs/filesystem.c:
+
+```
+struct file_system_type *get_fs_type(const char *name)
+{
+	struct file_system_type *fs;
+	const char *dot = strchr(name, '.');
+	int len = dot ? dot - name : strlen(name);
+
+	/*
+	 * 从链表file_systems中查找该文件系统；
+	 * 若该文件系统被编译为模块，则增加该模块的引用计数:
+	 * fs->owner->refptr->incs
+	 */
+	fs = __get_fs_type(name, len);
+
+	/*
+	 * 若存在下列情况之一，则调用request_module()加载包含该文件系统的模块，
+	 * 参见kerneld节和kmod节:
+	 * 1) 链表file_systems中未包含该文件系统，即该文件系统未被注册到系统中；
+	 * 2) 该文件系统被编译为模块，但该模块未被加载到系统中；
+	 */
+	if (!fs && (request_module("%.*s", len, name) == 0))
+		fs = __get_fs_type(name, len);
+
+	/*
+	 * Refer to http://lwn.net/Articles/221779/
+	 * A possibly better scheme would be to encode the
+	 * real type in the type field as "type.subtype".
+	 */
+	if (dot && fs && !(fs->fs_flags & FS_HAS_SUBTYPE)) {
+		put_filesystem(fs);
+		fs = NULL;
+	}
+	return fs;
+}
+```
+
+其中，函数```__get_fs_type()```定义于fs/filesystem.c:
+
+```
+static struct file_system_type *__get_fs_type(const char *name, int len)
+{
+	struct file_system_type *fs;
+
+	read_lock(&file_systems_lock);
+	// 从链表file_systems中查找指定的文件系统，即检查该文件系统是否注册到系统中
+	fs = *(find_filesystem(name, len));
+	/*
+	 * 若该文件系统已注册到系统中，(当该文件系统被编译为模块时)则
+	 * 增加该模块的引用计数: fs->owner->refptr->incs
+	 */
+	if (fs && !try_module_get(fs->owner))
+		fs = NULL;
+	read_unlock(&file_systems_lock);
+	return fs;
+}
+```
+
+###### 11.2.2.4.1.2.1.2 fs_set_subtype()
+
+该函数定义于fs/filesystem.c:
+
+```
+static struct vfsmount *fs_set_subtype(struct vfsmount *mnt, const char *fstype)
+{
+	int err;
+
+	// 文件系统子类型的命名方式: type.subtype
+	const char *subtype = strchr(fstype, '.');
+	if (subtype) {
+		subtype++;
+		err = -EINVAL;
+		if (!subtype[0])
+			goto err;
+	} else
+		subtype = "";
+
+	mnt->mnt_sb->s_subtype = kstrdup(subtype, GFP_KERNEL);
+	err = -ENOMEM;
+	if (!mnt->mnt_sb->s_subtype)
+		goto err;
+	return mnt;
+
+err:
+	mntput(mnt);	// 参见mntput()节
+	return ERR_PTR(err);
+}
+```
+
+###### 11.2.2.4.1.2.2 do_add_mount()
+
+该函数定义于fs/namespace.c:
+
+```
+/*
+ * add a mount into a namespace's mount tree
+ */
+static int do_add_mount(struct vfsmount *newmnt, struct path *path, int mnt_flags)
+{
+	int err;
+
+	mnt_flags &= ~(MNT_SHARED | MNT_WRITE_HOLD | MNT_INTERNAL);
+
+	err = lock_mount(path);
+	if (err)
+		return err;
+
+	err = -EINVAL;
+	if (!(mnt_flags & MNT_SHRINKABLE) && !check_mnt(path->mnt))
+		goto unlock;
+
+	/* Refuse the same filesystem on the same mount point */
+	err = -EBUSY;
+	if (path->mnt->mnt_sb == newmnt->mnt_sb &&
+		 path->mnt->mnt_root == path->dentry)
+		goto unlock;
+
+	// 该安装点是一个符号链接
+	err = -EINVAL;
+	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
+		goto unlock;
+
+	newmnt->mnt_flags = mnt_flags;
+	/*
+	 * Insert the new mounted filesystem object in the
+	 * namespace list, in the hash table, and in the
+	 * children list of the parent-mounted filesystem.
+	 * 参见graft_tree()节
+	 */
+	err = graft_tree(newmnt, path);
+
+unlock:
+	unlock_mount(path);
+	return err;
+}
+```
+
+###### 11.2.2.4.1.2.2.1 graft_tree()
+
+该函数定义于fs/namespace.c:
+
+```
+static int graft_tree(struct vfsmount *mnt, struct path *path)
+{
+	/*
+	 * The FS_NOMOUNT flag says that the filesystem must
+	 * never be mounted from userland, but is used only
+	 * kernel-internally. This flag was introduced in
+	 * 2.3.99-pre7 and disappeared in Linux 2.5.22. This
+	 * was used, for example, for pipefs, the implementation
+	 * of Unix pipes using a kernel-internal filesystem (see
+	 * fs/pipe.c). Even though the flag has disappeared, the
+	 * concept remains, and is now represented by the MS_NOUSER
+	 * flag.
+	 */
+	if (mnt->mnt_sb->s_flags & MS_NOUSER)
+		return -EINVAL;
+
+	// 对比挂载点和安装目录所对应的索引节点模式，均应取值为S_IFDIR
+	if (S_ISDIR(path->dentry->d_inode->i_mode) !=
+	    S_ISDIR(mnt->mnt_root->d_inode->i_mode))
+		return -ENOTDIR;
+
+	// check path->dentry: (1) is unhashed; and (2) is not root directory
+	if (d_unlinked(path->dentry))
+		return -ENOENT;
+
+	// mnt is attached to path
+	return attach_recursive_mnt(mnt, path, NULL);
+}
+```
+
+其中，函数```attach_recursive_mnt()```定义于fs/namespace.c:
+
+```
+/*
+ *  @source_mnt	: mount tree to be attached
+ *  @path		: place the mount tree @source_mnt is attached
+ *  @parent_path	: if non-null, detach the source_mnt from its parent and
+ *  			   store the parent mount and mountpoint dentry.
+ *  			   (done when source_mnt is moved)
+ *
+ *  NOTE: in the table below explains the semantics when a source mount
+ *  of a given type is attached to a destination mount of a given type.
+ * ---------------------------------------------------------------------------
+ * |				BIND MOUNT OPERATION									|
+ * |**************************************************************************
+ * |	source-->	|	shared		|	private		|	slave		|	unbindable	|
+ * |	dest		|			|			|			|			|
+ * |			|			|			|			|			|
+ * |	 v		|			|			|			|			|
+ * |**************************************************************************
+ * |	shared		| shared(++)		|	shared(+)	|	shared(+++)	|	invalid		|
+ * |			|			|			|			|			|
+ * | non-shared		| shared(+)		|	private		|	slave(*)	|	invalid		|
+ * ***************************************************************************
+ * A bind operation clones the source mount and mounts the clone on the
+ * destination mount.
+ *
+ * (++)	the cloned mount is propagated to all the mounts in the propagation
+ *	tree of the destination mount and the cloned mount is added to
+ *	the peer group of the source mount.
+ * (+)	the cloned mount is created under the destination mount and is marked
+ *	as shared. The cloned mount is added to the peer group of the source
+ *	mount.
+ * (+++) the mount is propagated to all the mounts in the propagation tree
+ *	 of the destination mount and the cloned mount is made slave
+ *	 of the same master as that of the source mount. The cloned mount
+*	 is marked as 'shared and slave'.
+ * (*)	the cloned mount is made a slave of the same master as that of the
+ *	source mount.
+ *
+ * ---------------------------------------------------------------------------
+ * |				MOVE MOUNT OPERATION									|
+ * |**************************************************************************
+ * |	source-->	|	shared		|	private		|	slave		|	unbindable	|
+ * |	dest		|			|			|			|			|
+ * |			|			|			|			|			|
+ * |	 v		|			|			|			|			|
+ * |**************************************************************************
+ * |	shared		| shared(+)		|	shared(+)	|	shared(+++)	|	invalid		|
+ * |			|			|			|			|			|
+ * | non-shared		| shared(+*)		|	private		|	slave(*)	|	unbindable	|
+ * ***************************************************************************
+ *
+ * (+)		the mount is moved to the destination. And is then propagated to
+ *			all the mounts in the propagation tree of the destination mount.
+ * (+*)	the mount is moved to the destination.
+ * (+++)	the mount is moved to the destination and is then propagated to
+ *			all the mounts belonging to the destination mount's propagation tree.
+ *			the mount is marked as 'shared and slave'.
+ * (*)		the mount continues to be a slave at the new location.
+ *
+ * if the source mount is a tree, the operations explained above is
+ * applied to each mount in the tree.
+*
+ * Must be called without spinlocks held, since this function can sleep
+ * in allocations.
+ */
+static int attach_recursive_mnt(struct vfsmount *source_mnt,
+				struct path *path, struct path *parent_path)
+{
+	LIST_HEAD(tree_list);
+	struct vfsmount *dest_mnt = path->mnt;
+	struct dentry *dest_dentry = path->dentry;
+	struct vfsmount *child, *p;
+	int err;
+
+	// dest_mnt->mnt_flags & MNT_SHARED
+	if (IS_MNT_SHARED(dest_mnt)) {
+		/*
+		 * 轮询source_mnt->mnt_mounts/->mnt_child链表，并为域mnt_group_id赋值
+		 * - source_mnt->mnt_group_id
+		 * - 链表source_mnt->mnt_mounts中各元素的域mnt_group_id，
+		 * - 链表source_mnt->mnt_mounts中各元素的子链表中各元素的域mnt_group_id
+		 * - ...
+		 */
+		err = invent_group_ids(source_mnt, true);
+		if (err)
+			goto out;
+	}
+	/*
+	 * mount 'source_mnt' under the destination 'dest_mnt'
+	 * at dentry 'dest_dentry'. And propagate that mount to
+	 * all the peer and slave mounts of 'dest_mnt'.
+	 * 参见propagate_mnt()节
+	 */
+	err = propagate_mnt(dest_mnt, dest_dentry, source_mnt, &tree_list);
+	if (err)
+		goto out_cleanup_ids;
+
+	br_write_lock(vfsmount_lock);
+	/*
+	 * 若dest_mnt->mnt_flags & MNT_SHARED，
+	 * 则置位source_mnt->mnt_flags |= MNT_SHARED
+	 */
+	if (IS_MNT_SHARED(dest_mnt)) {
+		for (p = source_mnt; p; p = next_mnt(p, source_mnt))
+			set_mnt_shared(p);
+	}
+	if (parent_path) {
+		detach_mnt(source_mnt, parent_path);
+		attach_mnt(source_mnt, path);
+		touch_mnt_namespace(parent_path->mnt->mnt_ns);
+	} else {
+		mnt_set_mountpoint(dest_mnt, dest_dentry, source_mnt);
+		commit_tree(source_mnt);	// 参见commit_tree()节
+	}
+
+	list_for_each_entry_safe(child, p, &tree_list, mnt_hash) {
+		list_del_init(&child->mnt_hash);
+		commit_tree(child);		// 参见commit_tree()节
+	}
+	br_write_unlock(vfsmount_lock);
+
+	return 0;
+
+out_cleanup_ids:
+	if (IS_MNT_SHARED(dest_mnt))
+		cleanup_group_ids(source_mnt, NULL);
+out:
+	return err;
+}
+```
+
+###### 11.2.2.4.1.2.2.1.1 propagate_mnt()
+
+该函数定义于fs/pnode.c:
+
+```
+/*
+ * mount 'source_mnt' under the destination 'dest_mnt' at
+ * dentry 'dest_dentry'. And propagate that mount to
+ * all the peer and slave mounts of 'dest_mnt'.
+ * Link all the new mounts into a propagation tree headed at
+ * source_mnt. Also link all the new mounts using ->mnt_list
+ * headed at source_mnt's ->mnt_list
+ *
+ * @dest_mnt: destination mount.
+ * @dest_dentry: destination dentry.
+ * @source_mnt: source mount.
+ * @tree_list : list of heads of trees to be attached.
+ */
+int propagate_mnt(struct vfsmount *dest_mnt, struct dentry *dest_dentry,
+		  struct vfsmount *source_mnt, struct list_head *tree_list)
+{
+	struct vfsmount *m, *child;
+	int ret = 0;
+	struct vfsmount *prev_dest_mnt = dest_mnt;
+	struct vfsmount *prev_src_mnt  = source_mnt;
+	LIST_HEAD(tmp_list);
+	LIST_HEAD(umount_list);
+
+	/*
+	 * 轮询如下两个链表：
+	 * - dest_mnt->mnt_slave_list/->mnt_slave
+	 * - dest_mnt->mnt_share
+	 */
+	for (m = propagation_next(dest_mnt, dest_mnt); m;
+		m = propagation_next(m, dest_mnt)) {
+		int type;
+		struct vfsmount *source;
+
+		if (IS_MNT_NEW(m))
+			continue;
+
+		source = get_source(m, prev_dest_mnt, prev_src_mnt, &type);
+
+		if (!(child = copy_tree(source, source->mnt_root, type))) {
+			ret = -ENOMEM;
+			list_splice(tree_list, tmp_list.prev);
+			goto out;
+		}
+
+		if (is_subdir(dest_dentry, m->mnt_root)) {
+			mnt_set_mountpoint(m, dest_dentry, child);
+			list_add_tail(&child->mnt_hash, tree_list);
+		} else {
+			/*
+			 * This can happen if the parent mount was bind mounted
+			 * on some subdirectory of a shared/slave mount.
+			 */
+			list_add_tail(&child->mnt_hash, &tmp_list);
+		}
+		prev_dest_mnt = m;
+		prev_src_mnt  = child;
+	}
+out:
+	br_write_lock(vfsmount_lock);
+	while (!list_empty(&tmp_list)) {
+		child = list_first_entry(&tmp_list, struct vfsmount, mnt_hash);
+		umount_tree(child, 0, &umount_list);	// 参见umount_tree()节
+	}
+	br_write_unlock(vfsmount_lock);
+	release_mounts(&umount_list);	// 参见release_mounts()节
+	return ret;
+}
+```
+
+###### 11.2.2.4.1.2.2.1.2 commit_tree()
+
+该函数定义于fs/namespace.c:
+
+```
+static void commit_tree(struct vfsmount *mnt)
+{
+	struct vfsmount *parent = mnt->mnt_parent;
+	struct vfsmount *m;
+	LIST_HEAD(head);
+	struct mnt_namespace *n = parent->mnt_ns;
+
+	BUG_ON(parent == mnt);
+
+	// 将mnt->mnt_list添加到链表parent->mnt_ns->list尾部
+	list_add_tail(&head, &mnt->mnt_list);
+	list_for_each_entry(m, &head, mnt_list) {
+		m->mnt_ns = n;
+		__mnt_make_longterm(m);	// mnt->mnt_longterm++
+	}
+	list_splice(&head, n->list.prev);
+
+	/*
+	 * 将mnt->mnt_hash添加到链表mount_hashtable[idx]尾部
+	 * 其中，下标idx由hash()计算得来
+	 */
+	list_add_tail(&mnt->mnt_hash, mount_hashtable + hash(parent, mnt->mnt_mountpoint));
+
+	// 将mnt->mnt_child添加到链表parent->mnt_mounts尾部
+	list_add_tail(&mnt->mnt_child, &parent->mnt_mounts);
+
+	// 为n->event赋值，并唤醒链表n->poll中的等待进程
+	touch_mnt_namespace(n);
+}
+```
+
+其中，函数```hash()```用于计算数组mount_hashtable[idx]的下标idx，其定义于fs/namespace.c:
+
+```
+static inline unsigned long hash(struct vfsmount *mnt, struct dentry *dentry)
+{
+	unsigned long tmp = ((unsigned long)mnt / L1_CACHE_BYTES);
+	tmp += ((unsigned long)dentry / L1_CACHE_BYTES);
+	tmp = tmp + (tmp >> HASH_SHIFT);
+	return tmp & (HASH_SIZE - 1);
+}
+```
+
+#### 11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()
+
+该系统调用定义于fs/namespace.c:
+
+```
+#ifdef __ARCH_WANT_SYS_OLDUMOUNT
+
+/*
+ *	The 2.0 compatible umount. No flags.
+ */
+/*
+ * umount <fs-mount-point>
+ * 示例：使用命令 "strace umount sysfs_name" 手动卸载sysfs
+ * 文件系统时，strace结果包含如下系统调用：
+ *	oldumount("/MySysFs") = 0
+ */
+SYSCALL_DEFINE1(oldumount, char __user *, name)
+{
+	return sys_umount(name, 0);
+}
+
+#endif
+
+/*
+ * Now umount can handle mount points as well as block devices.
+ * This is important for filesystems which use unnamed block devices.
+ *
+ * We now support a flag for forced unmount like the other 'big iron'
+ * unixes. Our API is identical to OSF/1 to avoid making a mess of AMD
+ */
+SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
+{
+	struct path path;
+	int retval;
+	int lookup_flags = 0;
+
+	/*
+	 * 入参flags只能取如下标志中的一个或几个：
+	 * MNT_FORCE、MNT_DETACH、MNT_EXPIRE、UMOUNT_NOFOLLOW
+	 */
+	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
+		return -EINVAL;
+
+	if (!(flags & UMOUNT_NOFOLLOW))
+		lookup_flags |= LOOKUP_FOLLOW;
+
+	/*
+	 * 获取路径名name所对应的安装点(path.mnt)及其目录项(path.dentry)，
+	 * 参见user_path_at()节
+	 */
+	retval = user_path_at(AT_FDCWD, name, lookup_flags, &path);
+	if (retval)
+		goto out;
+	retval = -EINVAL;
+
+	// 若找到的最终目录不是文件系统的挂载点，则退出
+	if (path.dentry != path.mnt->mnt_root)
+		goto dput_and_out;
+
+	// 若要卸载的文件系统还没有安装到命名空间中，则退出
+	if (!check_mnt(path.mnt))
+		goto dput_and_out;
+
+	// 检查当前进程是否有管理员权限
+	retval = -EPERM;
+	if (!capable(CAP_SYS_ADMIN))
+		goto dput_and_out;
+
+	// 卸载文件系统的主函数，参见do_umount()节
+	retval = do_umount(path.mnt, flags);
+
+dput_and_out:
+	/* we mustn't call path_put() as that would clear mnt_expiry_mark */
+	dput(path.dentry);
+	/*
+	 * 通过下列函数调用来调用指定文件系统的kill_sb()函数:
+	 * mntput_no_expire()
+	 * -> mntfree()
+	 *    -> deactivate_super()
+	 *       -> deactivate_locked_super()
+	 *          -> fs->kill_sb()
+	 */
+	mntput_no_expire(path.mnt);
+out:
+	return retval;
+}
+```
+
+##### 11.2.2.5.1 user_path_at()
+
+该函数定义于fs/namei.c:
+
+```
+int user_path_at(int dfd, const char __user *name, unsigned flags, struct path *path)
+{
+	return user_path_at_empty(dfd, name, flags, path, 0);
+}
+
+int user_path_at_empty(int dfd, const char __user *name, unsigned flags,
+		       struct path *path, int *empty)
+{
+	struct nameidata nd;
+	// 将路径名name从用户空间拷贝到内核空间tmp
+	char *tmp = getname_flags(name, flags, empty);
+	int err = PTR_ERR(tmp);
+	if (!IS_ERR(tmp)) {
+		BUG_ON(flags & LOOKUP_PARENT);
+
+		/*
+		 * 查找路径名tmp所对应的安装点(nd.path.mnt)及其
+		 * 目录项(nd.path.dentry)，参见kern_path()节
+		 */
+		err = do_path_lookup(dfd, tmp, flags, &nd);
+		putname(tmp);
+		if (!err)
+			*path = nd.path;
+	}
+	return err;
+}
+```
+
+##### 11.2.2.5.2 do_umount()
+
+该函数定义于fs/namespace.c:
+
+```
+static int event;
+
+static int do_umount(struct vfsmount *mnt, int flags)
+{
+	// 获取挂载点mnt所对应的超级块对象
+	struct super_block *sb = mnt->mnt_sb;
+	int retval;
+	LIST_HEAD(umount_list);
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	retval = security_sb_umount(mnt, flags);
+	if (retval)
+		return retval;
+
+	/*
+	 * Allow userspace to request a mountpoint be expired rather than
+	 * unmounting unconditionally. Unmount only happens if:
+	 *  (1) the mark is already set (the mark is cleared by mntput())
+	 *  (2) the usage count == 1 [parent vfsmount] + 1 [sys_umount]
+	 */
+	// 若设置了MNT_EXPIRE标志，则标记挂载点"到期"
+	if (flags & MNT_EXPIRE) {
+		/*
+		 * 若要卸载的文件系统是根文件系统或者同时设置了
+		 * MNT_FORCE或MNT_DETACH，则返回-EINVAL
+		 */
+		if (mnt == current->fs->root.mnt || flags & (MNT_FORCE | MNT_DETACH))
+			return -EINVAL;
+
+		/*
+		 * probably don't strictly need the lock here if we examined
+		 * all race cases, but it's a slowpath.
+		 */
+		/*
+		 * 检查mnt的引用计数，若不为2，则返回-EBUSY;
+		 * 在卸载文件系统时，该文件系统不能有引用者：
+		 * 这个2代表mnt->mnt_parent和sys_umount()对本vfsmount的引用
+		 */
+		br_write_lock(vfsmount_lock);
+		if (mnt_get_count(mnt) != 2) {
+			br_write_unlock(vfsmount_lock);
+			return -EBUSY;
+		}
+		br_write_unlock(vfsmount_lock);
+
+		if (!xchg(&mnt->mnt_expiry_mark, 1))
+			return -EAGAIN;
+	}
+
+	/*
+	 * If we may have to abort operations to get out of this
+	 * mount, and they will themselves hold resources we must
+	 * allow the fs to do things. In the Unix tradition of
+	 * 'Gee thats tricky lets do it in userspace' the umount_begin
+	 * might fail to complete on the first run through as other tasks
+	 * must return, and the like. Thats for the mount program to worry
+	 * about for the moment.
+	 */
+	if (flags & MNT_FORCE && sb->s_op->umount_begin) {
+		// 调用指定文件系统的卸载函数，参见超级块操作/struct super_operations节
+		sb->s_op->umount_begin(sb);
+	}
+
+	/*
+	 * No sense to grab the lock for this test, but test itself looks
+	 * somewhat bogus. Suggestions for better replacement?
+	 * Ho-hum... In principle, we might treat that as umount + switch
+	 * to rootfs. GC would eventually take care of the old vfsmount.
+	 * Actually it makes sense, especially if rootfs would contain a
+	 * /reboot - static binary that would close all descriptors and
+	 * call reboot(9). Then init(8) could umount root and exec /reboot.
+	 */
+	/*
+	 * 1) 若要卸载的文件系统是根文件系统，且未设置MNT_DETACH标志，
+	 *    则调用do_remount_sb()重新安装根文件系统为只读；
+	 *    其中，标志MNT_DETACH用于标记该挂载点为不能再访问，
+	 *    直到该挂载点不busy时才卸载
+	 */
+	if (mnt == current->fs->root.mnt && !(flags & MNT_DETACH)) {
+		/*
+		 * Special case for "unmounting" root ...
+		 * we just try to remount it readonly.
+		 */
+		down_write(&sb->s_umount);
+		if (!(sb->s_flags & MS_RDONLY))
+			retval = do_remount_sb(sb, MS_RDONLY, NULL, 0);
+		up_write(&sb->s_umount);
+		return retval;
+	}
+
+	/*
+	 * 2) 若要卸载的文件系统不是根文件系统，或者设置了MNT_DETACH标志：
+	 */
+	down_write(&namespace_sem);
+	br_write_lock(vfsmount_lock);
+	event++;
+
+	/*
+	 * 2.1) 若未设置MNT_DETACH标志，则调用shrink_submounts()卸载挂载点mnt及其所有子挂载点
+	 */
+	if (!(flags & MNT_DETACH))
+		shrink_submounts(mnt, &umount_list);
+
+	/*
+	 * 2.2) 若(a)设置了MNT_DETACH标志，或者(b)未设置MNT_DETACH标志且能够成功卸载挂载点mnt，
+	 *      则调用umount_tree()卸载该文件系统及其所有子文件系统
+	 */
+	retval = -EBUSY;
+	if (flags & MNT_DETACH || !propagate_mount_busy(mnt, 2)) {
+		/*
+		 * 将mnt->mnt_list中的元素移至umount_list链表，并初始化，参见umount_tree()节
+		 */
+		if (!list_empty(&mnt->mnt_list))
+			umount_tree(mnt, 1, &umount_list);
+		retval = 0;
+	}
+	br_write_unlock(vfsmount_lock);
+	up_write(&namespace_sem);
+
+	// 释放链表umount_list中的struct vfsmount结构，参见release_mounts()节
+	release_mounts(&umount_list);
+	return retval;
+}
+```
+
+###### 11.2.2.5.2.1 umount_tree()
+
+该函数定义于fs/namespace.c:
+
+```
+void umount_tree(struct vfsmount *mnt, int propagate, struct list_head *kill)
+{
+	LIST_HEAD(tmp_list);
+	struct vfsmount *p;
+
+	for (p = mnt; p; p = next_mnt(p, mnt))
+		list_move(&p->mnt_hash, &tmp_list);
+
+	if (propagate)
+		propagate_umount(&tmp_list);
+
+	list_for_each_entry(p, &tmp_list, mnt_hash) {
+		list_del_init(&p->mnt_expire);
+		list_del_init(&p->mnt_list);
+		__touch_mnt_namespace(p->mnt_ns);
+		p->mnt_ns = NULL;
+		__mnt_make_shortterm(p);
+		list_del_init(&p->mnt_child);
+		if (p->mnt_parent != p) {
+			p->mnt_parent->mnt_ghosts++;
+			dentry_reset_mounted(p->mnt_parent, p->mnt_mountpoint);
+		}
+		change_mnt_propagation(p, MS_PRIVATE);
+	}
+	list_splice(&tmp_list, kill);
+}
+```
+
+###### 11.2.2.5.2.2 release_mounts()
+
+该函数定义于fs/namespace.c:
+
+```
+void release_mounts(struct list_head *head)
+{
+	struct vfsmount *mnt;
+	while (!list_empty(head)) {
+		mnt = list_first_entry(head, struct vfsmount, mnt_hash);
+		list_del_init(&mnt->mnt_hash);
+		if (mnt->mnt_parent != mnt) {
+			struct dentry *dentry;
+			struct vfsmount *m;
+
+			br_write_lock(vfsmount_lock);
+			dentry = mnt->mnt_mountpoint;
+			m = mnt->mnt_parent;
+			mnt->mnt_mountpoint = mnt->mnt_root;
+			mnt->mnt_parent = mnt;
+			m->mnt_ghosts--;
+			br_write_unlock(vfsmount_lock);
+
+			// 这两个函数减小dentry和m的引用计数，减到0时释放
+			dput(dentry);
+			mntput(m);
+		}
+
+		// struct vfsmount类型的对象所占用的内存空间最终在mntput()中释放
+		mntput(mnt);
+	}
+}
+```
+
+### 11.2.3 虚拟文件系统(VFS)的初始化
+
+Mounting the root filesystem is a two-stage procedure, shown in the following list:
+* 1) The kernel mounts the special rootfs filesystem, which simply provides an empty directory that serves as initial mount point.
+* 2) The kernel mounts the real root filesystem over the empty directory.
+
+Why does the kernel bother to mount the rootfs filesystem before the real one? Well, the rootfs filesystem allows the kernel to easily change the real root filesystem. In fact, in some cases, the kernel mounts and unmounts several root filesystems, one after the other. For instance, the initial bootstrap CD of a distribution might load in RAM a kernel with a minimal set of drivers, which mounts as root a minimal filesystem stored in a ramdisk. Next, the programs in this initial root filesystem probe the hardware of the system (for instance, they determine whether the hard disk is EIDE, SCSI, or whatever), load all needed kernel modules, and remount the root filesystem from a physical block device.
+
+虚拟文件系统的初始化流程如下：
+
+```
+start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
+-> vfs_caches_init_early()					// 参见vfs_caches_init_early()节
+   -> dcache_init_early()					// 分配并初始化dentry_hashtable
+   -> inode_init_early()					// 分配并初始化inode_hashtable
+-> vfs_caches_init(totalram_pages)				// 参见vfs_caches_init()节
+   -> names_cachep = ... 					// 分配并初始化names_cachep
+   -> dcache_init()						// 分配并初始化dentry_cache, dentry_hashtable
+   -> inode_init()						// 分配并初始化inode_cachep, inode_hashtable
+   -> files_init()						// 分配并初始化filp_cachep, 设置sysctl_nr_open_max
+      -> files_stat.max_files = ...				// 设置打开文件的最大数目
+      -> fdtable_defer_list_init()				// fs/file.c, 初始化全局变量fdtable_defer_list->wq
+      -> percpu_counter_init(&nr_files, 0)			// 初始化全局变量nr_files为0
+   -> mnt_init()						// 参见mnt_init()节
+      -> mnt_cache = ... 					// 分配并初始化mnt_cache
+      -> mount_hashtable = ...					// 分配并初始化mount_hashtable
+      -> sysfs_init()
+      -> fs_kobj = ... 						// 创建内核对象fs_kobj
+      /* Phase 1: Mounting the rootfs filesystem */
+      -> init_rootfs()						// 加载rootfs文件系统，参见init_rootfs()节
+      -> init_mount_tree()					// 创建根目录树，参见init_mount_tree()节
+      /* 分配并初始化bdev_cachep, blockdev_superblock，参见bdev_cache_init()节 */
+   -> bdev_cache_init()
+   -> chrdev_init()						// 分配并初始化cdev_map，参见chrdev_init()节
+-> rest_init()							// 参见rest_init()节
+   -> kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+      -> kernel_init()						// 参见kernel_init()节
+         -> if (!ramdisk_execute_command)
+                ramdisk_execute_command = "/init";
+            if (sys_access((const char __user *) ramdisk_execute_command, 0) != 0) {
+                ramdisk_execute_command = NULL;
+                /* Phase 2: Mounting the real root filesystem */
+                prepare_namespace();				// 参见prepare_namespace()节
+            }
+```
+
+### 11.2.4 文件系统相关系统调用
+
+#### 11.2.4.1 文件系统操作相关系统调用
+
+| 文件系统操作 | 备注  | 所在的源文件 | 备注  |
+| :--------- | :--- | :--------- | :--- |
+| mkdir      | 创建目录 | fs/namei.c | |
+| makedirat  | 创建目录 | fs/namei.c | |
+| rmdir      | 删除目录 | fs/namei.c | |
+| chdir      | 改变当前工作目录 | fs/open.c | |
+| fchdir     | 改变当前工作目录 | fs/open.c | |
+| chroot     | 改变根目录 | fs/open.c | |
+| readdir    | 读取目录项 | fs/readdir.c | |
+| getdents   | 读取目录项 | fs/readdir.c | |
+| rename     | 文件改名 | fs/namei.c | |
+| renameat   | 文件改名 | fs/namei.c | |
+| chmod      | 改变文件属性 | fs/open.c | |
+| fchmod     | 改变文件属性 | fs/open.c | |
+| fchmodat   | 改变文件属性 | fs/open.c | |
+| chown      | 改变文件的属主或用户组 | fs/open.c | |
+| lchown     | 改变文件的属主或用户组 |fs/open.c | |
+| fchown     | 改变文件的属主或用户组 | fs/open.c | |
+| fchownat   | 改变文件的属主或用户组 | fs/open.c | |
+| stat       | 取文件状态信息 | fs/stat.c | |
+| lstat      | 取文件状态信息 | fs/stat.c | |
+| fstat      | 取文件状态信息 | fs/stat.c | |
+| newstat    | 取文件状态信息 | fs/stat.c | |
+| newlstat   | 取文件状态信息 | fs/stat.c | |
+| newfstat   | 取文件状态信息  | fs/stat.c | |
+| stat64     | 取文件状态信息 | fs/stat.c | |
+| lstat64    | 取文件状态信息 | fs/stat.c | |
+| fstat64    | 取文件状态信息 | fs/stat.c | |
+| fstatat64  | 取文件状态信息 | fs/stat.c | |
+| statfs     | 取文件系统信息 | fs/statfs.c | |
+| fstatfs    | 取文件状态信息 | fs/statfs.c | |
+| ustat      | 取文件系统信息| fs/statfs.c | |
+| link       | 创建链接 | fs/namei.c | |
+| linkat     | 创建链接 | fs/namei.c | |
+| symlink    | 创建符号链接 | fs/namei.c | |
+| symlinkat  | 创建符号链接 | fs/namei.c | |
+| unlink     | 删除链接 | fs/namei.c | |
+| unlinkat   | 删除链接 | fs/namei.c | |
+| readlink   | 读符号链接的值 | fs/stat.c | |
+| readlinkat | 读符号链接的值 | fs/stat.c | |
+| mknod      | 创建索引节点 | fs/namei.c | 参见11.2.4.1.1 mknod()/mknodat()节 |
+| mknodat    | 创建索引节点 | fs/namei.c | 参见11.2.4.1.1 mknod()/mknodat()节 |
+| mount      | 安装文件系统 | fs/namespace.h | |
+| umount     | 卸载文件系统 | fs/namespace.h | |
+| oldumount  | 卸载文件系统 | fs/namespace.c | |
+| utime      | 改变文件的访问修改时间 | fs/utimes.c | |
+| utimes     | 改变文件的访问修改时间 | fs/utimes.c | |
+| access     | 确定文件的可存取性 | fs/open.c | |
+| quotactl   | 控制磁盘配额 | fs/quota/quota.c | |
+
+<p/>
+
+##### 11.2.4.1.1 mknod()/mknodat()
+
+系统调用sys_mknod()定义于fs/namei.c:
+
+```
+SYSCALL_DEFINE3(mknod, const char __user *, filename, int, mode, unsigned, dev)
+{
+	return sys_mknodat(AT_FDCWD, filename, mode, dev);
+}
+```
+
+系统调用sys_mknodat()定义于fs/namei.c:
+
+```
+SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, int, mode, unsigned, dev)
+{
+	struct dentry *dentry;
+	struct path path;
+	int error;
+
+	if (S_ISDIR(mode))
+		return -EPERM;
+
+	dentry = user_path_create(dfd, filename, &path, 0);
+	if (IS_ERR(dentry))
+		return PTR_ERR(dentry);
+
+	if (!IS_POSIXACL(path.dentry->d_inode))
+		mode &= ~current_umask();
+
+	// 检查mode取值是否合法
+	error = may_mknod(mode);
+	if (error)
+		goto out_dput;
+
+	// get write access to a mount
+	error = mnt_want_write(path.mnt);
+	if (error)
+		goto out_dput;
+
+	// 参见14.4.2 security_xxx()节
+	error = security_path_mknod(&path, dentry, mode, dev);
+	if (error)
+		goto out_drop_write;
+
+	switch (mode & S_IFMT) {
+		case 0:
+		case S_IFREG:
+			// 创建普通文件，参见11.2.4.1.1.1 vfs_create()节
+			error = vfs_create(path.dentry->d_inode, dentry, mode, NULL);
+			break;
+		case S_IFCHR:
+		case S_IFBLK:
+			// 创建字符设备/块设备文件，参见11.2.4.1.1.2 vfs_mknod()节
+			error = vfs_mknod(path.dentry->d_inode, dentry, mode, new_decode_dev(dev));
+			break;
+		case S_IFIFO:
+		case S_IFSOCK:
+			// 创建网络设备文件，参见11.2.4.1.1.2 vfs_mknod()节
+			error = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
+			break;
+	}
+
+out_drop_write:
+	mnt_drop_write(path.mnt);
+out_dput:
+	dput(dentry);
+	mutex_unlock(&path.dentry->d_inode->i_mutex);
+	path_put(&path);
+
+	return error;
+}
+```
+
+###### 11.2.4.1.1.1 vfs_create()
+
+该函数定义于fs/namei.c:
+
+```
+int vfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
+{
+	int error = may_create(dir, dentry);
+
+	if (error)
+		return error;
+
+	if (!dir->i_op->create)
+		return -EACCES;		/* shouldn't it be ENOSYS? */
+
+	mode &= S_IALLUGO;
+	mode |= S_IFREG;
+	error = security_inode_create(dir, dentry, mode);
+	if (error)
+		return error;
+
+	/*
+	 * 调用父目录的create()函数，
+	 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+	 */
+	error = dir->i_op->create(dir, dentry, mode, nd);
+	if (!error)
+		fsnotify_create(dir, dentry);
+
+	return error;
+}
+```
+
+###### 11.2.4.1.1.2 vfs_mknod()
+
+该函数定义于fs/namei.c:
+
+```
+int vfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
+{
+	int error = may_create(dir, dentry);
+
+	if (error)
+		return error;
+
+	if ((S_ISCHR(mode) || S_ISBLK(mode)) &&
+	    !ns_capable(inode_userns(dir), CAP_MKNOD))
+		return -EPERM;
+
+	if (!dir->i_op->mknod)
+		return -EPERM;
+
+	error = devcgroup_inode_mknod(mode, dev);
+	if (error)
+		return error;
+
+	error = security_inode_mknod(dir, dentry, mode, dev);
+	if (error)
+		return error;
+
+	/*
+	 * 调用父目录的mknod()函数，
+	 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+	 */
+	error = dir->i_op->mknod(dir, dentry, mode, dev);
+	if (!error)
+		fsnotify_create(dir, dentry);
+
+	return error;
+}
+```
+
+#### 11.2.4.2 文件读写操作相关系统调用
+
+文件读写操作对应的数据结构为struct file_operations，参见11.2.1.5.1 文件操作/struct file_operations节。
+
+| 文件读写操作 | 备注  | 所在的源文件 | 备注  |
+| :--------- | :--- | :--------- | :--- |
+| creat      | 创建新文件 | fs/open.c | |
+| open       | 打开文件 | fs/open.c | 参见11.2.4.2.1 open()节 |
+| close      | 关闭文件描述符 | fs/open.c | 参见11.2.4.2.4 close()节 |
+| read       | 读文件 | fs/read_write.c | 参见11.2.4.2.1 open()节 |
+| readv      | 从文件读入数据到缓冲数组中 | fs/read_write.c | |
+| pread64    | 对文件随机读 | fs/read_write.c | |
+| preadv     | 对文件随机读 | fs/read_write.c | |
+| write      | 写文件 | fs/read_write.c | 参见11.2.4.2.3 write()节 |
+| writev     | 将缓冲数组里的数据写入文件 | fs/read_write.c | |
+| pwrite64   | 对文件随机写 | fs/read_write.c | |
+| pwritev    | 对文件随机写 | fs/read_write.c | |
+| truncate   | 截断文件 | fs/open.c | |
+| ftruncate  | 截断文件 | fs/open.c | |
+| fsync      | 把文件在内存中的部分写回磁盘 | fs/sync.c | |
+| lseek      | 移动文件指针 | fs/read_write.c | |
+| llseek     | 在64位地址空间里移动文件指针 | fs/read_write.c | |
+| dup        | 复制已打开的文件描述符 | fs/fcntl.c | |
+| dup2       | 按指定条件复制文件描述符 | fs/fcntl.c | |
+| dup3       | 按指定条件复制文件描述符 | fs/fcntl.c | |
+| flock      | 文件加/解锁 | fs/locks.c | |
+| umask      | 设置文件权限掩码 | kernel/sys.c | |
+| poll       | I/O多路转换 | fs/select.c | |
+| fcntl      | 文件控制 | fs/fcntl.c | |
+
+<p/>
+
+##### 11.2.4.2.0 如何查找某文件所对应的文件操作函数
+
+1) Find file system of the specific file.
+
+1.1) Use command mount to list all mounted file systems:
+
+```
+chenwx@chenwx ~ $ mount 
+/dev/sdb5 on / type ext4 (rw,errors=remount-ro) 
+proc on /proc type proc (rw,noexec,nosuid,nodev) 
+sysfs on /sys type sysfs (rw,noexec,nosuid,nodev) 
+none on /sys/fs/cgroup type tmpfs (rw) 
+none on /sys/fs/fuse/connections type fusectl (rw) 
+none on /sys/kernel/debug type debugfs (rw) 
+none on /sys/kernel/security type securityfs (rw) 
+udev on /dev type devtmpfs (rw,mode=0755) 
+devpts on /dev/pts type devpts (rw,noexec,nosuid,gid=5,mode=0620) 
+tmpfs on /run type tmpfs (rw,noexec,nosuid,size=10%,mode=0755) 
+none on /run/lock type tmpfs (rw,noexec,nosuid,nodev,size=5242880) 
+none on /run/shm type tmpfs (rw,nosuid,nodev) 
+none on /run/user type tmpfs (rw,noexec,nosuid,nodev,size=104857600,mode=0755) 
+none on /sys/fs/pstore type pstore (rw) 
+binfmt_misc on /proc/sys/fs/binfmt_misc type binfmt_misc (rw,noexec,nosuid,nodev) 
+systemd on /sys/fs/cgroup/systemd type cgroup (rw,noexec,nosuid,nodev,none,name=systemd) 
+gvfsd-fuse on /run/user/1000/gvfs type fuse.gvfsd-fuse (rw,nosuid,nodev,user=chenwx) 
+/dev/sda1 on /media/chenwx/Work type fuseblk (rw,nosuid,nodev,allow_other,default_permissions,blksize=4096) 
+```
+
+1.2) Find corresponding variable of struct file_system_type for the specific file system. Take devtmpfs for instance:
+
+```
+chenwx@chenwx ~/linux $ git grep -n \"devtmpfs\"
+drivers/base/devtmpfs.c:65:     .name = "devtmpfs",
+drivers/base/devtmpfs.c:371:    err = sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT, NULL);
+drivers/base/devtmpfs.c:396:    *err = sys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+```
+
+The instance of struct file_system_type for Devtmpfs is defined in file drivers/base/devtmpfs.c:
+
+```
+static struct file_system_type dev_fs_type = {
+	.name		= "devtmpfs",
+	.mount		= dev_mount,
+	.kill_sb	= kill_litter_super,
+};
+```
+
+2) Check method ```mount()``` of the specific file system (that's, the member mount of struct file_system_type). Here it's ```dev_mount()```:
+
+```
+static struct dentry *dev_mount(struct file_system_type *fs_type, int flags,
+				const char *dev_name, void *data)
+{
+#ifdef CONFIG_TMPFS
+	return mount_single(fs_type, flags, data, shmem_fill_super);
+#else
+	return mount_single(fs_type, flags, data, ramfs_fill_super);
+#endif
+}
+```
+
+3) A type of method ```fill_super()``` is called by method ```mount()``` of the specific file system:
+
+```
+int (*fill_super)(struct super_block *sb, void *data, int silent);
+```
+
+Here, it's ramfs_fill_super():
+
+```
+int ramfs_fill_super(struct super_block *sb, void *data, int silent)
+{
+	...
+	struct inode *inode = NULL;
+	...
+	inode = ramfs_get_inode(sb, NULL, S_IFDIR | fsi->mount_opts.mode, 0);
+	...
+	root = d_alloc_root(inode);
+	...
+	sb->s_root = root;
+	...
+}
+```
+
+In method ```ramfs_fill_super()```, a variable of type struct inode is allocated and initalized. In the method that creates a variable of type struct inode, here is ```ramfs_get_inode()```, the element i_fop of type struct inode is assigned to file operations:
+
+```
+struct inode *ramfs_get_inode(struct super_block *sb,
+			      const struct inode *dir, int mode, dev_t dev)
+{
+	struct inode * inode = new_inode(sb);
+
+	if (inode) {
+		inode->i_ino = get_next_ino();
+		inode_init_owner(inode, dir, mode);
+		inode->i_mapping->a_ops = &ramfs_aops;
+		inode->i_mapping->backing_dev_info = &ramfs_backing_dev_info;
+		mapping_set_gfp_mask(inode->i_mapping, GFP_HIGHUSER);
+		mapping_set_unevictable(inode->i_mapping);
+		inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+
+		switch (mode & S_IFMT) {
+		default:
+			init_special_inode(inode, mode, dev);
+			break;
+		case S_IFREG:
+			inode->i_op = &ramfs_file_inode_operations;
+			inode->i_fop = &ramfs_file_operations;
+			break;
+		case S_IFDIR:
+			inode->i_op = &ramfs_dir_inode_operations;
+			inode->i_fop = &simple_dir_operations;
+
+			/* directory inodes start off with i_nlink == 2 (for "." entry) */
+			inc_nlink(inode);
+			break;
+		case S_IFLNK:
+			inode->i_op = &page_symlink_inode_operations;
+			break;
+		}
+	}
+
+	return inode;
+}
+```
+
+Check the variables assigned to ```inode->i_fop``` with different mode, you will get file operation methods.
+
+[NOTE] Refer to 11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open(). Also check following statements in methods ```sys_open()->do_sys_open()->do_filp_open()->path_openat()->do_last()->nameidata_to_filp()->__dentry_open()```:
+
+```
+static struct file *__dentry_open(struct dentry *dentry, struct vfsmount *mnt,
+				  struct file *f,
+				  int (*open)(struct inode *, struct file *),
+				  const struct cred *cred)
+{
+      ...
+      inode = dentry->d_inode;
+      f->f_op = fops_get(inode->i_fop);
+      ...
+}
+```
+
+##### 11.2.4.2.1 open()
+
+该系统调用定义于fs/open.c:
+
+```
+/*
+ * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
+ *
+ * Given a filename for a file, open() returns a file descriptor, a small, nonnegative
+ * integer for use in subsequent system calls (read, write, lseek, etc.). The file
+ * descriptor returned by a successful call will be the lowest-numbered file descriptor
+ * not currently open for the process.
+ *
+ * filename: the file name (with path) will be opened.
+ *
+ * flags:    it must include one of the following access modes: O_RDONLY, O_WRONLY, or
+ *           O_RDWR， corresponding to read-only, write-only, or read/write, respectively.
+ *
+ *           zero or more file creation flags and file status flags can be bitwise-or'd
+ *           in flags.
+ *
+ *           The file creation flags are:
+ *               O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_TMPFILE,
+ *               O_TRUNC
+ *
+ *           The file status flags are:
+ *               O_APPEND, O_ASYNC, O_DIRECT, O_DSYNC, O_LARGEFILE, O_NOATIME, O_NONBLOCK,
+ *               O_NDELAY, O_PATH, O_SYNC
+ *
+ *           The distinction between these two groups of flags is that the file status
+ *           flags can be retrieved and (in some cases) modified.
+ *
+ * mode:     it specifies the file mode bits be applied when a new file is created. This
+ *           argument must be supplied when O_CREAT or O_TMPFILE is specified in flags;
+ *           if neither O_CREAT nor O_TMPFILE is specified, then mode is ignored.
+ *
+ *           The values of mode are:
+ *               S_IRWXU (00700), S_IRUSR (00400), S_IWUSR (00200), S_IXUSR (00100),
+ *               S_IRWXG (00070), S_IRGRP (00040), S_IWGRP (00020), S_IXGRP (00010),
+ *               S_IRWXO (00007), S_IROTH (00004), S_IWOTH (00002), S_IXOTH (00001),
+ *               S_ISUID (0004000), S_ISGID (0002000), S_ISVTX (0001000)
+ *
+ * Refer to http://man7.org/linux/man-pages/man2/open.2.html
+ *
+ * For instance:
+ * open("/home/chenwx/abc.txt", O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666) = 3
+ */
+SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, int, mode)
+{
+	long ret;
+
+	/*
+	 * 判断: BITS_PER_LONG != 32
+	 * 对于64位的kernel，添加标志位O_LARGEFILE到flags
+	 */
+	if (force_o_largefile())
+		flags |= O_LARGEFILE;
+
+	/*
+	 * 该函数返回文件描述符fd，参见do_sys_open()节
+	 * AT_FDCWD: special value used to indicate openat()
+	 *           should use the current working directory
+	 *           if the filename starts with relative path.
+	 */
+	ret = do_sys_open(AT_FDCWD, filename, flags, mode);
+
+	/* avoid REGPARM breakage on x86: */
+	asmlinkage_protect(3, ret, filename, flags, mode);
+
+	return ret;
+}
+```
+
+系统调用open()执行后的示意图:
+
+![Filesystem_Open](/assets/Filesystem_Open.png)
+
+###### 11.2.4.2.1.1 do_sys_open()
+
+该函数定义于fs/open.c:
+
+```
+long do_sys_open(int dfd, const char __user *filename, int flags, int mode)
+{
+	struct open_flags op;
+
+	/*
+	 * 根据入参flags和mode来构造op和lookup;
+	 * 其中，lookup的取值可包含LOOKUP_DIRECTORY, LOOKUP_FOLLOW;
+	 * 并检查flags的合法性，(如有必要)修改flags中的标志位
+	 */
+	int lookup = build_open_flags(flags, mode, &op);
+
+	/*
+	 * The getname() copies the filename from user space to kernel space:
+	 * getname()->getname_flags()->do_getname()->strncpy_from_user()
+	 */
+	char *tmp = getname(filename);
+	int fd = PTR_ERR(tmp);
+
+	if (!IS_ERR(tmp)) {
+		// It returns the first unused file descriptor fd.
+		fd = get_unused_fd_flags(flags);
+		if (fd >= 0) {
+			/*
+			 * 调用do_filp_open()来搜索tmp中指定的路径，
+			 * 并打开对应的文件，参见do_filp_open()节
+			 */
+			struct file *f = do_filp_open(dfd, tmp, &op, lookup);
+			if (IS_ERR(f)) {
+				put_unused_fd(fd);
+				fd = PTR_ERR(f);
+			} else {
+				// 通过fsnotify机制来唤醒文件系统中的监控进程
+				fsnotify_open(f);
+				/*
+				 * Install a file pointer in the fd array:
+				 * current->files->fdt->fd[fd] = f;
+				 */
+				fd_install(fd, f);
+			}
+		}
+		/*
+		 * Free the kernel space which contains filename
+		 * copied from user space by getname().
+		 */
+		putname(tmp);
+	}
+
+	/*
+	 * 返回文件描述符fd，可用于如下系统调用的入参：
+	 * - sys_read(fd, ..)，参见11.2.4.2.2 read()节
+	 * - sys_write(fd, ..)，参见11.2.4.2.3 write()节
+	 *   ...
+	 */
+	return fd;
+}
+```
+
+###### 11.2.4.2.1.2 do_filp_open()
+
+该函数定义于fs/namei.c:
+
+```
+struct file *do_filp_open(int dfd, const char *pathname,
+			  const struct open_flags *op, int flags)
+{
+	struct nameidata nd;
+	struct file *filp;
+
+	// 1) 先试图在尽量不加锁的情况下完成路径查找(LOOKUP_RCU)
+	filp = path_openat(dfd, pathname, &nd, op, flags | LOOKUP_RCU);
+
+	// 2) 若不能找到，则试图在对路径上各节点加锁的情况下完成查找
+	if (unlikely(filp == ERR_PTR(-ECHILD)))
+		filp = path_openat(dfd, pathname, &nd, op, flags);
+
+	// 3) 若在查找过程中出现路径上某些节点失效的情况，则进行LOOKUP_REVAL查找
+	if (unlikely(filp == ERR_PTR(-ESTALE)))
+		filp = path_openat(dfd, pathname, &nd, op, flags | LOOKUP_REVAL);
+
+	return filp;
+}
+```
+
+其中，函数```path_openat()```定义于fs/namei.c:
+
+```
+/*
+ * dfd: 路径查找的起点，可以是根目录，可以是当前工作目录(AT_FDCWD)，也可以传入一个fd作为起点；
+ * pathname: 要打开的路径；
+ */
+static struct file *path_openat(int dfd, const char *pathname, struct nameidata *nd,
+				const struct open_flags *op, int flags)
+{
+	struct file *base = NULL;
+	struct file *filp;
+	struct path path;
+	int error;
+
+	/*
+	 * Find an unused file structure and return a pointer to it.
+	 * The file structure is allocated from cache filp_cachep,
+	 * see method files_init() in files_init().
+	 */
+	filp = get_empty_filp();
+	if (!filp)
+		return ERR_PTR(-ENFILE);
+
+	filp->f_flags = op->open_flag;
+	nd->intent.open.file = filp;
+	nd->intent.open.flags = open_to_namei_flags(op->open_flag);
+	nd->intent.open.create_mode = op->mode;
+
+	/*
+	 * path_init()是对真正遍历路径环境的初始化，即设置变量nd:
+	 * nd->path, nd->inode，参见path_init()节；nd用于存储
+	 * 遍历路径的中间结果
+	 */
+	error = path_init(dfd, pathname, flags | LOOKUP_PARENT, nd, &base);
+	if (unlikely(error))
+		goto out_filp;
+
+	/*
+	 * link_path_walk(): turn a pathname into the final dentry.
+	 * 更新变量: nd->path, nd->inode, nd->last, nd->last_type，
+	 * 参见link_path_walk()节
+	 */
+	current->total_link_count = 0;
+	error = link_path_walk(pathname, nd);
+	if (unlikely(error))
+		goto out_filp;
+
+	// 调用函数do_last()来处理最后一个子路径，参见do_last()节
+	filp = do_last(nd, &path, op, pathname);
+	while (unlikely(!filp)) { /* trailing symlink */
+		struct path link = path;
+		void *cookie;
+		if (!(nd->flags & LOOKUP_FOLLOW)) {
+			path_put_conditional(&path, nd);
+			path_put(&nd->path);
+			filp = ERR_PTR(-ELOOP);
+			break;
+		}
+		nd->flags |= LOOKUP_PARENT;
+		nd->flags &= ~(LOOKUP_OPEN | LOOKUP_CREATE | LOOKUP_EXCL);
+		error = follow_link(&link, nd, &cookie);
+		if (unlikely(error))
+			filp = ERR_PTR(error);
+		else
+			filp = do_last(nd, &path, op, pathname);
+		put_link(nd, &link, cookie);
+	}
+out:
+	if (nd->root.mnt && !(nd->flags & LOOKUP_ROOT))
+		path_put(&nd->root);
+	if (base)
+		fput(base);
+	release_open_intent(nd);
+	return filp;
+
+out_filp:
+	filp = ERR_PTR(error);
+	goto out;
+}
+```
+
+###### 11.2.4.2.1.2.1 do_last()
+
+该函数定义于fs/namei.c:
+
+```
+/*
+ * Handle the last step of open()
+ */
+static struct file *do_last(struct nameidata *nd, struct path *path,
+			    const struct open_flags *op, const char *pathname)
+{
+	struct dentry *dir = nd->path.dentry;
+	struct dentry *dentry;
+	int open_flag = op->open_flag;
+	int will_truncate = open_flag & O_TRUNC;
+	int want_write = 0;
+	int acc_mode = op->acc_mode;
+	struct file *filp;
+	int error;
+
+	/*
+	 * LOOKUP_PARENT是在patn_init()中设置的，因为当时的目标是
+	 * 找到最终文件的父目录，参见11.2.2.4.1.1.1.1 path_init()节。
+	 * 而本函数do_last()要找的是最终文件，所以需要将该标志位清除
+	 */
+	nd->flags &= ~LOOKUP_PARENT;
+	nd->flags |= op->intent;
+
+	/*
+	 * 根据nd->last_type的取值进行处理
+	 */
+
+	/*
+	 * 1) 若nd->last_type取值为
+	 *    LAST_DOTDOT, LAST_DOT, LAST_ROOT, LAST_BIND
+	 */
+	switch (nd->last_type) {
+	case LAST_DOTDOT:
+	case LAST_DOT:
+		error = handle_dots(nd, nd->last_type);
+		if (error)
+			return ERR_PTR(error);
+		/* fallthrough */
+	case LAST_ROOT:
+		error = complete_walk(nd);
+		if (error)
+			return ERR_PTR(error);
+		audit_inode(pathname, nd->path.dentry);
+		if (open_flag & O_CREAT) {
+			error = -EISDIR;
+			goto exit;
+		}
+		goto ok;
+	case LAST_BIND:
+		error = complete_walk(nd);
+		if (error)
+			return ERR_PTR(error);
+		audit_inode(pathname, dir);
+		goto ok;
+	}
+
+	/*
+	 * 2) 若nd->last_type的取值为LAST_NORM，即普通文件
+	 */
+
+	/*
+	 * 2.1) 如果不是创建新文件
+	 */
+	if (!(open_flag & O_CREAT)) {
+		int symlink_ok = 0;
+		if (nd->last.name[nd->last.len])
+			nd->flags |= LOOKUP_FOLLOW | LOOKUP_DIRECTORY;
+		if (open_flag & O_PATH && !(nd->flags & LOOKUP_FOLLOW))
+			symlink_ok = 1;
+		/* we _can_ be in RCU mode here */
+		error = walk_component(nd, path, &nd->last, LAST_NORM, !symlink_ok);
+		if (error < 0)
+			return ERR_PTR(error);
+		if (error) /* symlink */
+			return NULL;
+		/* sayonara */
+		error = complete_walk(nd);
+		if (error)
+			return ERR_PTR(-ECHILD);
+
+		error = -ENOTDIR;
+		if (nd->flags & LOOKUP_DIRECTORY) {
+			if (!nd->inode->i_op->lookup)
+				goto exit;
+		}
+		audit_inode(pathname, nd->path.dentry);
+		goto ok;
+	}
+
+	/* create side of things */
+	/*
+	 * This will *only* deal with leaving RCU mode - LOOKUP_JUMPED has been
+	 * cleared when we got to the last component we are about to look up
+	 */
+	error = complete_walk(nd);
+	if (error)
+		return ERR_PTR(error);
+
+	audit_inode(pathname, dir);
+	error = -EISDIR;
+	/* trailing slashes? */
+	if (nd->last.name[nd->last.len])
+		goto exit;
+
+	mutex_lock(&dir->d_inode->i_mutex);
+
+	dentry = lookup_hash(nd);
+	error = PTR_ERR(dentry);
+	if (IS_ERR(dentry)) {
+		mutex_unlock(&dir->d_inode->i_mutex);
+		goto exit;
+	}
+
+	path->dentry = dentry;
+	path->mnt = nd->path.mnt;
+
+	/* Negative dentry, just create the file */
+	if (!dentry->d_inode) {
+		int mode = op->mode;
+		if (!IS_POSIXACL(dir->d_inode))
+			mode &= ~current_umask();
+		/*
+		 * This write is needed to ensure that a
+		 * rw->ro transition does not occur between
+		 * the time when the file is created and when
+		 * a permanent write count is taken through
+		 * the 'struct file' in nameidata_to_filp().
+		 */
+		error = mnt_want_write(nd->path.mnt);
+		if (error)
+			goto exit_mutex_unlock;
+
+		want_write = 1;
+		/* Don't check for write permission, don't truncate */
+		open_flag &= ~O_TRUNC;
+		will_truncate = 0;
+		acc_mode = MAY_OPEN;
+
+		error = security_path_mknod(&nd->path, dentry, mode, 0);
+		if (error)
+			goto exit_mutex_unlock;
+
+		error = vfs_create(dir->d_inode, dentry, mode, nd);
+		if (error)
+			goto exit_mutex_unlock;
+		mutex_unlock(&dir->d_inode->i_mutex);
+
+		dput(nd->path.dentry);
+		nd->path.dentry = dentry;
+		goto common;
+	}
+
+	/*
+	 * It already exists.
+	 */
+	mutex_unlock(&dir->d_inode->i_mutex);
+	audit_inode(pathname, path->dentry);
+
+	error = -EEXIST;
+	if (open_flag & O_EXCL)
+		goto exit_dput;
+
+	error = follow_managed(path, nd->flags);
+	if (error < 0)
+		goto exit_dput;
+
+	if (error)
+		nd->flags |= LOOKUP_JUMPED;
+
+	error = -ENOENT;
+	if (!path->dentry->d_inode)
+		goto exit_dput;
+
+	if (path->dentry->d_inode->i_op->follow_link)
+		return NULL;
+
+	/*
+	 * nd->path.mnt = path->mnt;
+	 * nd->path.dentry = path->dentry;
+	 */
+	path_to_nameidata(path, nd);
+	nd->inode = path->dentry->d_inode;
+
+	/* Why this, you ask?  _Now_ we might have grown LOOKUP_JUMPED... */
+	error = complete_walk(nd);
+	if (error)
+		goto exit;
+	error = -EISDIR;
+
+	if (S_ISDIR(nd->inode->i_mode))
+		goto exit;
+
+ok:
+	if (!S_ISREG(nd->inode->i_mode))
+		will_truncate = 0;
+
+	if (will_truncate) {
+		error = mnt_want_write(nd->path.mnt);
+		if (error)
+			goto exit;
+
+		want_write = 1;
+	}
+
+common:
+	/*
+	 * Check for access rights to a given inode:
+	 * nd->path->dentry->d_inode
+	 */
+	error = may_open(&nd->path, acc_mode, open_flag);
+	if (error)
+		goto exit;
+
+	/*
+	 * Get file descriptor: filp = nd->intent.open.file;
+	 * 参见11.2.4.2.1.2.1.1 nameidata_to_filp()节
+	 */
+	filp = nameidata_to_filp(nd);
+	if (!IS_ERR(filp)) {
+		error = ima_file_check(filp, op->acc_mode);
+		if (error) {
+			fput(filp);
+			filp = ERR_PTR(error);
+		}
+	}
+	if (!IS_ERR(filp)) {
+		if (will_truncate) {
+			error = handle_truncate(filp);
+			if (error) {
+				fput(filp);
+				filp = ERR_PTR(error);
+			}
+		}
+	}
+
+out:
+	if (want_write)
+		mnt_drop_write(nd->path.mnt);
+	path_put(&nd->path);
+	return filp;
+
+exit_mutex_unlock:
+	mutex_unlock(&dir->d_inode->i_mutex);
+exit_dput:
+	path_put_conditional(path, nd);
+exit:
+	filp = ERR_PTR(error);
+	goto out;
+}
+```
+
+###### 11.2.4.2.1.2.1.1 nameidata_to_filp()
+
+该函数定义于fs/open.c:
+
+```
+/**
+ * nameidata_to_filp - convert a nameidata to an open filp.
+ * @nd: pointer to nameidata
+ * @flags: open flags
+ *
+ * Note that this function destroys the original nameidata
+ */
+struct file *nameidata_to_filp(struct nameidata *nd)
+{
+	const struct cred *cred = current_cred();
+	struct file *filp;
+
+	/* Pick up the filp from the open intent */
+	filp = nd->intent.open.file;
+	nd->intent.open.file = NULL;
+
+	/* Has the filesystem initialised the file for us? */
+	if (filp->f_path.dentry == NULL) {
+		path_get(&nd->path);
+		// 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+		filp = __dentry_open(nd->path.dentry, nd->path.mnt, filp, NULL, cred);
+	}
+	return filp;
+}
+```
+
+###### 11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()
+
+该函数定义于fs/open.c:
+
+```
+/*
+ * dentry_open() will have done dput(dentry) and mntput(mnt) if it returns an
+ * error.
+ */
+struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags,
+			 const struct cred *cred)
+{
+	int error;
+	struct file *f;
+
+	validate_creds(cred);
+
+	/* We must always pass in a valid mount pointer. */
+	BUG_ON(!mnt);
+
+	error = -ENFILE;
+	f = get_empty_filp();
+	if (f == NULL) {
+		dput(dentry);
+		mntput(mnt);
+		return ERR_PTR(error);
+	}
+
+	f->f_flags = flags;
+	return __dentry_open(dentry, mnt, f, NULL, cred);
+}
+
+static struct file *__dentry_open(struct dentry *dentry, struct vfsmount *mnt,
+				  struct file *f,
+				  int (*open)(struct inode *, struct file *),
+				  const struct cred *cred)
+{
+	static const struct file_operations empty_fops = {};
+	struct inode *inode;
+	int error;
+
+	f->f_mode = OPEN_FMODE(f->f_flags) | FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE;
+
+	if (unlikely(f->f_flags & O_PATH))
+		f->f_mode = FMODE_PATH;
+
+	inode = dentry->d_inode;
+
+	if (f->f_mode & FMODE_WRITE) {
+		error = __get_file_write_access(inode, mnt);
+		if (error)
+			goto cleanup_file;
+
+		if (!special_file(inode->i_mode))
+			file_take_write(f);
+	}
+
+	f->f_mapping = inode->i_mapping;
+	f->f_path.dentry = dentry;
+	f->f_path.mnt = mnt;
+	f->f_pos = 0;
+	file_sb_list_add(f, inode->i_sb);
+
+	if (unlikely(f->f_mode & FMODE_PATH)) {
+		f->f_op = &empty_fops;
+		return f;
+	}
+
+	/*
+	 * 此处为文件操作函数指针赋值，与具体的文件系统相关；后续的文件操作将调用这些函数：
+	 * - sys_read系统调用将会调用file->f_op->read()，参见11.2.4.2.2 read()节
+	 * - sys_write系统调用将会调用file->f_op->write()，参见11.2.4.2.3 write()节
+	 *   ...
+	 */
+	f->f_op = fops_get(inode->i_fop);
+
+	error = security_dentry_open(f, cred);
+	if (error)
+		goto cleanup_all;
+
+	error = break_lease(inode, f->f_flags);
+	if (error)
+		goto cleanup_all;
+
+	if (!open && f->f_op)
+		open = f->f_op->open;
+	if (open) {
+		error = open(inode, f);
+		if (error)
+			goto cleanup_all;
+	}
+	if ((f->f_mode & (FMODE_READ | FMODE_WRITE)) == FMODE_READ)
+		i_readcount_inc(inode);
+
+	f->f_flags &= ~(O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC);
+
+	file_ra_state_init(&f->f_ra, f->f_mapping->host->i_mapping);
+
+	/* NB: we're sure to have correct a_ops only after f_op->open */
+	if (f->f_flags & O_DIRECT) {
+		if (!f->f_mapping->a_ops ||
+		    ((!f->f_mapping->a_ops->direct_IO) &&
+			(!f->f_mapping->a_ops->get_xip_mem))) {
+			fput(f);
+			f = ERR_PTR(-EINVAL);
+		}
+	}
+
+	return f;
+
+cleanup_all:
+	fops_put(f->f_op);
+	if (f->f_mode & FMODE_WRITE) {
+		put_write_access(inode);
+		if (!special_file(inode->i_mode)) {
+			/*
+			 * We don't consider this a real
+			 * mnt_want/drop_write() pair
+			 * because it all happenend right
+			 * here, so just reset the state.
+			 */
+			file_reset_write(f);
+			mnt_drop_write(mnt);
+		}
+	}
+	file_sb_list_del(f);
+	f->f_path.dentry = NULL;
+	f->f_path.mnt = NULL;
+
+cleanup_file:
+	put_filp(f);
+	dput(dentry);
+	mntput(mnt);
+
+	return ERR_PTR(error);
+}
+```
+
+##### 11.2.4.2.2 read()
+
+该系统调用定义于fs/read_write.c:
+
+```
+/*
+ * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * asmlinkage long sys_read(unsigned int fd, char __user * buf, size_t count);
+ *
+ * read() attempts to read up to count bytes from file descriptor
+ * fd into the buffer starting at buf.
+ *
+ * fd:    系统调用sys_open()返回的文件描述符，参见11.2.4.2.1 open()节
+ *
+ * buf:   read buffer in user space.
+ *
+ * count: If count is zero, read() may detect the errors. In the
+ *        absence of any errors, or if read() does not check for
+ *        errors, a read() with a count of 0 returns zero and has
+ *        no other effects.
+ *
+ *        If the count is greater than SSIZE_MAX, the result is
+ *        unspecified.
+ *
+ * Refer to http://man7.org/linux/man-pages/man2/read.2.html
+ */
+SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+{
+	// 参见文件/struct file节
+	struct file *file;
+	ssize_t ret = -EBADF;
+	int fput_needed;
+
+	// 根据入参fd，从当前进程描述符中取出对应的file对象
+	file = fget_light(fd, &fput_needed);
+	if (file) {
+		// 取出此次读写前的当前位置pos = file->f_pos
+		loff_t pos = file_pos_read(file);
+
+		/*
+		 * 从file中读出count字节到buf中，并移动pos，
+		 * 参见vfs_read()节
+		 */
+		ret = vfs_read(file, buf, count, &pos);
+
+		// 保存此次读写后的当前位置file->f_pos = pos
+		file_pos_write(file, pos);
+
+		// 更新文件的引用计数file->f_count
+		fput_light(file, fput_needed);
+	}
+
+	// 返回读取的字节数
+	return ret;
+}
+```
+
+###### 11.2.4.2.2.1 vfs_read()
+
+该函数定义于fs/read_write.c:
+
+```
+ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
+{
+	ssize_t ret;
+
+	// 若该文件无可读属性，则直接返回
+	if (!(file->f_mode & FMODE_READ))
+		return -EBADF;
+
+	// 若该文件系统未定义读函数，则直接返回
+	if (!file->f_op || (!file->f_op->read && !file->f_op->aio_read))
+		return -EINVAL;
+
+	// checks if a user space pointer buf is valid
+	if (unlikely(!access_ok(VERIFY_WRITE, buf, count)))
+		return -EFAULT;
+
+	// 对要读取的文件进行合法性检查
+	ret = rw_verify_area(READ, file, pos, count);
+	if (ret >= 0) {
+		count = ret;
+
+		/*
+		 * 调用函数file->f_op->read或file->f_op->aio_read
+		 * 来读取该文件，该函数由具体的文件系统来定义，
+		 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+		 */
+		if (file->f_op->read)
+			/*
+			 * 调用file->f_op->read()，参见文件操作/struct file_operations节
+			 *
+			 * 其中，函数指针file->f_op->read是由如下函数调用赋值的：
+			 * sys_open()->do_sys_open()->do_filp_open()->path_openat()
+			 * ->do_last()->nameidata_to_filp()->__dentry_open():
+			 *    ...
+			 *    inode = dentry->d_inode;
+			 *    f->f_op = fops_get(inode->i_fop);
+			 *    ...
+			 * 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+			 */
+			ret = file->f_op->read(file, buf, count, pos);
+		else
+			/*
+			 * 调用file->f_op->aio_read(..)，
+			 * 参见文件操作/struct file_operations节
+			 */
+			ret = do_sync_read(file, buf, count, pos);
+
+		if (ret > 0) {
+			fsnotify_access(file);
+			add_rchar(current, ret);
+		}
+
+		inc_syscr(current);
+	}
+
+	return ret;
+}
+```
+
+##### 11.2.4.2.3 write()
+
+该系统调用定义于fs/read_write.c:
+
+```
+/*
+ * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * asmlinkage long sys_write(unsigned int fd, char __user * buf, size_t count);
+ *
+ * write() writes up to count bytes from the buffer pointed buf
+ * to the file referred to by the file descriptor fd.
+ * fd into the buffer starting at buf.
+ *
+ * fd:    系统调用sys_open()返回的文件描述符，参见11.2.4.2.1 open()节
+ *
+ * buf:   write buffer in user space.
+ *
+ * count: The number of bytes written may be less than count if,
+ *        e.g., there is insufficient space on the underlying
+ *        physical medium, or the RLIMIT_FSIZE resource limit is
+ *        encountered, or the call was interrupted by a signal
+ *        handler after having written less than count bytes.
+ *
+ * Refer to http://man7.org/linux/man-pages/man2/write.2.html
+ */
+SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf, size_t, count)
+{
+	struct file *file;
+	ssize_t ret = -EBADF;
+	int fput_needed;
+
+	// 根据入参fd，从当前进程描述符中取出相应的file对象
+	file = fget_light(fd, &fput_needed);
+	if (file) {
+		// 取出此次读写前的当前位置pos = file->f_pos;
+		loff_t pos = file_pos_read(file);
+
+		/*
+		 * 将buf中的count字节写入file并移动pos，
+		 * 参见vfs_write()节
+		 */
+		ret = vfs_write(file, buf, count, &pos);
+
+		// 保存此次读写后的当前位置file->f_pos = pos;
+		file_pos_write(file, pos);
+
+		// 更新文件的引用计数file->f_count
+		fput_light(file, fput_needed);
+	}
+
+	// 返回写入的字节数
+	return ret;
+}
+```
+
+###### 11.2.4.2.3.1 vfs_write()
+
+该函数定义于fs/read_write.c:
+
+```
+ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
+{
+	ssize_t ret;
+
+	// 若该文件无可写属性，则直接返回
+	if (!(file->f_mode & FMODE_WRITE))
+		return -EBADF;
+
+	// 若该文件系统未定义写函数，则直接返回
+	if (!file->f_op || (!file->f_op->write && !file->f_op->aio_write))
+		return -EINVAL;
+
+	// checks if a user space pointer buf is valid
+	if (unlikely(!access_ok(VERIFY_READ, buf, count)))
+		return -EFAULT;
+
+	// 对要写入的文件进行合法性检查
+	ret = rw_verify_area(WRITE, file, pos, count);
+	if (ret >= 0) {
+		count = ret;
+
+		/*
+		 * 调用函数file->f_op->write或file->f_op->aio_write
+		 * 来写入该文件，该函数由具体的文件系统来定义，
+		 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+		 */
+		if (file->f_op->write)
+			/*
+			 * 调用file->f_op->write(..)，参见文件操作/struct file_operations节
+			 *
+			 * 其中，函数指针file->f_op->read是由如下函数调用赋值的：
+			 * sys_open()->do_sys_open()->do_filp_open()->path_openat()
+			 * ->do_last()->nameidata_to_filp()->__dentry_open():
+			 *    ...
+			 *    inode = dentry->d_inode;
+			 *    f->f_op = fops_get(inode->i_fop);
+			 *    ...
+			 * 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+			 */
+			ret = file->f_op->write(file, buf, count, pos);
+		else
+			/*
+			 * 调用file->f_op->aio_write(..)，
+			 * 参见文件操作/struct file_operations节
+			 */
+			ret = do_sync_write(file, buf, count, pos);
+		if (ret > 0) {
+			fsnotify_modify(file);
+			add_wchar(current, ret);
+		}
+		inc_syscw(current);
+	}
+
+	return ret;
+}
+```
+
+##### 11.2.4.2.4 close()
+
+该系统调用定义于fs/open.c:
+
+```
+/*
+ * Careful here! We test whether the file pointer is NULL before
+ * releasing the fd. This ensures that one clone task can't release
+ * an fd while another clone is opening it.
+ *
+ * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * asmlinkage long sys_close(unsigned int fd);
+ *
+ * close() closes a file descriptor, so that it no longer refers
+ * to any file and may be reused. Any record locks held on the file
+ * it was associated with, and owned by the process, are removed
+ * (regardless of the file descriptor that was used to obtain the lock).
+ *
+ * fd:    系统调用sys_open()返回的文件描述符，参见11.2.4.2.1 open()节
+ *
+ * Refer to http://man7.org/linux/man-pages/man2/close.2.html
+ */
+SYSCALL_DEFINE1(close, unsigned int, fd)
+{
+	struct file * filp;
+	struct files_struct *files = current->files;
+	struct fdtable *fdt;
+	int retval;
+
+	spin_lock(&files->file_lock);
+	fdt = files_fdtable(files);
+	if (fd >= fdt->max_fds)
+		goto out_unlock;
+
+	// 获取文件描述符fd对应的file
+	filp = fdt->fd[fd];
+	if (!filp)
+		goto out_unlock;
+	rcu_assign_pointer(fdt->fd[fd], NULL);
+
+	/*
+	 * 清除标志位close_on_exec，表示进程
+	 * 结束时不应该关闭对应位的文件描述对象
+	 */
+	FD_CLR(fd, fdt->close_on_exec);
+
+	// 清除该文件描述符fd对应的分配位图
+	__put_unused_fd(files, fd);
+	spin_unlock(&files->file_lock);
+
+	retval = filp_close(filp, files);	// 参见下文
+
+	/* can't restart close syscall because file table entry was cleared */
+	if (unlikely(retval == -ERESTARTSYS ||
+		     retval == -ERESTARTNOINTR ||
+		     retval == -ERESTARTNOHAND ||
+		     retval == -ERESTART_RESTARTBLOCK))
+		retval = -EINTR;
+
+	return retval;
+
+out_unlock:
+	spin_unlock(&files->file_lock);
+	return -EBADF;
+}
+
+/*
+ * "id" is the POSIX thread ID. We use the
+ * files pointer for this..
+ */
+int filp_close(struct file *filp, fl_owner_t id)
+{
+	int retval = 0;
+
+	// filp的引用计数为零，无效，直接返回
+	if (!file_count(filp)) {
+		printk(KERN_ERR "VFS: Close: file count is 0\n");
+		return 0;
+	}
+
+	/*
+	 * 调用filp->f_op->flush()，参见文件操作/struct file_operations节
+	 *
+	 * 其中，函数指针file->f_op->flush是由如下函数调用赋值的：
+	 * sys_open()->do_sys_open()->do_filp_open()->path_openat()
+	 * ->do_last()->nameidata_to_filp()->__dentry_open():
+	 *    ...
+	 *    inode = dentry->d_inode;
+	 *    f->f_op = fops_get(inode->i_fop);
+	 *    ...
+	 * 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+	 *
+	 * 该函数由具体的文件系统定义，
+	 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+	 */
+	if (filp->f_op && filp->f_op->flush)
+		retval = filp->f_op->flush(filp, id);
+
+	if (likely(!(filp->f_mode & FMODE_PATH))) {
+		dnotify_flush(filp, id);
+		// 文件要关闭了，将进程拥有的该文件的强制锁清除掉
+		locks_remove_posix(filp, id);
+	}
+
+	// 更新文件引用计数file->f_count，若减至0，则释放该文件
+	fput(filp);
+
+	return retval;
+}
+```
+
+## 11.3 具体的文件系统
+
+可通过下列命令查看注册到当前系统中的文件系统，参见查看系统中注册的文件系统节：
+
+```
+# cat /proc/filesystems
+```
+
+可通过下列命令查看挂载到当前系统中的文件系统，参见安装文件系统(2)/sys_mount()节：
+
+```
+# cat /proc/mounts
+```
+
+或通过下列命令查看挂载到当前系统中的文件系统：
+
+```
+# mount
+```
+
+通过下列命令查看文件系统的帮助信息：
+
+```
+# man fs
+```
+
+Linux支持的普通文件系统
+
+| 文件系统 | 描述  |
+| :------ | :--- |
+| Minix | Linux最早支持的文件系统。主要缺点是最大64M的磁盘分区和最长14个字符的文件名的限制 |
+| Ext | 第一个Linux专用的文件系统，支持2G磁盘分区，255字符的文件名。但性能有问题 |
+| Xiafs | 在Minix基础上发展起来，克服了Minix的主要缺点。但很快被更完善的文件系统取代 |
+| Ext2 | 当前实际上的Linux标准文件系统。性能强大，易扩充，可移植 |
+| Ext3 | 日志文件系统。Ext3文件系统是对稳定的Ext2文件系统的改进 |
+| System V | Unix早期支持的文件系统，也有与Minix相同的限制 |
+| NFS | 网络文件系统。使用户可以像访问本地文件一样访问远程主机上的文件 |
+| ISO 9660 | 光盘使用的文件系统 |
+| Msdos | Dos文件系统，系统力图使它表现的像Unix |
+| UMSDOS | 该文件系统允许MSDOS文件系统可以当作Linux固有的文件系统一样使用 |
+| Vfat | fat文件系统的扩展，支持长文件名 |
+| Ntfs | windows NT的文件系统 |
+| Hpfs | OS/2的文件系统 |
+
+<p/>
+
+Linux支持的特殊文件系统
+
+| Name | Mount Point | Description |
+| :--- | :---------- | :---------- |
+| Bdev | None | Block devices |
+| binfmt_misc | Any | Miscellaneous executable formats |
+| devpts | /dev/pts | Pseudoterminal support (Open Group’s Unix98 standard) |
+| eventpollfs | None | Used by the efficient event polling mechanism |
+| futexfs | None | Used by the futex (Fast Userspace Locking) mechanism |
+| pipefs | None | Pipes |
+| proc | /proc | General access point to kernel data structures |
+| rootfs | None | Provides an empty root directory for the bootstrap phase |
+| Shm | None | IPC-shared memory regions |
+| Mqueue | Any | Used to implement POSIX message queues |
+| sockfs | None | Sockets |
+| sysfs | /sysfs | General access point to system data |
+| Tmpfs | Any | Temporary files (kept in RAM unless swapped) |
+| usbfs | /proc/bus/usb | USB devices |
+
+<p/>
+
+### 11.3.1 Ramfs
+
+#### 11.3.1.1 Ramfs简介
+
+See Documentation/filesystems/ramfs-rootfs-initramfs.txt
+
+Ramfs is a very simple filesystem that exports Linux's disk caching mechanisms (the page cache and dentry cache) as a dynamically resizable RAM-based filesystem.
+
+Normally all files are cached in memory by Linux. Pages of data read from backing store (usually the block device the filesystem is mounted on) are kept around in case it's needed again, but marked as clean (freeable) in case the Virtual Memory system needs the memory for something else. Similarly, data written to files is marked clean as soon as it has been written to backing store, but kept around for caching purposes until the VM reallocates the memory. A similar mechanism (the dentry cache) greatly speeds up access to directories.
+
+With ramfs, there is no backing store. Files written into ramfs allocate dentries and page cache as usual, but there's nowhere to write them to. This means the pages are never marked clean, so they can't be freed by the VM when it's looking to recycle memory.
+
+The amount of code required to implement ramfs is tiny, because all the work is done by the existing Linux caching infrastructure. Basically, you're mounting the disk cache as a filesystem. Because of this, ramfs is not an optional component removable via menuconfig, since there would be negligible space savings.
+
+#### 11.3.1.2 Ramfs的编译及初始化
+
+Ramfs定义于fs/ramfs/inode.c:
+
+```
+static struct file_system_type ramfs_fs_type = {
+	.name		= "ramfs",
+
+	/*
+	 * 函数ramfs_mount()是通过下列函数调用的:
+	 * sys_mount()
+	 * -> do_mount()
+	 *    -> do_new_mount()
+	 *       -> do_kern_mount()
+	 *          -> vfs_kern_mount()
+	 *             -> mount_fs(type, flags, name, data)
+	 *                -> type->mount(type, flags, name, data)
+	 */
+	.mount		= ramfs_mount,
+
+	/*
+	 * 函数ramfs_kill_sb()是通过下列函数调用的:
+	 * sys_unmount()
+	 * -> mntput_no_expire()
+	 *    -> mntfree()
+	 *       -> deactivate_super()
+	 *          -> deactivate_locked_super()
+	 *             -> fs->kill_sb()
+	 * 参见11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()节
+	 */
+	.kill_sb	= ramfs_kill_sb,
+};
+
+static int __init init_ramfs_fs(void)
+{
+	// 注册ramfs文件系统，参见注册/注销文件系统节
+	return register_filesystem(&ramfs_fs_type);
+}
+
+// 由于Ramfs不会被注销，因而此处没有调用module_exit()
+module_init(init_ramfs_fs)
+```
+
+由fs/Makefile的如下代码:
+
+```
+obj-y += ramfs/
+```
+
+可知，没有选项配置可以将Ramfs编译成模块，因而Ramfs是被编译进内核的，其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+由此初始化过程以及文件系统的自动安装节可知，ramfs只被注册到系统中，但并未被挂载到系统中!
+
+#### 11.3.1.3 Ramfs的节点操作函数与文件操作函数
+
+由下列函数调用:
+
+```
+ramfs_mount()
+-> mount_nodev(fs_type, flags, data, ramfs_fill_super)
+   -> fill_super(s, data, flags & MS_SILENT ? 1 : 0)
+      -> ramfs_fill_super()
+         -> sb->s_maxbytes		= MAX_LFS_FILESIZE;	// 该文件系统最大能使用的内存大小
+         -> sb->s_blocksize		= PAGE_CACHE_SIZE;
+         -> sb->s_blocksize_bits	= PAGE_CACHE_SHIFT;
+         -> inode = ramfs_get_inode(sb, NULL, S_IFDIR | fsi->mount_opts.mode, 0)
+            -> struct inode *inode = new_inode(sb);
+            -> if (inode) {
+                   inode->i_ino = get_next_ino();
+                   inode_init_owner(inode, dir, mode);
+                   inode->i_mapping->a_ops = &ramfs_aops;
+                   inode->i_mapping->backing_dev_info = &ramfs_backing_dev_info;
+                   mapping_set_gfp_mask(inode->i_mapping, GFP_HIGHUSER);
+                   mapping_set_unevictable(inode->i_mapping);
+                   inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+                   switch (mode & S_IFMT) {
+                   default:
+                       init_special_inode(inode, mode, dev);
+                       break;
+                   case S_IFREG:
+                       inode->i_op = &ramfs_file_inode_operations;
+                       inode->i_fop = &ramfs_file_operations;
+                       break;
+                   case S_IFDIR:
+                       inode->i_op = &ramfs_dir_inode_operations;
+                       inode->i_fop = &simple_dir_operations;
+                       /* directory inodes start off with i_nlink == 2 (for "." entry) */
+                       inc_nlink(inode);
+                       break;
+                   case S_IFLNK:
+                       inode->i_op = &page_symlink_inode_operations;
+                       break;
+                   }
+               }
+```
+
+inode操作函数ramfs_dir_inode_operations和文件操作函数simple_dir_operations定义如下，其中只有名为ramfs_xxx的函数为ramfs所定义的函数，其他函数均来自于libfs.c:
+
+```
+static const struct inode_operations ramfs_dir_inode_operations = {
+	.create		= ramfs_create,
+	.lookup		= simple_lookup,
+	.link		= simple_link,
+	.unlink		= simple_unlink,
+	.symlink	= ramfs_symlink,
+	.mkdir		= ramfs_mkdir,
+	.rmdir		= simple_rmdir,
+	.mknod		= ramfs_mknod,
+	.rename		= simple_rename,
+};
+
+const struct file_operations simple_dir_operations = {
+	.open		= dcache_dir_open,
+	.release	= dcache_dir_close,
+	.llseek		= dcache_dir_lseek,
+	.read		= generic_read_dir,
+	.readdir	= dcache_readdir,
+	.fsync		= noop_fsync,
+};
+```
+
+#### 11.3.1.4 Ramfs的使用方法
+
+通过下列命令来挂载Ramfs文件系统:
+
+```
+chenwx chenwx # mkdir -p ~/fs-mount-point
+chenwx chenwx # mount -t ramfs none ~/fs-mount-pint
+chenwx chenwx # mount | grep ramfs
+none on /home/chenwx/fs-mount-point type ramfs (rw,relatime)
+```
+
+### 11.3.2 Rootfs
+
+#### 11.3.2.1 Rootfs简介
+
+See Documentation/filesystems/ramfs-rootfs-initramfs.txt
+
+Rootfs is a special instance of ramfs (or tmpfs, if that's enabled), which is always present in 2.6 systems.  You can't unmount rootfs for approximately the same reason you can't kill the init process; rather than having special code to check for and handle an empty list, it's smaller and simpler for the kernel to just make sure certain lists can't become empty.
+
+Most systems just mount another filesystem over rootfs and ignore it. The amount of space an empty instance of ramfs takes up is tiny.
+
+If CONFIG_TMPFS is enabled, rootfs will use tmpfs instead of ramfs by default. To force ramfs, add "rootfstype=ramfs" to the kernel command line.
+
+#### 11.3.2.2 Rootfs编译与初始化及安装过程
+
+与Ramfs类似，Rootfs也定义于fs/ramfs/inode.c，也是直接编译进内核的:
+
+```
+static struct file_system_type rootfs_fs_type = {
+	.name		= "rootfs",
+	/*
+	 * rootfs_mount()通过被如下函数调用，
+	 * 参见init_mount_tree()节和rootfs_mount()节:
+	 * init_mount_tree()->do_kern_mount()->
+	 * vfs_kern_mount()->mount_fs()中的type->mount()
+	 */
+	.mount		= rootfs_mount,
+	.kill_sb	= kill_litter_super,
+};
+```
+
+Rootfs的初始化及安装过程，参见下列章节：
+* init_rootfs()节
+* 4.3.4.1.4.3.11.4.3 init_mount_tree()节
+* 文件系统的自动安装节
+
+注：由内核参数"root="指定根文件系统的位置，参见prepare_namespace()节。
+
+### 11.3.3 Initramfs
+
+#### 11.3.3.1 Initramfs简介
+
+See Documentation/filesystems/ramfs-rootfs-initramfs.txt:
+
+Today (kernel 2.6.16), initramfs is always compiled in, but not always used.
+
+#### 11.3.3.2 Initramfs编译与初始化
+
+由init/Makefile的如下代码：
+
+```
+ifneq ($(CONFIG_BLK_DEV_INITRD),y)
+obj-y				+= noinitramfs.o
+else
+obj-$(CONFIG_BLK_DEV_INITRD)	+= initramfs.o
+endif
+
+mounts-$(CONFIG_BLK_DEV_INITRD)	+= do_mounts_initrd.o
+```
+
+可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见CONFIG_BLK_DEV_INITRD=n节和CONFIG_BLK_DEV_INITRD=y节。
+
+##### 11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n
+
+当执行make alldefconfig时，输出的配置文件.config包含如下内容：
+
+```
+# CONFIG_BLK_DEV_INITRD is not set
+```
+
+故默认情况下，编译noinitramfs.o，参见init/noinitramfs.c:
+
+```
+/*
+ * Create a simple rootfs that is similar to the default initramfs
+ */
+static int __init default_rootfs(void)
+{
+	int err;
+
+	err = sys_mkdir((const char __user __force *) "/dev", 0755);
+	if (err < 0)
+		goto out;
+
+	err = sys_mknod((const char __user __force *) "/dev/console",
+			S_IFCHR | S_IRUSR | S_IWUSR, new_encode_dev(MKDEV(5, 1)));
+	if (err < 0)
+		goto out;
+
+	err = sys_mkdir((const char __user __force *) "/root", 0700);
+	if (err < 0)
+		goto out;
+
+	return 0;
+
+out:
+	printk(KERN_WARNING "Failed to create a rootfs\n");
+	return err;
+}
+
+rootfs_initcall(default_rootfs);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcallrootfs.init
+```
+
+##### 11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y
+
+这种情况下，编译initramfs.o，参见init/initramfs.c:
+
+```
+static int __init populate_rootfs(void)
+{
+	/*
+	 * 函数unpack_to_rootfs()用于解压包到rootfs，其实initramfs是压缩过的CPIO文件。
+	 * __initramfs_start定义于arch/x86/kernel/vmlinux.lds，即.init.ramfs段
+	 */
+	char *err = unpack_to_rootfs(__initramfs_start, __initramfs_size);
+	if (err)
+		panic(err);	/* Failed to decompress INTERNAL initramfs */
+
+	/*
+	 * 判断是否加载了initrd，无论对于哪种格式的initrd，即无论是CPIO-initrd还是Image-initrd，
+	 * bootloader都会将其拷贝到initrd_start；如果是initramfs，则该值为空
+	 */
+	if (initrd_start) {
+#ifdef CONFIG_BLK_DEV_RAM		// 若要支持Image-initrd，必须要配置CONFIG_BLK_DEV_RAM
+		int fd;
+		printk(KERN_INFO "Trying to unpack rootfs image as initramfs...\n");
+		/*
+		 * 变量initrd_start和initrd_end的取值参见reserve_initrd()和relocate_initrd()，
+		 * 这两个函数定义于arch/x86/kernel/setup.c，其调用关系如下：
+		 *     setup_arch() -> reserve_initrd() -> relocate_initrd()
+		 * 命令dmesg | grep RAMDISK的输出如下：
+		 *     [    0.000000] RAMDISK: [mem 0x34f4c000-0x3679dfff]
+		 * 
+		 * 区域[initrd_start, initrd_end]表示/initrd.image，示例如下：
+		 *     /initrd.img -> boot/initrd.img-3.11.0-12-generic
+		 * 映像/initrd.img是通过如下函数调用加载而来的，参见prepare_namespace()节:
+		 *     kernel_init() -> prepare_namespace() -> initrd_load()
+		 */
+		err = unpack_to_rootfs((char *)initrd_start, initrd_end - initrd_start);
+		if (!err) {
+			free_initrd();	// 释放initrd所占用的内存空间
+			return 0;
+		} else {
+			clean_rootfs();
+			unpack_to_rootfs(__initramfs_start, __initramfs_size);
+		}
+		printk(KERN_INFO "rootfs image is not initramfs (%s); looks like an initrd\n", err);
+
+		// 将内存中的initrd保存到initrd.image中，以释放内存空间
+		fd = sys_open((const char __user __force *) "/initrd.image", O_WRONLY|O_CREAT, 0700);
+		if (fd >= 0) {
+			sys_write(fd, (char *)initrd_start, initrd_end - initrd_start);
+			sys_close(fd);
+			free_initrd();	// 释放initrd所占用的内存空间
+		}
+#else
+		printk(KERN_INFO "Unpacking initramfs...\n");
+		err = unpack_to_rootfs((char *)initrd_start, initrd_end - initrd_start);
+		if (err)
+			printk(KERN_EMERG "Initramfs unpacking failed: %s\n", err);
+		free_initrd();
+#endif
+	}
+	return 0;
+}
+
+rootfs_initcall(populate_rootfs);
+```
+
+其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcallrootfs.init
+```
+
+### 11.3.4 Proc
+
+通常，Proc文件系统被挂载到/proc目录。
+
+#### 11.3.4.1 Proc简介
+
+See Documentation/filesystems/proc.txt
+
+#### 11.3.4.2 Proc的编译及初始化
+
+由fs/Makefile可知，Proc的编译与配置项CONFIG_PROC_FS有关：
+
+```
+obj-$(CONFIG_PROC_FS) += proc/
+
+Proc的初始化过程参见proc_root_init()节。
+
+变量proc_fs_type定义于fs/proc/root.c:
+static struct file_system_type proc_fs_type = {
+	.name		= "proc",
+	.mount		= proc_mount,	// 参见11.2.2.2.1.2.4 proc_mount()节
+	.kill_sb	= proc_kill_sb,
+};
+```
+
+#### 11.3.4.3 Proc的安装
+
+文件系统proc的安装过程参见proc_mount()节和文件系统的自动安装节。
+
+#### 11.3.4.4 /proc目录结构
+
+/proc/目录下的文件及文件夹
+
+| /proc/ | Description |
+| :----- | :---------- |
+| <1234> | Each of the numbered directories corresponds to an actual process ID. |
+| apm | Advanced power management info. |
+| bus | Directory containing bus specific information. |
+| cmdline | Kernel command line. |
+| cpuinfo | Information about the processor, such as its type, make, model, and performance. |
+| devices | List of device drivers configured into the currently running kernel (block and character). |
+| dma | Shows which DMA channels are being used at the moment. |
+| driver | Various drivers grouped here, currently rtc. |
+| execdomains | Execdomains, related to security. |
+| fb | Frame Buffer devices. |
+| filesystems | Filesystems configured/supported into/by the kernel. |
+| mounts | Mounted filesystems. |
+| fs | File system parameters. |
+| ide | This subdirectory contains information about all IDE devices of which the kernel is aware. There is one subdirectory for each IDE controller, the file drivers and a link for each IDE device, pointing to the device directory in the controller-specific subtree. |
+| interrupts | Shows which interrupts are in use, and how many of each there have been. |
+| iomem | Memory map. |
+| meminfo | Information about memory usage, both physical and swap. Concatenating this file produces similar results to using 'free' or the first few lines of 'top'. |
+| ioports | Which I/O ports are in use at the moment. |
+| irq | Masks for irq to cpu affinity. |
+| softirqs | Soft irq. |
+| isapnp | ISA PnP (Plug&Play) Info. |
+| kcore | An image of the physical memory of the system (can be ELF or A.OUT (deprecated in 2.4)). This is exactly the same size as your physical memory, but does not really take up that much memory; it is generated on the fly as programs access it. (Remember: unless you copy it elsewhere, nothing under /proc takes up any disk space at all.) |
+| kmsg | Messages output by the kernel. These are also routed to syslog. |
+| ksyms | Kernel symbol table. |
+| loadavg | The 'load average' of the system; three indicators of how much work the system has done during the last 1, 5 & 15 minutes. |
+| locks | Kernel locks. |
+| misc | Miscellaneous pieces of information. This is for information that has no real place within the rest of the proc filesystem. |
+| modules | Kernel modules currently loaded. Typically its output is the same as that given by the 'lsmod' command. |
+| mtrr | Information regarding mtrrs. |
+| net | Status information about network protocols. |
+| parport | The directory /proc/parport contains information about the parallel ports of your system. It has one subdirectory for each port, named after the port number (0, 1, 2, ...). |
+| partitions | Table of partitions known to the system. |
+| pci, bus/pci | Depreciated info of PCI bus. |
+| rtc | Real time clock. |
+| scsi | If you have a SCSI host adapter in your system, you'll find a subdirectory named after the driver for this adapter in /proc/scsi. |
+| self | A symbolic link to the process directory of the program that is looking at /proc. When two processes look at /proc, they get different links. This is mainly a convenience to make it easier for programs to get at their process directory. |
+| slabinfo | The slabinfo file gives information about memory usage at the slab level. |
+| stat | Overall/various statistics about the system, such as the number of page faults since the system was booted. |
+| swaps | Swap space utilization. |
+| sys | This is not only a source of information, it also allows you to change parameters within the kernel without the need for recompilation or even a system reboot. Refer to section 11.3.4.4.2 /proc/sys. |
+| sysvipc | Info of SysVIPC Resources (msg, sem, shm). |
+| tty | Information about the available and actually used tty's can be found in the directory /proc/tty. You'll find entries for drivers and line disciplines in this directory. |
+| uptime | The time the system has been up. |
+| version | The kernel version. |
+| video | BTTV info of video resources. |
+
+<p/>
+
+##### 11.3.4.4.1 /proc/kmsg
+
+/proc/kmsg是通过proc_kmsg_init()创建的，其定义于fs/proc/kmsg.c:
+
+```
+/*
+ * 变量proc_kmsg_operations中的函数均调用do_syslog()，
+ * 参见19.2.1.5.1 do_syslog()节
+ */
+static const struct file_operations proc_kmsg_operations = {
+	.read		= kmsg_read,
+	.poll		= kmsg_poll,
+	.open		= kmsg_open,
+	.release	= kmsg_release,
+	.llseek		= generic_file_llseek,
+};
+
+static int __init proc_kmsg_init(void)
+{
+	proc_create("kmsg", S_IRUSR, NULL, &proc_kmsg_operations);
+	return 0;
+}
+
+module_init(proc_kmsg_init);
+```
+
+##### 11.3.4.4.2 /proc/sys
+
+目录/proc/sys是由函数proc_sys_init()创建的，其调用关系如下：
+
+```
+start_kernel() 						// 参见4.3.4.1.4.3 start_kernel()节
+->  proc_root_init() 					// 参见4.3.4.1.4.3.12 proc_root_init()节
+    ->  register_filesystem(&proc_fs_type) 
+    ->  pid_ns_prepare_proc(&init_pid_ns) 
+        ->  kern_mount_data(&proc_fs_type, ns) 
+            ->  vfs_kern_mount() 
+                ->  mount_fs() 
+                    ->  type->mount()			// proc_fs_type->mount = proc_mount; 
+                        ->  proc_mount()		// 参见11.2.2.2.1.2.4 proc_mount()节
+                            ->  proc_fill_super() 
+                                ->  proc_get_inode() 
+    ->  proc_sys_init()					// 创建/proc/sys 目录
+```
+
+该函数定义于fs/proc/proc_sysctl.c:
+
+```
+int __init proc_sys_init(void)
+{
+	struct proc_dir_entry *proc_sys_root;
+
+	proc_sys_root = proc_mkdir("sys", NULL);
+	proc_sys_root->proc_iops = &proc_sys_dir_operations;
+	proc_sys_root->proc_fops = &proc_sys_dir_file_operations;
+	proc_sys_root->nlink = 0;
+	return 0;
+}
+
+// 目录/proc/sys的inode处理函数 
+static const struct inode_operations proc_sys_dir_operations = { 
+	.lookup		= proc_sys_lookup, 
+	.permission	= proc_sys_permission, 
+	.setattr	= proc_sys_setattr, 
+	.getattr	= proc_sys_getattr, 
+}; 
+
+// 目录/proc/sys的文件处理函数 
+static const struct file_operations proc_sys_dir_file_operations = { 
+	.read		= generic_read_dir, 
+	.readdir	= proc_sys_readdir, 
+	.llseek		= generic_file_llseek, 
+}; 
+
+static const struct file_operations proc_sys_file_operations = { 
+	.open		= proc_sys_open, 
+	.poll		= proc_sys_poll, 
+	.read		= proc_sys_read, 
+	.write		= proc_sys_write, 
+	.llseek		= default_llseek, 
+};
+```
+
+###### 11.3.4.4.2.0 与/proc/sys目录有关的数据结构
+
+有关/proc/sys目录的数据结构包含在kernel/sysctl.c中，其中包括：
+
+```
+static struct ctl_table_header root_table_header = {
+	{
+		{
+			.count		= 1,
+			.ctl_table	= root_table,
+			.ctl_entry	= LIST_HEAD_INIT(sysctl_table_root.default_set.list),
+		}
+	},
+	.root	= &sysctl_table_root,
+	.set	= &sysctl_table_root.default_set,
+};
+
+static struct ctl_table_root sysctl_table_root = {
+	.root_list 		= LIST_HEAD_INIT(sysctl_table_root.root_list),
+	.default_set.list	= LIST_HEAD_INIT(root_table_header.ctl_entry),
+};
+
+/*
+ * /proc/sys/目录除了包含下列子目录外，还包括子目录net和abi，其中：
+ * - net子目录是由？？？注册的
+ * - abi子目录是由arch/x86/vdso/vdso32-setup.c中的如下函数注册的：
+ *   ia32_binfmt_init()->register_sysctl_table(abi_root_table2)
+ */
+static struct ctl_table root_table[] = {
+	{
+		.procname	= "kernel",
+		.mode		= 0555,
+		.child		= kern_table,
+	},
+	{
+		.procname	= "vm",
+		.mode		= 0555,
+		.child		= vm_table,
+	},
+	{
+		.procname	= "fs",
+		.mode		= 0555,
+		.child		= fs_table,
+	},
+	{
+		.procname	= "debug",
+		.mode		= 0555,
+		.child		= debug_table,
+	},
+	{
+		.procname	= "dev",
+		.mode		= 0555,
+		.child		= dev_table,
+	},
+	{ }
+};
+```
+
+###### 11.3.4.4.2.1 Configure kernel parameters
+
+###### 11.3.4.4.2.1.1 echo "value" > /proc/sys/xxx
+
+使用ls -l来查看/proc/sys目录下的文件：
+* 若某文件可写，则说明可通过修改该文件来配置系统参数；
+* 若某文件不可写，则说明不能通过修改该文件来配置系统参数，而仅仅是列出一些系统信息而已。
+
+若文件可写，则可通过下列命令修改系统配置参数：
+
+```
+chenwx@chenwx ~/linux $ ll /proc/sys/kernel/hostname 
+-rw-r--r-- 1 root root 0 Jul 22 09:13 /proc/sys/kernel/hostname
+chenwx@chenwx ~/linux $ su
+chenwx linux # echo "chenwx-pc" > /proc/sys/kernel/hostname
+chenwx linux # cat /proc/sys/kernel/hostname 
+chenwx-pc 
+chenwx linux # sysctl -q kernel.hostname 
+kernel.hostname = chenwx-pc
+chenwx linux # hostname 
+chenwx-pc 
+```
+
+NOTE: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数节。
+
+###### 11.3.4.4.2.1.2 通过命令/sbin/sysctl配置内核参数
+
+可通过sysctl命令修改/proc/sys目录下的内核参数：
+
+```
+NAME 
+       sysctl - configure kernel parameters at runtime 
+
+SYNOPSIS 
+       sysctl [options] [variable[=value]] [...] 
+       sysctl -p [file or regexp] [...] 
+
+DESCRIPTION 
+       sysctl  is used to modify kernel parameters at runtime.  The parameters available are those
+       listed under /proc/sys/.  Procfs is required for sysctl support in Linux. You can use sysctl
+       to both read and write sysctl data. 
+
+PARAMETERS 
+       variable 
+              The name of a key to read from.  An example is kernel.ostype.  The '/' separator is
+              also accepted in place of a '.'. 
+
+       variable=value 
+              To set a key, use the form variable=value where variable is the key and value is the
+              value to set it to.  If the value contains quotes or characters which are parsed by
+              the shell, you may need to enclose the value in double quotes.  This requires the -w
+              parameter to use. 
+
+       -n, --values 
+              Use this option to disable printing of the key name when printing values. 
+
+       -e, --ignore 
+              Use this option to ignore errors about unknown keys. 
+
+       -N, --names 
+              Use this option to only print the names.  It may be useful with shells that have
+              programmable completion. 
+
+       -q, --quiet 
+              Use this option to not display the values set to stdout. 
+
+       -w, --write 
+              Use this option when you want to change a sysctl setting. 
+ 
+       -p[FILE], --load[=FILE] 
+              Load in sysctl settings from the file specified or /etc/sysctl.conf if none given.
+              Specifying - as filename means reading data from standard input.  Using this option
+              will mean arguments to sysctl are files, which are read in order they are specified.
+              The file argument can may be specified as reqular expression. 
+
+       -a, --all 
+              Display all values currently available. 
+
+       --deprecated 
+              Include deprecated parameters to --all values listing. 
+
+       -b, --binary 
+              Print value without new line. 
+
+       --system 
+              Load settings from all system configuration files. 
+              /run/sysctl.d/*.conf 
+              /etc/sysctl.d/*.conf 
+              /usr/local/lib/sysctl.d/*.conf 
+              /usr/lib/sysctl.d/*.conf 
+              /lib/sysctl.d/*.conf 
+              /etc/sysctl.conf 
+
+       -r, --pattern pattern 
+              Only apply settings that match pattern.  The pattern uses extended regular
+              expression syntax. 
+
+       -A     Alias of -a 
+
+       -d     Alias of -h 
+
+       -f     Alias of -p 
+
+       -X     Alias of -a 
+
+       -o     Does nothing in favour of BSD compatibility. 
+
+       -x     Does nothing in favour of BSD compatibility. 
+
+       -h, --help 
+              Display help text and exit. 
+
+       -V, --version 
+              Display version information and exit. 
+
+EXAMPLES 
+       /sbin/sysctl -a 
+       /sbin/sysctl -n kernel.hostname 
+       /sbin/sysctl -w kernel.domainname="example.com" 
+       /sbin/sysctl -p/etc/sysctl.conf 
+       /sbin/sysctl -a --pattern forward 
+       /sbin/sysctl -a --pattern forward$ 
+       /sbin/sysctl -a --pattern 'net.ipv4.conf.(eth|wlan)0.arp' 
+       /sbin/sysctl --system --pattern '^net.ipv6' 
+
+DEPRECATED PARAMETERS 
+       The base_reachable_time and retrans_time are deprecated.  The sysctl command does not allow
+       changing values of there parameters.  Users who insist to use deprecated kernel interfaces
+       should values to /proc file system by other means.  For example: 
+
+       echo 256 > /proc/sys/net/ipv6/neigh/eth0/base_reachable_time 
+
+FILES 
+       /proc/sys 
+       /etc/sysctl.conf 
+
+SEE ALSO 
+       sysctl.conf(5) regex(7) 
+
+AUTHOR 
+       George Staikos <staikos@0wned.org> 
+
+REPORTING BUGS 
+       Please send bug reports to <procps@freelists.org> 
+```
+
+可通过下列命令临时修改系统配置参数：
+
+```
+chenwx linux # sysctl -q kernel.hostname 
+kernel.hostname = chenwx-pc 
+chenwx linux # sysctl -w kernel.hostname="chenwx "
+kernel.hostname = chenwx 
+```
+
+**NOTE**: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数节。
+
+###### 11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数
+
+通过修改配置文件/etc/sysctl.conf来配置内核参数:
+
+```
+NAME 
+       sysctl.conf - sysctl preload/configuration file 
+
+DESCRIPTION 
+       sysctl.conf is a simple file containing sysctl values to be read in and set by sysctl.
+       The syntax is simply as follows: 
+
+              # comment 
+              ; comment 
+
+              token = value 
+
+       Note that blank lines are ignored, and whitespace before and after a token or value is
+       ignored, although a value can contain whitespace within. Lines which begin with a # or ;
+       are considered comments and ignored. 
+
+EXAMPLE 
+              # sysctl.conf sample 
+              # 
+                kernel.domainname = example.com 
+              ; this one has a space which will be written to the sysctl! 
+                kernel.modprobe = /sbin/mod probe 
+
+FILES 
+       /run/sysctl.d/*.conf 
+       /etc/sysctl.d/*.conf 
+       /usr/local/lib/sysctl.d/*.conf 
+       /usr/lib/sysctl.d/*.conf 
+       /lib/sysctl.d/*.conf 
+       /etc/sysctl.conf 
+              The paths where sysctl preload files usually exit.  See also sysctl option --system. 
+
+SEE ALSO 
+       sysctl(8) 
+
+AUTHOR 
+       George Staikos <staikos@0wned.org> 
+
+REPORTING BUGS 
+       Please send bug reports to <procps@freelists.org> 
+```
+
+修改完/etc/sysctl.conf后，新配置的参数并不会立即生效，需要执行下列命令使新配置的参数立即生效：
+
+```
+// 查看内核参数kernel.hostname的当前值
+chenwx ~ # cat /proc/sys/kernel/hostname 
+chenwx 
+chenwx ~ # hostname 
+chenwx 
+
+// 修改配置选项"kernel.hostname=chenwx-pc-2"
+chenwx ~ # vim /etc/sysctl.conf
+
+// 使配置参数立即生效
+chenwx ~ # sysctl -p
+kernel.hostname = chenwx-pc-2 
+chenwx ~ # cat /proc/sys/kernel/hostname 
+chenwx-pc-2 
+chenwx ~ # sysctl -q kernel.hostname
+kernel.hostname = chenwx-pc-2
+chenwx ~ # hostname 
+chenwx-pc-2 
+```
+
+###### 11.3.4.4.2.2 系统启动时如何加载/etc/sysctl.conf
+
+在系统启动时，进程init将执行配置文件/etc/init/*.conf，参见4.3.5.1.3.1 upstart节。当调用脚本/etc/init/procps.conf时，将执行/etc/sysctl.conf中配置的内核参数：
+
+```
+chenwx@chenwx ~ $ ll /etc/init/procps.conf 
+-rw-r--r-- 1 root root 363 Jan  6  2014 /etc/init/procps.conf 
+
+chenwx@chenwx ~ $ cat /etc/init/procps.conf 
+# procps - set sysctls from /etc/sysctl.conf 
+# 
+# This task sets kernel sysctl variables from /etc/sysctl.conf and 
+# /etc/sysctl.d 
+
+description	"set sysctls from /etc/sysctl.conf" 
+
+instance $UPSTART_EVENTS 
+env UPSTART_EVENTS= 
+
+start on virtual-filesystems or static-network-up 
+
+task 
+script 
+    cat /etc/sysctl.d/*.conf /etc/sysctl.conf | sysctl -e -p - 
+end script
+```
+
+#### 11.3.4.5 与proc文件系统有关的数据结构
+
+##### 11.3.4.5.1 struct proc_dir_entry
+
+该结构定义于include/linux/proc_fs.h:
+
+```
+/*
+ * This is not completely implemented yet. The idea is to
+ * create an in-memory tree (like the actual /proc filesystem
+ * tree) of these proc_dir_entries, so that we can dynamically
+ * add new files to /proc.
+ *
+ * The "next" pointer creates a linked list of one /proc directory,
+ * while parent/subdir create the directory structure (every
+ * /proc file has a parent, but "subdir" is NULL for all
+ * non-directory entries).
+ */
+
+typedef int (read_proc_t)(char *page, char **start, off_t off, int count, int *eof, void *data);
+typedef int (write_proc_t)(struct file *file, const char __user *buffer, unsigned long count, void *data);
+
+struct proc_dir_entry {
+	unsigned int			low_ino;
+	mode_t				mode;
+	nlink_t				nlink;
+	uid_t				uid;
+	gid_t				gid;
+	loff_t				size;
+	const struct inode_operations	*proc_iops;
+	/*
+	 * NULL ->proc_fops means "PDE is going away RSN" or
+	 * "PDE is just created". In either case, e.g. ->read_proc won't be
+	 * called because it's too late or too early, respectively.
+	 *
+	 * If you're allocating ->proc_fops dynamically, save a pointer
+	 * somewhere.
+	 */
+	const struct file_operations	*proc_fops;
+	struct proc_dir_entry		*next, *parent, *subdir;
+	void *data;
+
+	read_proc_t			*read_proc;
+	write_proc_t			*write_proc;
+
+	atomic_t			count;			/* use count */
+	int				pde_users;		/* number of callers into module in progress */
+
+	struct completion		*pde_unload_completion;
+	struct list_head		pde_openers;		/* who did ->open, but not ->release */
+	spinlock_t			pde_unload_lock;	/* proc_fops checks and pde_users bumps */
+
+	u8				namelen;
+	char				name[];
+};
+```
+
+#### 11.3.4.6 创建/删除目录
+
+* 函数proc_mkdir()用于创建目录；
+* 函数remove_proc_entry()用于删除目录或文件，参见11.3.4.7.3 remove_proc_entry()节。
+
+##### 11.3.4.6.1 proc_mkdir()
+
+该函数定义于fs/proc/generic.c:
+
+```
+struct proc_dir_entry *proc_mkdir(const char *name, struct proc_dir_entry *parent)
+{
+	return proc_mkdir_mode(name, S_IRUGO | S_IXUGO, parent);
+}
+
+struct proc_dir_entry *proc_mkdir_mode(const char *name, mode_t mode,
+				       struct proc_dir_entry *parent)
+{
+	struct proc_dir_entry *ent;
+
+	// 参见11.3.4.6.1.1 __proc_create()节
+	ent = __proc_create(&parent, name, S_IFDIR | mode, 2);
+	if (ent) {
+		// 参见11.3.4.6.1.2 proc_register()节
+		if (proc_register(parent, ent) < 0) {
+			kfree(ent);
+			ent = NULL;
+		}
+	}
+	return ent;
+}
+```
+
+###### 11.3.4.6.1.1 \__proc_create()
+
+该函数定义于fs/proc/generic.c:
+
+```
+static struct proc_dir_entry *__proc_create(struct proc_dir_entry **parent,
+					    const char *name, mode_t mode, nlink_t nlink)
+{
+	struct proc_dir_entry *ent = NULL;
+	const char *fn = name;
+	unsigned int len;
+
+	/* make sure name is valid */
+	if (!name || !strlen(name)) goto out;
+
+	if (xlate_proc_name(name, parent, &fn) != 0)
+		goto out;
+
+	/* At this point there must not be any '/' characters beyond *fn */
+	if (strchr(fn, '/'))
+		goto out;
+
+	len = strlen(fn);
+
+	ent = kmalloc(sizeof(struct proc_dir_entry) + len + 1, GFP_KERNEL);
+	if (!ent) goto out;
+
+	memset(ent, 0, sizeof(struct proc_dir_entry));
+	memcpy(ent->name, fn, len + 1);
+	ent->namelen = len;
+	ent->mode = mode;
+	ent->nlink = nlink;
+	atomic_set(&ent->count, 1);
+	ent->pde_users = 0;
+	spin_lock_init(&ent->pde_unload_lock);
+	ent->pde_unload_completion = NULL;
+	INIT_LIST_HEAD(&ent->pde_openers);
+
+out:
+	return ent;
+}
+```
+
+###### 11.3.4.6.1.2 proc_register()
+
+该函数定义于fs/proc/generic.c:
+
+```
+static int proc_register(struct proc_dir_entry * dir, struct proc_dir_entry * dp)
+{
+	unsigned int i;
+	struct proc_dir_entry *tmp;
+	
+	i = get_inode_number();
+	if (i == 0)
+		return -EAGAIN;
+	dp->low_ino = i;
+
+	if (S_ISDIR(dp->mode)) {
+		if (dp->proc_iops == NULL) {
+			dp->proc_fops = &proc_dir_operations;
+			dp->proc_iops = &proc_dir_inode_operations;
+		}
+		dir->nlink++;
+	} else if (S_ISLNK(dp->mode)) {
+		if (dp->proc_iops == NULL)
+			dp->proc_iops = &proc_link_inode_operations;
+	} else if (S_ISREG(dp->mode)) {
+		if (dp->proc_fops == NULL)
+			dp->proc_fops = &proc_file_operations;
+		if (dp->proc_iops == NULL)
+			dp->proc_iops = &proc_file_inode_operations;
+	}
+
+	spin_lock(&proc_subdir_lock);
+
+	for (tmp = dir->subdir; tmp; tmp = tmp->next)
+		if (strcmp(tmp->name, dp->name) == 0) {
+			WARN(1, KERN_WARNING "proc_dir_entry '%s/%s' already registered\n", dir->name, dp->name);
+			break;
+		}
+
+	dp->next = dir->subdir;
+	dp->parent = dir;
+	dir->subdir = dp;
+
+	spin_unlock(&proc_subdir_lock);
+
+	return 0;
+}
+```
+
+#### 11.3.4.7 创建/删除文件
+
+##### 11.3.4.7.1 proc_create()
+
+该函数定义于include/linux/proc_fs.h:
+
+```
+static inline struct proc_dir_entry *proc_create(const char *name, mode_t mode,
+						 struct proc_dir_entry *parent,
+						 const struct file_operations *proc_fops)
+{
+	return proc_create_data(name, mode, parent, proc_fops, NULL);
+}
+```
+
+其中，函数```proc_create_data()```定义于fs/proc/generic.c:
+
+```
+struct proc_dir_entry *proc_create_data(const char *name, mode_t mode,
+					struct proc_dir_entry *parent,
+					const struct file_operations *proc_fops, void *data)
+{
+	struct proc_dir_entry *pde;
+	nlink_t nlink;
+
+	if (S_ISDIR(mode)) {
+		if ((mode & S_IALLUGO) == 0)
+			mode |= S_IRUGO | S_IXUGO;
+		nlink = 2;
+	} else {
+		if ((mode & S_IFMT) == 0)
+			mode |= S_IFREG;
+		if ((mode & S_IALLUGO) == 0)
+			mode |= S_IRUGO;
+		nlink = 1;
+	}
+
+	// 参见11.3.4.6.1.1 __proc_create()节
+	pde = __proc_create(&parent, name, mode, nlink);
+	if (!pde)
+		goto out;
+
+	/*
+	 * 函数create_proc_entry()未为这两个域的赋值，
+	 * 参见11.3.4.7.2 create_proc_read_entry()节
+	 */
+	pde->proc_fops = proc_fops;
+	pde->data = data;
+
+	// 参见11.3.4.6.1.2 proc_register()节
+	if (proc_register(parent, pde) < 0)
+		goto out_free;
+	return pde;
+
+out_free:
+	kfree(pde);
+out:
+	return NULL;
+}
+```
+
+##### 11.3.4.7.2 create_proc_read_entry()
+
+函数```create_proc_read_entry()```定义于include/linux/proc_fs.h:
+
+```
+static inline struct proc_dir_entry *create_proc_read_entry(const char *name,
+		mode_t mode, struct proc_dir_entry *base, 
+		read_proc_t *read_proc, void * data)
+{
+	struct proc_dir_entry *res = create_proc_entry(name, mode, base);
+	if (res) {
+		// 读取该文件时调用指定的read_proc()函数
+		res->read_proc = read_proc;
+		res->data = data;
+	}
+	return res;
+}
+```
+
+其中，函数```create_proc_entry()```用于创建类型为struct proc_dir_entry的对象，其定义于include/linux/proc_fs.h:
+
+```
+struct proc_dir_entry *create_proc_entry(const char *name, mode_t mode,
+					 struct proc_dir_entry *parent)
+{
+	struct proc_dir_entry *ent;
+	nlink_t nlink;
+
+	if (S_ISDIR(mode)) {
+		if ((mode & S_IALLUGO) == 0)
+			mode |= S_IRUGO | S_IXUGO;
+		nlink = 2;
+	} else {
+		if ((mode & S_IFMT) == 0)
+			mode |= S_IFREG;
+		if ((mode & S_IALLUGO) == 0)
+			mode |= S_IRUGO;
+		nlink = 1;
+	}
+
+	// 参见11.3.4.6.1.1 __proc_create()节
+	ent = __proc_create(&parent, name, mode, nlink);
+	if (ent) {
+		// 参见11.3.4.6.1.2 proc_register()节
+		if (proc_register(parent, ent) < 0) {
+			kfree(ent);
+			ent = NULL;
+		}
+	}
+	return ent;
+}
+```
+
+##### 11.3.4.7.3 remove_proc_entry()
+
+该函数定义于fs/proc/generic.c:
+
+```
+/*
+ * Remove a /proc entry and free it if it's not currently in use.
+ */
+void remove_proc_entry(const char *name, struct proc_dir_entry *parent)
+{
+	struct proc_dir_entry **p;
+	struct proc_dir_entry *de = NULL;
+	const char *fn = name;
+	unsigned int len;
+
+	spin_lock(&proc_subdir_lock);
+	if (__xlate_proc_name(name, &parent, &fn) != 0) {
+		spin_unlock(&proc_subdir_lock);
+		return;
+	}
+	len = strlen(fn);
+
+	for (p = &parent->subdir; *p; p=&(*p)->next ) {
+		if (proc_match(len, fn, *p)) {
+			de = *p;
+			*p = de->next;
+			de->next = NULL;
+			break;
+		}
+	}
+	spin_unlock(&proc_subdir_lock);
+	if (!de) {
+		WARN(1, "name '%s'\n", name);
+		return;
+	}
+
+	spin_lock(&de->pde_unload_lock);
+	/*
+	 * Stop accepting new callers into module. If you're
+	 * dynamically allocating ->proc_fops, save a pointer somewhere.
+	 */
+	de->proc_fops = NULL;
+	/* Wait until all existing callers into module are done. */
+	if (de->pde_users > 0) {
+		DECLARE_COMPLETION_ONSTACK(c);
+
+		if (!de->pde_unload_completion)
+			de->pde_unload_completion = &c;
+
+		spin_unlock(&de->pde_unload_lock);
+
+		wait_for_completion(de->pde_unload_completion);
+
+		spin_lock(&de->pde_unload_lock);
+	}
+
+	while (!list_empty(&de->pde_openers)) {
+		struct pde_opener *pdeo;
+
+		pdeo = list_first_entry(&de->pde_openers, struct pde_opener, lh);
+		list_del(&pdeo->lh);
+		spin_unlock(&de->pde_unload_lock);
+		pdeo->release(pdeo->inode, pdeo->file);
+		kfree(pdeo);
+		spin_lock(&de->pde_unload_lock);
+	}
+	spin_unlock(&de->pde_unload_lock);
+
+	if (S_ISDIR(de->mode))
+		parent->nlink--;
+	de->nlink = 0;
+	WARN(de->subdir, KERN_WARNING "%s: removing non-empty directory "
+			"'%s/%s', leaking at least '%s'\n", __func__,
+			de->parent->name, de->name, de->subdir->name);
+	pde_put(de);
+}
+```
+
+#### 11.3.4.8 创建/删除符号链接
+
+##### 11.3.4.8.1 proc_symlink()
+
+该函数定义于fs/proc/generic.c:
+
+```
+struct proc_dir_entry *proc_symlink(const char *name,
+				    struct proc_dir_entry *parent, const char *dest)
+{
+	struct proc_dir_entry *ent;
+
+	// 参见11.3.4.6.1.1 __proc_create()节
+	ent = __proc_create(&parent, name,
+			  (S_IFLNK | S_IRUGO | S_IWUGO | S_IXUGO),1);
+
+	if (ent) {
+		ent->data = kmalloc((ent->size=strlen(dest))+1, GFP_KERNEL);
+		if (ent->data) {
+			strcpy((char*)ent->data,dest);
+			// 参见11.3.4.6.1.2 proc_register()节
+			if (proc_register(parent, ent) < 0) {
+				kfree(ent->data);
+				kfree(ent);
+				ent = NULL;
+			}
+		} else {
+			kfree(ent);
+			ent = NULL;
+		}
+	}
+	return ent;
+}
+```
+
+### 11.3.5 Sysfs
+
+通常，Sysfs文件系统被挂载到/sys目录。
+
+#### 11.3.5.1 Sysfs简介
+
+参见如下文档:
+* Documentation/filesystems/sysfs.txt
+* Documentation/filesystems/sysfs-pci.txt
+* Documentation/filesystems/sysfs-tagging.txt
+* Documentation/sysfs-rules.txt
+* Documentation/kobject.txt
+
+参见<<Linux Kernel Development, 3rd Edition>>第17. Devices and Modules章第sysfs节:
+
+The sysfs filesystem is an in-memory virtual filesystem that provides a view of the kobject hierarchy. It enables users to view the device topology of their system as a simple filesystem.
+
+Most systems mount it at /sys by doing:
+
+```
+$ mount -t sysfs sysfs /sys
+```
+
+The magic behind sysfs is simply tying kobjects to directory entries via the dentry member inside each kobject. The dentry structure represents directory entries. By linking kobjects to dentries, kobjects trivially map to directories. Exporting the kobjects as a filesystem is now as easy as building a tree of the dentries in memory.
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第13. I/O Architecture and Device Drivers章第The sysfs Filesystem节：
+
+The sysfs filesystem is a special filesystem similar to /proc that is usually mounted on the /sys directory. The /proc filesystem was the first special filesystem designed to allow User Mode applications to access kernel internal data structures. The /sysfs filesystem has essentially the same objective, but it provides additional information on kernel data structures; furthermore, /sysfs is organized in a more structured way than /proc. Likely, both /proc and /sysfs will continue to coexist in the near future.
+
+##### 11.3.5.1.0 Sysfs文件系统的内部结构及外部表现
+
+Sysfs文件系统的内部结构与外部表现:
+
+| sysfs在内核中的组成要素 | 在用户空间的显示 |
+| :------------------- | :------------ |
+| 内核对象(kobject) | 目录(struct sysfs_direct)，参见11.3.5.5 创建/删除目录节 |
+| 对象属性(attribute) | 文件(struct attribute)，参见11.3.5.6 创建/删除文件节 |
+| 对象关系(relationship) | 链接(Symbolic Link)，参见11.3.5.7 创建/删除符号链接节 |
+
+<p/>
+
+##### 11.3.5.1.1 /sys目录结构
+
+/sys的目录结构参见下表:
+
+| /sys目录 | Notes |
+| /sys/devices | 这是内核对系统中所有设备的分层次表达模型，也是/sys文件系统管理设备的最重要的目录结构 |
+| /sys/dev | 该目录下维护一个按字符设备和块设备的主次号码(major:minor)链接到真实的设备(/sys/devices下)的符号链接文件，它是在内核 2.6.26首次引入的 |
+| /sys/bus | 这是内核设备按总线类型分层放置的目录结构，/sys/devices中的所有设备都是连接于某种总线之下，在这里的每一种具体总线之下可以找到每一个具体设备的符号链接，它也是构成Linux统一设备模型的一部分 |
+| /sys/class | 这是按照设备功能分类的设备模型，如系统所有输入设备都会出现在/sys/class/input之下，而不论它们是以何种总线连接到系统，它也是构成Linux统一设备模型的一部分 |
+| /sys/block | 该目录包含系统中当前所有的块设备，按照功能来说放置在/sys/class之下会更合适，但只是由于历史遗留因素而一直存在于/sys/block, 但从2.6.22开始就已标记为过时，只有在打开了CONFIG_SYSFS_DEPRECATED配置下编译才会有这个目录的存在，并且在2.6.26内核中已正式移到/sys/class/block，旧的接口/sys/block为了向后兼容保留存在，但其中的内容已经变为指向它们在/sys/devices/中真实设备的符号链接文件 |
+| /sys/firmware | 这里是系统加载固件机制的对用户空间的接口，关于固件有专用于固件加载的一套API，在LDD3一书中有关于内核支持固件加载机制的更详细的介绍 |
+| /sys/fs | 这里按照设计是用于描述系统中所有文件系统，包括文件系统本身和按文件系统分类存放的已挂载点，但目前只有fuse，gfs2等少数文件系统支持sysfs接口，一些传统的虚拟文件系统(VFS)层次控制参数仍然在sysctl (/proc/sys/fs)接口中 |
+| /sys/kernel | 这里是内核所有可调整参数的位置，目前只有uevent_helper，kexec_loaded，mm，和新式的 slab分配器等几项较新的设计在使用它，其它内核可调整参数仍然位于 sysctl (/proc/sys/kernel)接口中 |
+| /sys/module | 这里有系统中所有模块的信息，不论这些模块是以内联(inlined)方式编译到内核映像文件(vmlinuz)中还是编译为外部模块(ko文件)，都可能会出现在/sys/module中：<br>- 编译为外部模块(ko文件)在加载后会出现对应的/sys/module/<module_name>/，并且在这个目录下会出现一些属性文件和属性目录来表示此外部模块的一些信息，如版本号、加载状态、所提供的驱动程序等；<br>- 编译为内联方式的模块则只在当它有非0属性的模块参数时会出现对应的/sys/module/<module_name>，这些模块的可用参数会出现在/sys/modules/<modname>/parameters/<param_name>中，如/sys/module/printk/parameters/time这个可读写参数控制着内联模块printk在打印内核消息时是否加上时间前缀。所有内联模块的参数也可以由"<module_name>.<param_name>=<value>"的形式写在内核启动参数上，如启动内核时加上参数"printk.time=1"与向"/sys/module/printk/parameters/time"写入1的效果相同。没有非0属性参数的内联模块不会出现于此目录下 |
+| /sys/power | 这里是系统中电源选项，这个目录下有几个属性文件可以用于控制整个机器的电源状态，如可以向其中写入控制命令让机器关机、重启等 |
+| /sys/slab | (对应2.6.23内核，在2.6.24以后移至/sys/kernel/slab)<br>从2.6.23开始可以选择SLAB内存分配器的实现，并且新的SLUB (Unqueued Slab Allocator)被设置为缺省值；如果编译了此选项，在/sys下就会出现/sys/slab，里面有每一个kmem_cache结构体的可调整参数。对应于旧的SLAB内存分配器下的/proc/slabinfo动态调整接口，新式的/sys/kernel/slab/<slab_name>接口中的各项信息和可调整项显得更为清晰 |
+
+<p/>
+
+#### 11.3.5.2 Sysfs的编译及初始化
+
+由fs/Makefile可知，Sysfs的编译与配置项CONFIG_SYSFS有关：
+
+```
+obj-$(CONFIG_SYSFS) += sysfs/
+```
+
+Sysfs的初始化过程参见sysfs_init()节。
+
+变量sysfs_fs_type定义于fs/sysfs/mount.c:
+
+```
+static struct file_system_type sysfs_fs_type = {
+	.name		= "sysfs",
+	/*
+	 * sysfs_mount()通过如下函数被调用，参见sysfs_mount()节：
+	 * sysfs_init()->kern_mount()->kern_mount_data()
+	 * ->vfs_kern_mount()->mount_fs()中的type->mount()
+	 */
+	.mount	= sysfs_mount,
+	.kill_sb	= sysfs_kill_sb,
+};
+```
+
+#### 11.3.5.3 Sysfs的安装
+
+文件系统sysfs的安装过程参见文件系统的自动安装节。
+
+#### 11.3.5.4 sysfs文件操作/sysfs_file_operations
+
+该变量定义于fs/sysfs/file.c:
+
+```
+const struct file_operations sysfs_file_operations = {
+	.read		= sysfs_read_file,
+	.write		= sysfs_write_file,
+	.llseek		= generic_file_llseek,
+	.open		= sysfs_open_file,
+	.release	= sysfs_release,
+	.poll		= sysfs_poll,
+};
+```
+
+该变量的引用关系如下：
+
+```
+sysfs_mount()			// 参见sysfs_mount()节
+-> sysfs_fill_super()		// 参见sysfs_fill_super()节
+   -> sysfs_get_inode()		// 参见sysfs_get_inode()节
+      -> sysfs_init_inode()	// 参见sysfs_get_inode()节
+```
+
+struct sysfs_direct树形结构:
+
+![sysfs_02](/assets/sysfs_02.jpg)
+
+##### 11.3.5.4.1 sysfs_open_file()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static int sysfs_open_file(struct inode *inode, struct file *file)
+{
+	/*
+	 * file->f_path.dentry->d_fsdata指向sysfs文件系统中的某个节点，
+	 * 参见Subjects/Chapter11_Filesystem/Figures/sysfs_02.jpg
+	 */
+	struct sysfs_dirent *attr_sd = file->f_path.dentry->d_fsdata;
+	struct kobject *kobj = attr_sd->s_parent->s_dir.kobj;
+	struct sysfs_buffer *buffer;
+	const struct sysfs_ops *ops;
+	int error = -EACCES;
+
+	/* need attr_sd for attr and ops, its parent for kobj */
+	if (!sysfs_get_active(attr_sd))
+		return -ENODEV;
+
+	/* every kobject with an attribute needs a ktype assigned */
+	if (kobj->ktype && kobj->ktype->sysfs_ops)
+		ops = kobj->ktype->sysfs_ops;
+	else {
+		WARN(1, KERN_ERR "missing sysfs attribute operations for "
+		       "kobject: %s\n", kobject_name(kobj));
+		goto err_out;
+	}
+
+	/* File needs write support.
+	 * The inode's perms must say it's ok, 
+	 * and we must have a store method.
+	 */
+	if (file->f_mode & FMODE_WRITE) {
+		if (!(inode->i_mode & S_IWUGO) || !ops->store)
+			goto err_out;
+	}
+
+	/* File needs read support.
+	 * The inode's perms must say it's ok, and we there
+	 * must be a show method for it.
+	 */
+	if (file->f_mode & FMODE_READ) {
+		if (!(inode->i_mode & S_IRUGO) || !ops->show)
+			goto err_out;
+	}
+
+	/*
+	 * 1) 分配buffer，并填充各域
+	 */
+
+	/* No error? Great, allocate a buffer for the file, and store it
+	 * it in file->private_data for easy access.
+	 */
+	error = -ENOMEM;
+	buffer = kzalloc(sizeof(struct sysfs_buffer), GFP_KERNEL);
+	if (!buffer)
+		goto err_out;
+
+	mutex_init(&buffer->mutex);
+	buffer->needs_read_fill = 1;
+	/*
+	 * buffer->ops在如下函数中被引用：
+	 * - sysfs_read_file()->fill_read_buffer()，参见sysfs_read_file()节和fill_read_buffer()节
+	 * - sysfs_write_file()->flush_write_buffer()，参见flush_write_buffer()节
+	 */
+	buffer->ops = ops;
+	/*
+	 * file->private_date在如下函数中被引用：
+	 * - sysfs_read_file()，参见sysfs_read_file()节
+	 * - sysfs_write_file()，参见sysfs_write_file()节
+	 */
+	file->private_data = buffer;
+
+	/*
+	 * 2) 将buffer链接到attr_sd->s_attr.open->buffers链表中
+	 */
+
+	/* make sure we have open dirent struct, 参见sysfs_get_open_dirent()节 */
+	error = sysfs_get_open_dirent(attr_sd, buffer);
+	if (error)
+		goto err_free;
+
+	/* open succeeded, put active references */
+	sysfs_put_active(attr_sd);
+	return 0;
+
+ err_free:
+	kfree(buffer);
+ err_out:
+	sysfs_put_active(attr_sd);
+	return error;
+}
+```
+
+###### 11.3.5.4.1.1 sysfs_get_open_dirent()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static int sysfs_get_open_dirent(struct sysfs_dirent *sd, struct sysfs_buffer *buffer)
+{
+	struct sysfs_open_dirent *od, *new_od = NULL;
+
+ retry:
+	/*
+	 * 2) 将新分配的new_od链接到sd->s_attr.open->buffers链表中
+	 */
+	spin_lock_irq(&sysfs_open_dirent_lock);
+
+	if (!sd->s_attr.open && new_od) {
+		sd->s_attr.open = new_od;
+		new_od = NULL;
+	}
+
+	od = sd->s_attr.open;
+	if (od) {
+		atomic_inc(&od->refcnt);
+		list_add_tail(&buffer->list, &od->buffers);
+	}
+
+	spin_unlock_irq(&sysfs_open_dirent_lock);
+
+	if (od) {
+		kfree(new_od);
+		return 0;
+	}
+
+	/*
+	 * 1) 分配类型为struct sysfs_open_dirent的变量new_od，并初始化
+	 */
+	/* not there, initialize a new one and retry */
+	new_od = kmalloc(sizeof(*new_od), GFP_KERNEL);
+	if (!new_od)
+		return -ENOMEM;
+
+	atomic_set(&new_od->refcnt, 0);
+	atomic_set(&new_od->event, 1);
+	init_waitqueue_head(&new_od->poll);
+	INIT_LIST_HEAD(&new_od->buffers);
+	goto retry;
+}
+```
+
+struct sysfs_open_direct结构:
+
+![sysfs_open_dirent](/assets/sysfs_open_dirent.jpg)
+
+##### 11.3.5.4.2 sysfs_read_file()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static ssize_t sysfs_read_file(struct file *file, char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	/*
+	 * file->private_data在sysfs_open_file()中赋值，
+	 * 参见sysfs_open_file()节
+	 */
+	struct sysfs_buffer *buffer = file->private_data;
+	ssize_t retval = 0;
+
+	mutex_lock(&buffer->mutex);
+	if (buffer->needs_read_fill || *ppos == 0) {
+		/*
+		 * 1) 调用ops->show()将内核空间中的某数据(由用户定义)拷贝到
+		 *    内核空间(buffer->page)中，参见fill_read_buffer()节
+		 */
+		retval = fill_read_buffer(file->f_path.dentry, buffer);
+		if (retval)
+			goto out;
+	}
+	pr_debug("%s: count = %zd, ppos = %lld, buf = %s\n",
+			   __func__, count, *ppos, buffer->page);
+	/*
+	 * 2) 将数据从内核空间(buffer->page)拷贝到用户空间(buf)，
+	 * 参见simple_read_from_buffer()节
+	 */
+	retval = simple_read_from_buffer(buf, count, ppos, buffer->page, buffer->count);
+
+out:
+	mutex_unlock(&buffer->mutex);
+	return retval;
+}
+```
+
+###### 11.3.5.4.2.1 fill_read_buffer()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static int fill_read_buffer(struct dentry *dentry, struct sysfs_buffer *buffer)
+{
+	// attr_sd对应于需要读取的sysfs中某节点的struct sysfs_dirent
+	struct sysfs_dirent *attr_sd = dentry->d_fsdata;
+	struct kobject *kobj = attr_sd->s_parent->s_dir.kobj;
+	// buffer->ops在sysfs_open_file()中赋值，参见sysfs_open_file()节
+	const struct sysfs_ops *ops = buffer->ops;
+	int ret = 0;
+	ssize_t count;
+
+	if (!buffer->page)
+		buffer->page = (char *)get_zeroed_page(GFP_KERNEL);
+	if (!buffer->page)
+		return -ENOMEM;
+
+	/* need attr_sd for attr and ops, its parent for kobj */
+	if (!sysfs_get_active(attr_sd))
+		return -ENODEV;
+
+	buffer->event = atomic_read(&attr_sd->s_attr.open->event);
+	/*
+	 * 调用ops->show()来将内核空间中的数据拷贝到buffer->page中；
+	 * 该函数由用户实现，并通过如下函数设置：
+	 * - kobject_init_and_add(.., &xxx_ktype, .., ..);
+	 * 其中，xxx_ktype.sysfs_ops = &xxx_sysfs_ops;
+	 */
+	count = ops->show(kobj, attr_sd->s_attr.attr, buffer->page);
+
+	sysfs_put_active(attr_sd);
+
+	/*
+	 * The code works fine with PAGE_SIZE return but it's likely to
+	 * indicate truncated result or overflow in normal use cases.
+	 */
+	if (count >= (ssize_t)PAGE_SIZE) {
+		print_symbol("fill_read_buffer: %s returned bad count\n", (unsigned long)ops->show);
+		/* Try to struggle along */
+		count = PAGE_SIZE - 1;
+	}
+	if (count >= 0) {
+		buffer->needs_read_fill = 0;
+		buffer->count = count;
+	} else {
+		ret = count;
+	}
+	return ret;
+}
+```
+
+##### 11.3.5.4.3 sysfs_write_file()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static ssize_t sysfs_write_file(struct file *file, const char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	/*
+	 * file->private_date在sysfs_open_file()中赋值，
+	 * 参见sysfs_open_file()节
+	 */
+	struct sysfs_buffer *buffer = file->private_data;
+	ssize_t len;
+
+	mutex_lock(&buffer->mutex);
+	/*
+	 * 1) 将数据从用户空间(buf)拷贝到内核空间(buffer->page)中，
+	 *    参见fill_write_buffer()节
+	 */
+	len = fill_write_buffer(buffer, buf, count);
+	/*
+	 * 2) 调用ops->store()将内核空间(buffer->page)中的数据拷贝到
+	 *    内核空间中的某处(由用户定义)，参见flush_write_buffer()节
+	 */
+	if (len > 0)
+		len = flush_write_buffer(file->f_path.dentry, buffer, len);
+	if (len > 0)
+		*ppos += len;
+	mutex_unlock(&buffer->mutex);
+	return len;
+}
+```
+
+###### 11.3.5.4.3.1 fill_write_buffer()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static int fill_write_buffer(struct sysfs_buffer *buffer, const char __user *buf, size_t count)
+{
+	int error;
+
+	if (!buffer->page)
+		buffer->page = (char *)get_zeroed_page(GFP_KERNEL);
+	if (!buffer->page)
+		return -ENOMEM;
+
+	if (count >= PAGE_SIZE)
+		count = PAGE_SIZE - 1;
+	error = copy_from_user(buffer->page, buf, count);
+	buffer->needs_read_fill = 1;
+	/* if buf is assumed to contain a string, terminate it by \0,
+	    so e.g. sscanf() can scan the string easily */
+	buffer->page[count] = 0;
+	return error ? -EFAULT : count;
+}
+```
+
+###### 11.3.5.4.3.2 flush_write_buffer()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+static int flush_write_buffer(struct dentry * dentry, struct sysfs_buffer * buffer, size_t count)
+{
+	struct sysfs_dirent *attr_sd = dentry->d_fsdata;
+	struct kobject *kobj = attr_sd->s_parent->s_dir.kobj;
+	// buffer->ops在sysfs_open_file()中赋值，参见sysfs_open_file()节
+	const struct sysfs_ops *ops = buffer->ops;
+	int rc;
+
+	/* need attr_sd for attr and ops, its parent for kobj */
+	if (!sysfs_get_active(attr_sd))
+		return -ENODEV;
+
+	/*
+	 * 调用ops->store()将内核空间(buffer->page)中的数据拷贝到
+	 * 内核空间中的某处(由用户定义)；该函数由用户实现
+	 */
+	rc = ops->store(kobj, attr_sd->s_attr.attr, buffer->page, count);
+
+	sysfs_put_active(attr_sd);
+
+	return rc;
+}
+```
+
+#### 11.3.5.5 创建/删除目录
+
+##### 11.3.5.5.1 sysfs_create_dir()
+
+函数sysfs_create_dir()的调用关系如下:
+
+```
+kobject_add(struct kobject *kobj,
+            struct kobject *parent,
+            const char *fmt, ...)			// 参见15.7.1.2.2 kobject_add()节
+-> kobject_add_varg(kobj, parent, fmt, args)		// 参见15.7.1.2.2.1 kobject_add_varg()节
+   -> kobject_add_internal(kobj)			// 参见15.7.1.2.2.2 kobject_add_internal()节
+      -> create_dir(kobj)				// 参见15.7.1.2.2.2.1 create_dir()/populate_dir()节
+         -> sysfs_create_dir(kobj)			// 参见本节
+
+kset_register(struct kset *k)
+-> kobject_add_internal(&k->kobj)			// 参见15.7.1.2.2.2 kobject_add_internal()节
+   -> create_dir(kobj)					// 参见15.7.1.2.2.2.1 create_dir()/populate_dir()节
+      -> sysfs_create_dir(kobj)				// 参见本节
+```
+
+函数```sysfs_create_dir()```定义于fs/sysfs/dir.c:
+
+```
+/**
+ *	sysfs_create_dir - create a directory for an object.
+ *	@kobj:		object we're creating directory for. 
+ */
+int sysfs_create_dir(struct kobject * kobj)
+{
+	enum kobj_ns_type type;
+	struct sysfs_dirent *parent_sd, *sd;
+	const void *ns = NULL;
+	int error = 0;
+
+	BUG_ON(!kobj);
+
+	/*
+	 * 若kobj的父节点kobj->parent不为空，则将新目录创建于kobj->parent->sd目录之下；
+	 * 否则，将新目录创建于sysfs顶级目录之下，即sysfs_root，参见sysfs_init()节
+	 */
+	if (kobj->parent)
+		parent_sd = kobj->parent->sd;
+	else
+		parent_sd = &sysfs_root;
+
+	/*
+	 * 获取父节点parent_sd的命名空间类型，若为KOBJ_NS_TYPE_NET，则调用函数
+	 * kobj->ktype->namespace()来获取命名空间类型，该函数是由kobject_init_and_add()设置的，
+	 * 参见15.7.1.1 kobject_init_and_add()节
+	 */
+	if (sysfs_ns_type(parent_sd))
+		ns = kobj->ktype->namespace(kobj);
+
+	// 获取kobj对应的kobj_ns_type
+	type = sysfs_read_ns_type(kobj);
+
+	/*
+	 * 为kobj创建对应的目录，并链接到kobj->sd.
+	 * 其中，kobject_name(kobj)用于获取kobj->name，
+	 * 而该内核对象名是由函数kobject_set_name()设置的
+	 */
+	error = create_dir(kobj, parent_sd, type, ns, kobject_name(kobj), &sd);
+	if (!error)
+		kobj->sd = sd;
+	return error;
+}
+
+static int create_dir(struct kobject *kobj, struct sysfs_dirent *parent_sd,
+		      enum kobj_ns_type type, const void *ns, const char *name,
+		      struct sysfs_dirent **p_sd)
+{
+	umode_t mode = S_IFDIR| S_IRWXU | S_IRUGO | S_IXUGO;
+	struct sysfs_addrm_cxt acxt;
+	struct sysfs_dirent *sd;
+	int rc;
+
+	/*
+	 * 从缓存sysfs_dir_cachep(参见4.3.4.1.4.3.11.4.1 sysfs_init()节)中
+	 * 分配类型为struct sysfs_dirent的对象并初始化，该对象被链接到kobj->sd
+	 */
+	sd = sysfs_new_dirent(name, mode, SYSFS_DIR);
+	if (!sd)
+		return -ENOMEM;
+
+	sd->s_flags |= (type << SYSFS_NS_TYPE_SHIFT);
+	sd->s_ns = ns;
+	sd->s_dir.kobj = kobj;
+
+	/*
+	 * link sd to its parent parent_sd (that’s sd->s_parent = parent_sd),
+	 * and its sibling list. 参见11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()节
+	 */
+	sysfs_addrm_start(&acxt, parent_sd);
+	rc = sysfs_add_one(&acxt, sd);
+	sysfs_addrm_finish(&acxt);
+
+	// 若成功，则返回刚刚创建的sd; 否则，释放该sd并返回错误码
+	if (rc == 0)
+		*p_sd = sd;
+	else
+		sysfs_put(sd);
+
+	return rc;
+}
+```
+
+###### 11.3.5.5.1.1 sysfs_add_one()/\__sysfs_add_one()
+
+该函数定义于fs/sysfs/dir.c:
+
+```
+/**
+ *	sysfs_add_one - add sysfs_dirent to parent
+ *	@acxt: addrm context to use
+ *	@sd: sysfs_dirent to be added
+ *
+ *	Get @acxt->parent_sd and set sd->s_parent to it and increment
+ *	nlink of parent inode if @sd is a directory and link into the
+ *	children list of the parent.
+ *
+ *	This function should be called between calls to
+ *	sysfs_addrm_start() and sysfs_addrm_finish() and should be
+ *	passed the same @acxt as passed to sysfs_addrm_start().
+ *
+ *	LOCKING:
+ *	Determined by sysfs_addrm_start().
+ *
+ *	RETURNS:
+ *	0 on success, -EEXIST if entry with the given name already
+ *	exists.
+ */
+int sysfs_add_one(struct sysfs_addrm_cxt *acxt, struct sysfs_dirent *sd)
+{
+	int ret;
+
+	ret = __sysfs_add_one(acxt, sd);
+	if (ret == -EEXIST) {
+		char *path = kzalloc(PATH_MAX, GFP_KERNEL);
+		WARN(1, KERN_WARNING
+		     "sysfs: cannot create duplicate filename '%s'\n",
+		     (path == NULL) ? sd->s_name :
+		     strcat(strcat(sysfs_pathname(acxt->parent_sd, path), "/"),
+		            sd->s_name));
+		kfree(path);
+	}
+
+	return ret;
+}
+
+int __sysfs_add_one(struct sysfs_addrm_cxt *acxt, struct sysfs_dirent *sd)
+{
+	struct sysfs_inode_attrs *ps_iattr;
+
+	if (!!sysfs_ns_type(acxt->parent_sd) != !!sd->s_ns) {
+		WARN(1, KERN_WARNING "sysfs: ns %s in '%s' for '%s'\n",
+			sysfs_ns_type(acxt->parent_sd)? "required": "invalid",
+			acxt->parent_sd->s_name, sd->s_name);
+		return -EINVAL;
+	}
+
+	/*
+	 * 从红黑树acxt->parent_sd->s_dir.name_tree.rb_node中查找
+	 * 名为sd->s_name的元素，若已存在同名元素，则返回错误码-EEXIST.
+	 * 注：红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
+	 * 链接的是struct sysfs_dirent->name_node元素
+	 */
+	if (sysfs_find_dirent(acxt->parent_sd, sd->s_ns, sd->s_name))
+		return -EEXIST;
+
+	// 设置父目录
+	sd->s_parent = sysfs_get(acxt->parent_sd);
+
+	/*
+	 * 将sd->inode_node链接到父目录的红黑树struct sysfs_dirent->s_dir.inode_tree.rb_node中，
+	 * 将sd->name_node链接到父目录的红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
+	 */
+	sysfs_link_sibling(sd);
+
+	/* Update timestamps on the parent */
+	ps_iattr = acxt->parent_sd->s_iattr;
+	if (ps_iattr) {
+		struct iattr *ps_iattrs = &ps_iattr->ia_iattr;
+		ps_iattrs->ia_ctime = ps_iattrs->ia_mtime = CURRENT_TIME;
+	}
+
+	return 0;
+}
+
+/**
+ *	sysfs_link_sibling - link sysfs_dirent into sibling list
+ *	@sd: sysfs_dirent of interest
+ *
+ *	Link @sd into its sibling list which starts from
+ *	sd->s_parent->s_dir.children.
+ *
+ *	Locking:
+ *	mutex_lock(sysfs_mutex)
+ */
+static void sysfs_link_sibling(struct sysfs_dirent *sd)
+{
+	struct sysfs_dirent *parent_sd = sd->s_parent;
+
+	struct rb_node **p;
+	struct rb_node *parent;
+
+	/*
+	 * 此前create_dir()->sysfs_new_dirent(name, mode, SYSFS_DIR)
+	 * 将sd->s_flags设置为SYSFS_DIR. 故此处增加父目录中的子目录计数
+	 */
+	if (sysfs_type(sd) == SYSFS_DIR)
+		parent_sd->s_dir.subdirs++;
+
+	// 1) 将sd->inode_node链接到父目录的红黑树struct sysfs_dirent->s_dir.inode_tree.rb_node中
+	p = &parent_sd->s_dir.inode_tree.rb_node;
+	parent = NULL;
+	while (*p) {
+		parent = *p;
+#define node	rb_entry(parent, struct sysfs_dirent, inode_node)
+		if (sd->s_ino < node->s_ino) {
+			p = &node->inode_node.rb_left;
+		} else if (sd->s_ino > node->s_ino) {
+			p = &node->inode_node.rb_right;
+		} else {
+			printk(KERN_CRIT "sysfs: inserting duplicate inode '%lx'\n", (unsigned long) sd->s_ino);
+			BUG();
+		}
+#undef node
+	}
+	// 参见15.6.5.1 rb_link_node()节
+	rb_link_node(&sd->inode_node, parent, p);
+	// 参见15.6.5.2 rb_insert_color()节
+	rb_insert_color(&sd->inode_node, &parent_sd->s_dir.inode_tree);
+
+	// 2) 将sd->name_node链接到父目录的红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
+	p = &parent_sd->s_dir.name_tree.rb_node;
+	parent = NULL;
+	while (*p) {
+		int c;
+		parent = *p;
+#define node	rb_entry(parent, struct sysfs_dirent, name_node)
+		c = strcmp(sd->s_name, node->s_name);
+		if (c < 0) {
+			p = &node->name_node.rb_left;
+		} else {
+			p = &node->name_node.rb_right;
+		}
+#undef node
+	}
+	// 参见15.6.5.1 rb_link_node()节
+	rb_link_node(&sd->name_node, parent, p);
+	// 参见15.6.5.2 rb_insert_color()节
+	rb_insert_color(&sd->name_node, &parent_sd->s_dir.name_tree);
+}
+```
+
+##### 11.3.5.5.2 sysfs_remove_dir()
+
+该函数定义于fs/sysfs/dir.c:
+
+```
+/**
+ *	sysfs_remove_dir - remove an object's directory.
+ *	@kobj:	object.
+ *
+ *	The only thing special about this is that we remove any files in
+ *	the directory before we remove the directory, and we've inlined
+ *	what used to be sysfs_rmdir() below, instead of calling separately.
+ */
+void sysfs_remove_dir(struct kobject * kobj)
+{
+	struct sysfs_dirent *sd = kobj->sd;
+
+	spin_lock(&sysfs_assoc_lock);
+	kobj->sd = NULL;
+	spin_unlock(&sysfs_assoc_lock);
+
+	__sysfs_remove_dir(sd);
+}
+
+static void __sysfs_remove_dir(struct sysfs_dirent *dir_sd)
+{
+	struct sysfs_addrm_cxt acxt;
+	struct rb_node *pos;
+
+	if (!dir_sd)
+		return;
+
+	pr_debug("sysfs %s: removing dir\n", dir_sd->s_name);
+	sysfs_addrm_start(&acxt, dir_sd);
+	pos = rb_first(&dir_sd->s_dir.inode_tree);
+	while (pos) {
+		struct sysfs_dirent *sd = rb_entry(pos, struct sysfs_dirent, inode_node);
+		pos = rb_next(pos);
+		if (sysfs_type(sd) != SYSFS_DIR)
+			sysfs_remove_one(&acxt, sd);
+	}
+	sysfs_addrm_finish(&acxt);
+
+	remove_dir(dir_sd);
+}
+
+static void remove_dir(struct sysfs_dirent *sd)
+{
+	struct sysfs_addrm_cxt acxt;
+
+	sysfs_addrm_start(&acxt, sd->s_parent);
+	sysfs_remove_one(&acxt, sd);
+	sysfs_addrm_finish(&acxt);
+}
+
+void sysfs_remove_one(struct sysfs_addrm_cxt *acxt, struct sysfs_dirent *sd)
+{
+	struct sysfs_inode_attrs *ps_iattr;
+
+	BUG_ON(sd->s_flags & SYSFS_FLAG_REMOVED);
+
+	/*
+	 * 将sd->inode_node从父目录的红黑树struct sysfs_dirent->s_dir.inode_tree.rb_node中删除，
+	 * 将sd->name_node从父目录的红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中删除
+	 */
+	sysfs_unlink_sibling(sd);
+
+	/* Update timestamps on the parent */
+	ps_iattr = acxt->parent_sd->s_iattr;
+	if (ps_iattr) {
+		struct iattr *ps_iattrs = &ps_iattr->ia_iattr;
+		ps_iattrs->ia_ctime = ps_iattrs->ia_mtime = CURRENT_TIME;
+	}
+
+	/*
+	 * 将sd添加到acxt->removed中，该元素将在下列函数调用中进行下一步处理:
+	 * __sysfs_remove_dir()->sysfs_addrm_finish(&acxt)
+	 */
+	sd->s_flags |= SYSFS_FLAG_REMOVED;
+	sd->u.removed_list = acxt->removed;
+	acxt->removed = sd;
+}
+```
+
+#### 11.3.5.6 创建/删除文件
+
+##### 11.3.5.6.1 sysfs_create_files()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+int sysfs_create_files(struct kobject *kobj, const struct attribute **ptr)
+{
+	int err = 0;
+	int i;
+
+	for (i = 0; ptr[i] && !err; i++)
+		err = sysfs_create_file(kobj, ptr[i]);		// 参见11.3.5.6.2 sysfs_create_file()节
+	if (err)
+		while (--i >= 0)
+			sysfs_remove_file(kobj, ptr[i]);	// 参见11.3.5.6.3 sysfs_remove_file()节
+	return err;
+}
+```
+
+##### 11.3.5.6.2 sysfs_create_file()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+/**
+ *	sysfs_create_file - create an attribute file for an object.
+ *	@kobj:	object we're creating for. 
+ *	@attr:	attribute descriptor.
+ */
+
+int sysfs_create_file(struct kobject * kobj, const struct attribute * attr)
+{
+	BUG_ON(!kobj || !kobj->sd || !attr);
+
+	// 参见11.3.5.6.2.1 sysfs_add_file()节
+	return sysfs_add_file(kobj->sd, attr, SYSFS_KOBJ_ATTR);
+}
+```
+
+###### 11.3.5.6.2.1 sysfs_add_file()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+int sysfs_add_file(struct sysfs_dirent *dir_sd, const struct attribute *attr, int type)
+{
+	return sysfs_add_file_mode(dir_sd, attr, type, attr->mode);
+}
+
+int sysfs_add_file_mode(struct sysfs_dirent *dir_sd,
+			const struct attribute *attr, int type, mode_t amode)
+{
+	umode_t mode = (amode & S_IALLUGO) | S_IFREG;
+	struct sysfs_addrm_cxt acxt;
+	struct sysfs_dirent *sd;
+	const void *ns;
+	int rc;
+
+	rc = sysfs_attr_ns(dir_sd->s_dir.kobj, attr, &ns);
+	if (rc)
+		return rc;
+
+	sd = sysfs_new_dirent(attr->name, mode, type);
+	if (!sd)
+		return -ENOMEM;
+
+	sd->s_ns = ns;
+	/*
+	 * 为什么如下调用中也设置sd->s_attr.attr，
+	 * 而不是设置sd->s_bin_attr.attr?
+	 * sysfs_create_bin_file()
+	 * ->sysfs_add_file(.., SYSFS_KOBJ_BIN_ATTR)
+	 * ->sysfs_add_file_mode()
+	 */
+	sd->s_attr.attr = (void *)attr;
+	sysfs_dirent_init_lockdep(sd);
+
+	sysfs_addrm_start(&acxt, dir_sd);
+	// 参见11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()节
+	rc = sysfs_add_one(&acxt, sd);
+	sysfs_addrm_finish(&acxt);
+
+	if (rc)
+		sysfs_put(sd);
+
+	return rc;
+}
+```
+
+##### 11.3.5.6.3 sysfs_remove_file()
+
+该函数定义于fs/sysfs/file.c:
+
+```
+/**
+ *	sysfs_remove_file - remove an object attribute.
+ *	@kobj:	object we're acting for.
+ *	@attr:	attribute descriptor.
+ *
+ *	Hash the attribute name and kill the victim.
+ */
+/*
+ * After the call, the attribute will no longer appear
+ * in the kobject's sysfs entry. Do be aware, however,
+ * that a user-space process could have an open file
+ * descriptor for that attribute, and that show() and
+ * store() calls are still possible after the attribute
+ * has been removed.
+ */
+void sysfs_remove_file(struct kobject * kobj, const struct attribute * attr)
+{
+	const void *ns;
+
+	if (sysfs_attr_ns(kobj, attr, &ns))
+		return;
+
+	sysfs_hash_and_remove(kobj->sd, ns, attr->name);
+}
+
+int sysfs_hash_and_remove(struct sysfs_dirent *dir_sd, const void *ns, const char *name)
+{
+	struct sysfs_addrm_cxt acxt;
+	struct sysfs_dirent *sd;
+
+	if (!dir_sd)
+		return -ENOENT;
+
+	sysfs_addrm_start(&acxt, dir_sd);
+
+	/*
+	 * 从红黑树dir_sd->parent_sd->s_dir.name_tree.rb_node中
+	 * 查找名为name的元素
+	 * 注：红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
+	 * 链接的是struct sysfs_dirent->name_node元素
+	 */
+	sd = sysfs_find_dirent(dir_sd, ns, name);
+	if (sd)
+		sysfs_remove_one(&acxt, sd);
+
+	sysfs_addrm_finish(&acxt);
+
+	if (sd)
+		return 0;
+	else
+		return -ENOENT;
+}
+```
+
+##### 11.3.5.6.4 sysfs_create_bin_file()
+
+**Binary attributes**
+
+The sysfs conventions call for all attributes to contain a single value in a human-readable text format. That said, there is an occasional, rare need for the creation of attributes which can handle larger chunks of binary data. In the 2.6.0-test kernel, the only use of binary attributes is in the firmware subsystem. When a device requiring firmware is encountered in the system, a user-space program can be started (via the hotplug mechanism); that program then passes the firmware code to the kernel via binary sysfs attribute. If you are contemplating any other use of binary attributes, you should think carefully and be sure there is no other way to accomplish your objective.
+
+该函数定义于fs/sysfs/bin.c:
+
+```
+/**
+ *	sysfs_create_bin_file - create binary file for object.
+ *	@kobj:	object.
+ *	@attr:	attribute descriptor.
+ */
+int sysfs_create_bin_file(struct kobject *kobj, const struct bin_attribute *attr)
+{
+	BUG_ON(!kobj || !kobj->sd || !attr);
+
+	// 参见11.3.5.6.2.1 sysfs_add_file()节
+	return sysfs_add_file(kobj->sd, &attr->attr, SYSFS_KOBJ_BIN_ATTR);
+}
+```
+
+对sysfs文件系统中二进制文件的读写是由fs/sysfs/bin.c中的bin_fops定义的：
+
+```
+const struct file_operations bin_fops = {
+	.read		= read,
+	.write		= write,
+	.mmap		= mmap,
+	.llseek		= generic_file_llseek,
+	.open		= open,
+	.release	= release,
+};
+```
+
+而不是由struct sysfs_dirent->s_bin_attr->bin_attr中的函数指针指定的函数完成的。
+
+##### 11.3.5.6.5 sysfs_remove_bin_file()
+
+该函数定义于fs/sysfs/bin.c:
+
+```
+/**
+ *	sysfs_remove_bin_file - remove binary file for object.
+ *	@kobj:	object.
+ *	@attr:	attribute descriptor.
+ */
+void sysfs_remove_bin_file(struct kobject *kobj, const struct bin_attribute *attr)
+{
+	// 参见11.3.5.6.3 sysfs_remove_file()节
+	sysfs_hash_and_remove(kobj->sd, NULL, attr->attr.name);
+}
+```
+
+#### 11.3.5.7 创建/删除符号链接
+
+##### 11.3.5.7.1 sysfs_create_link()
+
+该函数定义于fs/sysfs/symlink.c:
+
+```
+/**
+ *	sysfs_create_link - create symlink between two objects.
+ *	@kobj:		object whose directory we're creating the link in.
+ *	@target:	object we're pointing to.
+ *	@name:		name of the symlink.
+ */
+/*
+ * The function will create a link (called name) pointing to
+ * target's sysfs entry as an attribute of kobj. It will be
+ * a relative link, so it works regardless of where sysfs is
+ * mounted on any particular system.
+ *
+ * NOTE： The link will persist even if target is removed from
+ * the system.
+ */
+int sysfs_create_link(struct kobject *kobj, struct kobject *target, const char *name)
+{
+	return sysfs_do_create_link(kobj, target, name, 1);
+}
+
+static int sysfs_do_create_link(struct kobject *kobj, struct kobject *target, const char *name, int warn)
+{
+	struct sysfs_dirent *parent_sd = NULL;
+	struct sysfs_dirent *target_sd = NULL;
+	struct sysfs_dirent *sd = NULL;
+	struct sysfs_addrm_cxt acxt;
+	enum kobj_ns_type ns_type;
+	int error;
+
+	BUG_ON(!name);
+
+	/*
+	 * 若kobj->parent不为空，则新目录创建于kobj->parent->sd
+	 * 目录之下；否则，新目录创建于sysfs顶级目录
+	 */
+	if (!kobj)
+		parent_sd = &sysfs_root;
+	else
+		parent_sd = kobj->sd;
+
+	error = -EFAULT;
+	if (!parent_sd)
+		goto out_put;
+
+	/* target->sd can go away beneath us but is protected with
+	 * sysfs_assoc_lock.  Fetch target_sd from it.
+	 */
+	spin_lock(&sysfs_assoc_lock);
+	if (target->sd)
+		target_sd = sysfs_get(target->sd);
+	spin_unlock(&sysfs_assoc_lock);
+
+	error = -ENOENT;
+	if (!target_sd)
+		goto out_put;
+
+	error = -ENOMEM;
+	sd = sysfs_new_dirent(name, S_IFLNK|S_IRWXUGO, SYSFS_KOBJ_LINK);
+	if (!sd)
+		goto out_put;
+
+	ns_type = sysfs_ns_type(parent_sd);
+	if (ns_type)
+		sd->s_ns = target->ktype->namespace(target);
+	sd->s_symlink.target_sd = target_sd;
+	target_sd = NULL;	/* reference is now owned by the symlink */
+
+	sysfs_addrm_start(&acxt, parent_sd);
+
+	// 参见11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()节
+	/* Symlinks must be between directories with the same ns_type */
+	if (!ns_type ||
+	    (ns_type == sysfs_ns_type(sd->s_symlink.target_sd->s_parent))) {
+		if (warn)
+			error = sysfs_add_one(&acxt, sd);
+		else
+			error = __sysfs_add_one(&acxt, sd);
+	} else {
+		error = -EINVAL;
+		WARN(1, KERN_WARNING
+			"sysfs: symlink across ns_types %s/%s -> %s/%s\n",
+			parent_sd->s_name,
+			sd->s_name,
+			sd->s_symlink.target_sd->s_parent->s_name,
+			sd->s_symlink.target_sd->s_name);
+	}
+	sysfs_addrm_finish(&acxt);
+
+	if (error)
+		goto out_put;
+
+	return 0;
+
+out_put:
+	sysfs_put(target_sd);
+	sysfs_put(sd);
+	return error;
+}
+```
+
+##### 11.3.5.7.2 sysfs_remove_link()
+
+该函数定义于fs/sysfs/symlink.c:
+
+```
+/**
+ *	sysfs_remove_link - remove symlink in object's directory.
+ *	@kobj:	object we're acting for.
+ *	@name:	name of the symlink to remove.
+ */
+void sysfs_remove_link(struct kobject * kobj, const char * name)
+{
+	struct sysfs_dirent *parent_sd = NULL;
+
+	if (!kobj)
+		parent_sd = &sysfs_root;
+	else
+		parent_sd = kobj->sd;
+
+	// 参见11.3.5.6.3 sysfs_remove_file()节
+	sysfs_hash_and_remove(parent_sd, NULL, name);
+}
+```
+
+### 11.3.6 FUSE
+
+Fuse文件系统包括Fuseblk，Fusefs，Fusectl这几部分。
+
+#### 11.3.6.1 FUSE简介
+
+参见如下文档：
+* Documentation/filesystems/fuse.txt
+* http://fuse.sourceforge.net/
+
+How does it work?
+
+![Fuse](/assets/Fuse.png)
+
+#### 11.3.6.2 FUSE的编译及初始化
+
+由fs/Makefile可知，FUSE的编译与配置项CONFIG_FUSE_FS有关：
+
+```
+obj-$(CONFIG_FUSE_FS) += fuse/
+```
+
+FUSE的初始化代码参见fs/fuse/inode.c:
+
+```
+struct list_head fuse_conn_list;
+
+static int __init fuse_init(void)
+{
+	int res;
+
+	printk(KERN_INFO "fuse init (API version %i.%i)\n",
+			 FUSE_KERNEL_VERSION, FUSE_KERNEL_MINOR_VERSION);
+
+	INIT_LIST_HEAD(&fuse_conn_list);
+
+	// 注册fuseblk和fuse文件系统，参见fuse_fs_init()节
+	res = fuse_fs_init();
+	if (res)
+		goto err;
+
+	// 参见fuse_dev_init()节
+	res = fuse_dev_init();
+	if (res)
+		goto err_fs_cleanup;
+
+	/*
+	 * 创建/sys/fs/fuse和/sys/fs/fuse/connections目录，
+	 * 参见fuse_sysfs_init()节
+	 */
+	res = fuse_sysfs_init();
+	if (res)
+		goto err_dev_cleanup;
+
+	// 注册fusectl文件系统，参见fuse_ctl_init()节
+	res = fuse_ctl_init();
+	if (res)
+		goto err_sysfs_cleanup;
+
+	// 调整max_user_bgreq和max_user_congthresh的取值
+	sanitize_global_limit(&max_user_bgreq);
+	sanitize_global_limit(&max_user_congthresh);
+
+	return 0;
+
+ err_sysfs_cleanup:
+	fuse_sysfs_cleanup();
+ err_dev_cleanup:
+	fuse_dev_cleanup();
+ err_fs_cleanup:
+	fuse_fs_cleanup();
+ err:
+	return res;
+}
+
+static void __exit fuse_exit(void)
+{
+	printk(KERN_DEBUG "fuse exit\n");
+
+	fuse_ctl_cleanup();
+	fuse_sysfs_cleanup();
+	fuse_fs_cleanup();
+	fuse_dev_cleanup();
+}
+
+module_init(fuse_init);
+module_exit(fuse_exit);
+```
+
+当FUSE编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+##### 11.3.6.2.1 fuse_fs_init()
+
+该函数定义于fs/fuse/inode.c:
+
+```
+static struct kmem_cache *fuse_inode_cachep;
+
+static struct file_system_type fuse_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "fuse",
+	.fs_flags	= FS_HAS_SUBTYPE,			// 参见get_fs_type()节
+	.mount		= fuse_mount,
+	.kill_sb	= fuse_kill_sb_anon,
+};
+
+#ifdef CONFIG_BLOCK
+static struct file_system_type fuseblk_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "fuseblk",
+	.mount		= fuse_mount_blk,
+	.kill_sb	= fuse_kill_sb_blk,
+	.fs_flags	= FS_REQUIRES_DEV | FS_HAS_SUBTYPE,	// 参见get_fs_type()节
+};
+
+static inline int register_fuseblk(void)
+{
+	return register_filesystem(&fuseblk_fs_type);
+}
+
+static inline void unregister_fuseblk(void)
+{
+	unregister_filesystem(&fuseblk_fs_type);
+}
+#else
+...
+#endif
+
+static int __init fuse_fs_init(void)
+{
+	int err;
+
+	// 参见Create a Specific Cache/kmem_cache_create()节
+	fuse_inode_cachep = kmem_cache_create("fuse_inode", sizeof(struct fuse_inode),
+					      0, SLAB_HWCACHE_ALIGN, fuse_inode_init_once);
+	err = -ENOMEM;
+	if (!fuse_inode_cachep)
+		goto out;
+
+	// 注册fuseblk文件系统
+	err = register_fuseblk();
+	if (err)
+		goto out2;
+
+	// 注册fuse文件系统
+	err = register_filesystem(&fuse_fs_type);
+	if (err)
+		goto out3;
+
+	return 0;
+
+ out3:
+	unregister_fuseblk();
+ out2:
+	kmem_cache_destroy(fuse_inode_cachep);
+ out:
+	return err;
+}
+```
+
+##### 11.3.6.2.2 fuse_dev_init()
+
+该函数定义于fs/fuse/dev.c:
+
+```
+static struct kmem_cache *fuse_req_cachep;
+
+static struct miscdevice fuse_miscdevice = {
+	.minor = FUSE_MINOR,
+	.name  = "fuse",
+	.fops  = &fuse_dev_operations,
+};
+
+int __init fuse_dev_init(void)
+{
+	int err = -ENOMEM;
+	// 参见Create a Specific Cache/kmem_cache_create()节
+	fuse_req_cachep = kmem_cache_create("fuse_request", sizeof(struct fuse_req), 0, 0, NULL);
+	if (!fuse_req_cachep)
+		goto out;
+
+	err = misc_register(&fuse_miscdevice);
+	if (err)
+		goto out_cache_clean;
+
+	return 0;
+
+ out_cache_clean:
+	kmem_cache_destroy(fuse_req_cachep);
+ out:
+	return err;
+}
+```
+
+##### 11.3.6.2.3 fuse_sysfs_init()
+
+该函数定义于fs/fuse/inode.c:
+
+```
+static struct kobject *fuse_kobj;
+static struct kobject *connections_kobj;
+
+static int fuse_sysfs_init(void)
+{
+	int err;
+
+	/*
+	 * 在fs_kobj指定的目录(即/sys/fs/，参见mnt_init()节)
+	 * 下创建fuse目录，参见kobject_create_and_add()节
+	 */
+	fuse_kobj = kobject_create_and_add("fuse", fs_kobj);
+	if (!fuse_kobj) {
+		err = -ENOMEM;
+		goto out_err;
+	}
+
+	/*
+	 * 在fuse_kobj指定的目录(即/sys/fs/fuse)下创建
+	 * connections目录，参见kobject_create_and_add()节
+	 */
+	connections_kobj = kobject_create_and_add("connections", fuse_kobj);
+	if (!connections_kobj) {
+		err = -ENOMEM;
+		goto out_fuse_unregister;
+	}
+
+	return 0;
+
+ out_fuse_unregister:
+	// 参见15.7.2.2 kobject_put()节
+	kobject_put(fuse_kobj);
+ out_err:
+	return err;
+}
+```
+
+##### 11.3.6.2.4 fuse_ctl_init()
+
+该函数注册Fusectl文件系统，其定义于fs/fuse/control.c。通常，该文件系统被安装到/sys/fs/fuse/connections目录。
+
+```
+static struct file_system_type fuse_ctl_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "fusectl",
+	.mount		= fuse_ctl_mount,
+	.kill_sb	= fuse_ctl_kill_sb,
+};
+
+int __init fuse_ctl_init(void)
+{
+	// 注册fusectl文件系统，参见注册/注销文件系统节
+	return register_filesystem(&fuse_ctl_fs_type);
+}
+
+void fuse_ctl_cleanup(void)
+{
+	// 注销fusectl文件系统，参见注册/注销文件系统节
+	unregister_filesystem(&fuse_ctl_fs_type);
+}
+```
+
+#### 11.3.6.3 FUSE的安装
+
+文件系统fusectl的安装过程参见文件系统的自动安装节。
+
+### 11.3.7 Debugfs
+
+通常，Debugfs文件系统被挂载到/sys/kernel/debug目录。
+
+#### 11.3.7.1 Debugfs简介
+
+See below documentations:
+* Documentation/filesystems/debugfs.txt
+* http://lwn.net/Articles/334546/
+* http://lwn.net/Articles/115405/
+
+Debugfs is a special filesystem (technically referred as a kernel space-user-space interface) available in Linux kernel since version 2.6.10-rc3. It was written by Greg Kroah-Hartman.
+
+It is a simple to use RAM-based file system specially designed for debugging purposes. debugfs exists as a simple way for kernel developers to make information available to user space.
+
+Unlike /proc, which is only meant for information about a process, or sysfs, which has strict one-value-per-file rules, debugfs has no rules at all. Developers can put any information they want there.
+
+It is typically mounted in /sys/kernel/debug with a command like:
+
+```
+# mount -t debugfs none /sys/kernel/debug
+```
+
+It can be manipulated using several calls from the C header file linux/debugfs.h. These include:
+
+```
+- debugfs_create_file		— for creating a file in the debug filesystem
+- debugfs_create_dir 		— for creating a directory inside the debug filesystem
+- debugfs_remove		— for removing a debugfs entry from the debug filesytem
+```
+
+Also see section dev_dbg().
+
+#### 11.3.7.2 Debugfs的编译及初始化
+
+由fs/Makefile可知，Debugfs的编译与配置项CONFIG_DEBUG_FS有关：
+
+```
+obj-$(CONFIG_DEBUG_FS) += debugfs/
+```
+
+Debugfs的初始化代码定义于fs/debugfs/inode.c:
+
+```
+static bool debugfs_registered;
+
+static struct file_system_type debug_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "debugfs",
+	/*
+	 * 函数debug_mount()参见debug_mount()节，其调用过程如下：
+	 * mount -t debugfs none /sys/kernel/debug
+	 * => sys_mount()->do_mount()->do_new_mount()->
+	 *    do_kern_mount()->vfs_kern_mount()->mount_fs()
+	 * => type->mount()
+	 */
+	.mount		= debug_mount,
+	.kill_sb	= kill_litter_super,
+};
+
+static struct kobject *debug_kobj;
+
+static int __init debugfs_init(void)
+{
+	int retval;
+
+	/*
+	 * 在kernel_kobj指定的目录(即/sys/kernel/目录)下创建debug目录，
+	 * 即/sys/kernel/debug/，参见kobject_create_and_add()节
+	 */
+	debug_kobj = kobject_create_and_add("debug", kernel_kobj);
+	if (!debug_kobj)
+		return -EINVAL;
+
+	// 注册debugfs文件系统，参见注册/注销文件系统节
+	retval = register_filesystem(&debug_fs_type);
+	if (retval)
+		kobject_put(debug_kobj);	// 参见15.7.2.2 kobject_put()节
+	else
+		debugfs_registered = true;
+
+	return retval;
+}
+
+core_initcall(debugfs_init);
+```
+
+当Debugfs编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall1.init
+```
+
+#### 11.3.7.3 Debugfs的安装
+
+文件系统debugfs的安装过程参见文件系统的自动安装节。
+
+此后，当进程init执行配置文件/etc/init/mounted-debugfs.conf时，将目录/sys/kernel/debug的执行权限被修改为0700:
+
+```
+chenwx@chenwx ~ $ cd /etc/init
+
+chenwx@chenwx /etc/init $ ll mounted-debugfs.conf 
+-rw-r--r-- 1 root root 405 Oct  9  2013 mounted-debugfs.conf
+
+chenwx@chenwx /etc/init $ cat mounted-debugfs.conf 
+# mounted-debugfs - Fix perms on /sys/kernel/debug filesystem
+#
+# Since /sys/kernel/debug should not be used on production systems,
+# this makes sure that the tree is kept accessible only by root.
+
+description	"Fix-up /sys/kernel/debug filesystem"
+
+start on mounted MOUNTPOINT=/sys/kernel/debug TYPE=debugfs
+env MOUNTPOINT=/sys/kernel/debug
+
+task
+
+script
+    chmod 0700 "${MOUNTPOINT}" || true
+end script
+```
+
+### 11.3.8 Securityfs
+
+通常，Securityfs文件系统被挂载到/sys/kernel/security目录。
+
+#### 11.3.8.1 Securityfs简介
+
+SecurityFS is a virtual filesystem in memory for security kernel modules. Kernel security modules place their policies and other data here. The user-space sees SecurityFS as a part of SysFS. SecurityFS is mounted on /sys/kernel/security/. Some of the security modules read and write files here that are used for configuring the security modules. The Linux Security Modules (LSM) will manually mount SecurityFS because the LSMs read/write data on this pseudo-filesystem, unless the filesystem is already mounted.
+
+The LSMs make a folder on the root of SecurityFS with their name on it. For example, AppArmor would make a directory titled "apparmor" at /sys/kernel/security/.
+
+#### 11.3.8.2 Securityfs的编译及初始化
+
+由security/Makefile可知，Securityfs的编译与配置项CONFIG_SECURITYFS有关：
+
+```
+obj-$(CONFIG_SECURITYFS) += inode.o
+```
+
+Securityfs的初始化代码参见security/inode.c:
+
+```
+static struct file_system_type fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "securityfs",
+	.mount		= get_sb,
+	.kill_sb	= kill_litter_super,
+};
+
+static struct kobject *security_kobj;
+
+static int __init securityfs_init(void)
+{
+	int retval;
+
+	/*
+	 * 在kernel_kobj指定的目录(即/sys/kernel/目录)下创建security目录，
+	 * 即/sys/kernel/security/，参见kobject_create_and_add()节
+	 */
+	security_kobj = kobject_create_and_add("security", kernel_kobj);
+	if (!security_kobj)
+		return -EINVAL;
+
+	// 注册securityfs文件系统，参见注册/注销文件系统节
+	retval = register_filesystem(&fs_type);
+	if (retval)
+		kobject_put(security_kobj);	// 参见15.7.2.2 kobject_put()节
+	return retval;
+}
+
+core_initcall(securityfs_init);
+```
+
+当Securityfs编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall1.init
+```
+
+#### 11.3.8.3 Securityfs的安装
+
+文件系统securityfs的安装过程参见文件系统的自动安装节。
+
+### 11.3.9 Tmpfs
+
+通常，Tmpfs文件系统被挂载到/tmp目录。
+
+#### 11.3.9.1 Tmpfs简介
+
+See Documentation/filesystems/tmpfs.txt
+
+tmpfs is a common name for a temporary file storage facility on many Unix-like operating systems. It is intended to appear as a mounted file system, but stored in volatile memory instead of a persistent storage device. A similar construction is a RAM disk, which appears as a virtual disk drive and hosts a disk file system.
+
+Everything stored in tmpfs is temporary in the sense that no files will be created on the hard drive; however, swap space is used as backing store in case of low memory situations. On reboot, everything in tmpfs will be lost.
+
+The memory used by tmpfs grows and shrinks to accommodate the files it contains and can be swapped out to swap space.
+
+Many Unix distributions enable and use tmpfs by default for the /tmp branch of the file system or for shared memory. This can be observed with df as in this example:
+
+```
+Filesystem            Size  Used Avail Use% Mounted on
+tmpfs                 256M   688K  256M   1%  /tmp
+```
+
+On some Linux distributions (e.g. Debian, Ubuntu), /tmp is a normal directory, but /dev/shm uses tmpfs.
+
+tmpfs is supported by the Linux kernel from version 2.4 and up. tmpfs (previously known as shmfs) is based on the ramfs code used during bootup and also uses the page cache, but unlike ramfs it supports swapping out less-used pages to swap space as well as filesystem size and inode limits to prevent out of memory situations (defaulting to half of physical RAM and half the number of RAM pages, respectively). These options are set at mount time and may be modified by remounting the filesystem.
+
+#### 11.3.9.2 Tmpfs的编译及初始化
+
+Tmpfs实现于mm/shmem.c:
+
+```
+#ifdef CONFIG_SHMEM
+
+static struct file_system_type shmem_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "tmpfs",
+	.mount		= shmem_mount,		// 定义于mm/shmem.c
+	.kill_sb	= kill_litter_super,
+};
+
+int __init shmem_init(void)
+{
+	int error;
+
+	error = bdi_init(&shmem_backing_dev_info);
+	if (error)
+		goto out4;
+
+	error = shmem_init_inodecache();
+	if (error)
+		goto out3;
+
+	// 注册tmpfs文件系统，参见注册/注销文件系统节
+	error = register_filesystem(&shmem_fs_type);
+	if (error) {
+		printk(KERN_ERR "Could not register tmpfs\n");
+		goto out2;
+	}
+
+	// 安装tmpfs文件系统，参见安装文件系统(1)/kern_mount()节
+	shm_mnt = vfs_kern_mount(&shmem_fs_type, MS_NOUSER, shmem_fs_type.name, NULL);
+	if (IS_ERR(shm_mnt)) {
+		error = PTR_ERR(shm_mnt);
+		printk(KERN_ERR "Could not kern_mount tmpfs\n");
+		goto out1;
+	}
+	return 0;
+
+out1:
+	unregister_filesystem(&shmem_fs_type);
+out2:
+	shmem_destroy_inodecache();
+out3:
+	bdi_destroy(&shmem_backing_dev_info);
+out4:
+	shm_mnt = ERR_PTR(error);
+	return error;
+}
+
+#else /* !CONFIG_SHMEM */
+
+static struct file_system_type shmem_fs_type = {
+	.name		= "tmpfs",
+	.mount	= ramfs_mount,	// 参见Ramfs的编译及初始化节
+	.kill_sb	= kill_litter_super,
+};
+
+int __init shmem_init(void)
+{
+	// 注册tmpfs文件系统，参见注册/注销文件系统节
+	BUG_ON(register_filesystem(&shmem_fs_type) != 0);
+
+	// 安装tmpfs文件系统，参见安装文件系统(1)/kern_mount()节
+	shm_mnt = kern_mount(&shmem_fs_type);
+	BUG_ON(IS_ERR(shm_mnt));
+
+	return 0;
+}
+
+#endif /* CONFIG_SHMEM */
+```
+
+在系统初始化时，shmem_init()的调用过程如下：
+
+```
+start_kernel()
+-> rest_init()
+   -> kernel_init()			// 参见kernel_init()节
+      -> do_basic_setup()		// 参见do_basic_setup()节
+         -> shmem_init()
+```
+
+#### 11.3.9.3 Tmpfs的安装
+
+文件系统tmpfs的安装过程有如下两种方式：
+* 在初始化的过程中调用shmem_init()来安装tmpfs，参见Tmpfs的编译及初始化节；
+* 系统启动后，在配置文件中设置tmpfs的安装路径并启动安装，参见文件系统的自动安装节。
+
+### 11.3.10 Devtmpfs
+
+通常，Devtmpfs文件系统被挂载到/dev目录。
+
+#### 11.3.10.0 History
+
+Refer to <<Linux_From_Scratch_v7.10-systemd.pdf>> S7.3.1:
+
+In February 2000, a new filesystem called devfs was merged into the 2.3.46 kernel and was made available during the 2.4 series of stable kernels. Although it was present in the kernel source itself, this method of creating devices dynamically never received overwhelming support from the core kernel developers.
+
+The main problem with the approach adopted by devfs was the way it handled device detection, creation, and naming. The latter issue, that of device node naming, was perhaps the most critical. It is generally accepted that if device names are allowed to be configurable, then the device naming policy should be up to a system administrator, not imposed on them by any particular developer(s). The devfs file system also suffered from race conditions that were inherent in its design and could not be fixed without a substantial revision to the kernel. It was marked as deprecated for a long period – due to a lack of maintenance – and was finally removed from the kernel in June, 2006.
+
+With the development of the unstable 2.5 kernel tree, later released as the 2.6 series of stable kernels, a new virtual filesystem called sysfs came to be. The job of sysfs is to export a view of the system's hardware configuration to userspace processes. With this userspace-visible representation, the possibility of developing a userspace replacement for devfs became much more realistic.
+
+One may wonder how sysfs knows about the devices present on a system and what device numbers should be used for them. Drivers that have been compiled into the kernel directly register their objects with a sysfs (devtmpfs internally) as they are detected by the kernel. For drivers compiled as modules, this registration will happen when the module is loaded. Once the sysfs filesystem is mounted (on /sys), data which the drivers register with sysfs are available to userspace processes and to udevd for processing (including modifications to device nodes).
+
+Device files are created by the kernel by the devtmpfs filesystem. Any driver that wishes to register a device node will go through the devtmpfs (via the driver core) to do it. When a devtmpfs instance is mounted on /dev, the device node will initially be created with a fixed name, permissions, and owner. A short time later, the kernel will send a uevent to udevd. Based on the rules specified in the files within the /etc/udev/rules.d, /lib/udev/rules.d, and /run/udev/rules.d directories, udevd will create additional symlinks to the device node, or change its permissions, owner, or group, or modify the internal udevd database entry (name) for that object. The rules in these three directories are numbered and all three directories are merged together. If udevd can't find a rule for the device it is creating, it will leave the permissions and ownership at whatever devtmpfs used initially.
+
+#### 11.3.10.1 Devtmpfs简介
+
+#### 11.3.10.2 Devtmpfs的编译及初始化
+
+由drivers/base/Makefile可知，Devtmpfs的编译与配置项CONFIG_DEVTMPFS有关：
+
+```
+obj-$(CONFIG_DEVTMPFS) += devtmpfs.o
+```
+
+Devtmpfs的初始化代码参见drivers/base/devtmpfs.c:
+
+```
+static struct file_system_type dev_fs_type = {
+	.name		= "devtmpfs",
+	.mount		= dev_mount,
+	.kill_sb	= kill_litter_super,
+};
+
+static struct task_struct *thread;
+static DECLARE_COMPLETION(setup_done);
+
+/*
+ * Create devtmpfs instance, driver-core devices will add their device
+ * nodes here.
+ */
+int __init devtmpfs_init(void)
+{
+	// 注册devtmpfs文件系统，参见注册/注销文件系统节
+	int err = register_filesystem(&dev_fs_type);
+	if (err) {
+		printk(KERN_ERR "devtmpfs: unable to register devtmpfs type %i\n", err);
+		return err;
+	}
+
+	/*
+	 * 调用kthread_run()创建内核线程kdevtmpfs(参见kthread_run()节)，
+	 * 该内核线程将执行函数devtmpfsd()，参见devtmpfsd()节
+	 */
+	thread = kthread_run(devtmpfsd, &err, "kdevtmpfs");
+	if (!IS_ERR(thread)) {
+		// 等待内核线程kdevtmpfs完成安装工作，参见devtmpfsd()节
+		wait_for_completion(&setup_done);
+	} else {
+		err = PTR_ERR(thread);
+		thread = NULL;
+	}
+
+	if (err) {
+		printk(KERN_ERR "devtmpfs: unable to create devtmpfs %i\n", err);
+		unregister_filesystem(&dev_fs_type);
+		return err;
+	}
+
+	printk(KERN_INFO "devtmpfs: initialized\n");
+	return 0;
+}
+```
+
+函数```devtmpfs_init()```的调用关系如下：
+
+```
+start_kernel()								// 参见start_kernel()节
+-> rest_init()								// 参见rest_init()节
+   -> kernel_init()							// 参见kernel_init()节
+      -> do_basic_setup()						// 参见kernel_init()节
+         -> driver_init()						// 参见10.2.1 设备驱动程序的初始化/driver_init()节
+            -> devtmpfs_init()						// 参见11.3.10.2 Devtmpfs的编译及初始化节
+               -> devtmpfsd()						// 参见11.3.10.2.1 devtmpfsd()节
+                  -> sys_mount("devtmpfs", "/", "devtmpfs", ..);	// 将devtmpfs挂载到/devtmpfs目录
+                  -> handle()						// 参见11.3.10.2.1.1 handle()节
+                     -> handle_create()
+                        -> kern_path_create()
+                        -> vfs_mknod()					// 创建设备节点/dev/XXX，且必须是字符设备或块设备
+                     -> handle_remove()
+      -> prepare_namespace()
+         -> devtmpfs_mount("dev");					// 参见11.3.10.3.1 devtmpfs_mount()节
+            -> sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", ..);	// 将devtmpfs挂载到/dev目录
+```
+
+##### 11.3.10.2.1 devtmpfsd()
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+static struct req {
+	struct req		*next;
+	struct completion	done;
+	int			err;
+	const char		*name;
+	mode_t			mode;		/* 0 => delete */
+	struct device		*dev;
+} *requests;
+
+static int devtmpfsd(void *p)
+{
+	char options[] = "mode=0755";
+	int *err = p;
+
+	*err = sys_unshare(CLONE_NEWNS);
+	if (*err)
+		goto out;
+
+	// 安装devtmpfs文件系统到目录/，参见安装文件系统(2)/sys_mount()节
+	*err = sys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+	if (*err)
+		goto out;
+
+	/*
+	 * 将进程的当前工作目录(pwd)设定为devtmpfs文件系统的根目录，即/dev目录；
+	 * 因而，调用handle()->handle_create()->vfs_mknod()时，在/dev目录创建设备文件
+	 */
+	sys_chdir("/..");	/* will traverse into overmounted root */
+	sys_chroot(".");
+
+	// 通知父进程当前线程的状态
+	complete(&setup_done);
+
+	/*
+	 * 扫描requests链表，并处理其中的每个请求；
+	 * 创建设备节点时，通过device_add()->devtmpfs_create_node()向requests链表中添加请求，
+	 * 参见10.2.3.3.2 添加设备/device_add()节和11.3.10.2.2.1 devtmpfs_create_node()节
+	 */
+	while (1) {
+		spin_lock(&req_lock);
+		while (requests) {
+			struct req *req = requests;
+			requests = NULL;
+			spin_unlock(&req_lock);
+			while (req) {
+				struct req *next = req->next;
+				// 对requests链表中的每个元素调用handle()函数
+				req->err = handle(req->name, req->mode, req->dev);
+				complete(&req->done);
+				req = next;
+			}
+			spin_lock(&req_lock);
+		}
+		set_current_state(TASK_INTERRUPTIBLE);
+		spin_unlock(&req_lock);
+		schedule();
+		__set_current_state(TASK_RUNNING);
+	}
+	return 0;
+out:
+	complete(&setup_done);
+	return *err;
+}
+```
+
+###### 11.3.10.2.1.1 handle()
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+static int handle(const char *name, mode_t mode, struct device *dev)
+{
+	if (mode)
+		return handle_create(name, mode, dev);		// 参见11.3.10.2.1.1.1 handle_create()节
+	else
+		return handle_remove(name, dev);		// 参见11.3.10.2.1.1.2 handle_remove()节
+}
+```
+
+###### 11.3.10.2.1.1.1 handle_create()
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+static int handle_create(const char *nodename, mode_t mode, struct device *dev)
+{
+	struct dentry *dentry;
+	struct path path;
+	int err;
+
+	/*
+	 * 查看新节点nodename的父目录是否存在，其返回值dentry为
+	 * 新节点nodename的父目录对应的目录项
+	 */
+	dentry = kern_path_create(AT_FDCWD, nodename, &path, 0);
+	if (dentry == ERR_PTR(-ENOENT)) {
+		// 若父目录不存在，则创建该目录
+		create_path(nodename);
+		// 重新查找新创建的目录所对应的目录项dentry
+		dentry = kern_path_create(AT_FDCWD, nodename, &path, 0);
+	}
+	if (IS_ERR(dentry))
+		return PTR_ERR(dentry);
+
+	// 创建指定的设备文件/dev/DevName，参见11.2.4.1.1 mknod()/mknodat()节
+	err = vfs_mknod(path.dentry->d_inode, dentry, mode, dev->devt);
+	if (!err) {
+		struct iattr newattrs;
+
+		/* fixup possibly umasked mode */
+		newattrs.ia_mode = mode;
+		newattrs.ia_valid = ATTR_MODE;
+		mutex_lock(&dentry->d_inode->i_mutex);
+		notify_change(dentry, &newattrs);
+		mutex_unlock(&dentry->d_inode->i_mutex);
+
+		/* mark as kernel-created inode */
+		dentry->d_inode->i_private = &thread;
+	}
+	dput(dentry);
+
+	mutex_unlock(&path.dentry->d_inode->i_mutex);
+	path_put(&path);
+
+	return err;
+}
+```
+
+###### 11.3.10.2.1.1.2 handle_remove()
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+static int handle_remove(const char *nodename, struct device *dev)
+{
+	struct nameidata nd;
+	struct dentry *dentry;
+	struct kstat stat;
+	int deleted = 1;
+	int err;
+
+	err = kern_path_parent(nodename, &nd);
+	if (err)
+		return err;
+
+	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
+	dentry = lookup_one_len(nd.last.name, nd.path.dentry, nd.last.len);
+	if (!IS_ERR(dentry)) {
+		if (dentry->d_inode) {
+			err = vfs_getattr(nd.path.mnt, dentry, &stat);
+			if (!err && dev_mynode(dev, dentry->d_inode, &stat)) {
+				struct iattr newattrs;
+				/*
+				 * before unlinking this node, reset permissions
+				 * of possible references like hardlinks
+				 */
+				newattrs.ia_uid = 0;
+				newattrs.ia_gid = 0;
+				newattrs.ia_mode = stat.mode & ~0777;
+				newattrs.ia_valid = ATTR_UID | ATTR_GID | ATTR_MODE;
+				mutex_lock(&dentry->d_inode->i_mutex);
+				notify_change(dentry, &newattrs);
+				mutex_unlock(&dentry->d_inode->i_mutex);
+				err = vfs_unlink(nd.path.dentry->d_inode, dentry);
+				if (!err || err == -ENOENT)
+					deleted = 1;
+			}
+		} else {
+			err = -ENOENT;
+		}
+		dput(dentry);
+	} else {
+		err = PTR_ERR(dentry);
+	}
+	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
+
+	path_put(&nd.path);
+	if (deleted && strchr(nodename, '/'))
+		delete_path(nodename);
+
+	return err;
+}
+```
+
+##### 11.3.10.2.2 创建/删除devtmpfs节点
+
+###### 11.3.10.2.2.1 devtmpfs_create_node()
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+int devtmpfs_create_node(struct device *dev)
+{
+	const char *tmp = NULL;
+	struct req req;
+
+	/*
+	 * 判断内核线程kdevtmpfs是否存在，该内核线程由devtmpfs_init()创建，
+	 * 参见11.3.10.2 Devtmpfs的编译及初始化节
+	 */
+	if (!thread)
+		return 0;
+
+	req.mode = 0;
+	/*
+	 * 获取文件名，用于创建文件/dev/DevName，
+	 * 参见11.3.10.2.2.1.1 device_get_devnode()节
+	 */
+	req.name = device_get_devnode(dev, &req.mode, &tmp);
+	if (!req.name)
+		return -ENOMEM;
+
+	/*
+	 * 将req.mode设置为非0，表示创建该req，
+	 * 参见11.3.10.2.1.1 handle()节
+	 */
+	if (req.mode == 0)
+		req.mode = 0600;
+
+	// 该请求只能是块设备，或字符设备
+	if (is_blockdev(dev))
+		req.mode |= S_IFBLK;
+	else
+		req.mode |= S_IFCHR;
+
+	req.dev = dev;
+
+	init_completion(&req.done);
+
+	// 将该请求req添加到链表requests头部
+	spin_lock(&req_lock);
+	req.next = requests;
+	requests = &req;
+	spin_unlock(&req_lock);
+
+	/*
+	 * 唤醒内核线程kdevtmpfs来处理链表requests中的请求，
+	 * 参见11.3.10.2.1 devtmpfsd()节
+	 */
+	wake_up_process(thread);
+	wait_for_completion(&req.done);
+
+	kfree(tmp);
+
+	return req.err;
+}
+```
+
+###### 11.3.10.2.2.1.1 device_get_devnode()
+
+该函数定义于drivers/base/core.c:
+
+```
+/**
+ * device_get_devnode - path of device node file
+ * @dev: device
+ * @mode: returned file access mode
+ * @tmp: possibly allocated string
+ *
+ * Return the relative path of a possible device node.
+ * Non-default names may need to allocate a memory to compose
+ * a name. This memory is returned in tmp and needs to be
+ * freed by the caller.
+ */
+const char *device_get_devnode(struct device *dev, mode_t *mode, const char **tmp)
+{
+	char *s;
+
+	*tmp = NULL;
+
+	/* the device type may provide a specific name */
+	if (dev->type && dev->type->devnode)
+		*tmp = dev->type->devnode(dev, mode);
+	if (*tmp)
+		return *tmp;
+
+	/* the class may provide a specific name */
+	if (dev->class && dev->class->devnode)
+		*tmp = dev->class->devnode(dev, mode);
+	if (*tmp)
+		return *tmp;
+
+	/* return name without allocation, tmp == NULL */
+	if (strchr(dev_name(dev), '!') == NULL)
+		return dev_name(dev);
+
+	/* replace '!' in the name with '/' */
+	*tmp = kstrdup(dev_name(dev), GFP_KERNEL);
+	if (!*tmp)
+		return NULL;
+	while ((s = strchr(*tmp, '!')))
+		s[0] = '/';
+	return *tmp;
+}
+```
+
+通过如下函数调用获取设备名称，用于创建文件/dev/DevName:
+
+```
+device_create(class, parent, devt, drvdata, fmt, "DevNameString")
+-> device_create_vargs(class, parent, devt, drvdata, fmt, "DevNameString")
+-> dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+-> dev->dev->class = class;
+   // 1) dev->kobj->name = "DevNameString"
+-> kobject_set_name_vargs(&dev->kobj, fmt, "DevNameString");
+-> device_register(dev)
+   -> device_initialize(dev)
+   -> device_add(dev)
+      // 2) dev->kobj->name = dev->init_name;
+      //    so, dev->init_name has higher priority than "DevNameString"!
+      -> dev_set_name(dev, "%s", dev->init_name);
+      -> dev->init_name = NULL;				// 3) set dev->init_name = NULL
+      -> devtmpfs_create_node(dev)
+         -> device_get_devnode(dev)
+            -> 1) dev->type->devnode(dev, ..);		// 4) try #1: dev->type->devnode()
+               2) dev->class->devnode(dev, ..);		// 5) try #2: dev->class->devnode()
+               3) dev_name(dev)
+                  -> dev->init_name			// 6) try #3: dev->init_name; it's NULL now
+                     /*
+                      * 7) try #4: dev->kobj->name;
+                      *    that's, dev->init_name, or "DevNameString"
+                      */
+                  -> kobject_name(&dev->kobj);
+```
+
+###### 11.3.10.2.2.2 devtmpfs_delete_node()
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+int devtmpfs_delete_node(struct device *dev)
+{
+	const char *tmp = NULL;
+	struct req req;
+
+	/*
+	 * 判断内核线程kdevtmpfs是否存在，该内核线程由devtmpfs_init()
+	 * 创建，参见11.3.10.2 Devtmpfs的编译及初始化节
+	 */
+	if (!thread)
+		return 0;
+
+	req.name = device_get_devnode(dev, NULL, &tmp);
+	if (!req.name)
+		return -ENOMEM;
+
+	/*
+	 * 将req.mode设置为0，表示删除该req，
+	 * 参见11.3.10.2.1.1 handle()节
+	 */
+	req.mode = 0;
+	req.dev = dev;
+
+	init_completion(&req.done);
+
+	spin_lock(&req_lock);
+	req.next = requests;
+	requests = &req;
+	spin_unlock(&req_lock);
+
+	wake_up_process(thread);
+	wait_for_completion(&req.done);
+
+	kfree(tmp);
+	return req.err;
+}
+```
+
+#### 11.3.10.3 Devtmpfs的安装
+
+文件系统devtmpfs的安装过程包含如下三种方式：
+* 在系统初始化的过程中调用devtmpfs_init()->devtmpfs_init()来安装devtmpfs，参见devtmpfsd()节；
+* 在系统初始化过程中调用devtmpfs_mount()来安装devtmpfs，参见devtmpfs_mount()节；
+* 系统启动后，在配置文件中设置devtmpfs的安装路径并启动安装，参见文件系统的自动安装节。
+
+##### 11.3.10.3.1 devtmpfs_mount()
+
+函数devtmpfs_mount()的调用过程如下：
+
+```
+start_kernel()				// 参见start_kernel()节
+-> rest_init()				// 参见rest_init()节
+   -> kernel_init()			// 参见kernel_init()节
+      -> prepare_namespace()		// 参见prepare_namespace()节
+         -> devtmpfs_mount("dev");	// 将devtmpfs文件系统挂载到/dev目录
+```
+
+该函数定义于drivers/base/devtmpfs.c:
+
+```
+/*
+ * If configured, or requested by the commandline, devtmpfs will be
+ * auto-mounted after the kernel mounted the root filesystem.
+ */
+int devtmpfs_mount(const char *mntdir)
+{
+	int err;
+
+	if (!mount_dev)
+		return 0;
+
+	/*
+	 * 内核线程thread是由函数devtmpfs_init()创建的，
+	 * 参见Devtmpfs的编译及初始化节
+	 */
+	if (!thread)
+		return 0;
+
+	// 参见安装文件系统(2)/sys_mount()节
+	err = sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT, NULL);
+	if (err)
+		printk(KERN_INFO "devtmpfs: error mounting %i\n", err);
+	else
+		printk(KERN_INFO "devtmpfs: mounted\n");
+	return err;
+}
+```
+
+### 11.3.11 Devpts
+
+通常，Devpts文件系统被挂载到/dev/pts目录。
+
+#### 11.3.11.1 Devpts简介
+
+See Documentation/filesystems/devpts.txt
+
+#### 11.3.11.2 Devpts的编译及初始化
+
+由fs/devpts/Makefile可知，Devpts的编译与配置项CONFIG_UNIX98_PTYS有关：
+
+```
+obj-$(CONFIG_UNIX98_PTYS)	+= devpts.o
+devpts-$(CONFIG_UNIX98_PTYS)	:= inode.o
+```
+
+Devpts的初始化代码定义于fs/devpts/inode.c:
+
+```
+static struct vfsmount *devpts_mnt;
+
+static struct file_system_type devpts_fs_type = {
+	.name		= "devpts",
+	.mount		= devpts_mount,
+	.kill_sb	= devpts_kill_sb,
+};
+
+static int __init init_devpts_fs(void)
+{
+	// 注册devpts文件系统，参见注册/注销文件系统节
+	int err = register_filesystem(&devpts_fs_type);
+	if (!err) {
+		// 安装devpts文件系统，参见安装文件系统(1)/kern_mount()节
+		devpts_mnt = kern_mount(&devpts_fs_type);
+		if (IS_ERR(devpts_mnt)) {
+			err = PTR_ERR(devpts_mnt);
+			unregister_filesystem(&devpts_fs_type);
+		}
+	}
+	return err;
+}
+
+module_init(init_devpts_fs)
+```
+
+当Devpts编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+#### 11.3.11.3 Devpts的安装
+
+文件系统devpts的安装过程参见Devpts的编译及初始化节和文件系统的自动安装节。
+
+### 11.3.12 VFAT
+
+#### 11.3.12.1 VFAT简介
+
+See Documentation/filesystems/vfat.txt
+
+#### 11.3.12.2 VFAT的编译及初始化
+
+VFAT的编译与如下配置项有关：
+
+- fs/Makefile:
+
+```
+obj-$(CONFIG_FAT_FS)		+= fat/
+```
+
+- fs/fat/Makefile:
+
+```
+obj-$(CONFIG_VFAT_FS)		+= vfat.o
+```
+
+VFAT的初始化代码定义于fs/fat/namei_vfat.c:
+
+```
+static struct file_system_type vfat_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "vfat",
+	.mount		= vfat_mount,
+	.kill_sb	= kill_block_super,
+	.fs_flags	= FS_REQUIRES_DEV,
+};
+
+static int __init init_vfat_fs(void)
+{
+	return register_filesystem(&vfat_fs_type);
+}
+
+static void __exit exit_vfat_fs(void)
+{
+	unregister_filesystem(&vfat_fs_type);
+}
+
+module_init(init_vfat_fs)
+module_exit(exit_vfat_fs)
+```
+
+当VFAT编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+#### 11.3.12.3 VFAT的安装
+
+文件系统devpts的安装过程参见文件系统的自动安装节。
+
+### 11.3.13 Ext2
+
+#### 11.3.13.1 Ext2简介
+
+See Documentation/filesystems/ext2.txt
+
+#### 11.3.13.2 Ext2的编译及初始化
+
+由fs/Makefile可知，Ext2的编译与配置项CONFIG_EXT2_FS有关：
+
+```
+obj-$(CONFIG_EXT3_FS)		+= ext3/ # Before ext2 so root fs can be ext3
+obj-$(CONFIG_EXT2_FS)		+= ext2/
+# We place ext4 after ext2 so plain ext2 root fs's are mounted using ext2
+# unless explicitly requested by rootfstype
+obj-$(CONFIG_EXT4_FS)		+= ext4/
+```
+
+Ext2的初始化代码定义于fs/ext2/super.c:
+
+```
+static struct file_system_type ext2_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "ext2",
+	.mount		= ext2_mount,
+	.kill_sb	= kill_block_super,
+	.fs_flags	= FS_REQUIRES_DEV,
+};
+
+static int __init init_ext2_fs(void)
+{
+	int err = init_ext2_xattr();
+	if (err)
+		return err;
+	err = init_inodecache();
+	if (err)
+		goto out1;
+        err = register_filesystem(&ext2_fs_type);
+	if (err)
+		goto out;
+	return 0;
+out:
+	destroy_inodecache();
+out1:
+	exit_ext2_xattr();
+	return err;
+}
+
+static void __exit exit_ext2_fs(void)
+{
+	unregister_filesystem(&ext2_fs_type);
+	destroy_inodecache();
+	exit_ext2_xattr();
+}
+
+module_init(init_ext2_fs)
+module_exit(exit_ext2_fs)
+```
+
+若将CONFIG_EXT2_FS配置为y，即将Ext2编译进内核时，Ext2的初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+#### 11.3.13.3 Ext2的安装
+
+文件系统Ext2的安装过程参见文件系统的自动安装节。
+
+### 11.3.14 Ext3
+
+通常，Ext3文件系统被挂载到/dev/sda1目录。
+
+#### 11.3.14.1 Ext3简介
+
+See Documentation/filesystems/ext3.txt
+
+Ext3(Third Extended File System，第三扩展文件系统)，是一种日志文件系统，是很多Linux发行版的默认文件系统。Stephen Tweedie在1999年2月的内核邮件列表中，最早显示了他使用扩展的ext2，该文件系统从2.4.15版本的内核开始，合并到内核主线中。
+
+#### 11.3.14.2 Ext3的编译及初始化
+
+由fs/Makefile可知，Ext3的编译与配置项CONFIG_EXT3_FS有关：
+
+```
+obj-$(CONFIG_EXT3_FS)		+= ext3/ # Before ext2 so root fs can be ext3
+obj-$(CONFIG_EXT2_FS)		+= ext2/
+# We place ext4 after ext2 so plain ext2 root fs's are mounted using ext2
+# unless explicitly requested by rootfstype
+obj-$(CONFIG_EXT4_FS)		+= ext4/
+```
+
+由fs/ext3/Makefile可知，编译Ext3需要如下文件：
+
+```
+#
+# Makefile for the linux ext3-filesystem routines.
+#
+obj-$(CONFIG_EXT3_FS) += ext3.o
+
+ext3-y	:= balloc.o bitmap.o dir.o file.o fsync.o ialloc.o inode.o \
+			ioctl.o namei.o super.o symlink.o hash.o resize.o ext3_jbd.o
+
+ext3-$(CONFIG_EXT3_FS_XATTR)		+= xattr.o xattr_user.o xattr_trusted.o
+ext3-$(CONFIG_EXT3_FS_POSIX_ACL)	+= acl.o
+ext3-$(CONFIG_EXT3_FS_SECURITY)		+= xattr_security.o
+```
+
+Ext3的初始化代码定义于fs/ext3/super.c:
+
+```
+static struct file_system_type ext3_fs_type = {
+	// 参见Kernel Symbol Table节的"How to access symbols"
+	.owner		= THIS_MODULE,
+	.name		= "ext3",
+	/*
+	 * ext3_mount()通过如下函数被调用，参见安装文件系统(2)/sys_mount()节：
+	 * sys_mount()->do_mount()->do_new_mount()->do_kern_mount()
+	 * ->vfs_kern_mount()->mount_fs()中的type->mount()
+	 */
+	.mount		= ext3_mount,
+	/*
+	 * kill_block_super()通过如下函数被调用：
+	 * sys_umount()->mntput_no_expire()->mntfree()->
+	 * deactivate_super()->deactivate_locked_super()->
+	 * fs->kill_sb()
+	 */
+	.kill_sb	= kill_block_super,
+	.fs_flags	= FS_REQUIRES_DEV,
+};
+
+static int __init init_ext3_fs(void)
+{
+	int err = init_ext3_xattr();
+	if (err)
+		return err;
+
+	err = init_inodecache();
+	if (err)
+		goto out1;
+
+    err = register_filesystem(&ext3_fs_type);
+	if (err)
+		goto out;
+	return 0;
+
+out:
+	destroy_inodecache();
+out1:
+	exit_ext3_xattr();
+	return err;
+}
+
+static void __exit exit_ext3_fs(void)
+{
+	unregister_filesystem(&ext3_fs_type);
+	destroy_inodecache();
+	exit_ext3_xattr();
+}
+
+MODULE_AUTHOR("Remy Card, Stephen Tweedie, Andrew Morton, Andreas Dilger, Theodore Ts'o and others");
+MODULE_DESCRIPTION("Second Extended Filesystem with journaling extensions");
+MODULE_LICENSE("GPL");
+
+module_init(init_ext3_fs)
+module_exit(exit_ext3_fs)
+```
+
+若将CONFIG_EXT3_FS配置为y，即将Ext3编译进内核时，Ext3的初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+#### 11.3.14.3 Ext3的安装
+
+文件系统Ext3的安装过程参见文件系统的自动安装节。
+
+### 11.3.15 Ext4
+
+#### 11.3.15.1 Ext4简介
+
+See Documentation/filesystems/ext4.txt
+
+#### 11.3.15.2 Ext4的编译及初始化
+
+由fs/Makefile可知，Ext4的编译与配置项CONFIG_EXT4_FS有关：
+
+```
+obj-$(CONFIG_EXT3_FS)		+= ext3/ # Before ext2 so root fs can be ext3
+obj-$(CONFIG_EXT2_FS)		+= ext2/
+# We place ext4 after ext2 so plain ext2 root fs's are mounted using ext2
+# unless explicitly requested by rootfstype
+obj-$(CONFIG_EXT4_FS)		+= ext4/
+```
+
+Ext4的初始化代码定义于fs/ext4/super.c:
+
+```
+static struct file_system_type ext4_fs_type = {
+	.owner		= THIS_MODULE,
+	.name		= "ext4",
+	.mount		= ext4_mount,
+	.kill_sb	= kill_block_super,
+	.fs_flags	= FS_REQUIRES_DEV,
+};
+
+static int __init ext4_init_fs(void)
+{
+	int i, err;
+
+	ext4_check_flag_values();
+
+	for (i = 0; i < EXT4_WQ_HASH_SZ; i++) {
+		mutex_init(&ext4__aio_mutex[i]);
+		init_waitqueue_head(&ext4__ioend_wq[i]);
+	}
+
+	err = ext4_init_pageio();
+	if (err)
+		return err;
+	err = ext4_init_system_zone();
+	if (err)
+		goto out6;
+	ext4_kset = kset_create_and_add("ext4", NULL, fs_kobj);
+	if (!ext4_kset)
+		goto out5;
+	ext4_proc_root = proc_mkdir("fs/ext4", NULL);
+
+	err = ext4_init_feat_adverts();
+	if (err)
+		goto out4;
+
+	err = ext4_init_mballoc();
+	if (err)
+		goto out3;
+
+	err = ext4_init_xattr();
+	if (err)
+		goto out2;
+	err = init_inodecache();
+	if (err)
+		goto out1;
+	register_as_ext3();				// 注册文件系统ext3_fs_type
+	register_as_ext2();				// 注册文件系统ext2_fs_type
+	err = register_filesystem(&ext4_fs_type);	// 注册文件系统ext4_fs_type
+	if (err)
+		goto out;
+
+	ext4_li_info = NULL;
+	mutex_init(&ext4_li_mtx);
+	return 0;
+out:
+	unregister_as_ext2();
+	unregister_as_ext3();
+	destroy_inodecache();
+out1:
+	ext4_exit_xattr();
+out2:
+	ext4_exit_mballoc();
+out3:
+	ext4_exit_feat_adverts();
+out4:
+	if (ext4_proc_root)
+		remove_proc_entry("fs/ext4", NULL);
+	kset_unregister(ext4_kset);
+out5:
+	ext4_exit_system_zone();
+out6:
+	ext4_exit_pageio();
+	return err;
+}
+
+static void __exit ext4_exit_fs(void)
+{
+	ext4_destroy_lazyinit_thread();
+	unregister_as_ext2();
+	unregister_as_ext3();
+	unregister_filesystem(&ext4_fs_type);
+	destroy_inodecache();
+	ext4_exit_xattr();
+	ext4_exit_mballoc();
+	ext4_exit_feat_adverts();
+	remove_proc_entry("fs/ext4", NULL);
+	kset_unregister(ext4_kset);
+	ext4_exit_system_zone();
+	ext4_exit_pageio();
+}
+
+module_init(ext4_init_fs)
+module_exit(ext4_exit_fs)
+```
+
+若将CONFIG_EXT4_FS配置为y，即将Ext4编译进内核时，Ext4的初始化过程参见module被编译进内核时的初始化过程节，即：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+#### 11.3.15.3 Ext4的安装
+
+文件系统ext4的安装过程参见文件系统的自动安装节。
+
+#### 11.3.15.4 创建ext2/ext3/ext4文件系统的命令
+
+```
+NAME
+       mke2fs - create an ext2/ext3/ext4 filesystem
+
+SYNOPSIS
+       mke2fs  [  -c  | -l filename ] [ -b block-size ] [ -D ] [ -f fragment-size ]
+               [ -g blocks-per-group ] [ -G number-of-groups ] [ -i bytes-per-inode ]
+               [ -I inode-size ] [ -j ] [ -J journal-options ] [ -N number-of-inodes ]
+               [ -n ] [ -m  reserved-blocks-percentage ]  [  -o creator-os ]
+               [ -O [^]feature[,...]  ] [ -q ] [ -r fs-revision-level ] [ -E extended-options ]
+               [ -v ] [ -F ] [ -L volume-label ] [ -M last-mounted-directory ] [ -S ]
+               [ -t fs-type ] [ -T usage-type ] [ -U UUID ] [ -V ] device [ fs-size ]
+
+       mke2fs -O journal_dev [ -b block-size ] [ -L volume-label ] [ -n ] [ -q ]
+               [ -v ] external-journal [ fs-size ]
+
+       ...
+```
+
+### 11.3.16 Btrfs
+
+## 11.4 文件系统的自动安装
+
+在系统启动时，进程init将执行配置文件/etc/init/*.conf，参见4.3.5.1.3.1 upstart节。
+
+配置文件/etc/init/mountall.conf包含如下内容：
+
+```
+chenwx@chenwx /etc/init $ ll mountall.conf 
+-rw-r--r-- 1 root root 1232 Oct  9  2013 mountall.conf
+
+chenwx@chenwx /etc/init $ cat mountall.conf 
+# mountall - Mount filesystems on boot
+#
+# This helper mounts filesystems in the correct order as the devices
+# and mountpoints become available.
+
+description	"Mount filesystems on boot"
+
+start on startup
+stop on starting rcS
+
+expect daemon
+task
+
+emits virtual-filesystems
+emits local-filesystems
+emits remote-filesystems
+emits all-swaps
+emits filesystem
+emits mounting
+emits mounted
+
+script
+    . /etc/default/rcS || true
+    [ -f /forcefsck ] && force_fsck="--force-fsck"
+    [ "$FSCKFIX" = "yes" ] && fsck_fix="--fsck-fix"
+
+    # Doesn't work so well if mountall is responsible for mounting /proc, heh.
+    if [ -e /proc/cmdline ]; then
+        read line < /proc/cmdline
+        for arg in $line; do
+            case $arg in
+                -q|--quiet|-v|--verbose|--debug)
+                    debug_arg=$arg
+                    ;;
+            esac
+        done < /proc/cmdline
+    fi
+    # set $LANG so that messages appearing in plymouth are translated
+    if [ -r /etc/default/locale ]; then
+        . /etc/default/locale || true
+        export LANG LANGUAGE LC_MESSAGES LC_ALL
+    fi
+
+    exec mountall --daemon $force_fsck $fsck_fix $debug_arg
+end script
+
+post-stop script
+    rm -f /forcefsck 2>dev/null || true
+end script
+```
+
+其中，命令mountall将安装文件/lib/init/fstab和/etc/fstab中配置的文件系统：
+
+**1) /lib/init/fstab**
+
+```
+chenwx@chenwx /etc/init $ cat /lib/init/fstab 
+# /lib/init/fstab: static file system information.
+#
+# These are the filesystems that are always mounted on boot, you can
+# override any of these by copying the appropriate line from this file into
+# /etc/fstab and tweaking it as you see fit.  See fstab(5).
+#
+# <file system>	<mount point>				<type>		<options>				<dump> <pass>
+/dev/root		/				rootfs		defaults				0 1
+none			/proc				proc		nodev,noexec,nosuid			0 0
+none			/proc/sys/fs/binfmt_misc	binfmt_misc	nodev,noexec,nosuid,optional		0 0
+none			/sys				sysfs		nodev,noexec,nosuid			0 0
+none			/sys/fs/cgroup			tmpfs		optional,uid=0,gid=0,mode=0755,size=1024 0 0
+none			/sys/fs/fuse/connections	fusectl		optional				0 0
+none			/sys/kernel/debug		debugfs		optional				0 0
+none			/sys/kernel/security		securityfs	optional				0 0
+none			/sys/firmware/efi/efivars	efivarfs	optional				0 0
+none			/spu				spufs		gid=spu,optional			0 0
+none			/dev				devtmpfs,tmpfs	mode=0755				0 0
+none			/dev/pts			devpts		noexec,nosuid,gid=tty,mode=0620		0 0
+none			/tmp				none		defaults				0 0
+none			/run				tmpfs		noexec,nosuid,size=10%,mode=0755	0 0
+none			/run/lock			tmpfs		nodev,noexec,nosuid,size=5242880	0 0
+none			/run/shm			tmpfs		nosuid,nodev				0 0
+none			/run/user			tmpfs		nodev,noexec,nosuid,size=104857600,mode=0755  0 0
+none			/sys/fs/pstore			pstore		optional				0 0
+```
+
+例如：文件系统debugfs被安装到/sys/kernel/debug目录。
+
+**2) /etc/fstab**
+
+```
+chenwx@chenwx /etc/init $ cat /etc/fstab
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system>					<mount point>	<type>	<options>		<dump> <pass>
+# / was on /dev/sda1 during installation
+UUID=fe67c2d0-9b0f-4fd6-8e97-463ce95a7e0c	/		ext4	errors=remount-ro	0 1
+# swap was on /dev/sda5 during installation
+UUID=4d735370-825b-411f-9167-090146a8dd09	none		swap	sw			0 0
+```
+
+### 11.4.1 UUID
+
+A UUID (Universally Unique IDentifier) is used to uniquely identify objects. This 128bit standard allows anyone to create a unique uuid.
+
+Linux now prefers to use UUID, LABEL, or symlinks to identify media storage devices on a system. Directly using /dev/hd*# or /dev/sd*# is no longer preferred since these device assignments can change between system boots:
+
+* all filesystems should be specified by UUID=<id> or LABEL=<name> for each partition.
+* all physical devices should be specified by a symlink, like /dev/cdrom for a cd drive and /dev/disk/by-id/... for each physical hard drive.
+
+运行命令blkid查看UUID：
+
+```
+chenwx@chenwx ~ $ blkid
+/dev/sda1: UUID="61b86fe4-41d9-4de3-a204-f64bf26eb02d" TYPE="ext4"
+/dev/sda5: UUID="bfba9918-f4ef-41ed-a733-733cc066e32e" TYPE="swap"
+
+chenwx@chenwx ~ $ blkid -V
+blkid from util-linux 2.27.1  (libblkid 2.27.0, 02-Nov-2015)
+
+chenwx@chenwx ~ $ blkid
+/dev/sda1: LABEL="Work" UUID="60742AE4742ABCA2" TYPE="ntfs"
+/dev/sdb1: LABEL="系统保留" UUID="CE96646496644F51" TYPE="ntfs" PARTUUID="000beffd-01"
+/dev/sdb2: LABEL="Windows" UUID="A6386E3E386E0E1D" TYPE="ntfs" PARTUUID="000beffd-02"
+/dev/sdb3: UUID="A81EC4DF1EC4A820" TYPE="ntfs" PARTUUID="000beffd-03"
+/dev/sdb5: UUID="51ce0b57-1d7f-4da3-b46f-d6a0ea64c81d" TYPE="ext4" PARTUUID="000beffd-05"
+```
+
+也可以通过下列命令查看UUID:
+
+```
+chenwx@chenwx ~/linux $ ll /dev/disk/
+drwxr-xr-x 2 root root 360 Aug 17 22:30 by-id
+drwxr-xr-x 2 root root 100 Aug 17 22:30 by-label
+drwxr-xr-x 2 root root 200 Aug 17 22:30 by-path
+drwxr-xr-x 2 root root 140 Aug 17 22:30 by-uuid
+
+chenwx@chenwx ~/linux $ ll /dev/disk/by-id/
+lrwxrwxrwx 1 root root  9 Aug 10 08:41 ata-CSD_CAZ320S -> ../../sda
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 ata-CSD_CAZ320S-part1 -> ../../sda1
+lrwxrwxrwx 1 root root  9 Aug 10 08:41 ata-Samsung_SSD_840_EVO_120GB_S1D5NSDF307270Y -> ../../sdb
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 ata-Samsung_SSD_840_EVO_120GB_S1D5NSDF307270Y-part1 -> ../../sdb1
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 ata-Samsung_SSD_840_EVO_120GB_S1D5NSDF307270Y-part2 -> ../../sdb2
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 ata-Samsung_SSD_840_EVO_120GB_S1D5NSDF307270Y-part3 -> ../../sdb3
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 ata-Samsung_SSD_840_EVO_120GB_S1D5NSDF307270Y-part4 -> ../../sdb4
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 ata-Samsung_SSD_840_EVO_120GB_S1D5NSDF307270Y-part5 -> ../../sdb5
+lrwxrwxrwx 1 root root  9 Aug 10 08:41 wwn-0x500000e041e9d01a -> ../../sda
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 wwn-0x500000e041e9d01a-part1 -> ../../sda1
+lrwxrwxrwx 1 root root  9 Aug 10 08:41 wwn-0x50025388a0331a8d -> ../../sdb
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 wwn-0x50025388a0331a8d-part1 -> ../../sdb1
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 wwn-0x50025388a0331a8d-part2 -> ../../sdb2
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 wwn-0x50025388a0331a8d-part3 -> ../../sdb3
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 wwn-0x50025388a0331a8d-part4 -> ../../sdb4
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 wwn-0x50025388a0331a8d-part5 -> ../../sdb5
+
+chenwx@chenwx ~/linux $ ll /dev/disk/by-uuid/
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 51ce0b57-1d7f-4da3-b46f-d6a0ea64c81d -> ../../sdb5
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 60742AE4742ABCA2 -> ../../sda1
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 A6386E3E386E0E1D -> ../../sdb2
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 A81EC4DF1EC4A820 -> ../../sdb3
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 CE96646496644F51 -> ../../sdb1
+
+chenwx@chenwx ~/linux $ ll /dev/disk/by-label/
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 Windows -> ../../sdb2
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 Work -> ../../sda1
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 系统保留 -> ../../sdb1
+
+chenwx@chenwx ~/linux $ ll /dev/disk/by-path/ 
+lrwxrwxrwx 1 root root  9 Aug 10 08:41 pci-0000:00:1f.1-ata-1 -> ../../sda
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 pci-0000:00:1f.1-ata-1-part1 -> ../../sda1
+lrwxrwxrwx 1 root root  9 Aug 10 08:41 pci-0000:00:1f.2-ata-1 -> ../../sdb
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 pci-0000:00:1f.2-ata-1-part1 -> ../../sdb1
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 pci-0000:00:1f.2-ata-1-part2 -> ../../sdb2
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 pci-0000:00:1f.2-ata-1-part3 -> ../../sdb3
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 pci-0000:00:1f.2-ata-1-part4 -> ../../sdb4
+lrwxrwxrwx 1 root root 10 Aug 10 08:41 pci-0000:00:1f.2-ata-1-part5 -> ../../sdb5
+```
+
+运行命令lsblk查看硬盘分区情况：
+
+```
+chenwx@chenwx ~ $ lsblk -f
+NAME		FSTYPE		LABEL		MOUNTPOINT
+Sda
++-sda1		ext4				/
++-sda2
++-sda5		swap				[SWAP]
+sr0
+
+chenwx@chenwx ~ $ lsblk
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sda      8:0    0    25G  0 disk 
+├─sda1   8:1    0    24G  0 part /
+├─sda2   8:2    0     1K  0 part 
+└─sda5   8:5    0     1G  0 part [SWAP]
+sr0     11:0    1  1024M  0 rom
+```
+
+## 11.5 在同一目录挂载多种文件系统
+
+在同一目录挂载多种文件系统，后挂载的文件系统会隐藏之前挂载的文件系统，如下所示:
+
+```
+# 创建目录~/tmp，用于挂载文件系统tmpfs和debugfs
+chenwx@chenwx ~ $ mkdir ~/tmp
+
+# 在~/tmp目录挂载文件系统tmpfs
+chenwx@chenwx ~ $ sudo mount -t tmpfs none tmp
+chenwx@chenwx ~ $ mount | grep ~/tmp
+none on /home/chenwx/tmp type tmpfs (rw)
+
+# 创建文件~/tmp/name，并写入字符串"tmpfs"
+chenwx@chenwx ~ $ echo "tmpfs" > ~/tmp/name
+chenwx@chenwx ~ $ ll ~/tmp
+-rw-r--r-- 1 chenwx chenwx 8 Sep 20 21:14 name
+chenwx@chenwx ~ $ cat ~/tmp/name
+tmpfs
+
+# 在~/tmp目录挂载文件系统debugfs
+chenwx@chenwx ~ $ sudo mount -t debugfs none tmp
+chenwx@chenwx ~ $ mount | grep ~/tmp
+none on /home/chenwx/tmp type tmpfs (rw)
+none on /home/chenwx/tmp type debugfs (rw)
+
+# 查看~/tmp目录下的文件
+chenwx@chenwx ~ $ sudo ls -l ~/tmp/name
+ls: cannot access /home/chenwx/tmp/name: No such file or directory
+chenwx@chenwx ~ $ sudo ls -l ~/tmp
+drwxr-xr-x  2 root root 0 Sep 19 19:07 acpi
+drwxr-xr-x 31 root root 0 Sep 19 19:07 bdi
+drwxr-xr-x  2 root root 0 Sep 19 19:07 bluetooth
+drwxr-xr-x  2 root root 0 Sep 19 19:07 btrfs
+drwxr-xr-x  2 root root 0 Sep 19 19:07 cleancache
+drwxr-xr-x  3 root root 0 Sep 19 19:07 clk
+drwxr-xr-x  2 root root 0 Sep 19 19:07 dma_buf
+drwxr-xr-x  3 root root 0 Sep 19 19:08 dri
+drwxr-xr-x  2 root root 0 Sep 19 19:07 dynamic_debug
+drwxr-xr-x  2 root root 0 Sep 19 19:07 extfrag
+-rw-r--r--  1 root root 0 Sep 19 19:07 fault_around_order
+drwxr-xr-x  2 root root 0 Sep 19 19:07 frontswap
+-r--r--r--  1 root root 0 Sep 19 19:07 gpio
+drwxr-xr-x  2 root root 0 Sep 19 19:07 kprobes
+drwxr-xr-x  3 root root 0 Sep 19 19:07 kvm-guest
+drwxr-xr-x  2 root root 0 Sep 19 19:07 mce
+drwxr-xr-x  2 root root 0 Sep 19 19:07 pinctrl
+-r--r--r--  1 root root 0 Sep 19 19:07 pwm
+drwxr-xr-x  2 root root 0 Sep 19 19:07 regmap
+drwxr-xr-x  3 root root 0 Sep 19 19:07 regulator
+-rw-r--r--  1 root root 0 Sep 19 19:07 sched_features
+-r--r--r--  1 root root 0 Sep 19 19:07 sleep_time
+-r--r--r--  1 root root 0 Sep 19 19:07 suspend_stats
+drwxr-xr-x  7 root root 0 Sep 19 19:07 tracing
+drwxr-xr-x  5 root root 0 Sep 19 19:07 usb
+drwxr-xr-x  2 root root 0 Sep 19 19:07 virtio-ports
+-r--r--r--  1 root root 0 Sep 19 19:07 wakeup_sources
+drwxr-xr-x  2 root root 0 Sep 19 19:07 x86
+
+# 从~/tmp卸载文件系统debugfs
+chenwx@chenwx ~ $ sudo umount ~/tmp
+chenwx@chenwx ~ $ mount | grep ~/tmp
+none on /home/chenwx/tmp type tmpfs (rw)
+
+# 文件~/tmp/name重新显示出来
+chenwx@chenwx ~ $ ll ~/tmp
+-rw-r--r-- 1 chenwx chenwx 8 Sep 20 21:00 name
+chenwx@chenwx ~ $ cat ~/tmp/name 
+tmpfs
+
+# 从~/tmp卸载文件系统tmpfs
+chenwx@chenwx ~ $ sudo umount ~/tmp
+chenwx@chenwx ~ $ mount | grep ~/tmp
+chenwx@chenwx ~ $ ll ~/tmp
+total 0
+```
+
+其原理参见如下函数调用：
+
+```
+kern_path()					// 参见kern_path()/do_path_lookup()节
+-> do_path_lookup()				// 参见kern_path()/do_path_lookup()节
+   -> path_lookupat()				// 参见path_lookupat()节
+      -> link_path_walk()			// 参见link_path_walk()节
+         -> walk_component()			// 参见walk_component()节
+            -> do_lookup()			// 参见do_lookup()节
+               -> __follow_mount_rcu()		// 参见__follow_mount_rcu()节
+                  -> __lookup_mnt()		// 参见__lookup_mnt()节
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

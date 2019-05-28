@@ -68458,6 +68458,507 @@ static struct module *setup_load_info(struct load_info *info)
 
 故，此后可通过调用```mod->init()```和```mod->exit()```来调用初始化函数和清理函数了，参见rmmod调用sys_delete_module()节。
 
+# 14 Linux Security Module/LSM
+
+## 14.1 Linux Security Module简介
+
+参见文档：Documentation/security/
+
+* [Linux Security Module Wiki Page](http://kernsec.org/wiki/index.php/Main_Page)
+* [linux-security Tree](git://git.kernel.org/pub/scm/linux/kernel/git/jmorris/linux-security.git)
+
+Projects within Linux Security Module:
+
+| Category | Projects | Note | Location | Accepted by Mainline at |
+| :------- | :------- | :--- | :------- | :---------------------- |
+| Access Control | Linux Security Modules (LSM) | the API for access control frameworks | security/security.c<br>security/capability.c | Linux 2.6 (2003-12) |
+| Access Control | Security Enhanced Linux (SELinux) | a flexible and fine-grained MAC framework | security/selinux/ | Linux 2.6 (2003-12) |
+| Access Control | Smack | the Simplified Mandatory Access Control Kernel for Linux | security/smack/ | Linux 2.6.25 (2008-04) |
+| Access Control | TOMOYO | a pathname-based access control system (LiveCD available) | security/tomoyo/ | Linux 2.6.30 (2009-06) |
+| Access Control | AppArmor | a pathname-based access control system | security/apparmor/ | Linux 2.6.36 (2010-10) |
+| Access Control | Yama | collects a number of system-wide DAC security protections | security/yama/ | Linux 3.4 (2012-05) |
+
+<p/>
+
+## 14.2 与LSM有关的配置选项
+
+Linux 3.2中包含如下与LSM有关的配置选项：
+
+```
+Security options  --->
+-*- Enable access key retention support
+< >   TRUSTED KEYS (NEW)
+< >   ENCRYPTED KEYS (NEW)
+[ ]   Enable the /proc/keys file by which keys may be viewed
+[ ] Restrict unprivileged access to the kernel syslog (NEW)
+[*] Enable different security models
+-*- Enable the securityfs filesystem
+-*- Socket and Networking Security Hooks
+[ ]   XFRM (IPSec) Networking Security Hooks
+-*- Security hooks for pathname based access control
+(0) Low address space for LSM to protect from user allocation
+[*] NSA SELinux Support
+[*]   NSA SELinux boot parameter
+(0)     NSA SELinux boot parameter default value
+[*]   NSA SELinux runtime disable
+[*]   NSA SELinux Development Support
+[*]   NSA SELinux AVC Statistics
+(1)   NSA SELinux checkreqprot default value
+[ ]   NSA SELinux maximum supported policy format version
+[*] Simplified Mandatory Access Control Kernel Support
+[*] TOMOYO Linux Support
+(2048) Default maximal count for learning mode (NEW)
+(1024) Default maximal count for audit log (NEW)
+[ ]   Activate without calling userspace policy loader. (NEW)
+(/sbin/tomoyo-init) Location of userspace policy loader (NEW)
+(/sbin/init) Trigger for calling userspace policy loader (NEW)
+[*] AppArmor support
+(1)   AppArmor boot parameter default value
+[ ] Integrity Measurement Architecture(IMA)
+[ ] EVM support (NEW)
+Default security module (AppArmor)  --->
+    ( ) SELinux
+    ( ) Simplified Mandatory Access Control
+    ( ) TOMOYO
+    (X) AppArmor
+    ( ) Unix Discretionary Access Controls
+```
+
+## 14.3 与LSM有关的数据结构
+
+### 14.3.1 struct security_operations
+
+该结构定义于include/linux/security.h:
+
+```
+struct security_operations {
+	char name[SECURITY_NAME_MAX + 1];
+
+	int (*ptrace_access_check) (struct task_struct *child, unsigned int mode);
+	int (*ptrace_traceme) (struct task_struct *parent);
+	int (*capget) (struct task_struct *target, kernel_cap_t *effective,
+			kernel_cap_t *inheritable, kernel_cap_t *permitted);
+	int (*capset) (struct cred *new, const struct cred *old, const kernel_cap_t *effective,
+			const kernel_cap_t *inheritable, const kernel_cap_t *permitted);
+	int (*capable) (struct task_struct *tsk, const struct cred *cred,
+			struct user_namespace *ns, int cap, int audit);
+	int (*quotactl) (int cmds, int type, int id, struct super_block *sb);
+	int (*quota_on) (struct dentry *dentry);
+	int (*syslog) (int type);
+	int (*settime) (const struct timespec *ts, const struct timezone *tz);
+	int (*vm_enough_memory) (struct mm_struct *mm, long pages);
+
+	int (*bprm_set_creds) (struct linux_binprm *bprm);
+	int (*bprm_check_security) (struct linux_binprm *bprm);
+	int (*bprm_secureexec) (struct linux_binprm *bprm);
+	void (*bprm_committing_creds) (struct linux_binprm *bprm);
+	void (*bprm_committed_creds) (struct linux_binprm *bprm);
+
+	int (*sb_alloc_security) (struct super_block *sb);
+	void (*sb_free_security) (struct super_block *sb);
+	int (*sb_copy_data) (char *orig, char *copy);
+	int (*sb_remount) (struct super_block *sb, void *data);
+	int (*sb_kern_mount) (struct super_block *sb, int flags, void *data);
+	int (*sb_show_options) (struct seq_file *m, struct super_block *sb);
+	int (*sb_statfs) (struct dentry *dentry);
+	int (*sb_mount) (char *dev_name, struct path *path, char *type, unsigned long flags, void *data);
+	int (*sb_umount) (struct vfsmount *mnt, int flags);
+	int (*sb_pivotroot) (struct path *old_path, struct path *new_path);
+	int (*sb_set_mnt_opts) (struct super_block *sb, struct security_mnt_opts *opts);
+	void (*sb_clone_mnt_opts) (const struct super_block *oldsb, struct super_block *newsb);
+	int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
+
+#ifdef CONFIG_SECURITY_PATH
+	int (*path_unlink) (struct path *dir, struct dentry *dentry);
+	int (*path_mkdir) (struct path *dir, struct dentry *dentry, int mode);
+	int (*path_rmdir) (struct path *dir, struct dentry *dentry);
+	int (*path_mknod) (struct path *dir, struct dentry *dentry, int mode, unsigned int dev);
+	int (*path_truncate) (struct path *path);
+	int (*path_symlink) (struct path *dir, struct dentry *dentry, const char *old_name);
+	int (*path_link) (struct dentry *old_dentry, struct path *new_dir, struct dentry *new_dentry);
+	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+			    struct path *new_dir, struct dentry *new_dentry);
+	int (*path_chmod) (struct dentry *dentry, struct vfsmount *mnt, mode_t mode);
+	int (*path_chown) (struct path *path, uid_t uid, gid_t gid);
+	int (*path_chroot) (struct path *path);
+#endif
+
+	int (*inode_alloc_security) (struct inode *inode);
+	void (*inode_free_security) (struct inode *inode);
+	int (*inode_init_security) (struct inode *inode, struct inode *dir,
+				    const struct qstr *qstr, char **name, void **value, size_t *len);
+	int (*inode_create) (struct inode *dir, struct dentry *dentry, int mode);
+	int (*inode_link) (struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry);
+	int (*inode_unlink) (struct inode *dir, struct dentry *dentry);
+	int (*inode_symlink) (struct inode *dir, struct dentry *dentry, const char *old_name);
+	int (*inode_mkdir) (struct inode *dir, struct dentry *dentry, int mode);
+	int (*inode_rmdir) (struct inode *dir, struct dentry *dentry);
+	int (*inode_mknod) (struct inode *dir, struct dentry *dentry, int mode, dev_t dev);
+	int (*inode_rename) (struct inode *old_dir, struct dentry *old_dentry,
+			     struct inode *new_dir, struct dentry *new_dentry);
+	int (*inode_readlink) (struct dentry *dentry);
+	int (*inode_follow_link) (struct dentry *dentry, struct nameidata *nd);
+	int (*inode_permission) (struct inode *inode, int mask);
+	int (*inode_setattr) (struct dentry *dentry, struct iattr *attr);
+	int (*inode_getattr) (struct vfsmount *mnt, struct dentry *dentry);
+	int (*inode_setxattr) (struct dentry *dentry, const char *name,
+				const void *value, size_t size, int flags);
+	void (*inode_post_setxattr) (struct dentry *dentry, const char *name,
+				     const void *value, size_t size, int flags);
+	int (*inode_getxattr) (struct dentry *dentry, const char *name);
+	int (*inode_listxattr) (struct dentry *dentry);
+	int (*inode_removexattr) (struct dentry *dentry, const char *name);
+	int (*inode_need_killpriv) (struct dentry *dentry);
+	int (*inode_killpriv) (struct dentry *dentry);
+	int (*inode_getsecurity) (const struct inode *inode, const char *name, void **buffer, bool alloc);
+	int (*inode_setsecurity) (struct inode *inode, const char *name, const void *value, size_t size, int flags);
+	int (*inode_listsecurity) (struct inode *inode, char *buffer, size_t buffer_size);
+	void (*inode_getsecid) (const struct inode *inode, u32 *secid);
+
+	int (*file_permission) (struct file *file, int mask);
+	int (*file_alloc_security) (struct file *file);
+	void (*file_free_security) (struct file *file);
+	int (*file_ioctl) (struct file *file, unsigned int cmd, unsigned long arg);
+	int (*file_mmap) (struct file *file, unsigned long reqprot, unsigned long prot,
+			  unsigned long flags, unsigned long addr, unsigned long addr_only);
+	int (*file_mprotect) (struct vm_area_struct *vma, unsigned long reqprot, unsigned long prot);
+	int (*file_lock) (struct file *file, unsigned int cmd);
+	int (*file_fcntl) (struct file *file, unsigned int cmd, unsigned long arg);
+	int (*file_set_fowner) (struct file *file);
+	int (*file_send_sigiotask) (struct task_struct *tsk, struct fown_struct *fown, int sig);
+	int (*file_receive) (struct file *file);
+	int (*dentry_open) (struct file *file, const struct cred *cred);
+
+	int (*task_create) (unsigned long clone_flags);
+	int (*cred_alloc_blank) (struct cred *cred, gfp_t gfp);
+	void (*cred_free) (struct cred *cred);
+	int (*cred_prepare)(struct cred *new, const struct cred *old, gfp_t gfp);
+	void (*cred_transfer)(struct cred *new, const struct cred *old);
+	int (*kernel_act_as)(struct cred *new, u32 secid);
+	int (*kernel_create_files_as)(struct cred *new, struct inode *inode);
+	int (*kernel_module_request)(char *kmod_name);
+	int (*task_fix_setuid) (struct cred *new, const struct cred *old, int flags);
+	int (*task_setpgid) (struct task_struct *p, pid_t pgid);
+	int (*task_getpgid) (struct task_struct *p);
+	int (*task_getsid) (struct task_struct *p);
+	void (*task_getsecid) (struct task_struct *p, u32 *secid);
+	int (*task_setnice) (struct task_struct *p, int nice);
+	int (*task_setioprio) (struct task_struct *p, int ioprio);
+	int (*task_getioprio) (struct task_struct *p);
+	int (*task_setrlimit) (struct task_struct *p, unsigned int resource, struct rlimit *new_rlim);
+	int (*task_setscheduler) (struct task_struct *p);
+	int (*task_getscheduler) (struct task_struct *p);
+	int (*task_movememory) (struct task_struct *p);
+	int (*task_kill) (struct task_struct *p, struct siginfo *info, int sig, u32 secid);
+	int (*task_wait) (struct task_struct *p);
+	int (*task_prctl) (int option, unsigned long arg2, unsigned long arg3,
+			   unsigned long arg4, unsigned long arg5);
+	void (*task_to_inode) (struct task_struct *p, struct inode *inode);
+
+	int (*ipc_permission) (struct kern_ipc_perm *ipcp, short flag);
+	void (*ipc_getsecid) (struct kern_ipc_perm *ipcp, u32 *secid);
+
+	int (*msg_msg_alloc_security) (struct msg_msg *msg);
+	void (*msg_msg_free_security) (struct msg_msg *msg);
+
+	int (*msg_queue_alloc_security) (struct msg_queue *msq);
+	void (*msg_queue_free_security) (struct msg_queue *msq);
+	int (*msg_queue_associate) (struct msg_queue *msq, int msqflg);
+	int (*msg_queue_msgctl) (struct msg_queue *msq, int cmd);
+	int (*msg_queue_msgsnd) (struct msg_queue *msq, struct msg_msg *msg, int msqflg);
+	int (*msg_queue_msgrcv) (struct msg_queue *msq, struct msg_msg *msg,
+				 struct task_struct *target, long type, int mode);
+
+	int (*shm_alloc_security) (struct shmid_kernel *shp);
+	void (*shm_free_security) (struct shmid_kernel *shp);
+	int (*shm_associate) (struct shmid_kernel *shp, int shmflg);
+	int (*shm_shmctl) (struct shmid_kernel *shp, int cmd);
+	int (*shm_shmat) (struct shmid_kernel *shp, char __user *shmaddr, int shmflg);
+
+	int (*sem_alloc_security) (struct sem_array *sma);
+	void (*sem_free_security) (struct sem_array *sma);
+	int (*sem_associate) (struct sem_array *sma, int semflg);
+	int (*sem_semctl) (struct sem_array *sma, int cmd);
+	int (*sem_semop) (struct sem_array *sma, struct sembuf *sops, unsigned nsops, int alter);
+
+	int (*netlink_send) (struct sock *sk, struct sk_buff *skb);
+	int (*netlink_recv) (struct sk_buff *skb, int cap);
+
+	void (*d_instantiate) (struct dentry *dentry, struct inode *inode);
+
+	int (*getprocattr) (struct task_struct *p, char *name, char **value);
+	int (*setprocattr) (struct task_struct *p, char *name, void *value, size_t size);
+	int (*secid_to_secctx) (u32 secid, char **secdata, u32 *seclen);
+	int (*secctx_to_secid) (const char *secdata, u32 seclen, u32 *secid);
+	void (*release_secctx) (char *secdata, u32 seclen);
+
+	int (*inode_notifysecctx)(struct inode *inode, void *ctx, u32 ctxlen);
+	int (*inode_setsecctx)(struct dentry *dentry, void *ctx, u32 ctxlen);
+	int (*inode_getsecctx)(struct inode *inode, void **ctx, u32 *ctxlen);
+
+#ifdef CONFIG_SECURITY_NETWORK
+	int (*unix_stream_connect) (struct sock *sock, struct sock *other, struct sock *newsk);
+	int (*unix_may_send) (struct socket *sock, struct socket *other);
+
+	int (*socket_create) (int family, int type, int protocol, int kern);
+	int (*socket_post_create) (struct socket *sock, int family, int type, int protocol, int kern);
+	int (*socket_bind) (struct socket *sock, struct sockaddr *address, int addrlen);
+	int (*socket_connect) (struct socket *sock, struct sockaddr *address, int addrlen);
+	int (*socket_listen) (struct socket *sock, int backlog);
+	int (*socket_accept) (struct socket *sock, struct socket *newsock);
+	int (*socket_sendmsg) (struct socket *sock, struct msghdr *msg, int size);
+	int (*socket_recvmsg) (struct socket *sock, struct msghdr *msg, int size, int flags);
+	int (*socket_getsockname) (struct socket *sock);
+	int (*socket_getpeername) (struct socket *sock);
+	int (*socket_getsockopt) (struct socket *sock, int level, int optname);
+	int (*socket_setsockopt) (struct socket *sock, int level, int optname);
+	int (*socket_shutdown) (struct socket *sock, int how);
+	int (*socket_sock_rcv_skb) (struct sock *sk, struct sk_buff *skb);
+	int (*socket_getpeersec_stream) (struct socket *sock, char __user *optval, int __user *optlen, unsigned len);
+	int (*socket_getpeersec_dgram) (struct socket *sock, struct sk_buff *skb, u32 *secid);
+	int (*sk_alloc_security) (struct sock *sk, int family, gfp_t priority);
+	void (*sk_free_security) (struct sock *sk);
+	void (*sk_clone_security) (const struct sock *sk, struct sock *newsk);
+	void (*sk_getsecid) (struct sock *sk, u32 *secid);
+	void (*sock_graft) (struct sock *sk, struct socket *parent);
+	int (*inet_conn_request) (struct sock *sk, struct sk_buff *skb, struct request_sock *req);
+	void (*inet_csk_clone) (struct sock *newsk, const struct request_sock *req);
+	void (*inet_conn_established) (struct sock *sk, struct sk_buff *skb);
+	int (*secmark_relabel_packet) (u32 secid);
+	void (*secmark_refcount_inc) (void);
+	void (*secmark_refcount_dec) (void);
+	void (*req_classify_flow) (const struct request_sock *req, struct flowi *fl);
+	int (*tun_dev_create)(void);
+	void (*tun_dev_post_create)(struct sock *sk);
+	int (*tun_dev_attach)(struct sock *sk);
+#endif	/* CONFIG_SECURITY_NETWORK */
+
+#ifdef CONFIG_SECURITY_NETWORK_XFRM
+	int (*xfrm_policy_alloc_security) (struct xfrm_sec_ctx **ctxp, struct xfrm_user_sec_ctx *sec_ctx);
+	int (*xfrm_policy_clone_security) (struct xfrm_sec_ctx *old_ctx, struct xfrm_sec_ctx **new_ctx);
+	void (*xfrm_policy_free_security) (struct xfrm_sec_ctx *ctx);
+	int (*xfrm_policy_delete_security) (struct xfrm_sec_ctx *ctx);
+	int (*xfrm_state_alloc_security) (struct xfrm_state *x, struct xfrm_user_sec_ctx *sec_ctx, u32 secid);
+	void (*xfrm_state_free_security) (struct xfrm_state *x);
+	int (*xfrm_state_delete_security) (struct xfrm_state *x);
+	int (*xfrm_policy_lookup) (struct xfrm_sec_ctx *ctx, u32 fl_secid, u8 dir);
+	int (*xfrm_state_pol_flow_match) (struct xfrm_state *x, struct xfrm_policy *xp, const struct flowi *fl);
+	int (*xfrm_decode_session) (struct sk_buff *skb, u32 *secid, int ckall);
+#endif	/* CONFIG_SECURITY_NETWORK_XFRM */
+
+	/* key management security hooks */
+#ifdef CONFIG_KEYS
+	int (*key_alloc) (struct key *key, const struct cred *cred, unsigned long flags);
+	void (*key_free) (struct key *key);
+	int (*key_permission) (key_ref_t key_ref, const struct cred *cred, key_perm_t perm);
+	int (*key_getsecurity)(struct key *key, char **_buffer);
+#endif	/* CONFIG_KEYS */
+
+#ifdef CONFIG_AUDIT
+	int (*audit_rule_init) (u32 field, u32 op, char *rulestr, void **lsmrule);
+	int (*audit_rule_known) (struct audit_krule *krule);
+	int (*audit_rule_match) (u32 secid, u32 field, u32 op, void *lsmrule, struct audit_context *actx);
+	void (*audit_rule_free) (void *lsmrule);
+#endif /* CONFIG_AUDIT */
+};
+```
+
+## 14.4 LSM的初始化
+
+系统启动时，```start_kernel()```调用```security_init()```来初始化LSM。函数```security_init()```的定义与配置选项CONFIG_SECURITY有关，参见include/linux/security.h:
+
+```
+/*
+ * CONFIG_SECURITY是配置Linux Security Module的总开关
+ */
+#ifdef CONFIG_SECURITY
+extern int security_init(void);		// 定义于security/security.c
+#else
+static inline int security_init(void)
+{
+	return 0;
+}
+#endif
+```
+
+函数```security_init()```定义于security/security.c:
+
+```
+static struct security_operations *security_ops;
+static struct security_operations default_security_ops = {
+	.name	= "default",
+};
+
+int __init security_init(void)
+{
+	printk(KERN_INFO "Security Framework initialized\n");
+
+	/*
+	 * 1) 设置默认的Security Module:
+	 *    若default_security_ops中的某函数指针为空，
+	 *    则设置为默认值，参见security_fixup_ops()节
+	 */
+	security_fixup_ops(&default_security_ops);
+	security_ops = &default_security_ops;
+
+	/*
+	 * 2) 注册其他类型的Security Module:
+	 *    调用__security_initcall_start和__security_initcall_end
+	 *    之间的初始化函数，这些函数由宏security_initcall()设置，
+	 *    参见register_security()节
+	 */
+	do_security_initcalls();
+
+	return 0;
+}
+```
+
+### 14.4.1 security_fixup_ops()
+
+该函数定义于security/capability.c:
+
+```
+#define set_to_cap_if_null(ops, function)						\
+	do {										\
+		if (!ops->function) {							\
+			ops->function = cap_##function;					\
+			pr_debug("Had to override the " #function			\
+				 " security operation with the default.\n");		\
+			}								\
+	} while (0)
+
+void __init security_fixup_ops(struct security_operations *ops)
+{
+	/*
+	 * 设置ops->ptrace_access_check = cap_ptrace_access_check;
+	 * 而函数cap_ptrace_access_check()定义于security/capability.c
+	 */
+	set_to_cap_if_null(ops, ptrace_access_check);
+	set_to_cap_if_null(ops, ptrace_traceme);
+	set_to_cap_if_null(ops, capget);
+	...
+}
+```
+
+### 14.4.2 security_xxx()
+
+执行完上述初始化函数后，内核就可以调用名为```security_xxx()```的函数了，这类函数将调用函数```security_ops->xxx()```。
+
+以```security_syslog()```为例，其定义于security/security.c：
+
+```
+int security_syslog(int type)
+{
+	/*
+	 * 根据不同的Linux Security Module配置，调用不同函数：
+	 * 1) 若使用默认配置default_security_ops，则调用cap_syslog()，
+	 *    该函数直接返回0，参见security/capability.c;
+	 * 2) 若采用Smack，则调用smack_syslog()，
+	 *    参见security/smack/smack_lsm.c中的变量smack_ops;
+	 * 3) ...
+	 */
+	return security_ops->syslog(type);
+}
+```
+
+## 14.5 Security Framework的注册/恢复
+
+### 14.5.1 register_security()
+
+函数```register_security()```用于注册security framework，其定义于security/security.c:
+
+```
+/**
+ * register_security - registers a security framework with the kernel
+ * @ops: a pointer to the struct security_options that is to be registered
+ *
+ * This function allows a security module to register itself with the
+ * kernel security subsystem.  Some rudimentary checking is done on the @ops
+ * value passed to this function. You'll need to check first if your LSM
+ * is allowed to register its @ops by calling security_module_enable(@ops).
+ *
+ * If there is already a security module registered with the kernel,
+ * an error will be returned.  Otherwise %0 is returned on success.
+ */
+int __init register_security(struct security_operations *ops)
+{
+	/*
+	 * 调用security_fixup_ops()为ops中未赋值的函数指针设置默认值，
+	 * 参见security_fixup_ops()节
+	 */
+	if (verify(ops)) {
+		printk(KERN_DEBUG "%s could not verify "
+			"security_operations structure.\n", __func__);
+		return -EINVAL;
+	}
+
+	if (security_ops != &default_security_ops)	// 参见LSM的初始化节
+		return -EAGAIN;
+
+	security_ops = ops;
+
+	return 0;
+}
+```
+
+该函数被如下函数调用：
+
+```
+1) security/selinux/hooks.c:	selinux_init()		SECURITY_SELINUX
+2) security/tomoyo/tomoyo.c:	tomoyo_init()		SECURITY_TOMOYO
+3) security/apparmor/lsm.c:	apparmor_init()		SECURITY_APPARMOR
+4) security/smack/smack_lsm.c:	smack_init()		SECURITY_SMACK
+```
+
+调用函数```register_security()```之前，必须先调用函数```security_module_enable()```来判断指定的安全模块是否已经被启用。其定义于security/security.c:
+
+```
+/* Boot-time LSM user choice */
+static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1] = CONFIG_DEFAULT_SECURITY;
+
+/**
+ * security_module_enable - Load given security module on boot ?
+ * @ops: a pointer to the struct security_operations that is to be checked.
+ *
+ * Each LSM must pass this method before registering its own operations
+ * to avoid security registration races. This method may also be used
+ * to check if your LSM is currently loaded during kernel initialization.
+ *
+ * Return true if:
+ *	- The passed LSM is the one chosen by user at boot time,
+ *	- or the passed LSM is configured as the default and the user did not
+ *	  choose an alternate LSM at boot time.
+ * Otherwise, return false.
+ */
+int __init security_module_enable(struct security_operations *ops)
+{
+	return !strcmp(ops->name, chosen_lsm);
+}
+```
+
+其中，变量chosen_lsm根据配置选项确定，参见security/Kconfig:
+
+```
+config DEFAULT_SECURITY
+	string
+	default "selinux" if DEFAULT_SECURITY_SELINUX
+	default "smack" if DEFAULT_SECURITY_SMACK
+	default "tomoyo" if DEFAULT_SECURITY_TOMOYO
+	default "apparmor" if DEFAULT_SECURITY_APPARMOR
+	default "" if DEFAULT_SECURITY_DAC
+```
+
+### 14.5.2 reset_security_ops()
+
+函数```reset_security_ops()```用于恢复默认的security framework，其定义于security/security.c:
+
+```
+void reset_security_ops(void)
+{
+	security_ops = &default_security_ops;
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

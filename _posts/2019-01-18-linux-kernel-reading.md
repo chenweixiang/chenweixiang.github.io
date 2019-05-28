@@ -65211,6 +65211,3253 @@ delete_module() 					// 参见13.5.1.3 rmmod调用sys_delete_module()节
 
 由13.1.3.1.3 module_param()/module_param_named()节至13.1.3.1.5 module_param_array()/module_param_array_named()节可知，宏```module_param(.., charp, ..)```和```module_param_array()```定义的模块参数有```param[i].ops->free()```函数。
 
+## 13.2 模块的编译
+
+### 13.2.1 编译外部模块的前提条件
+
+#### 13.2.1.1 内核配置选项
+
+```
++- include/linux/elf.h
++- include/linux/module.h
++- arch/x86/include/asm/module.h
+|  +- include/asm-generic/module.h
++- kernel/module.c
+```
+
+由kernel/Makefile可知，module.c的编译与配置选项CONFIG_MODULES有关:
+
+```
+obj-$(CONFIG_MODULES) += module.o
+```
+
+只有配置了内核选项CONFIG_MODULES，内核才支持module操作:
+
+```
+[*] Enable loadable module support  --->	// CONFIG_MODULES  [boolean]
+    [ ] Forced module loading			// CONFIG_MODULE_FORCE_LOAD  [boolean]
+    [*] Module unloading			// CONFIG_MODULE_UNLOAD  [boolean]
+        [*] Forced module unloading		// CONFIG_MODULE_FORCE_UNLOAD  [boolean]
+    [ ] Module versioning support		// CONFIG_MODVERSIONS  [boolean]
+    [ ] Source checksum for all modules		// CONFIG_MODULE_SRCVERSION_ALL  [boolean]
+```
+
+其中，各配置选项的含义如下：
+
+| Configure | Description |
+| :-------- | :---------- |
+| CONFIG_MODULE_FORCE_LOAD | Allow loading of modules without version information (ie. ```modprobe --force```). Forced module loading sets the 'F' (forced) taint flag and is usually a really bad idea. |
+| CONFIG_MODULE_UNLOAD | Without this option you will not be able to unload any modules (note that some modules may not be unloadable anyway), which makes your kernel smaller, faster and simpler. If unsure, say Y. |
+| CONFIG_MODULE_FORCE_UNLOAD | This option allows you to force a module to unload, even if the kernel believes it is unsafe: the kernel will remove the module without waiting for anyone to stop using it (using the -f option to rmmod). This is mainly for kernel developers and desperate users. If unsure, say N. |
+| CONFIG_MODVERSIONS | Usually, you have to use modules compiled with your kernel. Saying Y here makes it sometimes possible to use modules compiled for different kernels, by adding enough information to the modules to (hopefully) spot any changes which would make them incompatible with the kernel you are running. If unsure, say N. |
+| CONFIG_MODULE_SRCVERSION_ALL | Modules which contain a MODULE_VERSION get an extra "srcversion" field inserted into their modinfo section, which contains a sum of the source files which made it. This helps maintainers see exactly which source was used to build a module (since others sometimes change the module source without updating the version). With this option, such a "srcversion" field will be created for all modules. If unsure, say N. |
+
+<p/>
+
+#### 13.2.1.2 Prebuilt kernel with configuration and headers
+
+Refer to Documentation/kbuild/modules.txt:
+
+=== 2. How to Build External Modules 
+
+To build external modules, you must have a prebuilt kernel available 
+that contains the configuration and header files used in the build. 
+Also, the kernel must have been built with modules enabled. If you are 
+using a distribution kernel, there will be a package for the kernel you 
+are running provided by your distribution. 
+
+An alternative is to use the "make" target "modules_prepare." This will 
+make sure the kernel contains the information required. The target 
+exists solely as a simple way to prepare a kernel source tree for 
+building external modules. 
+
+NOTE: "modules_prepare" will not build Module.symvers even if 
+CONFIG_MODVERSIONS is set; therefore, a full kernel build needs to be 
+executed to make module versioning work.
+
+另参见13.2.3.1 编译基于特定内核版本的模块节。
+
+### 13.2.2 Makefile
+
+#### 13.2.2.0 Standard Makefile
+
+Standard Makefile for kernels <= 2.4
+
+```
+TARGET  := module_name
+INCLUDE := -I/lib/modules/`uname -r`/build/include
+CFLAGS  := -O2 -Wall -DMODULE -D__KERNEL__ -DLINUX
+CC      := gcc
+
+${TARGET}.o: ${TARGET}.c
+	$(CC) $(CFLAGS) ${INCLUDE} -c ${TARGET}.c
+```
+
+Standard Makefile for kernels > 2.4
+
+```
+obj-m  := <name-of-module>.o
+
+all:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+```
+
+#### 13.2.2.1 Makefile v1
+
+用于编译hello模块的Makefile:
+
+```
+obj-m := hello.o
+
+# 'uname -r' print kernel release
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+# targets, refer to 编译external modules
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
+```
+
+在hello.c所在的目录执行make命令，编译hello模块：
+
+```
+chenwx@chenwx ~/alex/module $ ll
+-rw-r--r-- 1 chenwx chenwx  295 Aug  7 05:02 hello.c
+-rw-r--r-- 1 chenwx chenwx  187 Aug  7 05:05 Makefile
+
+chenwx@chenwx ~/alex/module $ make
+make -C /lib/modules/3.5.0-17-generic/build M=/home/chenwx/alex/module modules
+make[1]: Entering directory `/usr/src/linux-headers-3.5.0-17-generic'
+  CC [M]  /home/chenwx/alex/module/hello.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/chenwx/alex/module/hello.mod.o
+  LD [M]  /home/chenwx/alex/module/hello.ko
+make[1]: Leaving directory `/usr/src/linux-headers-3.5.0-17-generic'
+
+chenwx@chenwx ~/alex/module $ ll
+-rw-r--r-- 1 chenwx chenwx   295 Aug  7 05:02 hello.c
+-rw-r--r-- 1 chenwx chenwx   187 Aug  7 05:05 Makefile
+-rw-r--r-- 1 chenwx chenwx  2471 Aug  7 05:18 hello.ko
+-rw-r--r-- 1 chenwx chenwx   247 Aug  7 05:18 .hello.ko.cmd
+-rw-r--r-- 1 chenwx chenwx   663 Aug  7 05:18 hello.mod.c
+-rw-r--r-- 1 chenwx chenwx  1760 Aug  7 05:18 hello.mod.o
+-rw-r--r-- 1 chenwx chenwx 26045 Aug  7 05:18 .hello.mod.o.cmd
+-rw-r--r-- 1 chenwx chenwx  1284 Aug  7 05:18 hello.o
+-rw-r--r-- 1 chenwx chenwx 25942 Aug  7 05:18 .hello.o.cmd
+-rw-r--r-- 1 chenwx chenwx    41 Aug  7 05:18 modules.order
+-rw-r--r-- 1 chenwx chenwx     0 Aug  7 05:18 Module.symvers
+drwxr-xr-x 2 chenwx chenwx  4096 Aug  7 05:18 .tmp_versions
+```
+
+#### 13.2.2.2 Makefile v2
+
+Makefile v1只能编译名为hello.c的源文件，为了使该Makefile可编译其他源文件，可将源文件名作为make命令行参数，使Makefile更通用。Makefile更新如下：
+
+```
+#
+# Usage: make o=<source-file-name-without-extension>
+#
+obj-m := $(o).o
+
+# 'uname -r' print kernel release
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+# enable macor DEBUG in order to use pr_debug()
+ccflags-y += -DDEBUG
+
+# targets, refer to 编译external modules
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
+```
+
+在源文件所在的目录执行make命令，编译指定模块：
+
+```
+chenwx@chenwx ~/alex/module $ ll
+-rw-r--r-- 1 chenwx chenwx  295 Aug  7 05:02 hello.c
+-rw-r--r-- 1 chenwx chenwx  295 Aug  7 05:02 fs.c
+-rw-r--r-- 1 chenwx chenwx  187 Aug  7 05:05 Makefile
+
+chenwx@chenwx ~/alex/module $ make o=hello
+make -C /lib/modules/3.5.0-17-generic/build M=/home/chenwx/alex/module modules
+make[1]: Entering directory `/usr/src/linux-headers-3.5.0-17-generic'
+  CC [M]  /home/chenwx/alex/module/hello.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/chenwx/alex/module/hello.mod.o
+  LD [M]  /home/chenwx/alex/module/hello.ko
+make[1]: Leaving directory `/usr/src/linux-headers-3.5.0-17-generic'
+
+chenwx@chenwx ~/alex/module $ make o=fs
+make -C /lib/modules/3.5.0-17-generic/build M=/home/chenwx/alex/module modules
+make[1]: Entering directory `/usr/src/linux-headers-3.5.0-17-generic'
+  CC [M]  /home/chenwx/alex/module/fs.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/chenwx/alex/module/fs.mod.o
+  LD [M]  /home/chenwx/alex/module/fs.ko
+make[1]: Leaving directory `/usr/src/linux-headers-3.5.0-17-generic'
+
+chenwx@chenwx ~/alex/module $ ll
+-rw-r--r-- 1 chenwx chenwx   187 Aug  7 05:05 Makefile
+
+-rw-r--r-- 1 chenwx chenwx   295 Aug  7 05:02 hello.c
+-rw-r--r-- 1 chenwx chenwx  2471 Aug  7 05:18 hello.ko
+-rw-r--r-- 1 chenwx chenwx   247 Aug  7 05:18 .hello.ko.cmd
+-rw-r--r-- 1 chenwx chenwx   663 Aug  7 05:18 hello.mod.c
+-rw-r--r-- 1 chenwx chenwx  1760 Aug  7 05:18 hello.mod.o
+-rw-r--r-- 1 chenwx chenwx 26045 Aug  7 05:18 .hello.mod.o.cmd
+-rw-r--r-- 1 chenwx chenwx  1284 Aug  7 05:18 hello.o
+-rw-r--r-- 1 chenwx chenwx 25942 Aug  7 05:18 .hello.o.cmd
+
+-rw-r--r-- 1 chenwx chenwx   295 Aug  7 05:02 fs.c
+-rw-r--r-- 1 chenwx chenwx  2471 Aug  7 05:18 fs.ko
+-rw-r--r-- 1 chenwx chenwx   247 Aug  7 05:18 .fs.ko.cmd
+-rw-r--r-- 1 chenwx chenwx   663 Aug  7 05:18 fs.mod.c
+-rw-r--r-- 1 chenwx chenwx  1760 Aug  7 05:18 fs.mod.o
+-rw-r--r-- 1 chenwx chenwx 26045 Aug  7 05:18 .fs.mod.o.cmd
+-rw-r--r-- 1 chenwx chenwx  1284 Aug  7 05:18 fs.o
+-rw-r--r-- 1 chenwx chenwx 25942 Aug  7 05:18 .fs.o.cmd
+
+-rw-r--r-- 1 chenwx chenwx    41 Aug  7 05:18 modules.order
+-rw-r--r-- 1 chenwx chenwx     0 Aug  7 05:18 Module.symvers
+drwxr-xr-x 2 chenwx chenwx  4096 Aug  7 05:18 .tmp_versions
+```
+
+#### 13.2.2.3 Makefile v3
+
+Makefile v2每次只能编译一个源文件，为了使该Makefile每次可编译多个源文件，可将多个源文件名作为make命令行参数。Makefile更新如下：
+
+```
+#
+# Usage:
+#   make o=<one source file name with or without extension>
+#   make o="<multiple source file names with or without extension>"
+#
+objects := $(addsuffix .o,$(basename $(strip $(o))))
+
+ifneq ($(filter-out clean, $(MAKECMDGOALS)),)
+  ifeq ($(objects),)
+    $(error No object to be compiled)
+  else
+    $(warning Compiling $(objects))
+  endif
+endif
+
+obj-m := $(objects)
+
+# 'uname -r' print kernel release
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+# enable macor DEBUG in order to use pr_debug()
+ccflags-y += -DDEBUG
+
+# targets, refer to 编译external modules
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
+```
+
+在源文件所在目录执行make命令，编译指定模块：
+
+```
+chenwx@chenwx ~/test $ ll
+-rw-r--r-- 1 chenwx chenwx 646 May 27 05:07 convert_dev.c
+-rw-r--r-- 1 chenwx chenwx 799 May 27 05:10 fs.c
+-rw-r--r-- 1 chenwx chenwx 624 May 27 04:59 hello.c
+-rw-r--r-- 1 chenwx chenwx 654 May 27 06:12 Makefile
+
+chenwx@chenwx ~/test $ make o="hello fs.c convert_dev.c"
+make -C /lib/modules/3.11.0-12-generic/build M=/home/chenwx/test modules
+make[1]: Entering directory `/usr/src/linux-headers-3.11.0-12-generic'
+  CC [M]  /home/chenwx/test/hello.o
+  CC [M]  /home/chenwx/test/fs.o
+  CC [M]  /home/chenwx/test/convert_dev.o
+  Building modules, stage 2.
+  MODPOST 3 modules
+  CC      /home/chenwx/test/convert_dev.mod.o
+  LD [M]  /home/chenwx/test/convert_dev.ko
+  CC      /home/chenwx/test/fs.mod.o
+  LD [M]  /home/chenwx/test/fs.ko
+  CC      /home/chenwx/test/hello.mod.o
+  LD [M]  /home/chenwx/test/hello.ko
+make[1]: Leaving directory `/usr/src/linux-headers-3.11.0-12-generic'
+
+chenwx@chenwx ~/test $ ll
+-rw-r--r-- 1 chenwx chenwx  654 May 27 06:12 Makefile
+
+-rw-r--r-- 1 chenwx chenwx  646 May 27 05:07 convert_dev.c
+-rw-r--r-- 1 chenwx chenwx 3390 May 27 06:17 convert_dev.ko
+-rw-r--r-- 1 chenwx chenwx  771 May 27 06:17 convert_dev.mod.c
+-rw-r--r-- 1 chenwx chenwx 1844 May 27 06:17 convert_dev.mod.o
+-rw-r--r-- 1 chenwx chenwx 2088 May 27 06:17 convert_dev.o
+
+-rw-r--r-- 1 chenwx chenwx  799 May 27 05:10 fs.c
+-rw-r--r-- 1 chenwx chenwx  649 May 27 05:16 fs_init.c
+-rw-r--r-- 1 chenwx chenwx  126 May 27 05:16 fs_init.h
+-rw-r--r-- 1 chenwx chenwx 3537 May 27 06:17 fs.ko
+-rw-r--r-- 1 chenwx chenwx  776 May 27 06:17 fs.mod.c
+-rw-r--r-- 1 chenwx chenwx 1836 May 27 06:17 fs.mod.o
+-rw-r--r-- 1 chenwx chenwx 2252 May 27 06:17 fs.o
+
+-rw-r--r-- 1 chenwx chenwx  624 May 27 04:59 hello.c
+-rw-r--r-- 1 chenwx chenwx 3366 May 27 06:17 hello.ko
+-rw-r--r-- 1 chenwx chenwx  715 May 27 06:17 hello.mod.c
+-rw-r--r-- 1 chenwx chenwx 1776 May 27 06:17 hello.mod.o
+-rw-r--r-- 1 chenwx chenwx 2148 May 27 06:17 hello.o
+
+-rw-r--r-- 1 chenwx chenwx  105 May 27 06:17 modules.order
+-rw-r--r-- 1 chenwx chenwx    0 May 27 05:24 Module.symvers
+```
+
+### 13.2.3 模块的编译过程
+
+* 内核模块的编译，参见编译modules/$(obj-m)节；
+* 外部模块的编译，参见3.4.4 编译external modules节。
+
+#### 13.2.3.1 编译基于特定内核版本的模块
+
+若编译基于特定内核版本的模块，则按如下步骤操作：
+
+```
+/*
+ * (1) 编写待编译模块的源文件和Makefile，
+ *     其中Makefile参见13.2.2.3 Makefile v3节
+ */
+chenwx@chenwx ~/helloworld $ ll 
+total 8.0K 
+-rw-r--r-- 1 chenwx chenwx 638 May  3 16:59 Makefile 
+-rw-r--r-- 1 chenwx chenwx 703 Jul 26 22:26 helloworld.c 
+
+/*
+ * (2) 清空内核源代码目录，并checkout指定版本的内核源代码
+ */
+chenwx@chenwx ~/helloworld $ cd ~/linux 
+chenwx@chenwx ~/linux $ make distclean 
+  CLEAN   . 
+  CLEAN   arch/x86/tools 
+  CLEAN   .tmp_versions 
+  CLEAN   scripts/basic 
+  CLEAN   scripts/genksyms 
+  CLEAN   scripts/kconfig 
+  CLEAN   scripts/mod 
+  CLEAN   scripts/selinux/genheaders 
+  CLEAN   scripts/selinux/mdp 
+  CLEAN   scripts 
+  CLEAN   include/config include/generated arch/x86/include/generated 
+  CLEAN   .config .config.old 
+
+chenwx@chenwx ~/linux $ git co v4.1.6 
+Previous HEAD position was 352cb8677f83... Linux 4.1.5 
+HEAD is now at 4ff62ca06c0c... Linux 4.1.6 
+
+chenwx@chenwx ~/linux $ git st 
+HEAD detached at v4.1.6 
+nothing to commit, working directory clean 
+
+/*
+ * (2.1) 若直接编译模块，则不成功，其原因
+ *       参见13.2.1.2 Prebuilt kernel with configuration and headers节
+ *       和[NOTE1]
+ */
+chenwx@chenwx ~/linux $ cd ~/helloworld/ 
+chenwx@chenwx ~/helloworld $ make KDIR=~/linux o=helloworld.c 
+make -C /home/chenwx/linux M=/home/chenwx/helloworld modules 
+make[1]: Entering directory `/home/chenwx/linux' 
+
+  ERROR: Kernel configuration is invalid. 
+         include/generated/autoconf.h or include/config/auto.conf are missing. 
+         Run 'make oldconfig && make prepare' on kernel src to fix it. 
+
+
+  WARNING: Symbol version dump ./Module.symvers 
+           is missing; modules will have no dependencies and modversions. 
+
+  CC [M]  /home/chenwx/helloworld/helloworld.o 
+In file included from <command-line>:0:0: 
+././include/linux/kconfig.h:4:32: fatal error: generated/autoconf.h: No such file or directory 
+ #include <generated/autoconf.h> 
+                                ^ 
+compilation terminated. 
+make[2]: *** [/home/chenwx/helloworld/helloworld.o] Error 1 
+make[1]: *** [_module_/home/chenwx/helloworld] Error 2 
+make[1]: Leaving directory `/home/chenwx/linux' 
+make: *** [all] Error 2 
+
+/*
+ * (3) 配置内核源代码，并为编译模块做准备
+ */
+chenwx@chenwx ~/helloworld $ cd ~/linux 
+chenwx@chenwx ~/linux $ cp /boot/config-4.1.5-alex .config 
+chenwx@chenwx ~/linux $ make olddefconfig 
+  HOSTCC  scripts/basic/fixdep 
+  HOSTCC  scripts/kconfig/conf.o 
+  SHIPPED scripts/kconfig/zconf.tab.c 
+  SHIPPED scripts/kconfig/zconf.lex.c 
+  SHIPPED scripts/kconfig/zconf.hash.c 
+  HOSTCC  scripts/kconfig/zconf.tab.o 
+  HOSTLD  scripts/kconfig/conf 
+scripts/kconfig/conf  --olddefconfig Kconfig 
+# 
+# configuration written to .config 
+# 
+
+chenwx@chenwx ~/linux $ make modules_prepare 
+scripts/kconfig/conf  --silentoldconfig Kconfig 
+  SYSTBL  arch/x86/syscalls/../include/generated/asm/syscalls_32.h 
+  SYSHDR  arch/x86/syscalls/../include/generated/asm/unistd_32_ia32.h 
+  SYSHDR  arch/x86/syscalls/../include/generated/asm/unistd_64_x32.h 
+  SYSTBL  arch/x86/syscalls/../include/generated/asm/syscalls_64.h 
+  SYSHDR  arch/x86/syscalls/../include/generated/uapi/asm/unistd_32.h 
+  SYSHDR  arch/x86/syscalls/../include/generated/uapi/asm/unistd_64.h 
+  SYSHDR  arch/x86/syscalls/../include/generated/uapi/asm/unistd_x32.h 
+  HOSTCC  scripts/basic/bin2c 
+  HOSTCC  arch/x86/tools/relocs_32.o 
+  HOSTCC  arch/x86/tools/relocs_64.o 
+  HOSTCC  arch/x86/tools/relocs_common.o 
+  HOSTLD  arch/x86/tools/relocs 
+  CHK     include/config/kernel.release 
+  UPD     include/config/kernel.release 
+  WRAP    arch/x86/include/generated/asm/clkdev.h 
+  WRAP    arch/x86/include/generated/asm/cputime.h 
+  WRAP    arch/x86/include/generated/asm/dma-contiguous.h 
+  WRAP    arch/x86/include/generated/asm/early_ioremap.h 
+  WRAP    arch/x86/include/generated/asm/mcs_spinlock.h 
+  WRAP    arch/x86/include/generated/asm/scatterlist.h 
+  CHK     include/generated/uapi/linux/version.h 
+  UPD     include/generated/uapi/linux/version.h 
+  CHK     include/generated/utsrelease.h 
+  UPD     include/generated/utsrelease.h 
+  CC      kernel/bounds.s 
+  CHK     include/generated/bounds.h 
+  UPD     include/generated/bounds.h 
+  CC      arch/x86/kernel/asm-offsets.s 
+  CHK     include/generated/asm-offsets.h 
+  UPD     include/generated/asm-offsets.h 
+  CALL    scripts/checksyscalls.sh 
+  HOSTCC  scripts/genksyms/genksyms.o 
+  SHIPPED scripts/genksyms/parse.tab.c 
+  HOSTCC  scripts/genksyms/parse.tab.o 
+  SHIPPED scripts/genksyms/lex.lex.c 
+  SHIPPED scripts/genksyms/keywords.hash.c 
+  SHIPPED scripts/genksyms/parse.tab.h 
+  HOSTCC  scripts/genksyms/lex.lex.o 
+  HOSTLD  scripts/genksyms/genksyms 
+  CC      scripts/mod/empty.o 
+  HOSTCC  scripts/mod/mk_elfconfig 
+  MKELF   scripts/mod/elfconfig.h 
+  HOSTCC  scripts/mod/modpost.o 
+  CC      scripts/mod/devicetable-offsets.s 
+  GEN     scripts/mod/devicetable-offsets.h 
+  HOSTCC  scripts/mod/file2alias.o 
+  HOSTCC  scripts/mod/sumversion.o 
+  HOSTLD  scripts/mod/modpost 
+  HOSTCC  scripts/selinux/genheaders/genheaders 
+  HOSTCC  scripts/selinux/mdp/mdp 
+  HOSTCC  scripts/kallsyms 
+  HOSTCC  scripts/conmakehash 
+  HOSTCC  scripts/recordmcount 
+  HOSTCC  scripts/sortextable 
+
+/*
+ * (4) 编译基于特定内核版本的模块
+ */
+chenwx@chenwx ~/linux $ cd ~/helloworld/ 
+chenwx@chenwx ~/helloworld $ make KDIR=~/linux o=helloworld.c 
+make -C /home/chenwx/linux M=/home/chenwx/helloworld modules 
+make[1]: Entering directory `/home/chenwx/linux' 
+
+  WARNING: Symbol version dump ./Module.symvers 
+           is missing; modules will have no dependencies and modversions. 
+
+  CC [M]  /home/chenwx/helloworld/helloworld.o 
+  Building modules, stage 2. 
+  MODPOST 1 modules 
+  CC      /home/chenwx/helloworld/helloworld.mod.o 
+  LD [M]  /home/chenwx/helloworld/helloworld.ko 
+make[1]: Leaving directory `/home/chenwx/linux' 
+
+chenwx@chenwx ~/helloworld $ ll 
+total 200K 
+-rw-r--r-- 1 chenwx chenwx 638 May  3 16:59 Makefile 
+-rw-r--r-- 1 chenwx chenwx  69 Aug 31 22:12 Module.symvers 
+-rw-r--r-- 1 chenwx chenwx 703 Jul 26 22:26 helloworld.c 
+-rw-r--r-- 1 chenwx chenwx 85K Aug 31 22:12 helloworld.ko 
+-rw-r--r-- 1 chenwx chenwx 612 Aug 31 22:12 helloworld.mod.c 
+-rw-r--r-- 1 chenwx chenwx 50K Aug 31 22:12 helloworld.mod.o 
+-rw-r--r-- 1 chenwx chenwx 39K Aug 31 22:12 helloworld.o 
+-rw-r--r-- 1 chenwx chenwx  45 Aug 31 22:12 modules.order 
+
+chenwx@chenwx ~/helloworld $ modinfo helloworld.ko 
+filename:       /home/chenwx/helloworld/helloworld.ko 
+description:    A Hello Module 
+author:         Chen Weixiang 
+license:        GPL 
+srcversion:     4D296D6B8A330EA0D60086F 
+depends:        
+vermagic:       4.1.6 SMP mod_unload modversions 
+parm:           isSayHello:set 0 to disable printing hello world. set 1 to enable it (int) 
+```
+
+**NOTE1**: You can't build a module against an absolutely sterile, pristine, make distcleaned kernel tree. At the very least, the kernel tree being used must be configured because there are some versioning files that are created by the configuration process that are essential to the module build process. But that's not enough. 
+
+You also need to perform at least the first part of the kernel build process since that will generate a few more files that the module build process needs. However, unlike what some documentation tells you, you don't need to perform an entire build. All that's required is, in the kernel source tree, to run the subsequent command: 
+
+```
+# make modules_prepare 
+```
+
+Without getting into massive detail, that make invocation will run just enough of the kernel build process that the tree is now ready to let modules build against it. And once you do that in your kernel source tree, your module build should now work.
+
+### 13.2.4 测试模块
+
+下面编译并测试13.1.1 模块源文件示例节的hello.c模块：
+
+```
+chenwx@chenwx ~/alex/module $ modinfo hello.ko
+filename:       hello.ko
+license:        GPL
+srcversion:     80A7CFE31FFFDD3F54DDB04
+depends:        
+vermagic:       3.5.0-17-generic SMP mod_unload modversions 686 
+
+chenwx@chenwx ~/alex/module $ sudo insmod hello.ko
+
+chenwx@chenwx ~/alex/module $ lsmod
+Module                  Size  Used by
+hello                  12393  0 
+hid                    82142  2 hid_generic,usbhid
+
+// 或者查看日志文件/var/log/kern.log
+chenwx@chenwx ~/alex/module $ dmesg | tail
+[ 1346.914114] usb 1-1: >Manufacturer: VirtualBox
+[ 1346.932248] input: VirtualBox USB Tablet as /devices/pci0000:00/0000:00:06.0/usb1/1-1/1-1:1.0/input/input6
+[ 1346.933869] hid-generic 0003:80EE:0021.0002: >input,hidraw0: USB HID v1.10 Mouse [VirtualBox USB Tablet] on usb-0000:00:06.0-1/input0
+[ 1347.096468] e1000: eth0 NIC Link is Down
+[ 1351.105984] e1000: eth0 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: RX
+[ 5007.862201] Hello module init
+
+chenwx@chenwx ~/alex/module $ cat /proc/kallsyms | grep sayHello
+00000000 T sayHello		[hello]
+00000000 r __ksymtab_sayHello	[hello]
+00000000 r __kstrtab_sayHello	[hello]
+00000000 r __kcrctab_sayHello	[hello]
+
+chenwx@chenwx ~/alex/module $ cat /proc/kallsyms | grep hello
+00000000 T sayHello		[hello]
+00000000 t hello_exit		[hello]
+00000000 r __ksymtab_sayHello	[hello]
+00000000 r __kstrtab_sayHello	[hello]
+00000000 r __kcrctab_sayHello	[hello]
+00000000 d __this_module	[hello]
+00000000 t cleanup_module	[hello]
+
+chenwx@chenwx ~/alex/module $ sudo rmmod hello
+
+chenwx@chenwx ~/alex/module $ lsmod
+Module                  Size  Used by
+hid                    82142  2 hid_generic,usbhid
+
+chenwx@chenwx ~/alex/module $ dmesg | tail
+[ 1346.932248] input: VirtualBox USB Tablet as /devices/pci0000:00/0000:00:06.0/usb1/1-1/1-1:1.0/input/input6
+[ 1346.933869] hid-generic 0003:80EE:0021.0002: >input,hidraw0: USB HID v1.10 Mouse [VirtualBox USB Tablet] on usb-0000:00:06.0-1/input0
+[ 1347.096468] e1000: eth0 NIC Link is Down
+[ 1351.105984] e1000: eth0 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: RX
+[ 5007.862201] Hello module init
+[ 5042.121131] Hello module exit
+
+chenwx@chenwx ~/alex/module $ cat /proc/kallsyms | grep hello
+chenwx@chenwx ~/alex/module $
+```
+
+### 13.2.5 Sections of Compiled Module
+
+The compiled modules may have following sections, you can run command "readelf -e <module>" to check that information.
+
+| Section Name | Description |
+| :----------- | :---------- |
+| ```.gnu.linkonce.this_module``` | Module structue, that's struct module. See 13.4.2.4 How to access symbols |
+| ```.modinfo``` | String-style module information (Licence, etc). See 13.1.2.1 MODULE_INFO()/\__MODULE_INFO() |
+| ```__versions``` | Expected (compile-time) versions (CRC) of the symbols that this module depends on. |
+| ```__ksymtab*``` | Table of symbols which this module exports. See 13.1.2.3 EXPORT_SYMBOL(), 13.5.1.2.1.1 find_module_sections(), and Annex H: scripts/module-common.lds |
+| ```__kcrctab*``` | Table of versions of symbols which this module exports. See 13.1.2.3 EXPORT_SYMBOL(), 13.5.1.2.1.1 find_module_sections() and Annex H: scripts/module-common.lds |
+| ```*.init``` | Sections used while initialization (```__init```). See 13.1.2.4 \__init/\__initdata, \__exit/\__exitdata and 13.5.1.1.1.1 \__initcall_start[], \__early_initcall_end[], \__initcall_end[] |
+| ```.text```, ```.data```, etc. | The code and data. |
+
+<p/>
+where, ```*``` is one of ```(none)```, ```_gpl```, ```_gpl_future```, ```_unused```, ```unused_gpl```.
+
+## 13.3 模块的加载/卸载
+
+### 13.3.1 加载/卸载模块的命令
+
+加载/卸载模块的命令与系统调用的关系:
+
+![insmod_rmmod_syscalls](/assets/insmod_rmmod_syscalls.png)
+
+#### 13.3.1.1 module-init-tools
+
+module-init-tools提供了如下实用程序，用于加载、管理内核模块：
+
+**modprobe**
+
+新版本的Linux常用这个命令来加载和卸载系统内核模块
+
+**lsmod**
+
+查看当前系统加载的内核模块(含各种驱动等)，信息来源于文件/proc/modules.
+
+**insmod**
+
+加载一个系统内核模块到内核中，常用modprobe命令代替(推荐使用modprobe命令)。
+
+**insmod.static**
+
+insmod的静态编译版本。
+
+**rmmod**
+
+从内核卸载一个已经加载的模块，常用modprobe -r代替(推荐使用modprobe命令)。
+
+**depmod**
+
+生成module dependency file，该文件保存在/lib/modules/<当前内核版本>/modules.dep，用于insmod等命令安装模块时使用。
+
+**modinfo**
+
+查看指定module的信息。
+
+**ksyms**
+
+Display exported kernel symbols. The format is address, name, and defining module. If no command ksyms, you can use below command to get exported kernel symbols:
+
+```
+# cat /proc/kallsyms
+```
+
+**nm**
+
+List symbols from object files.
+
+在网站http://www.kernel.org/pub/linux/utils/kernel/module-init-tools/下载module-init-tools，例如module-init-tools-3.15:
+
+```
+module-init-tools-3.15.tar.bz2                  02-Jun-2011 17:43  224K  
+module-init-tools-3.15.tar.bz2.sign             02-Jun-2011 17:43  249   
+module-init-tools-3.15.tar.gz                   02-Jun-2011 17:43  340K  
+module-init-tools-3.15.tar.gz.sign              02-Jun-2011 17:43  190   
+module-init-tools-3.15.tar.xz                   02-Jun-2011 17:43  187K  
+module-init-tools-3.15.tar.xz.sign              02-Jun-2011 17:43  249
+
+# cp jvxf module-init-tools-3.15.tar.xz  ~
+# cd ~
+# tar vxf module-init-tools-3.15.tar.xz
+# cd module-init-tools-3.15
+# ./configure --prefix=/
+# make				// 编译module-init-tools，编译结果在build/目录下
+# make install			// 将编译的工具安装到系统中
+# depmod			// update /lib/modules/<kernel version> for the latest release
+```
+
+#### 13.3.1.2 kmod
+
+kmod replaces module-init-tools, which is end-of-life. Most of its tools are rewritten on top of libkmod, so it can be used as a drop in replacements. Somethings however were changed. Reasons vary from "the feature was already long deprecated on module-init-tools" to "it would be too much trouble to support it".
+
+```
+# 下载kmod源代码至～/kmod目录
+chenwx@chenwx ~ $ git clone http://git.kernel.org/pub/scm/utils/kernel/kmod/kmod.git
+
+# 选择最新版本的kmod代码
+chenwx@chenwx ~ $ cd mod
+chenwx@chenwx ~/kmod $ git tag -l
+...
+v20 
+chenwx@chenwx ~/kmod $ git co v20
+Note: checking out 'v20'. 
+
+You are in 'detached HEAD' state. You can look around, make experimental 
+changes and commit them, and you can discard any commits you make in this 
+state without impacting any branches by performing another checkout. 
+
+If you want to create a new branch to retain commits you create, you may 
+do so (now or later) by using -b with the checkout command again. Example: 
+
+  git checkout -b new_branch_name 
+
+HEAD is now at d9c71758595c... kmod 20 
+
+# 编译该版本的kmod
+chenwx@chenwx ~/kmod $ aclocal
+chenwx@chenwx ~/kmod $ libtoolize --force
+libtoolize: putting auxiliary files in AC_CONFIG_AUX_DIR, `build-aux'. 
+libtoolize: linking file `build-aux/ltmain.sh' 
+libtoolize: putting macros in AC_CONFIG_MACRO_DIR, `m4'. 
+libtoolize: linking file `m4/libtool.m4' 
+libtoolize: linking file `m4/ltoptions.m4' 
+libtoolize: linking file `m4/ltsugar.m4' 
+libtoolize: linking file `m4/ltversion.m4' 
+libtoolize: linking file `m4/lt~obsolete.m4'
+chenwx@chenwx ~/kmod $ autoconf
+chenwx@chenwx ~/kmod $ autoheader
+chenwx@chenwx ~/kmod $ automake --add-missing
+
+chenwx@chenwx ~/kmod $ ./configure CFLAGS="-g -O2" --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib 
+...
+config.status: creating libkmod/docs/version.xml 
+config.status: creating config.h 
+config.status: config.h is unchanged 
+config.status: executing depfiles commands 
+config.status: executing libtool commands 
+
+	kmod 20 
+	======= 
+
+	prefix:			/usr 
+	sysconfdir:		/etc 
+	libdir:			/usr/lib 
+	rootlibdir:		/usr/lib 
+	includedir:		${prefix}/include 
+	bindir:			${exec_prefix}/bin 
+	Bash completions dir:   /usr/share/bash-completion/completions 
+
+	compiler:		gcc -std=gnu99 
+	cflags:			 -pipe -DANOTHER_BRICK_IN_THE -Wall -W -Wextra -Wno-inline -Wvla -Wundef -Wformat=2 -Wlogical-op -Wsign-compare -Wformat-security -Wmissing-include-dirs -Wformat-nonliteral -Wold-style-definition -Wpointer-arith -Winit-self -Wdeclaration-after-statement -Wfloat-equal -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls -Wmissing-declarations -Wmissing-noreturn -Wshadow -Wendif-labels -Wstrict-aliasing=3 -Wwrite-strings -Wno-long-long -Wno-overlength-strings -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-result -Wnested-externs -Wchar-subscripts -Wtype-limits -Wuninitialized -fno-common -fdiagnostics-show-option -fvisibility=hidden -ffunction-sections -fdata-sections -g -O2 
+	ldflags:		 -Wl,--as-needed -Wl,--no-undefined -Wl,--gc-sections 
+
+	tools:		yes 
+	python bindings:	no 
+	logging:		yes 
+	compression:	xz=no  zlib=no 
+	debug:		no 
+	coverage:		no 
+	doc:			 
+	man:			yes 
+
+chenwx@chenwx ~/kmod $ make 
+...
+  CC       tools/static-nodes.o 
+  CCLD     tools/kmod 
+  GEN      libkmod/libkmod.pc 
+Making all in libkmod/docs 
+make[2]: Nothing to be done for `all'. 
+Making all in man 
+make[2]: Nothing to be done for `all'. 
+
+chenwx@chenwx ~/kmod $ sudo make install
+...
+ /bin/mkdir -p '/usr/lib/pkgconfig' 
+ /usr/bin/install -c -m 644 libkmod/libkmod.pc '/usr/lib/pkgconfig' 
+Making install in libkmod/docs 
+make[2]: Nothing to be done for `install-exec-am'. 
+make[2]: Nothing to be done for `install-data-am'. 
+Making install in man 
+make[2]: Nothing to be done for `install-exec-am'. 
+ /bin/mkdir -p '/usr/share/man/man5' 
+ /usr/bin/install -c -m 644 depmod.d.5 modprobe.d.5 modules.dep.5 modules.dep.bin.5 '/usr/share/man/man5' 
+ /bin/mkdir -p '/usr/share/man/man8' 
+ /usr/bin/install -c -m 644 kmod.8 depmod.8 insmod.8 lsmod.8 rmmod.8 modprobe.8 modinfo.8 '/usr/share/man/man8'
+
+chenwx@chenwx ~/kmod $ kmod -V 
+kmod version 20 
+
+# kmod的用法
+chenwx@chenwx ~/kmod $ kmod -h
+kmod - Manage kernel modules: list, load, unload, etc 
+Usage: 
+	kmod [options] command [command_options] 
+
+Options: 
+	-V, --version     show version 
+	-h, --help        show this help 
+
+Commands: 
+  help         Show help message 
+  list         list currently loaded modules 
+  static-nodes outputs the static-node information installed with the currently running kernel 
+
+kmod also handles gracefully if called from following symlinks: 
+  lsmod        compat lsmod command 
+  rmmod        compat rmmod command 
+  insmod       compat insmod command 
+  modinfo      compat modinfo command 
+  modprobe     compat modprobe command 
+  depmod       compat depmod command 
+
+chenwx@chenwx ~/kmod $ ll `which lsmod`
+lrwxrwxrwx 1 root root 9 Oct 24 20:48 /sbin/lsmod -> /bin/kmod
+chenwx@chenwx ~/kmod $ ll `which rmmod` 
+lrwxrwxrwx 1 root root 9 Oct 24 20:48 /sbin/rmmod -> /bin/kmod 
+chenwx@chenwx ~/kmod $ ll `which insmod` 
+lrwxrwxrwx 1 root root 9 Oct 24 20:48 /sbin/insmod -> /bin/kmod 
+chenwx@chenwx ~/kmod $ ll `which modinfo` 
+lrwxrwxrwx 1 root root 9 Oct 24 20:48 /sbin/modinfo -> /bin/kmod 
+chenwx@chenwx ~/kmod $ ll `which modprobe` 
+lrwxrwxrwx 1 root root 9 Oct 24 20:48 /sbin/modprobe -> /bin/kmod 
+chenwx@chenwx ~/kmod $ ll `which depmod` 
+lrwxrwxrwx 1 root root 9 Oct 24 20:48 /sbin/depmod -> /bin/kmod 
+```
+
+### 13.3.2 模块的守护进程
+
+虽然不同的内核版本使用不同的模块守护进程(kerneld或kmod)，但均使用宏或函数```request_module()```来加载指定模块。
+
+#### 13.3.2.1 kerneld
+
+在Linux Kernel v2.0.x中，由User Mode的守护进程kerneld处理要求载入module的工作，并通过执行modprobe命令载入所需的模块。
+
+kerneld涉及到的文件包括：
+* include/linux/kerneld.h
+* ipc/msg.c
+
+在include/linux/kerneld.h中，包含如下代码：
+
+```
+#ifdef __KERNEL__
+extern int kerneld_send(int msgtype, int ret_size, int msgsz,
+                        const char *text, const char *ret_val);
+
+/*
+ * Request that a module should be loaded.
+ * Wait for the exit status from insmod/modprobe.
+ * If it fails, it fails... at least we tried...
+ */
+static inline int request_module(const char *name)
+{
+        return kerneld_send(KERNELD_REQUEST_MODULE,
+                            0 | KERNELD_WAIT,
+                            strlen(name), name, NULL);
+}
+
+/*
+ * Request the removal of a module, maybe don't wait for it.
+ * It doesn't matter if the removal fails, now does it?
+ */
+static inline int release_module(const char *name, int waitflag)
+{
+        return kerneld_send(KERNELD_RELEASE_MODULE,
+                            0 | (waitflag?KERNELD_WAIT:KERNELD_NOWAIT),
+                            strlen(name), name, NULL);
+}
+
+/*
+ * Request a delayed removal of a module, but don't wait for it.
+ * The delay is done by kerneld (default: 60 seconds)
+ */
+static inline int delayed_release_module(const char *name)
+{
+        return kerneld_send(KERNELD_DELAYED_RELEASE_MODULE,
+                            0 | KERNELD_NOWAIT,
+                            strlen(name), name, NULL);
+}
+
+/*
+ * Attempt to cancel a previous request for removal of a module,
+ * but don't wait for it.
+ * This call can be made if the kernel wants to prevent a delayed
+ * unloading of a module.
+ */
+static inline int cancel_release_module(const char *name)
+{
+        return kerneld_send(KERNELD_CANCEL_RELEASE_MODULE,
+                            0 | KERNELD_NOWAIT,
+                            strlen(name), name, NULL);
+}
+
+/*
+ * Perform an "inverted" system call, maybe return the exit status
+ */
+static inline int ksystem(const char *cmd, int waitflag)
+{
+        return kerneld_send(KERNELD_SYSTEM,
+                            0 | (waitflag?KERNELD_WAIT:KERNELD_NOWAIT),
+                            strlen(cmd), cmd, NULL);
+}
+
+/*
+ * Try to create a route, possibly by opening a ppp-connection
+ */
+static inline int kerneld_route(const char *ip_route)
+{
+      return kerneld_send(KERNELD_REQUEST_ROUTE,
+                          0 | KERNELD_WAIT,
+                          strlen(ip_route), ip_route, NULL);
+}
+
+/*
+ * Handle an external screen blanker
+ */
+static inline int kerneld_blanker(int on_off) /* 0 => "off", else "on" */
+{
+        return kerneld_send(KERNELD_BLANKER,
+                            0 | (on_off ? KERNELD_NOWAIT : KERNELD_WAIT),
+                            strlen(on_off ? "on" : "off"), on_off ? "on" : "off", NULL);
+
+#endif /* __KERNEL__ */
+```
+
+在Kernel Mode下，调用```request_module()```函数加载指定模块时，该函数调用```kerneld_send()```传送对应的消息给守护进程kerneld，以完成载入模块的动作。函数```kerneld_send()```定义于ipc/msg.c:
+
+```
+int kerneld_send(int msgtype, int ret_size, int msgsz,
+		 const char *text, const char *ret_val)
+{
+	int status = -ENOSYS;
+#ifdef CONFIG_KERNELD
+	static int id = KERNELD_MINSEQ;
+	struct kerneld_msg kmsp = { msgtype, NULL_KDHDR, (char *)text };
+	int msgflg = S_IRUSR | S_IWUSR | IPC_KERNELD | MSG_NOERROR;
+	unsigned long flags;
+
+	if (kerneld_msqid == -1)
+		return -ENODEV;
+
+	/* Do not wait for an answer at interrupt-time! */
+	if (intr_count)
+		ret_size &= ~KERNELD_WAIT;
+#ifdef NEW_KERNELD_PROTOCOL
+	else
+		kmsp.pid = current->pid;
+#endif
+
+	msgsz += KDHDR;
+	if (ret_size & KERNELD_WAIT) {
+		save_flags(flags);
+		cli();
+		if (++id <= 0) /* overflow */
+			id = KERNELD_MINSEQ;
+		kmsp.id = id;
+		restore_flags(flags);
+	}
+
+	status = real_msgsnd(kerneld_msqid, (struct msgbuf *)&kmsp, msgsz, msgflg);
+	if ((status >= 0) && (ret_size & KERNELD_WAIT)) {
+		ret_size &= ~KERNELD_WAIT;
+		kmsp.text = (char *)ret_val;
+		status = real_msgrcv(kerneld_msqid, (struct msgbuf *)&kmsp,
+						KDHDR + ((ret_val)?ret_size:0), kmsp.id, msgflg);
+		if (status > 0) /* a valid answer contains at least a long */
+			status = kmsp.id;
+	}
+
+#endif /* CONFIG_KERNELD */
+	return status;
+}
+```
+
+函数```kerneld_send()```调用函数```real_msgsnd()```，把Kernel Mode中所要求的消息传给在User Mode下的守护进程kerneld，而User Mode下的守护进程kerneld则通过函数```msgrcv()```取得kernel发送来的消息，并载入或移除指定的模块。
+
+#### 13.3.2.2 kmod
+
+在Linux Kernel v2.1.x以后的版本中，通过调用宏```request_module()```来加载指定模块。
+
+宏request_module()的调用关系如下：
+
+```
+request_module()
+-> __request_module()
+   -> call_usermodehelper_fns()
+      -> call_usermodehelper_setup()
+      -> call_usermodehelper_setfns()
+      -> call_usermodehelper_exec()
+         -> queue_work()
+```
+
+宏```request_module()```定义于include/linux/kmod.h:
+
+```
+#ifdef CONFIG_MODULES
+
+extern char modprobe_path[]; /* for sysctl */
+extern __printf(2, 3) int 			__request_module(bool wait, const char *name, ...);
+#define request_module(mod...)			__request_module(true, mod)
+#define request_module_nowait(mod...)		__request_module(false, mod)
+#define try_then_request_module(x, mod...)	((x) ?: (__request_module(true, mod), (x)))
+
+#else
+
+static inline int request_module(const char *name, ...) { return -ENOSYS; }
+static inline int request_module_nowait(const char *name, ...) { return -ENOSYS; }
+#define try_then_request_module(x, mod...) 	(x)
+
+#endif
+```
+
+其中，函数```__request_module()```定义于kernel/mod.c:
+
+```
+#ifdef CONFIG_MODULES
+
+/*
+ * modprobe_path is set via /proc/sys.
+ */
+char modprobe_path[KMOD_PATH_LEN] = "/sbin/modprobe";
+
+int __request_module(bool wait, const char *fmt, ...)
+{
+	va_list args;
+	char module_name[MODULE_NAME_LEN];
+	unsigned int max_modprobes;
+	int ret;
+	char *argv[] = { modprobe_path, "-q", "--", module_name, NULL };
+	static char *envp[] = { "HOME=/",
+				"TERM=linux",
+				"PATH=/sbin:/usr/sbin:/bin:/usr/bin",
+				NULL };
+	static atomic_t kmod_concurrent = ATOMIC_INIT(0);
+#define MAX_KMOD_CONCURRENT 50	/* Completely arbitrary value - KAO */
+	static int kmod_loop_msg;
+
+	// 获取模块名module_name
+	va_start(args, fmt);
+	ret = vsnprintf(module_name, MODULE_NAME_LEN, fmt, args);
+	va_end(args);
+	if (ret >= MODULE_NAME_LEN)
+		return -ENAMETOOLONG;
+
+	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	ret = security_kernel_module_request(module_name);
+	if (ret)
+		return ret;
+
+	max_modprobes = min(max_threads/2, MAX_KMOD_CONCURRENT);
+	atomic_inc(&kmod_concurrent);
+	if (atomic_read(&kmod_concurrent) > max_modprobes) {
+		/* We may be blaming an innocent here, but unlikely */
+		if (kmod_loop_msg < 5) {
+			printk(KERN_ERR "request_module: runaway loop modprobe %s\n", module_name);
+			kmod_loop_msg++;
+		}
+		atomic_dec(&kmod_concurrent);
+		return -ENOMEM;
+	}
+
+	trace_module_request(module_name, wait, _RET_IP_);
+
+	// 调用call_usermodehelper_fns()加载指定模块
+	ret = call_usermodehelper_fns(modprobe_path, argv, envp,
+			wait ? UMH_WAIT_PROC : UMH_WAIT_EXEC,
+			NULL, NULL, NULL);
+
+	atomic_dec(&kmod_concurrent);
+	return ret;
+}
+
+#endif /* CONFIG_MODULES */
+```
+
+其中，函数```call_usermodehelper_fns()```定义于include/linux/kmod.h:
+
+```
+static inline int call_usermodehelper_fns(char *path, char **argv, char **envp, enum umh_wait wait,
+					  int (*init)(struct subprocess_info *info, struct cred *new),
+					  void (*cleanup)(struct subprocess_info *), void *data)
+{
+	struct subprocess_info *info;
+	gfp_t gfp_mask = (wait == UMH_NO_WAIT) ? GFP_ATOMIC : GFP_KERNEL;
+
+	// 分配并初始化struct subprocess_info类型的对象info
+	info = call_usermodehelper_setup(path, argv, envp, gfp_mask);
+
+	if (info == NULL)
+		return -ENOMEM;
+
+	// 为对象info中的域init, cleanup, data赋值，此处均为NULL
+	call_usermodehelper_setfns(info, init, cleanup, data);
+
+	// 调用call_usermodehelper_exec()加载指定模块
+	return call_usermodehelper_exec(info, wait);
+}
+```
+其中，函数```call_usermodehelper_setup()```, ```call_usermodehelper_setfns()```和c```all_usermodehelper_exec()```均定义于kernel/kmod.c:
+
+```
+static struct workqueue_struct *khelper_wq;
+
+struct subprocess_info *call_usermodehelper_setup(char *path, char **argv,
+						  char **envp, gfp_t gfp_mask)
+{
+	struct subprocess_info *sub_info;
+	sub_info = kzalloc(sizeof(struct subprocess_info), gfp_mask);
+	if (!sub_info)
+		goto out;
+
+	/*
+	 * 将&sub_info->work->func域赋值为函数指针__call_usermodehelper，
+	 * 参见__call_usermodehelper()节
+	 */
+	INIT_WORK(&sub_info->work, __call_usermodehelper);
+	sub_info->path = path;
+	sub_info->argv = argv;
+	sub_info->envp = envp;
+
+  out:
+	return sub_info;
+}
+
+void call_usermodehelper_setfns(struct subprocess_info *info,
+		    int (*init)(struct subprocess_info *info, struct cred *new),
+		    void (*cleanup)(struct subprocess_info *info), void *data)
+{
+	info->cleanup = cleanup;
+	info->init = init;
+	info->data = data;
+}
+
+int call_usermodehelper_exec(struct subprocess_info *sub_info, enum umh_wait wait)
+{
+	DECLARE_COMPLETION_ONSTACK(done);
+	int retval = 0;
+
+	helper_lock();
+	if (sub_info->path[0] == '\0')
+		goto out;
+
+	/*
+	 * 工作队列khelper_wq参见khelper_wq节;
+	 * 标志位usermodehelper_disabled由函数usermodehelper_enable()
+	 * 和usermodehelper_disable()控制
+	 */
+	if (!khelper_wq || usermodehelper_disabled) {
+		retval = -EBUSY;
+		goto out;
+	}
+
+	sub_info->complete = &done;
+	sub_info->wait = wait;
+
+	/*
+	 * 将工作&sub_info->work添加到工作队列khelper_wq中，并等待其完成；
+	 * 当执行&sub_info->work时，将调用函数__call_usermodehelper()，
+	 * 参见__call_usermodehelper()节；
+	 * 当完成&sub_info->work后，函数__call_usermodehelper()会通过
+	 * done域通知本进程工作已完成
+	 */
+	queue_work(khelper_wq, &sub_info->work);
+	if (wait == UMH_NO_WAIT)	/* task has freed sub_info */
+		goto unlock;
+	wait_for_completion(&done);
+	retval = sub_info->retval;
+
+out:
+	call_usermodehelper_freeinfo(sub_info);
+unlock:
+	helper_unlock();
+	return retval;
+}
+```
+
+##### 13.3.2.2.1 khelper_wq
+
+工作队列khelper_wq由```usermodehelper_init()```创建，其定义于kernel/kmod.c:
+
+```
+static struct workqueue_struct *khelper_wq;
+
+void __init usermodehelper_init(void)
+{
+	/*
+	 * 创建内核线程khelper，运行命令 "ps -ef | grep khelper" 来查看该线程：
+	 * root        20     2  0 Dec17 ?        00:00:00 [khelper]
+	 */
+	khelper_wq = create_singlethread_workqueue("khelper");
+	BUG_ON(!khelper_wq);
+}
+```
+
+函数usermodehelper_init()的调用关系如下：
+
+```
+do_basic_setup()			// 参见do_basic_setup()节
+-> usermodehelper_init()		// 创建工作队列khelper_wq
+-> usermodehelper_enable()		// 设置标志位usermodehelper_disabled = 0
+```
+
+工作队列有关的内容，参见工作队列/workqueue节。
+
+##### 13.3.2.2.2 \__call_usermodehelper()
+
+该函数定义于kernel/kmod.c:
+
+```
+static void __call_usermodehelper(struct work_struct *work)
+{
+	/*
+	 * 由对象work获取对象sub_info的地址，sub_info是由函数
+	 * call_usermodehelper_fns()分配并初始化的，参见kmod节
+	 */
+	struct subprocess_info *sub_info = container_of(work, struct subprocess_info, work);
+	enum umh_wait wait = sub_info->wait;
+	pid_t pid;
+
+	/* CLONE_VFORK: wait until the usermode helper has execve'd
+	 * successfully We need the data structures to stay around
+	 * until that is done.  */
+	/*
+	 * 调用kernel_thread()创建内核线程，参见kernel_thread()节；
+	 * 并执行函数wait_for_helper()或____call_usermodehelper()，
+	 * 入参为sub_info，参见wait_for_helper()节和____call_usermodehelper()节
+	 */
+	if (wait == UMH_WAIT_PROC)
+		pid = kernel_thread(wait_for_helper, sub_info, CLONE_FS | CLONE_FILES | SIGCHLD);
+	else
+		pid = kernel_thread(____call_usermodehelper, sub_info, CLONE_VFORK | SIGCHLD);
+
+	switch (wait) {
+	case UMH_NO_WAIT:
+		call_usermodehelper_freeinfo(sub_info);
+		break;
+
+	case UMH_WAIT_PROC:
+		if (pid > 0)
+			break;
+		/* FALLTHROUGH */
+	case UMH_WAIT_EXEC:
+		if (pid < 0)
+			sub_info->retval = pid;
+		/*
+		 * 通知函数call_usermodehelper_exec()所在的进程当前工作已完成，
+		 * 参见kmod节中的函数call_usermodehelper_exec()
+		 */
+		complete(sub_info->complete);
+	}
+}
+```
+
+###### 13.3.2.2.2.1 wait_for_helper()
+
+该函数定义于kernel/kmod.c:
+
+```
+static int wait_for_helper(void *data)
+{
+	struct subprocess_info *sub_info = data;
+	pid_t pid;
+
+	/* If SIGCLD is ignored sys_wait4 won't populate the status. */
+	spin_lock_irq(&current->sighand->siglock);
+	current->sighand->action[SIGCHLD-1].sa.sa_handler = SIG_DFL;
+	spin_unlock_irq(&current->sighand->siglock);
+
+	/*
+	 * 调用kernel_thread()创建内核线程，参见kernel_thread()节；
+	 * 并执行函数____call_usermodehelper()，入参为sub_info，
+	 * 参见____call_usermodehelper()节
+	 */
+	pid = kernel_thread(____call_usermodehelper, sub_info, SIGCHLD);
+	if (pid < 0) {
+		sub_info->retval = pid;
+	} else {
+		int ret = -ECHILD;
+		/*
+		 * Normally it is bogus to call wait4() from in-kernel because
+		 * wait4() wants to write the exit code to a userspace address.
+		 * But wait_for_helper() always runs as keventd, and put_user()
+		 * to a kernel address works OK for kernel threads, due to their
+		 * having an mm_segment_t which spans the entire address space.
+		 *
+		 * Thus the __user pointer cast is valid here.
+		 */
+		sys_wait4(pid, (int __user *)&ret, 0, NULL);
+
+		/*
+		 * If ret is 0, either ____call_usermodehelper failed and the
+		 * real error code is already in sub_info->retval or
+		 * sub_info->retval is 0 anyway, so don't mess with it then.
+		 */
+		if (ret)
+			sub_info->retval = ret;
+	}
+
+	complete(sub_info->complete);
+	return 0;
+}
+```
+
+###### 13.3.2.2.2.2 \____call_usermodehelper()
+
+该函数定义于kernel/kmod.c:
+
+```
+static kernel_cap_t usermodehelper_bset = CAP_FULL_SET;
+static kernel_cap_t usermodehelper_inheritable = CAP_FULL_SET;
+
+/*
+ * This is the task which runs the usermode application
+ */
+static int ____call_usermodehelper(void *data)
+{
+	struct subprocess_info *sub_info = data;
+	struct cred *new;
+	int retval;
+
+	spin_lock_irq(&current->sighand->siglock);
+	flush_signal_handlers(current, 1);
+	spin_unlock_irq(&current->sighand->siglock);
+
+	/* We can run anywhere, unlike our parent keventd(). */
+	set_cpus_allowed_ptr(current, cpu_all_mask);
+
+	/*
+	 * Our parent is keventd, which runs with elevated scheduling priority.
+	 * Avoid propagating that into the userspace child.
+	 */
+	set_user_nice(current, 0);
+
+	retval = -ENOMEM;
+	new = prepare_kernel_cred(current);
+	if (!new)
+		goto fail;
+
+	spin_lock(&umh_sysctl_lock);
+	new->cap_bset = cap_intersect(usermodehelper_bset, new->cap_bset);
+	new->cap_inheritable = cap_intersect(usermodehelper_inheritable, new->cap_inheritable);
+	spin_unlock(&umh_sysctl_lock);
+
+	if (sub_info->init) {
+		retval = sub_info->init(sub_info, new);
+		if (retval) {
+			abort_creds(new);
+			goto fail;
+		}
+	}
+
+	commit_creds(new);
+
+	/*
+	 * 通过调用系统调用sys_execve()来执行/sbin/modprobe，以加载指定模块；
+	 * sub_info各域由__request_module()赋值，参见kmod节
+	 */
+	retval = kernel_execve(sub_info->path,
+			       (const char *const *)sub_info->argv,
+			       (const char *const *)sub_info->envp);
+
+	/* Exec failed? */
+fail:
+	sub_info->retval = retval;
+	do_exit(0);	// 参见do_exit()节
+}
+```
+
+### 13.3.3 系统启动时自动加载模块
+
+根据init程序的不同，系统启动式自动加载模块的方式也不同。init程序参见4.3.5 init节，其对应的自动加载模块的方法参见如下几节：
+
+#### 13.3.3.1 SysV-style init
+
+当采用SysV-style init时，系统启动时会调用/etc/rc.d/rc.sysinit进行系统初始化，参见4.3.5.1.1 SysV-style init节。在rc.sysinit中包含如下代码：
+
+```
+# Load other user-defined modules
+for file in /etc/sysconfig/modules/*.modules ; do
+  [ -x $file ] && $file
+done
+
+# Load modules (for backward compatibility with VARs)
+if [ -f /etc/rc.modules ]; then
+	/etc/rc.modules
+fi
+
+...
+# Initialize ACPI bits
+if [ -d /proc/acpi ]; then
+    for module in /lib/modules/$unamer/kernel/drivers/acpi/* ; do
+        module=${module##*/}
+        module=${module%.ko}
+        modprobe $module >/dev/null 2>&1
+    done
+fi
+```
+
+此处有两种方式自动加载模块：
+
+1) 在目录/etc/sysconfig/modules/中添加文件*.modules，并在该文件中添加加载模块的命令。以udev-stw.modules为例，其中包含如下代码：
+
+```
+#!/bin/sh
+MODULES="nvram floppy parport lp snd-powermac"
+[ -f /etc/sysconfig/udev-stw ] && . /etc/sysconfig/udev-stw
+for i in $MODULES ; do
+        modprobe $i >/dev/null 2>&1
+done
+```
+
+2) 在文件/etc/rc.modules中添加加载模块的命令，并执行该文件。
+
+#### 13.3.3.2 upstart
+
+当采用upstart作为init程序时，系统启动时自动加载模块的方法如下：
+
+```
+chenwx@chenwx ~ $ ll /etc/modules 
+-rw-r--r-- 1 root root 255 Oct 24 20:50 /etc/modules 
+
+chenwx@chenwx ~ $ cat /etc/modules 
+# /etc/modules: kernel modules to load at boot time. 
+# 
+# This file contains the names of kernel modules that should be loaded 
+# at boot time, one per line. Lines beginning with "#" are ignored. 
+# Parameters can be specified after the module name. 
+
+lp 
+rtc 
+```
+
+Q: upstart如何执行读取文件/etc/modules，并加载指定的模块呢?
+
+A: upstart会执行/etc/init/kmod.conf文件，而该文件用于加载/etc/modules中指定的模块：
+
+```
+chenwx@chenwx ~ $ ll /etc/init/kmod.conf 
+-rw-r--r-- 1 root root 689 Apr 10  2014 /etc/init/kmod.conf 
+chenwx@chenwx ~ $ cat /etc/init/kmod.conf 
+# kmod - load modules from /etc/modules 
+# 
+# This task loads the kernel modules specified in the /etc/modules file 
+
+description	"load modules from /etc/modules" 
+
+start on (startup 
+	  and started udev) 
+
+task 
+script 
+    [ -f /etc/modules ] && files="/etc/modules" || files="" 
+    hash="#" 
+    dirs="/etc/modules-load.d /run/modules-load.d /lib/modules-load.d" 
+    for dir in $dirs; do 
+        files="$files $(run-parts --list --regex='\.conf$' $dir 2> /dev/null || true)" 
+    done 
+    for file in $files; do 
+        while read module args; do 
+	    [ -n "$module" ] && [ "${module#${hash}}" = "${module}" ] || continue 
+	    modprobe $module $args || : 
+        done < $file 
+    done 
+end script 
+```
+
+#### 13.3.3.3 systemd
+
+/etc/systemd/system.conf文件包含了大量的systemd控制命令。假如未作任何的更改，文件中的所有行应该都是注释掉的，这代表了systemd正使用默认的运行方式。这个文件中可以设置日志级别，可以修改日志的基本设置。所有设置项都可以在man手册的systemd-system.conf(5)中查看。
+
+有一些命令可以帮助分析systemd的启动进程，例如：
+
+```
+systemctl list-units -t service [--all]
+systemctl list-units -t target [--all]
+systemctl show -p Wants multi-user.target
+systemctl status sshd.service
+```
+
+```
+chenwx@chenwx ~ $ systemctl list-units -t service
+  UNIT                                                LOAD   ACTIVE SUB     DESCRIPTION
+  accounts-daemon.service                             loaded active running Accounts Service
+  acpid.service                                       loaded active running ACPI event daemon
+  atd.service                                         loaded active running Deferred execution scheduler
+  avahi-daemon.service                                loaded active running Avahi mDNS/DNS-SD Stack
+  binfmt-support.service                              loaded active exited  Enable support for additional executable binary formats
+  bitlbee.service                                     loaded active running LSB: Start and stop BitlBee IRC to other chat networks gateway
+  bluetooth.service                                   loaded active running Bluetooth service
+  busybox-klogd.service                               loaded active exited  LSB: Starts klogd
+  busybox-syslogd.service                             loaded active running LSB: Starts syslogd
+  cgmanager.service                                   loaded active running Cgroup management daemon
+  clamav-freshclam.service                            loaded active running ClamAV virus database updater
+  colord.service                                      loaded active running Manage, Install and Generate Color Profiles
+  console-kit-log-system-start.service                loaded active exited  Console System Startup Logging
+  console-setup.service                               loaded active exited  Set console font and keymap
+  cpufrequtils.service                                loaded active exited  LSB: set CPUFreq kernel parameters
+  cron.service                                        loaded active running Regular background program processing daemon
+  cups-browsed.service                                loaded active running Make remote CUPS printers available locally
+  dbus.service                                        loaded active running D-Bus System Message Bus
+  fetchmail.service                                   loaded active exited  LSB: init-Script for system wide fetchmail daemon
+  getty@tty1.service                                  loaded active running Getty on tty1
+  grub-common.service                                 loaded active exited  LSB: Record successful boot for GRUB
+  hddtemp.service                                     loaded active exited  LSB: disk temperature monitoring daemon
+  irqbalance.service                                  loaded active running LSB: daemon to balance interrupts for SMP systems
+  keyboard-setup.service                              loaded active exited  Set console keymap
+  kmod-static-nodes.service                           loaded active exited  Create list of required static device nodes for the current kern
+  lightdm.service                                     loaded active running Light Display Manager
+  lm-sensors.service                                  loaded active exited  Initialize hardware monitoring sensors
+  loadcpufreq.service                                 loaded active exited  LSB: Load kernel modules needed to enable cpufreq scaling
+  lvm2-lvmetad.service                                loaded active running LVM2 metadata daemon
+  lvm2-monitor.service                                loaded active exited  Monitoring of LVM2 mirrors, snapshots etc. using dmeventd or pro
+  mcelog.service                                      loaded active running LSB: Machine Check Exceptions (MCE) collector & decoder
+* mldonkey-server.service                             loaded failed failed  LSB: Server for the mldonkey peer-to-peer downloader.
+  ModemManager.service                                loaded active running Modem Manager
+  networking.service                                  loaded active exited  Raise network interfaces
+  NetworkManager-wait-online.service                  loaded active exited  Network Manager Wait Online
+  NetworkManager.service                              loaded active running Network Manager
+  nmbd.service                                        loaded active running LSB: start Samba NetBIOS nameserver (nmbd)
+* ntp.service                                         loaded failed failed  LSB: Start NTP daemon
+  ondemand.service                                    loaded active exited  LSB: Set the CPU Frequency Scaling governor to "ondemand"
+  openvpn.service                                     loaded active exited  OpenVPN service
+  polkitd.service                                     loaded active running Authenticate and Authorize Users to Run Privileged Tasks
+  quota.service                                       loaded active exited  Initial Check File System Quotas
+  rc-local.service                                    loaded active exited  /etc/rc.local Compatibility
+  resolvconf.service                                  loaded active exited  Nameserver information manager
+  rtkit-daemon.service                                loaded active running RealtimeKit Scheduling Policy Service
+  samba-ad-dc.service                                 loaded active exited  LSB: start Samba daemons for the AD DC
+  setvtrgb.service                                    loaded active exited  Set console scheme
+  smbd.service                                        loaded active running LSB: start Samba SMB/CIFS daemon (smbd)
+  speech-dispatcher.service                           loaded active exited  LSB: Speech Dispatcher
+  systemd-backlight@backlight:acpi_video0.service     loaded active exited  Load/Save Screen Backlight Brightness of backlight:acpi_video0
+  systemd-backlight@backlight:intel_backlight.service loaded active exited  Load/Save Screen Backlight Brightness of backlight:intel_backlig
+  systemd-journal-flush.service                       loaded active exited  Flush Journal to Persistent Storage
+  systemd-journald.service                            loaded active running Journal Service
+  systemd-logind.service                              loaded active running Login Service
+  systemd-modules-load.service                        loaded active exited  Load Kernel Modules
+  systemd-random-seed.service                         loaded active exited  Load/Save Random Seed
+  systemd-remount-fs.service                          loaded active exited  Remount Root and Kernel File Systems
+  systemd-sysctl.service                              loaded active exited  Apply Kernel Variables
+  systemd-tmpfiles-setup-dev.service                  loaded active exited  Create Static Device Nodes in /dev
+  systemd-tmpfiles-setup.service                      loaded active exited  Create Volatile Files and Directories
+  systemd-udev-trigger.service                        loaded active exited  udev Coldplug all Devices
+  systemd-udevd.service                               loaded active running udev Kernel Device Manager
+  systemd-update-utmp.service                         loaded active exited  Update UTMP about System Boot/Shutdown
+  systemd-user-sessions.service                       loaded active exited  Permit User Sessions
+  udisks2.service                                     loaded active running Disk Manager
+  upower.service                                      loaded active running Daemon for power management
+  user@1000.service                                   loaded active running User Manager for UID 1000
+  virtualbox-guest-utils.service                      loaded active exited  LSB: VirtualBox Linux Additions
+  winbind.service                                     loaded active running LSB: start Winbind daemon
+  wpa_supplicant.service                              loaded active running WPA supplicant
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+70 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+chenwx@chenwx ~ $ systemctl list-units -t target
+UNIT                   LOAD   ACTIVE SUB    DESCRIPTION
+basic.target           loaded active active Basic System
+bluetooth.target       loaded active active Bluetooth
+cryptsetup.target      loaded active active Encrypted Volumes
+getty.target           loaded active active Login Prompts
+graphical.target       loaded active active Graphical Interface
+local-fs-pre.target    loaded active active Local File Systems (Pre)
+local-fs.target        loaded active active Local File Systems
+multi-user.target      loaded active active Multi-User System
+network-online.target  loaded active active Network is Online
+network.target         loaded active active Network
+nss-user-lookup.target loaded active active User and Group Name Lookups
+paths.target           loaded active active Paths
+remote-fs-pre.target   loaded active active Remote File Systems (Pre)
+remote-fs.target       loaded active active Remote File Systems
+slices.target          loaded active active Slices
+sockets.target         loaded active active Sockets
+sound.target           loaded active active Sound Card
+swap.target            loaded active active Swap
+sysinit.target         loaded active active System Initialization
+time-sync.target       loaded active active System Time Synchronized
+timers.target          loaded active active Timers
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+21 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+chenwx@chenwx /etc/systemd $ systemctl show -p Wants multi-user.target
+Wants=cgproxy.service cgmanager.service plymouth-quit.service dbus.service ondemand.service cups.path winbind.service smbd.service systemd-l
+
+chenwx@chenwx /etc/systemd $ systemctl status sshd.service
+* sshd.service
+   Loaded: not-found (Reason: No such file or directory)
+   Active: inactive (dead)
+```
+
+* [Linux From Scratch - Version 7.7-systemd](https://linux.cn/lfs/LFS-BOOK-7.7-systemd/chapter07/systemd-custom.html)
+
+## 13.4 模块在内核中的表示
+
+### 13.4.1 与模块有关的结构体
+
+#### 13.4.1.1 struct module
+
+该结构定义于include/linux/module.h:
+
+```
+struct module_use {
+	struct list_head 	source_list;
+	struct list_head 	target_list;
+	struct module    	*source, *target;
+};
+
+enum module_state
+{
+	MODULE_STATE_LIVE,	// the module is active
+	MODULE_STATE_COMING, 	// the module is being initialized
+	MODULE_STATE_GOING,	// the module is being removed
+};
+
+struct module
+{
+	// The internal state of the module
+	enum module_state		state;
+
+	/* Member of list of modules */
+	// Pointers for the list of modules，参见下文
+	struct list_head		list;
+
+	/* Unique handle for this module */
+	/*
+	 * Module name，与宏THIS_MODULE有关，参见How to access symbols节
+	 * 和mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 */
+	char				name[MODULE_NAME_LEN];
+
+	/* Sysfs stuff. */
+	// Includes a kobject data structure and a pointer to this module object
+	struct module_kobject		mkobj;
+	struct module_attribute	*modinfo_attrs;
+	const char			*version;
+	const char			*srcversion;
+	struct kobject			*holders_dir;
+
+	/* Exported symbols，参见13.4.2.4 How to access symbols节 */
+	// Pointer to an array of exported symbols
+	const struct kernel_symbol	*syms;	
+	// Pointer to an array of CRC values for the exported symbols
+	const unsigned long		*crcs;
+	// Number of exported symbols
+	unsigned int			num_syms;
+
+	/* Kernel parameters. */
+	struct kernel_param		*kp;
+	unsigned int			num_kp; 
+
+	/* GPL-only exported symbols. */
+	// Number of GPL-exported symbols
+	unsigned int			num_gpl_syms;
+	// Pointer to an array of GPL-exported symbols
+	const struct kernel_symbol	*gpl_syms;
+	// Pointer to an array of CRC values for the GPL-exported symbols
+	const unsigned long		*gpl_crcs;
+
+#ifdef CONFIG_UNUSED_SYMBOLS
+	/* unused exported symbols. */
+	const struct kernel_symbol	*unused_syms;
+	const unsigned long		*unused_crcs;
+	unsigned int			num_unused_syms;
+
+	/* GPL-only, unused exported symbols. */
+	unsigned int			num_unused_gpl_syms;
+	const struct kernel_symbol	*unused_gpl_syms;
+	const unsigned long		*unused_gpl_crcs;
+#endif
+
+	/* symbols that will be GPL-only in the near future. */
+	const struct kernel_symbol	*gpl_future_syms;
+	const unsigned long		*gpl_future_crcs;
+	unsigned int			num_gpl_future_syms;
+
+	/* Exception table */
+	// Number of entries in the module’s exception table
+	unsigned int			num_exentries;
+	// Pointer to the module’s exception table
+	struct exception_table_entry	*extable;
+
+	/* Startup function. */
+	// The initialization method of the module
+	int				(*init)(void);
+
+	/* If this is non-NULL, vfree after init() returns */
+	/*
+	 * Pointer to the dynamic memory area allocated
+	 * for module’s initialization: "init" sections
+	 */
+	void				*module_init;
+
+	/* Here is the actual code + data, vfree'd on unload. */
+	/*
+	 * Pointer to the dynamic memory area allocated
+	 * for module’s core functions and data structures
+	 */
+	void				*module_core;
+
+	/* Here are the sizes of the init and core sections */
+	/*
+	 * init_size: Size of the dynamic memory area
+	 *       required for module’s initialization
+	 * Core_size: Size of the dynamic memory area
+	 *       required for module’s core functions
+	 *       and data structures
+	 */
+	unsigned int			init_size, core_size;
+
+	/* The size of the executable code in each section.  */
+	/*
+	 * init_text_size: Size of the executable code
+	 *       used for module’s initialization;
+	 * core_text_size: Size of the core executable
+	 *       code of the module.
+	 * Those to variables are used only when linking
+	 * the module.
+	 */
+	unsigned int			init_text_size, core_text_size;
+
+	/* Size of RO sections of the module (text+rodata) */
+	unsigned int			init_ro_size, core_ro_size;
+
+	/* Arch-specific module values */
+	// Architecture-dependent fields (none in the 80×86 architecture)
+	struct mod_arch_specific	arch;
+
+	unsigned int			taints;	/* same bits as kernel:tainted */
+
+#ifdef CONFIG_GENERIC_BUG
+	/* Support for BUG */
+	Unsigned			num_bugs;
+	struct list_head		bug_list;
+	struct bug_entry		*bug_table;
+#endif
+
+#ifdef CONFIG_KALLSYMS
+	/*
+	 * We keep the symbol and string tables for kallsyms.
+	 * The core_* fields below are temporary, loader-only (they
+	 * could really be discarded after module init).
+	 */
+	/*
+	 * symtab: Pointer to an array of module’s ELF
+	 * symbols for the /proc/kallsyms file
+	 */
+	Elf_Sym				*symtab, *core_symtab;
+	/*
+	 * num_symtab: Number of module’s ELF symbols
+	 * shown in /proc/kallsyms
+	 */
+	unsigned int			num_symtab, core_num_syms;
+	/*
+	 * strtab: The string table for the module’s ELF
+	 * symbols shown in /proc/kallsyms
+	 */
+	char				*strtab, *core_strtab;
+
+	/* Section attributes */
+	/*
+	 * Pointer to an array of module’s section attribute
+	 * descriptors (displayed in the sysfs filesystem)
+	 */
+	struct module_sect_attrs	*sect_attrs;
+
+	/* Notes attributes */
+	struct module_notes_attrs	*notes_attrs;
+#endif
+
+	/* The command line arguments (may be mangled).  People like
+	   keeping pointers to this stuff */
+	// Command line arguments used when linking the module
+	char				*args;
+
+#ifdef CONFIG_SMP
+	/* Per-cpu data. */
+	// Pointer to CPU-specific memory areas
+	void __percpu			*percpu;
+	unsigned int			percpu_size;
+#endif
+
+#ifdef CONFIG_TRACEPOINTS
+	unsigned int			num_tracepoints;
+	struct tracepoint *const	*tracepoints_ptrs;
+#endif
+#ifdef HAVE_JUMP_LABEL
+	struct jump_entry		*jump_entries;
+	unsigned int			num_jump_entries;
+#endif
+#ifdef CONFIG_TRACING
+	unsigned int			num_trace_bprintk_fmt;
+	const char			**trace_bprintk_fmt_start;
+#endif
+#ifdef CONFIG_EVENT_TRACING
+	struct ftrace_event_call	**trace_events;
+	unsigned int			num_trace_events;
+#endif
+#ifdef CONFIG_FTRACE_MCOUNT_RECORD
+	unsigned int			num_ftrace_callsites;
+	unsigned long			*ftrace_callsites;
+#endif
+
+#ifdef CONFIG_MODULE_UNLOAD
+	/* What modules depend on me? */
+	struct list_head		source_list;	// 依赖于本模块的模块列表
+	/* What modules do I depend on? */
+	struct list_head		target_list;	// 本模块所依赖模块的列表
+
+	/* Who is waiting for us to be unloaded */
+	// The process that is trying to unload the module
+	struct task_struct		*waiter;
+
+	/* Destruction function. */
+	// Exit method of the module
+	void (*exit)(void);
+
+	struct module_ref {
+		unsigned int		incs;
+		unsigned int		decs;
+	} __percpu *refptr;
+#endif
+
+#ifdef CONFIG_CONSTRUCTORS
+	/* Constructor functions. */
+	ctor_fn_t			*ctors;
+	unsigned int			num_ctors;
+#endif
+};
+```
+
+##### 13.3.2.1.1 modules链表
+
+链表modules包含了系统中已加载的模块，该链表的元素是由函数load_module()添加进来的，参见13.5.1.2.1 load_module()节。该链表定义于kernel/module.c:
+
+```
+DEFINE_MUTEX(module_mutex);
+static LIST_HEAD(modules);
+
+#ifdef CONFIG_KGDB_KDB
+struct list_head *kdb_modules = &modules;	/* kdb needs the list of modules */
+#endif /* CONFIG_KGDB_KDB */
+```
+
+链表modules的结构:
+
+![Module](/assets/Module.svg]
+
+读取文件/proc/kallsyms时，会轮询modules链表以获取模块及其中的符号信息，参见13.4.2.3 How is /proc/kallsyms generated节。
+
+##### 13.3.2.1.2 THIS_MODULE
+
+宏THIS_MODULE定义于include/linux/export.h:
+
+```
+#ifdef MODULE
+extern struct module		__this_module;
+#define THIS_MODULE		(&__this_module)
+#else
+#define THIS_MODULE		((struct module *)0)
+#endif
+```
+
+每个模块加载到系统中后，都会生成一个对应的struct module类型的对象，而宏THIS_MODULE就指向该对象，参见13.4.2.4 How to access symbols节。
+
+#### 13.4.1.2 struct load_info
+
+该结构定义于kernel/module.c:
+
+```
+struct load_info {
+	Elf_Ehdr		*hdr;
+	unsigned long		len;
+	Elf_Shdr		*sechdrs;
+	char			*secstrings, *strtab;
+	unsigned long		*strmap;
+	unsigned long		symoffs, stroffs;
+	struct _ddebug		*debug;
+	unsigned int		num_debug;
+	struct {
+		unsigned int 	sym, str, mod, vers, info, pcpu;
+	} index;
+};
+```
+
+该类型的变量是由函数```load_module()```分配的，参见13.5.1.2.1 load_module()节。
+
+### 13.4.2 Kernel Symbol Table
+
+A good post related to kernel symbol table (kallsyms) in http://onebitbug.me/2011/03/04/introducing-linux-kernel-symbols/, which is also pasted in here.
+
+#### 13.4.2.0 Scope of Kernel symbols
+
+You can think of kernel symbols (either functions or data objects) as being visible at three different levels in the kernel source code:
+
+| Type | Scope | Definition |
+| :--- | :---- | :--------- |
+| static | visible only within their own source file (just like standard user space programming) | static int var;<br>static void set_flag(bool flag); |
+| external | potentially visible to any other code built into the kernel itself | In kernel/sched/proc.c:<br>	unsigned long calc_load_update;<br>In kernel/sched/sched.h:<br>	extern unsigned long calc_load_update; |
+| exported | visible and available to any loadable module | ```EXPORT_SYMBOL()``` which exports a given symbol to all loadable modules;<br>```EXPORT_SYMBOL_GPL()``` which exports a given symbol to only those modules that have a GPL-compatible license. 参见13.1.2.3 EXPORT_SYMBOL()节 |
+
+<p/>
+
+Functions that are exported are available for use by modules. Functions that are not exported cannot be invoked by modules. The linking and invoking rules are much more stringent for modules than code in the core kernel image. Core code can call any non-static interface in the kernel because all core source files are linked into a single base image. Exported symbols, of course, must be non-static, too. 
+
+The set of kernel symbols that are exported are known as the ***exported kernel interfaces*** or even (gasp) the ***kernel API***.
+
+Make sure you appreciate the significance of this sentence: "Core code can call any non-static interface in the kernel because all core source files are linked into a single base image.". That means that normal non-static, unexported symbols in kernel space are available to other routines that are built into the kernel, but are not available to loadable modules. In short, your modules are working with a more restricted kernel symbol table than other routines that are part of the kernel itself.
+
+#### 13.4.2.1 Introducing Linux Kernel Symbols
+
+In kernel developing, sometimes we have to examine some kernel status, or we want to reuse some kernel facilities, we need to access (read, write, execute) kernel symbols. In this article, we will see how the kernel maintains the symbol table, and how we can use the kernel symbols.
+
+This article is more of a guide to reading kernel source code and kernel development. So we will work a lot with source code.
+
+#### 13.4.2.2 What are kernel symbols
+
+Let’s begin with some basic knowledge. In programming language, a symbol is either a variable or a function. Or more generally, we can say, a symbol is a name representing an space in the memory, which stores data (variable, for reading and writing) or instructions (function, for executing). To make life easier for cooperation among various kernel function unit, there are thousands of global symbols in Linux kernel. A global variable is defined outside of any function body. A global function is declared without inline and static. All global symbols are listed in /proc/kallsyms. It looks like this:
+
+```
+$ tail /proc/kallsyms
+ffffffff81da9000 b .brk.dmi_alloc
+ffffffff81db9000 B __brk_limit
+ffffffffff600000 T vgettimeofday
+ffffffffff600140 t vread_tsc
+ffffffffff600170 t vread_hpet
+ffffffffff600180 D __vsyscall_gtod_data
+ffffffffff600400 T vtime
+ffffffffff600800 T vgetcpu
+ffffffffff600880 D __vgetcpu_mode
+ffffffffff6008c0 D __jiffies
+```
+
+It’s in nm’s output format. The first column is the symbol’s address, the second column is the symbol type. You can see the detailed instruction in nm’s manpage. See below table:
+
+**1st column**
+
+The symbol address, in the radix selected by options (see below), or hexadecimal by default.
+
+**2nd column**
+
+The symbol type. At least the following types are used; others are, as well, depending on the object file format.
+* If lowercase, the symbol is local;
+* If uppercase, the symbol is global (external).
+
+| A | The symbol's value is absolute, and will not be changed by further linking. |
+| B | The symbol is in the uninitialized data section (known as BSS). |
+| C | The symbol is common. Common symbols are uninitialized data. When linking, multiple common symbols may appear with the same name. If the symbol is defined anywhere, the common symbols are treated as undefined references. |
+| D | The symbol is in the initialized data section. |
+| G | The symbol is in an initialized data section for small objects. Some object file formats permit more efficient access to small data objects, such as a global int variable as opposed to a large global array. |
+| I | The symbol is an indirect reference to another symbol. This is a GNU extension to the a.out object file format which is rarely used. |
+| N | The symbol is a debugging symbol. |
+| R | The symbol is in a read only data section. |
+| S | The symbol is in an uninitialized data section for small objects. |
+| T | The symbol is in the text (code) section. |
+| U | The symbol is undefined. |
+| V | The symbol is a weak object. When a weak defined symbol is linked with a normal defined symbol, the normal defined symbol is used with no error. When a weak undefined symbol is linked and the symbol is not defined, the value of the weak symbol becomes zero with no error. |
+| W | The symbol is a weak symbol that has not been specifically tagged as a weak object symbol. When a weak defined symbol is linked with a normal defined symbol, the normal defined symbol is used with no error. When a weak undefined symbol is linked and the symbol is not defined, the value of the symbol is determined in a system-specific manner without error. Uppercase indicates that a default value has been specified. |
+| - | The symbol is a stabs symbol in an a.out object file. In this case, the next values printed are the stabs other field, the stabs desc field, and the stab type. Stabs symbols are used to hold debugging information. |
+| ? | The symbol type is unknown, or object file format specific. |
+
+<p/>
+
+**3rd column**
+
+The symbol name.
+
+In general, one will tell you this is the output of ```nm vmlinux```. However, some entries in this symbol table are from loadable kernel modules, how can they be listed here? Let’s see how this table is generated.
+
+#### 13.4.2.3 How is /proc/kallsyms generated
+
+As we have seen in the last two sections, contents of procfs files are generated on reading, so don’t try to find this file anywhere on your disk. But we can directly go to the kernel source for the answer. First, let’s find the code that creates this file in kernel/kallsyms.c.
+
+```
+static const struct file_operations kallsyms_operations = {
+        .open		= kallsyms_open,
+        .read		= seq_read,
+        .llseek		= seq_lseek,
+        .release	= seq_release_private,
+};
+
+static int __init kallsyms_init(void)
+{
+        proc_create("kallsyms", 0444, NULL, &kallsyms_operations);
+        return 0;
+}
+device_initcall(kallsyms_init);
+```
+
+On creating the file, the kernel associates the ```open()``` operation with ```kallsyms_open()```, ```read()->seq_read()```, ```llseek()->seq_lseek()``` and ```release()->seq_release_private()```. Here we see that this file is a sequence file.
+
+The detail about sequence file is out of scope of this article. There is a comprehensive description located in kernel documentation, please go through Documentation/filesystems/seq_file.txt if you don’t know what is sequence file. In a short way, due to the page limitation in proc_read_t, the kernel introduced sequence file for kernel to provide large amount of information to the user.
+
+Ok, back to the source. In ```kallsyms_open()```, it does nothing more than create and reset the iterator for seq_read operation, and of course set the seq_operations, see kernel/kallsyms.c:
+
+```
+static const struct seq_operations kallsyms_op = {
+        .start	= s_start,
+        .next	= s_next,
+        .stop	= s_stop,
+        .show	= s_show
+};
+
+static int kallsyms_open(struct inode *inode, struct file *file)
+{
+	/*
+	 * We keep iterator in m->private, since normal case is to
+	 * s_start from where we left off, so we avoid doing
+	 * using get_symbol_offset for every symbol.
+	 */
+	struct kallsym_iter *iter;
+	int ret;
+
+	iter = kmalloc(sizeof(*iter), GFP_KERNEL);
+	if (!iter)
+		return -ENOMEM;
+	reset_iter(iter, 0);
+
+	ret = seq_open(file, &kallsyms_op);
+	if (ret == 0)
+		((struct seq_file *)file->private_data)->private = iter;
+	else
+		kfree(iter);
+	return ret;
+}
+```
+
+So, for our goals, we care about ```s_start()``` and ```s_next()```. They both invoke ```update_iter()```, and the core of ```update_iter()``` is ```get_ksymbol_mod()```, and followed by ```get_ksymbol_core()```. At last, we reached ```module_get_kallsym()``` in kernel/module.c:
+
+```
+static void *s_start(struct seq_file *m, loff_t *pos)
+{
+	if (!update_iter(m->private, *pos))
+		return NULL;
+	return m->private;
+}
+
+static void *s_next(struct seq_file *m, void *p, loff_t *pos)
+{
+	(*pos)++;
+
+	if (!update_iter(m->private, *pos))
+		return NULL;
+	return p;
+}
+
+/* Returns false if pos at or past end of file. */
+static int update_iter(struct kallsym_iter *iter, loff_t pos)
+{
+	/* Module symbols can be accessed randomly. */
+	if (pos >= kallsyms_num_syms) {
+		iter->pos = pos;
+		return get_ksymbol_mod(iter);
+	}
+
+	/* If we're not on the desired position, reset to new position. */
+	if (pos != iter->pos)
+		reset_iter(iter, pos);
+
+	iter->nameoff += get_ksymbol_core(iter);
+	iter->pos++;
+
+	return 1;
+}
+
+static int get_ksymbol_mod(struct kallsym_iter *iter)
+{
+	if (module_get_kallsym(iter->pos - kallsyms_num_syms, &iter->value,
+				&iter->type, iter->name, iter->module_name,
+				&iter->exported) < 0)
+		return 0;
+	return 1;
+}
+
+int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
+                       char *name, char *module_name, int *exported)
+{
+	struct module *mod;
+
+	preempt_disable();
+	// 链表modules中包含系统内所有注册的模块，参见13.4.1.1 struct module节
+	list_for_each_entry_rcu(mod, &modules, list) {
+		if (symnum < mod->num_symtab) {
+			*value = mod->symtab[symnum].st_value;
+			*type = mod->symtab[symnum].st_info;
+			strlcpy(name, mod->strtab + mod->symtab[symnum].st_name, KSYM_NAME_LEN);
+			strlcpy(module_name, mod->name, MODULE_NAME_LEN);
+			*exported = is_exported(name, *value, mod);
+			preempt_enable();
+			return 0;
+		}
+		symnum -= mod->num_symtab;
+	}
+	preempt_enable();
+	return -ERANGE;
+}
+```
+
+In ```module_get_kallsym()```, it iterates all modules and symbols. Five properties are assigned values. value is the symbol’s address, type is the symbol’s type, name is the symbol’s name, module_name is the module name if the module is not compiled in core, otherwise empty. exported indicates whether the symbol is exported. Have you ever wondered why there are some many "local" (the type char is in lower case) symbols in the symbol table? Let’s have a lookat ```s_show()```:
+
+```
+static int s_show(struct seq_file *m, void *p)
+{
+	struct kallsym_iter *iter = m->private;
+
+	/* Some debugging symbols have no name.  Ignore them. */
+	if (!iter->name[0])
+		return 0;
+
+	if (iter->module_name[0]) {
+		char type;
+
+		/*
+		 * Label it "global" if it is exported, "local" if not exported.
+		 */
+		type = iter->exported ? toupper(iter->type) : tolower(iter->type);
+		seq_printf(m, "%pK %c %s\t[%s]\n", (void *)iter->value, type, iter->name, iter->module_name);
+	} else
+		seq_printf(m, "%pK %c %s\n", (void *)iter->value, iter->type, iter->name);
+
+	return 0;
+}
+```
+
+Ok, clear about it? All these symbols are global in C language aspect, but only exported symbols are labeled as "global".
+
+After the iteration finished, we see the contents of /proc/kallsyms.
+
+#### 13.4.2.4 How to access symbols
+
+Here, access can be read, write and execute. Let’s have a look at this simplest module:
+
+```
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/jiffies.h>
+
+MODULE_AUTHOR("Stephen Zhang");
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Use exported symbols");
+
+static int __init lkm_init(void)
+{
+    printk(KERN_INFO "[%s] module loaded.\n", __this_module.name);
+    printk("[%s] current jiffies: %lu.\n", __this_module.name, jiffies);
+    return 0;
+}
+
+static void __exit lkm_exit(void)
+{
+    printk(KERN_INFO "[%s] module unloaded.\n", __this_module.name);
+}
+
+module_init(lkm_init);
+module_exit(lkm_exit);
+```
+
+In this module, we used ```printk()``` and jiffies, which are both symbols from kernel space. Why are these symbols available in our code? Because they are "exported".
+
+You can think of kernel symbols as visible at three different levels in the kernel source code:
+
+* "static", and therefore visible only within their own source file
+* "external", and therefore potentially visible to any other code built into the kernel itself, and
+* "exported", and therefore visible and available to any loadable module.
+
+The kernel use two macros to export symbols:
+
+* EXPORT_SYMBOL exports the symbol to any loadable module
+* EXPORT_SYMBOL_GPL exports the symbol only to GPL-licensed modules
+
+We find the two symbols exported in the kernel source code:
+
+```
+kernel/printk.c: EXPORT_SYMBOL(printk);
+kernel/time.c: EXPORT_SYMBOL(jiffies);
+```
+
+Except for examine the kernel code to find whether a symbol is exported, is there anyway to identify it more easily? The answer is sure! All exported entry have another symbol prefixed with ```__ksymtab_```. e.g.
+
+```
+$ cat /proc/kallsyms
+...
+ffffffff81a4ef00 r __ksymtab_printk
+ffffffff81a4eff0 r __ksymtab_jiffies
+...
+
+Let’s just have another look at the definition of EXPORT_SYMBOL in include/linux/export.h:
+
+/* For every exported symbol, place a struct in the __ksymtab section */
+#define __EXPORT_SYMBOL(sym, sec)						\
+	extern typeof(sym) sym;							\
+	__CRC_SYMBOL(sym, sec)							\
+	static const char __kstrtab_##sym[]					\
+	__attribute__((section("__ksymtab_strings"), aligned(1)))		\
+	= MODULE_SYMBOL_PREFIX #sym;						\
+	static const struct kernel_symbol __ksymtab_##sym			\
+	__used									\
+	__attribute__((section("__ksymtab" sec), unused))			\
+	= { (unsigned long)&sym, __kstrtab_##sym }
+
+// 扩展后的EXPORT_SYMBOL(sym)参见13.1.2.3 EXPORT_SYMBOL()节
+#define EXPORT_SYMBOL(sym)							\
+	__EXPORT_SYMBOL(sym, "")
+```
+
+The highlighted line places a struct kernel_symbol ```__ksymtab_##sym``` into the symbol table.
+
+There is one more thing that worth noting, __this_module is not an exported symbol, nor is it defined anywhere in the kernel source. In the kernel, all we can find about __this_module are nothing more than the following two lines in include/linux/export.h:
+
+```
+extern struct module __this_module;
+#define THIS_MODULE (&__this_module)
+```
+
+How?! It’s not defined in the kernel, what to link against while insmod then? Don’t panic. Have you noticed the temporary file hello.mod.c while compiling the module (see 3.4.3.4.2 make -f scripts/Makefile.modpost)? Here is the definition for ```__this_module```:
+
+```
+// 变量__this_module被链接到.gnu.linkonce.this_module段
+struct module __this_module
+__attribute__((section(".gnu.linkonce.this_module"))) = {
+	/*
+	 * KBUILD_MODNAME定义于scripts/Makefile.lib:
+	 * modname_flags  = $(if $(filter 1,$(words $(modname))),	\
+	 *                  -DKBUILD_MODNAME=$(call name-fix,$(modname)))
+	 */
+	.name = KBUILD_MODNAME,
+
+	/*
+	 * 函数init_module和cleanup_module参见下列章节：
+	 * 13.5.0 init_module()/cleanup_module()节
+	 * 13.5.1 module_init()/module_exit()节
+	 */
+	.init = init_module,
+#ifdef CONFIG_MODULE_UNLOAD
+	.exit = cleanup_module,
+#endif
+
+	/*
+	 * MODULE_ARCH_INIT的定义参见下列文件：
+	 * - arch/m68k/include/asm/module.h
+	 * - include/linux/module.h
+	 */
+	.arch = MODULE_ARCH_INIT,
+};
+```
+
+So far, as we see, we can use any exported symbols directly in our module; the only thing we have to do is to include the corresponding header file, or just to have the right declaration. Then, what if we want to access the other symbols in the kernel? Though it’s not a good idea to do such a thing, any symbol that is not exported, usually don’t expect anyone else to visit them, avoiding potential disasters; someday, just to fulfill one’s curiosity, or one knows exactly what he is doing, we have to access the non-exported symbols. Let’s go further.
+
+#### 13.4.2.5 How to access non-exported symbol
+
+For each symbol in the kernel, we have an entry in /proc/kallsyms, and we have addresses for all of them. Since we are in the kernel, we can see any bit we want to see! Just read from that address. Let’s take resume_file as an example. Source code comes first:
+
+```
+#include <linux/module.h>
+#include <linux/kallsyms.h>
+#include <linux/string.h>
+
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Access non-exported symbols");
+MODULE_AUTHOR("Stephen Zhang");
+
+static int __init lkm_init(void)
+{
+    char *sym_name = "resume_file";
+    unsigned long sym_addr = kallsyms_lookup_name(sym_name);
+    char filename[256];
+
+    strncpy(filename, (char *)sym_addr, 255);
+    printk(KERN_INFO "[%s] %s (0x%lx): %s\n", __this_module.name, sym_name, sym_addr, filename);
+
+    return 0;
+}
+
+static void __exit lkm_exit(void)
+{
+}
+
+module_init(lkm_init);
+module_exit(lkm_exit);
+```
+
+Here, instead of parsing /proc/kallsyms to find the a symbol’s address, we use ```kallsyms_lookup_name()``` to do it. Then, we just treat the address as char *, which is the type of resume_file, and read it using ```strncpy()```.
+
+Let’s see what happens when we run:
+
+```
+$ sudo insmod lkm_hello.ko
+$ dmesg | tail -n 1
+[lkm_hello] resume_file (0xffffffff81c17140): /dev/sda6
+$ grep resume_file /proc/kallsyms
+ffffffff81c17140 d resume_file
+```
+
+Yeap! We did it! And we see the symbol address returned by ```kallsyms_lookup_name()``` is exactly the same as in /proc/kallsyms. Just like read, you can also write to a symbol’s address, but be careful, some addresses are in rodata section or text section, which cannot be written. If you try to write to a readonly address, you will probably get a kernel oops. However, this does not mean NO. You can turn off the protection. Follow instructions in this page. The basic idea is changing the page attribute:
+
+```
+int set_page_rw(long unsigned int _addr)
+{
+    struct page *pg;
+    pgprot_t prot;
+    pg = virt_to_page(_addr);
+    prot.pgprot = VM_READ | VM_WRITE;
+    return change_page_attr(pg, 1, prot);
+}
+
+int set_page_ro(long unsigned int _addr)
+{
+    struct page *pg;
+    pgprot_t prot;
+    pg = virt_to_page(_addr);
+    prot.pgprot = VM_READ;
+    return change_page_attr(pg, 1, prot);
+}
+```
+
+#### 13.4.2.6 Conclusion
+
+Well, that’s too much for this post. In this article, we first dig into the Linux kernel source code, to find out how the kernel symbol table is generated. Then we learned how to use exported kernel symbols in our modules. Finally, we saw the tricky way to access all kernel symbols within a module.
+
+## 13.5 模块的初始化与清理
+
+### 13.5.0 init_module()/cleanup_module()
+
+Kernel modules must have at least two functions: a "start" (initialization) function called ```init_module()``` which is called when the module is insmoded into the kernel, and an "end" (cleanup) function called ```cleanup_module()``` which is called just before it is rmmoded. Actually, things have changed starting with kernel 2.3.13. You can now use whatever name you like for the start and end functions of a module, refer macros ```module_init()``` and ```module_exit()``` in section 13.5.1 module_init()/module_exit(). In fact, the new method is the preferred method. However, many people still use ```init_module()``` and ```cleanup_module()``` for their start and end functions.
+
+```
+/*
+ * helloworld.c − The simplest kernel module. 
+ */ 
+#include <linux/module.h> 		/* Needed by all modules */ 
+#include <linux/kernel.h> 		/* Needed for KERN_INFO */ 
+
+int init_module(void) 
+{ 
+	printk(KERN_INFO "Hello world 1.\n"); 
+	/* A non 0 return means init_module failed; module can't be loaded. */ 
+	return 0; 
+} 
+
+void cleanup_module(void) 
+{ 
+	printk(KERN_INFO "Goodbye world 1.\n"); 
+}
+```
+
+### 13.5.1 module_init()/module_exit()
+
+每个module都需要调用函数```module_init()```和```module_exit()```，该函数定义于include/linux/init.h：
+
+```
+typedef int (*initcall_t)(void);
+typedef void (*exitcall_t)(void);
+
+/*
+ * 当编译module时，Makefile会定义MODULE宏，参见编译modules/$(obj-m)节；
+ * 如果未定义MODULE，则表明本module被直接编译进了内核，此时module的初始化
+ * 函数需要在系统启动时调用，无需执行insmod命令
+ */
+#ifndef MODULE
+
+/**
+ * module_init() - driver initialization entry point
+ * @x: function to be run at kernel boot time or module insertion
+ * 
+ * module_init() will either be called during do_initcalls() (if
+ * builtin) or at module insertion time (if a module).  There can only
+ * be one per module.
+ */
+#define module_init(x)		__initcall(x);
+#define __initcall(fn) 		device_initcall(fn)
+// module_init()被扩展到.initcall6.init段，参见.initcall*.init节
+#define device_initcall(fn)	__define_initcall("6",fn,6)
+
+/**
+ * module_exit() - driver exit entry point
+ * @x: function to be run when driver is removed
+ * 
+ * module_exit() will wrap the driver clean-up code
+ * with cleanup_module() when used with rmmod when
+ * the driver is a module.  If the driver is statically
+ * compiled into the kernel, module_exit() has no effect.
+ * There can only be one per module.
+ */
+#define module_exit(x)		__exitcall(x);
+#define __exitcall(fn) 		\
+	static exitcall_t __exitcall_##fn __exit_call = fn
+
+#else
+/*
+ * 若定义了MODULE，则表明本module被编译成了独立的模块，
+ * 此时module的初始化函数在insmod时被调用
+ */
+
+/*
+ * 在宏module_init()中将init_module()声明为函数initfn的别名，
+ * 故调用init_module()就是调用initfn(),
+ * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节;
+ * 其中，函数alias()参见<<Using the GNU Compiler Collection (GCC)>>
+ * 第5.24 Declaring Attributes of Functions章
+ */
+/* Each module must use one module_init(). */
+#define module_init(initfn)						\
+	static inline initcall_t __inittest(void)			\
+	{ return initfn; }						\
+	int init_module(void) __attribute__((alias(#initfn)));
+
+/*
+ * 在宏module_exit()中将cleanup_module声明为函数exitfn的别名，
+ * 故调用cleanup_module()就是调用exitfn()，
+ * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节;
+ * 其中，函数alias()参见<<Using the GNU Compiler Collection (GCC)>>
+ * 第5.24 Declaring Attributes of Functions章
+ */
+/* This is only required if you want to be unloadable. */
+#define module_exit(exitfn)						\
+	static inline exitcall_t __exittest(void)			\
+	{ return exitfn; }						\
+	void cleanup_module(void) __attribute__((alias(#exitfn)));
+
+#endif
+```
+
+宏```module_init()```所传递的参数是模块初始化函数，该函数被```do_one_initcall()```调用，而调用函数```do_one_initcall()```分为两种情况：
+* 当module被编译进内核时，其初始化函数需要在系统启动时被调用，参见module被编译进内核时的初始化过程节；
+* 当module被编译成单独的模块时，其初始化函数在insmod时被调用，参见insmod调用sys_init_module()节。
+
+宏```module_exit()```所传递的参数是模块卸载函数，该函数在delete_modules()中，或者在rmmod时调用，参见rmmod调用sys_delete_module()节。
+
+**NOTE1**: If a module is compiled into the static kernel image, the exit function would not be included, and it would never be invoked because if it were not a module, the code could never be removed from memory.
+
+#### 13.5.1.1 module被编译进内核时的初始化过程
+
+系统启动时，通过下列两种方法执行某些初始化函数：
+
+1) 调用```__initcall_start```和```__early_initcall_end```之间的初始化函数
+
+```
+kernel_init() -> do_pre_smp_initcalls() -> do_one_initcall()
+```
+
+2) 调用```__early_initcall_end```和```__initcall_end```之间的初始化函数
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+```
+
+函数```do_pre_smp_initcalls()```定义于init/main.c，参见do_pre_smp_initcalls()节。
+
+函数```do_basic_setup()```定义于init/main.c，参见do_basic_setup()节。
+
+##### 13.5.1.1.1 do_initcalls()
+
+该函数定义于init/main.c:
+
+```
+/*
+ * 所有初始化函数被存放到一个数组空间中，如下三个变量表示特定的数组下标，
+ * 参见__initcall_start[], __early_initcall_end[]节
+ */
+extern initcall_t __initcall_start[], __initcall_end[], __early_initcall_end[];
+
+static void __init do_initcalls(void)
+{
+	initcall_t *fn;
+
+	/*
+	 * 依次执行__early_initcall_end与__initcall_end之间的初始化函数，
+	 * 参见__initcall_start[], __early_initcall_end[]节;
+	 * 其中，函数do_one_initcall()用于执行函数fn()，参见do_one_initcall()节
+	 */
+	for (fn = __early_initcall_end; fn < __initcall_end; fn++)
+		do_one_initcall(*fn);
+}
+```
+
+###### 13.5.1.1.1.1 \__initcall_start[], \__early_initcall_end[], \__initcall_end[]
+
+在arch/x86/kernel/vmlinux.lds.S中，包含如下代码：
+
+```
+#include <asm-generic/vmlinux.lds.h>
+
+SECTIONS
+{
+	...
+	INIT_DATA_SECTION(16)
+	...
+}
+
+其中，宏INIT_DATA_SECTION定义于include/asm-generic/vmlinux.lds.h:
+#ifndef SYMBOL_PREFIX
+#define VMLINUX_SYMBOL(sym)	sym
+#else
+#define PASTE2(x,y)		x##y
+#define PASTE(x,y)		PASTE2(x,y)
+#define VMLINUX_SYMBOL(sym)	PASTE(SYMBOL_PREFIX, sym)
+#endif
+
+#define INIT_DATA_SECTION(initsetup_align)				\
+	.init.data : AT(ADDR(.init.data) - LOAD_OFFSET) {		\
+		INIT_DATA						\
+		INIT_SETUP(initsetup_align)				\
+		INIT_CALLS						\
+		CON_INITCALL						\
+		SECURITY_INITCALL					\
+		INIT_RAM_FS						\
+	}
+
+#define INIT_CALLS							\
+	VMLINUX_SYMBOL(__initcall_start) = .;				\
+	INITCALLS							\
+	VMLINUX_SYMBOL(__initcall_end) = .;
+
+#define INITCALLS							\
+	*(.initcallearly.init)						\
+	VMLINUX_SYMBOL(__early_initcall_end) = .;			\
+  	*(.initcall0.init)						\
+  	*(.initcall0s.init)						\
+  	*(.initcall1.init)						\
+  	*(.initcall1s.init)						\
+  	*(.initcall2.init)						\
+  	*(.initcall2s.init)						\
+  	*(.initcall3.init)						\
+  	*(.initcall3s.init)						\
+  	*(.initcall4.init)						\
+  	*(.initcall4s.init)						\
+  	*(.initcall5.init)						\
+  	*(.initcall5s.init)						\
+	*(.initcallrootfs.init)						\
+  	*(.initcall6.init)						\
+  	*(.initcall6s.init)						\
+  	*(.initcall7.init)						\
+  	*(.initcall7s.init)
+```
+
+由arch/x86/kernel/vmlinux.lds.S扩展而来(参见vmlinux.lds如何生成节)的vmliux.lds(详见Annex G: vmlinux.lds节)包含了.init.data段，其中的初始化函数如下：
+
+```
+.init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
+```
+
+注意：在Linux Kernel源代码中有些找不到来源的变量是在vmlinux.lds中定义的。
+
+###### 13.5.1.1.1.1.1 .initcall\*.init
+
+段```.initcall*.init```是由如下宏扩展而来的，参见include/linux/init.h:
+
+```
+#ifndef MODULE
+#ifndef __ASSEMBLY__
+
+#define __define_initcall(level,fn,id) 				\
+		static initcall_t __initcall_##fn##id __used 	\
+		__attribute__((__section__(".initcall" level ".init"))) = fn
+
+/*
+ * Early initcalls run before initializing SMP.
+ * Only for built-in code, not modules.
+ */
+#define early_initcall(fn)		__define_initcall("early",fn,early)
+
+/*
+ * A "pure" initcall has no dependencies on anything else, and purely
+ * initializes variables that couldn't be statically initialized.
+ * This only exists for built-in code, not for modules.
+ */
+#define pure_initcall(fn)		__define_initcall("0",fn,0)
+
+#define core_initcall(fn)		__define_initcall("1",fn,1)
+#define core_initcall_sync(fn)		__define_initcall("1s",fn,1s)
+#define postcore_initcall(fn)		__define_initcall("2",fn,2)
+#define postcore_initcall_sync(fn)	__define_initcall("2s",fn,2s)
+#define arch_initcall(fn)		__define_initcall("3",fn,3)
+#define arch_initcall_sync(fn)		__define_initcall("3s",fn,3s)
+#define subsys_initcall(fn)		__define_initcall("4",fn,4)
+#define subsys_initcall_sync(fn)	__define_initcall("4s",fn,4s)
+#define fs_initcall(fn)			__define_initcall("5",fn,5)
+#define fs_initcall_sync(fn)		__define_initcall("5s",fn,5s)
+#define rootfs_initcall(fn)		__define_initcall("rootfs",fn,rootfs)
+#define device_initcall(fn)		__define_initcall("6",fn,6)
+#define device_initcall_sync(fn)	__define_initcall("6s",fn,6s)
+#define late_initcall(fn)		__define_initcall("7",fn,7)
+#define late_initcall_sync(fn)		__define_initcall("7s",fn,7s)
+
+#define __initcall(fn)			device_initcall(fn)
+#define __exitcall(fn)			\
+	static exitcall_t __exitcall_##fn __exit_call = fn
+
+#endif /* __ASSEMBLY__ */
+
+#define module_init(x)			__initcall(x);
+#define module_exit(x)			__exitcall(x);
+
+#else /* MODULE */
+...
+#endif
+```
+
+综上可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+
+```
+kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+                                            ^
+                                            +-- 其中的.initcall6.init
+```
+
+此外，由如下注释可知，当module被编译进内核时，其清理函数```cleanup_module()```不会被调用：
+
+```
+#ifndef MODULE
+
+/**
+ * module_exit() - driver exit entry point
+ * @x: function to be run when driver is removed
+ * 
+ * module_exit() will wrap the driver clean-up code
+ * with cleanup_module() when used with rmmod when
+ * the driver is a module.  If the driver is statically
+ * compiled into the kernel, module_exit() has no effect.
+ * There can only be one per module.
+ */
+#define module_exit(x)		__exitcall(x);
+#define __exitcall(fn) 		\
+	static exitcall_t __exitcall_##fn __exit_call = fn
+
+#else
+...
+#endif
+```
+
+###### 13.5.1.1.1.2 do_one_initcall()
+
+该函数用于调用指定module的初始化函数，其定义于init/main.c:
+
+```
+int __init_or_module do_one_initcall(initcall_t fn)
+{
+	int count = preempt_count();
+	int ret;
+
+	/*
+	 * 内核参数initcall_debug参见Documentation/kernel-parameters.txt：
+	 * initcall_debug  [KNL]  Trace initcalls as they are executed.
+	 *                        Useful for working out where the kernel
+	 *                        is dying during startup.
+	 */
+	if (initcall_debug)
+		ret = do_one_initcall_debug(fn);
+	else
+		ret = fn();
+
+	msgbuf[0] = 0;
+
+	if (ret && ret != -ENODEV && initcall_debug)
+		sprintf(msgbuf, "error code %d ", ret);
+
+	if (preempt_count() != count) {
+		strlcat(msgbuf, "preemption imbalance ", sizeof(msgbuf));
+		preempt_count() = count;
+	}
+	if (irqs_disabled()) {
+		strlcat(msgbuf, "disabled interrupts ", sizeof(msgbuf));
+		local_irq_enable();
+	}
+	if (msgbuf[0]) {
+		printk("initcall %pF returned with %s\n", fn, msgbuf);
+	}
+
+	return ret;
+}
+
+static int __init_or_module do_one_initcall_debug(initcall_t fn)
+{
+	ktime_t calltime, delta, rettime;
+	unsigned long long duration;
+	int ret;
+
+	printk(KERN_DEBUG "calling  %pF @ %i\n", fn, task_pid_nr(current));
+	calltime = ktime_get();
+	ret = fn();
+	rettime = ktime_get();
+	delta = ktime_sub(rettime, calltime);
+	duration = (unsigned long long) ktime_to_ns(delta) >> 10;
+	printk(KERN_DEBUG "initcall %pF returned %d after %lld usecs\n", fn, ret, duration);
+
+	return ret;
+}
+```
+
+#### 13.5.1.2 insmod调用sys_init_module()
+
+当module被编译为独立的模块时，通过执行insmod命令将其加载到系统中，参见加载/卸载节。
+
+系统调用```sys_init_module()```定义于kernel/module.c:
+
+```
+/*
+ * umod	points to a buffer containing the binary image to be loaded;
+ * len		specifies the size of that buffer.
+ *
+ *		The module image should be a valid ELF image, built for the running kernel.
+ *
+ * uargs	is a string containing space-delimited specifications of the values for module parameters
+ *		(defined inside the module using module_param() and module_param_array()). The kernel parses
+ *		this string and initializes the specified parameters. Each of the parameter specifications
+ *		has the form: name[=value[,value...]]
+ */
+SYSCALL_DEFINE3(init_module, void __user *, umod,
+		unsigned long, len, const char __user *, uargs)
+{
+	struct module *mod;
+	int ret = 0;
+
+	/* Must have permission */
+	if (!capable(CAP_SYS_MODULE) || modules_disabled)
+		return -EPERM;
+
+	/* Do all the hard work. 参见load_module()节 */
+	mod = load_module(umod, len, uargs);
+
+	if (IS_ERR(mod))
+		return PTR_ERR(mod);
+
+	blocking_notifier_call_chain(&module_notify_list, MODULE_STATE_COMING, mod);
+
+	/* Set RO and NX regions for core */
+	set_section_ro_nx(mod->module_core, mod->core_text_size,
+			  mod->core_ro_size, mod->core_size);
+
+	/* Set RO and NX regions for init */
+	set_section_ro_nx(mod->module_init, mod->init_text_size,
+			  mod->init_ro_size, mod->init_size);
+
+	// 调用模块构造函数mod->ctors[idx]()
+	do_mod_ctors(mod);
+
+	/*
+	 * Start the module. 调用init_module()函数，参见do_one_initcall()节和
+	 * mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 */
+	if (mod->init != NULL)
+		ret = do_one_initcall(mod->init);
+	if (ret < 0) {
+		/* Init routine failed: abort.  Try to protect us from buggy refcounters. */
+		mod->state = MODULE_STATE_GOING;
+		synchronize_sched();
+		module_put(mod);
+		blocking_notifier_call_chain(&module_notify_list, MODULE_STATE_GOING, mod);
+		free_module(mod);
+		wake_up(&module_wq);
+		return ret;
+	}
+	if (ret > 0) {
+		printk(KERN_WARNING
+			 "%s: '%s'->init suspiciously returned %d, it should follow 0/-E convention\n"
+			 "%s: loading module anyway...\n", __func__, mod->name, ret, __func__);
+		dump_stack();
+	}
+
+	/*
+	 * 只有当模块的初始化函数执行成功(ret >= 0)，才会执行此后的代码
+	 */
+
+	/* Now it's a first class citizen!  Wake up anyone waiting for it. */
+	mod->state = MODULE_STATE_LIVE;
+	wake_up(&module_wq);
+	blocking_notifier_call_chain(&module_notify_list, MODULE_STATE_LIVE, mod);
+
+	/* We need to finish all async code before the module init sequence is done */
+	async_synchronize_full();
+
+	mutex_lock(&module_mutex);
+	/* Drop initial reference. */
+	module_put(mod);
+	trim_init_extable(mod);
+#ifdef CONFIG_KALLSYMS
+	mod->num_symtab = mod->core_num_syms;
+	mod->symtab = mod->core_symtab;
+	mod->strtab = mod->core_strtab;
+#endif
+	unset_module_init_ro_nx(mod);
+	module_free(mod, mod->module_init);
+	mod->module_init = NULL;
+	mod->init_size = 0;
+	mod->init_ro_size = 0;
+	mod->init_text_size = 0;
+	mutex_unlock(&module_mutex);
+
+	return 0;
+}
+```
+
+##### 13.5.1.2.1 load_module()
+
+该函数定义于kernel/module.c:
+
+```
+/* Allocate and load the module: note that size of section 0 is always
+   zero, and we rely on this for optional sections. */
+static struct module *load_module(void __user *umod, unsigned long len,
+				  const char __user *uargs)
+{
+	struct load_info info = { NULL, };
+	struct module *mod;
+	long err;
+
+	DEBUGP("load_module: umod=%p, len=%lu, uargs=%p\n", umod, len, uargs);
+
+	/* Copy in the blobs from userspace, check they are vaguely sane. */
+	err = copy_and_check(&info, umod, len, uargs);
+	if (err)
+		return ERR_PTR(err);
+
+	/* Figure out module layout, and allocate all the memory. */
+	mod = layout_and_allocate(&info);
+	if (IS_ERR(mod)) {
+		err = PTR_ERR(mod);
+		goto free_copy;
+	}
+
+	/* Now module is in final location, initialize linked lists, etc. */
+	err = module_unload_init(mod);
+	if (err)
+		goto free_module;
+
+	/*
+	 * Now we've got everything in the final locations, we can find
+	 * optional sections. 参见13.5.1.2.1.1 find_module_sections()节
+	 */
+	find_module_sections(mod, &info);
+
+	err = check_module_license_and_versions(mod);
+	if (err)
+		goto free_unload;
+
+	/* Set up MODINFO_ATTR fields */
+	setup_modinfo(mod, &info);
+
+	/* Fix up syms, so that st_value is a pointer to location. */
+	err = simplify_symbols(mod, &info);
+	if (err < 0)
+		goto free_modinfo;
+
+	// Fix up the addresses in the module
+	err = apply_relocations(mod, &info);
+	if (err < 0)
+		goto free_modinfo;
+
+	// Extable and per-cpu initialization
+	err = post_relocation(mod, &info);
+	if (err < 0)
+		goto free_modinfo;
+
+	// Flush I-cache for the module area
+	flush_module_icache(mod);
+
+	/* Now copy in args */
+	mod->args = strndup_user(uargs, ~0UL >> 1);
+	if (IS_ERR(mod->args)) {
+		err = PTR_ERR(mod->args);
+		goto free_arch_cleanup;
+	}
+
+	/* Mark state as coming so strong_try_module_get() ignores us. */
+	mod->state = MODULE_STATE_COMING;
+
+	/* Now sew it into the lists so we can get lockdep and oops
+	 * info during argument parsing.  No one should access us, since
+	 * strong_try_module_get() will fail.
+	 * lockdep/oops can run asynchronous, so use the RCU list insertion
+	 * function to insert in a way safe to concurrent readers.
+	 * The mutex protects against concurrent writers.
+	 */
+	mutex_lock(&module_mutex);
+	if (find_module(mod->name)) {
+		err = -EEXIST;
+		goto unlock;
+	}
+
+	/* This has to be done once we're sure module name is unique. */
+	dynamic_debug_setup(info.debug, info.num_debug);
+
+	/* Find duplicate symbols */
+	err = verify_export_symbols(mod);
+	if (err < 0)
+		goto ddebug;
+
+	module_bug_finalize(info.hdr, info.sechdrs, mod);
+	// 将该模块添加到链表modules中，参见13.3.2.1.1 modules链表节
+	list_add_rcu(&mod->list, &modules);
+	mutex_unlock(&module_mutex);
+
+	/* Module is ready to execute: parsing args may do that. */
+	err = parse_args(mod->name, mod->args, mod->kp, mod->num_kp, NULL);
+	if (err < 0)
+		goto unlink;
+
+	/* Link in to syfs. */
+	err = mod_sysfs_setup(mod, &info, mod->kp, mod->num_kp);
+	if (err < 0)
+		goto unlink;
+
+	/* Get rid of temporary copy and strmap. */
+	kfree(info.strmap);
+	free_copy(&info);
+
+	/* Done! */
+	trace_module_load(mod);
+	return mod;
+
+unlink:
+	mutex_lock(&module_mutex);
+	/* Unlink carefully: kallsyms could be walking list. */
+	list_del_rcu(&mod->list);
+	module_bug_cleanup(mod);
+
+ddebug:
+	dynamic_debug_remove(info.debug);
+unlock:
+	mutex_unlock(&module_mutex);
+	synchronize_sched();
+	kfree(mod->args);
+free_arch_cleanup:
+	module_arch_cleanup(mod);
+free_modinfo:
+	free_modinfo(mod);
+free_unload:
+	module_unload_free(mod);
+free_module:
+	module_deallocate(mod, &info);
+free_copy:
+	free_copy(&info);
+	return ERR_PTR(err);
+}
+```
+
+###### 13.5.1.2.1.1 find_module_sections()
+
+该函数定义于kernel/module.c:
+
+```
+static void find_module_sections(struct module *mod, struct load_info *info)
+{
+	mod->kp = section_objs(info, "__param", sizeof(*mod->kp), &mod->num_kp);
+
+	/*
+	 * 获取宏EXPORT_SYMBOL(sym)导出到段__ksymtab和__kcrctab中的符号，
+	 * 参见13.1.2.3 EXPORT_SYMBOL()节
+	 */
+	mod->syms = section_objs(info, "__ksymtab", sizeof(*mod->syms), &mod->num_syms);
+	mod->crcs = section_addr(info, "__kcrctab");
+
+	/*
+	 * 获取宏EXPORT_SYMBOL_GPL(sym)导出到段__ksymtab_gpl和__kcrctab_gpl中的符号，
+	 * 参见13.1.2.3 EXPORT_SYMBOL()节
+	 */
+	mod->gpl_syms = section_objs(info, "__ksymtab_gpl", sizeof(*mod->gpl_syms), &mod->num_gpl_syms);
+	mod->gpl_crcs = section_addr(info, "__kcrctab_gpl");
+
+	/*
+	 * 获取宏EXPORT_SYMBOL_GPL_FUTURE(sym)导出到段__ksymtab_gpl_future
+	 * 和__kcrctab_gpl_future中的符号，参见13.1.2.3 EXPORT_SYMBOL()节
+	 */
+	mod->gpl_future_syms = section_objs(info, "__ksymtab_gpl_future",
+					    sizeof(*mod->gpl_future_syms), &mod->num_gpl_future_syms);
+	mod->gpl_future_crcs = section_addr(info, "__kcrctab_gpl_future");
+
+#ifdef CONFIG_UNUSED_SYMBOLS
+	/*
+	 * 获取宏EXPORT_UNUSED_SYMBOL(sym)导出到段__ksymtab_unused
+	 * 和__kcrctab_unused中的符号，参见13.1.2.3 EXPORT_SYMBOL()节
+	 */
+	mod->unused_syms = section_objs(info, "__ksymtab_unused",
+					sizeof(*mod->unused_syms), &mod->num_unused_syms);
+	mod->unused_crcs = section_addr(info, "__kcrctab_unused");
+
+	/*
+	 * 获取宏EXPORT_UNUSED_SYMBOL_GPL(sym)导出到段__ksymtab_unused_gpl
+	 * 和__kcrctab_unused_gpl中的符号，参见13.1.2.3 EXPORT_SYMBOL()节
+	 */
+	mod->unused_gpl_syms = section_objs(info, "__ksymtab_unused_gpl",
+					    sizeof(*mod->unused_gpl_syms), &mod->num_unused_gpl_syms);
+	mod->unused_gpl_crcs = section_addr(info, "__kcrctab_unused_gpl");
+#endif
+
+#ifdef CONFIG_CONSTRUCTORS
+	mod->ctors = section_objs(info, ".ctors", sizeof(*mod->ctors), &mod->num_ctors);
+#endif
+
+#ifdef CONFIG_TRACEPOINTS
+	mod->tracepoints_ptrs = section_objs(info, "__tracepoints_ptrs",
+					     sizeof(*mod->tracepoints_ptrs), &mod->num_tracepoints);
+#endif
+
+#ifdef HAVE_JUMP_LABEL
+	mod->jump_entries = section_objs(info, "__jump_table",
+					 sizeof(*mod->jump_entries), &mod->num_jump_entries);
+#endif
+
+#ifdef CONFIG_EVENT_TRACING
+	mod->trace_events = section_objs(info, "_ftrace_events",
+					 sizeof(*mod->trace_events), &mod->num_trace_events);
+	/*
+	 * This section contains pointers to allocated objects in the trace
+	 * code and not scanning it leads to false positives.
+	 */
+	kmemleak_scan_area(mod->trace_events, sizeof(*mod->trace_events) * mod->num_trace_events, GFP_KERNEL);
+#endif
+
+#ifdef CONFIG_TRACING
+	mod->trace_bprintk_fmt_start = section_objs(info, "__trace_printk_fmt",
+						    sizeof(*mod->trace_bprintk_fmt_start), &mod->num_trace_bprintk_fmt);
+	/*
+	 * This section contains pointers to allocated objects in the trace
+	 * code and not scanning it leads to false positives.
+	 */
+	kmemleak_scan_area(mod->trace_bprintk_fmt_start,
+			   sizeof(*mod->trace_bprintk_fmt_start) * mod->num_trace_bprintk_fmt, GFP_KERNEL);
+#endif
+
+#ifdef CONFIG_FTRACE_MCOUNT_RECORD
+	/* sechdrs[0].sh_size is always zero */
+	mod->ftrace_callsites = section_objs(info, "__mcount_loc",
+					     sizeof(*mod->ftrace_callsites), &mod->num_ftrace_callsites);
+#endif
+
+	mod->extable = section_objs(info, "__ex_table", sizeof(*mod->extable), &mod->num_exentries);
+
+	if (section_addr(info, "__obsparm"))
+		printk(KERN_WARNING "%s: Ignoring obsolete parameters\n", mod->name);
+
+	info->debug = section_objs(info, "__verbose", sizeof(*info->debug), &info->num_debug);
+}
+```
+
+#### 13.5.1.3 rmmod调用sys_delete_module()
+
+当module被编译为独立的模块时，可以执行rmmod命令从系统中卸载该模块，参见加载/卸载节。
+
+rmmod最终调用系统调用```sys_delete_module()```，其定义于kernel/module.c:
+
+```
+SYSCALL_DEFINE2(delete_module, const char __user *, name_user, unsigned int, flags)
+{
+	struct module *mod;
+	char name[MODULE_NAME_LEN];
+	int ret, forced = 0;
+
+	if (!capable(CAP_SYS_MODULE) || modules_disabled)
+		return -EPERM;
+
+	/*
+	 * 1) 获取模块名
+	 */
+	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
+		return -EFAULT;
+	name[MODULE_NAME_LEN-1] = '\0';
+
+	if (mutex_lock_interruptible(&module_mutex) != 0)
+		return -EINTR;
+
+	/*
+	 * 2) 从链表modules中查找名为name的模块
+	 */
+	mod = find_module(name);
+
+	if (!mod) {
+		ret = -ENOENT;
+		goto out;
+	}
+
+	/*
+	 * 3) 检查该模块是否可被移除
+	 */
+	if (!list_empty(&mod->source_list)) {
+		/* Other modules depend on us: get rid of them first. */
+		ret = -EWOULDBLOCK;
+		goto out;
+	}
+
+	/* Doing init or already dying? */
+	if (mod->state != MODULE_STATE_LIVE) {
+		/* FIXME: if (force), slam module count and wake up waiter --RR */
+		DEBUGP("%s already dying\n", mod->name);
+		ret = -EBUSY;
+		goto out;
+	}
+
+	/*
+	 * If it has an init func, it must have an exit func to unload.
+	 * 检查初始化函数和清理函数，即mod->init和mod->exit，
+	 * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 */
+	if (mod->init && !mod->exit) {
+		// 与配置选项CONFIG_MODULE_FORCE_UNLOAD有关
+		forced = try_force_unload(flags);
+		if (!forced) {
+			/* This module can't be removed */
+			ret = -EBUSY;
+			goto out;
+		}
+	}
+
+	/* Set this up before setting mod->state */
+	mod->waiter = current;
+
+	/* Stop the machine so refcounts can't move and disable module. */
+	ret = try_stop_module(mod, flags, &forced);
+	if (ret != 0)
+		goto out;
+
+	/* Never wait if forced. */
+	if (!forced && module_refcount(mod) != 0)
+		wait_for_zero_refcount(mod);
+
+	mutex_unlock(&module_mutex);
+
+	/*
+	 * Final destruction now no one is using it. 调用清理函数cleanup_module()，
+	 * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 */
+	if (mod->exit != NULL)
+		mod->exit();
+
+	blocking_notifier_call_chain(&module_notify_list, MODULE_STATE_GOING, mod);
+	async_synchronize_full();
+
+	/* Store the name of the last unloaded module for diagnostic purposes */
+	strlcpy(last_unloaded_module, mod->name, sizeof(last_unloaded_module));
+
+	free_module(mod);
+	return 0;
+
+out:
+	mutex_unlock(&module_mutex);
+	return ret;
+}
+```
+
+#### 13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联
+
+函数```add_header()```定义于scripts/mod/modpost.c：
+
+```
+/**
+ * Header for the generated file
+ **/
+static void add_header(struct buffer *b, struct module *mod)
+{
+	buf_printf(b, "#include <linux/module.h>\n");
+	buf_printf(b, "#include <linux/vermagic.h>\n");
+	buf_printf(b, "#include <linux/compiler.h>\n");
+	buf_printf(b, "\n");
+	buf_printf(b, "MODULE_INFO(vermagic, VERMAGIC_STRING);\n");
+	buf_printf(b, "\n");
+	buf_printf(b, "struct module __this_module\n");
+	buf_printf(b, "__attribute__((section(\".gnu.linkonce.this_module\"))) = {\n");
+	buf_printf(b, " .name = KBUILD_MODNAME,\n");
+	if (mod->has_init)
+		buf_printf(b, " .init = init_module,\n");
+	if (mod->has_cleanup)
+		buf_printf(b, "#ifdef CONFIG_MODULE_UNLOAD\n"
+			      " .exit = cleanup_module,\n"
+			      "#endif\n");
+	buf_printf(b, " .arch = MODULE_ARCH_INIT,\n");
+	buf_printf(b, "};\n");
+}
+```
+
+参见\__modpost节，在执行scripts/mod/modpost时生成*.mod.c文件，该文件中包含了struct module类型的对象```__this_module```:
+
+```
+#include <linux/module.h>		// 定义struct module
+#include <linux/vermagic.h>		// 定义VERMAGIC_STRING
+#include <linux/compiler.h>
+
+MODULE_INFO(vermagic, VERMAGIC_STRING);
+
+/*
+ * struct module定义于include/linux/module.h，
+ * 此处仅为其中的四个成员变量赋值
+ */
+struct module __this_module
+__attribute__((section(\".gnu.linkonce.this_module\"))) = {
+	/*
+	 * KBUILD_MODNAME定义于scripts/Makefile.lib:
+	 * modname_flags  = $(if $(filter 1,$(words $(modname))),\
+	 *                  -DKBUILD_MODNAME=$(call name-fix,$(modname)))
+	 */
+	.name = KBUILD_MODNAME,
+
+	/*
+	 * 函数init_module和cleanup_module参见下列章节：
+	 * 13.5.0 init_module()/cleanup_module()节
+	 * 13.5.1 module_init()/module_exit()节
+	 */
+	.init = init_module,
+#ifdef CONFIG_MODULE_UNLOAD
+	.exit = cleanup_module,
+#endif
+
+	/*
+	 * MODULE_ARCH_INIT的定义参见下列文件：
+	 * - arch/m68k/include/asm/module.h
+	 * - include/linux/module.h
+	 */
+	.arch = MODULE_ARCH_INIT,
+};
+```
+
+当```*.mod.c```被编译成```*.mod.o```后，变量```__this_module```被包含在```*.mod.o```的```.gnu.linkonce.this_module```段内，参见3.4.3.4.2.2 %.mod.c=>%.mod.o节，例如：
+
+```
+chenwx@chenwx ~/alex/module $ objdump -h hello.mod.o
+
+hello.mod.o:     file format elf32-i386
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         00000000  00000000  00000000  00000034  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .data         00000000  00000000  00000000  00000034  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000000  00000000  00000000  00000034  2**2
+                  ALLOC
+  3 .modinfo      00000066  00000000  00000000  00000034  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  4 __versions    000000c0  00000000  00000000  000000a0  2**5
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  5 .gnu.linkonce.this_module 0000017c  00000000  00000000  00000160  2**5
+                  CONTENTS, ALLOC, LOAD, RELOC, DATA, LINK_ONCE_DISCARD
+  6 .comment      0000002b  00000000  00000000  000002dc  2**0
+                  CONTENTS, READONLY
+  7 .note.GNU-stack 00000000  00000000  00000000  00000307  2**0
+                  CONTENTS, READONLY
+```
+
+在加载module时，段.gnu.linkonce.this_module会被如下函数读取：
+
+```
+load_module()			// 参见13.5.1.2.1 load_module()节
+-> layout_and_allocate()
+   -> setup_load_info()
+
+static struct module *setup_load_info(struct load_info *info)
+{
+	struct module *mod;
+	...
+
+	info->index.mod = find_sec(info, ".gnu.linkonce.this_module");
+	if (!info->index.mod) {
+		printk(KERN_WARNING "No module found in object\n");
+		return ERR_PTR(-ENOEXEC);
+	}
+	/* This is temporary: point mod into copy of data. */
+	mod = (void *)info->sechdrs[info->index.mod].sh_addr;
+
+	...
+	return mod;
+}
+```
+
+故，此后可通过调用```mod->init()```和```mod->exit()```来调用初始化函数和清理函数了，参见rmmod调用sys_delete_module()节。
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

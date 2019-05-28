@@ -68959,6 +68959,3539 @@ void reset_security_ops(void)
 }
 ```
 
+# 15 内核数据结构
+
+## 15.1 双向循环链表/struct list_head
+
+该结构定义于include/linux/types.h:
+
+```
+struct list_head {
+	struct list_head *next, *prev;
+};
+```
+
+### 15.1.1 链表的定义与初始化
+
+空双向循环链表的结构如下：
+
+![Data_Structure_list_1](/assets/Data_Structure_list_1.png)
+
+1) 可通过如下函数初始化空双向循环链表，其定义于include/linux/list.h:
+
+```
+static inline void INIT_LIST_HEAD(struct list_head *list)
+{
+	list->next = list;
+	list->prev = list;
+}
+```
+
+2) 可通过如下宏定义并初始化双向循环链表，其定义于include/linux/list.h:
+
+```
+#define LIST_HEAD_INIT(name) { &(name), &(name) }
+
+#define LIST_HEAD(name)		\
+	struct list_head name = LIST_HEAD_INIT(name)
+```
+
+### 15.1.2 向链表中添加元素
+
+包含有效元素的双向循环链表的结构如下：
+
+![Data_Structure_list_2](/assets/Data_Structure_list_2.png)
+
+函数```list_add()```和```list_add_tail()```用于向双向循环链表中添加元素，其定义于include/linux/list.h：
+
+```
+/**
+ * list_add - add a new entry
+ * @new: new entry to be added
+ * @head: list head to add it after
+ *
+ * Insert a new entry after the specified head.
+ * This is good for implementing stacks.
+ */
+static inline void list_add(struct list_head *new, struct list_head *head)
+{
+	__list_add(new, head, head->next);
+}
+
+/**
+ * list_add_tail - add a new entry
+ * @new: new entry to be added
+ * @head: list head to add it before
+ *
+ * Insert a new entry before the specified head.
+ * This is useful for implementing queues.
+ */
+static inline void list_add_tail(struct list_head *new, struct list_head *head)
+{
+	__list_add(new, head->prev, head);
+}
+
+/*
+ * Insert a new entry between two known consecutive entries.
+ *
+ * This is only for internal list manipulation where we know
+ * the prev/next entries already!
+ */
+#ifndef CONFIG_DEBUG_LIST
+static inline void __list_add(struct list_head *new,
+			      struct list_head *prev,
+			      struct list_head *next)
+{
+	next->prev = new;
+	new->next = next;
+	new->prev = prev;
+	prev->next = new;
+}
+#else
+// 参见lib/list_debug.c
+extern void __list_add(struct list_head *new,
+		       struct list_head *prev,
+		       struct list_head *next);
+#endif
+```
+
+函数```list_add_rcu()```和```list_add_tail_rcu()```用于向双向循环链表中添加元素，其定义于include/linux/rculist.h:
+
+```
+/**
+ * list_add_rcu - add a new entry to rcu-protected list
+ * @new: new entry to be added
+ * @head: list head to add it after
+ *
+ * Insert a new entry after the specified head.
+ * This is good for implementing stacks.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as list_add_rcu()
+ * or list_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * list_for_each_entry_rcu().
+ */
+static inline void list_add_rcu(struct list_head *new, struct list_head *head)
+{
+	__list_add_rcu(new, head, head->next);
+}
+
+/**
+ * list_add_tail_rcu - add a new entry to rcu-protected list
+ * @new: new entry to be added
+ * @head: list head to add it before
+ *
+ * Insert a new entry before the specified head.
+ * This is useful for implementing queues.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as list_add_tail_rcu()
+ * or list_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * list_for_each_entry_rcu().
+ */
+static inline void list_add_tail_rcu(struct list_head *new, struct list_head *head)
+{
+	__list_add_rcu(new, head->prev, head);
+}
+
+/*
+ * Insert a new entry between two known consecutive entries.
+ *
+ * This is only for internal list manipulation where we know
+ * the prev/next entries already!
+ */
+static inline void __list_add_rcu(struct list_head *new,
+		struct list_head *prev, struct list_head *next)
+{
+	new->next = next;
+	new->prev = prev;
+	rcu_assign_pointer(list_next_rcu(prev), new);
+	next->prev = new;
+}
+
+/*
+ * return the ->next pointer of a list_head in an rcu safe
+ * way, we must not access it directly
+ */
+#define list_next_rcu(list)	(*((struct list_head __rcu **)(&(list)->next)))
+```
+
+### 15.1.3 从链表中删除元素
+
+函数```list_del()```和```list_del_init()```用于从双向循环链表删除元素，其定义于include/linux/list.h：
+
+```
+/*
+ * Delete a list entry by making the prev/next entries
+ * point to each other.
+ *
+ * This is only for internal list manipulation where we know
+ * the prev/next entries already!
+ */
+static inline void __list_del(struct list_head * prev, struct list_head * next)
+{
+	next->prev = prev;
+	prev->next = next;
+}
+
+/**
+ * list_del - deletes entry from list.
+ * @entry: the element to delete from the list.
+ * Note: list_empty() on entry does not return true after this, the entry is
+ * in an undefined state.
+ */
+#ifndef CONFIG_DEBUG_LIST
+static inline void __list_del_entry(struct list_head *entry)
+{
+	__list_del(entry->prev, entry->next);
+}
+
+static inline void list_del(struct list_head *entry)
+{
+	__list_del(entry->prev, entry->next);
+	entry->next = LIST_POISON1;
+	entry->prev = LIST_POISON2;
+}
+#else
+extern void __list_del_entry(struct list_head *entry);	// 参见lib/list_debug.c
+extern void list_del(struct list_head *entry);		// 参见lib/list_debug.c
+#endif
+
+/**
+ * list_del_init - deletes entry from list and reinitialize it.
+ * @entry: the element to delete from the list.
+ */
+static inline void list_del_init(struct list_head *entry)
+{
+	__list_del_entry(entry);
+	INIT_LIST_HEAD(entry);
+}
+```
+
+函数```list_del_rcu()```用于从双向循环链表删除元素，其定义于include/linux/rculist.h：
+
+```
+/**
+ * list_del_rcu - deletes entry from list without re-initialization
+ * @entry: the element to delete from the list.
+ *
+ * Note: list_empty() on entry does not return true after this,
+ * the entry is in an undefined state. It is useful for RCU based
+ * lockfree traversal.
+ *
+ * In particular, it means that we can not poison the forward
+ * pointers that may still be used for walking the list.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as list_del_rcu()
+ * or list_add_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * list_for_each_entry_rcu().
+ *
+ * Note that the caller is not permitted to immediately free
+ * the newly deleted entry.  Instead, either synchronize_rcu()
+ * or call_rcu() must be used to defer freeing until an RCU
+ * grace period has elapsed.
+ */
+static inline void list_del_rcu(struct list_head *entry)
+{
+	__list_del(entry->prev, entry->next);
+	entry->prev = LIST_POISON2;
+}
+```
+
+Note that it does not free any memory belonging to entry or the data structure in which it is embedded; this function merely removes the element from the list.
+
+### 15.1.4 替换链表中的元素
+
+函数```list_replace()```和```list_replace_init()```用于替换双向循环链表中的某元素，其定义于include/linux/list.h:
+
+```
+/**
+ * list_replace - replace old entry by new one
+ * @old : the element to be replaced
+ * @new : the new element to insert
+ *
+ * If @old was empty, it will be overwritten.
+ */
+static inline void list_replace(struct list_head *old, struct list_head *new)
+{
+	new->next = old->next;
+	new->next->prev = new;
+	new->prev = old->prev;
+	new->prev->next = new;
+}
+
+static inline void list_replace_init(struct list_head *old, struct list_head *new)
+{
+	list_replace(old, new);
+	INIT_LIST_HEAD(old);
+}
+```
+
+函数```list_replace_rcu()```用于替换双向循环链表中的某元素，其定义于include/linux/rculist.h:
+
+```
+/**
+ * list_replace_rcu - replace old entry by new one
+ * @old : the element to be replaced
+ * @new : the new element to insert
+ *
+ * The @old entry will be replaced with the @new entry atomically.
+ * Note: @old should not be empty.
+ */
+static inline void list_replace_rcu(struct list_head *old, struct list_head *new)
+{
+	new->next = old->next;
+	new->prev = old->prev;
+	rcu_assign_pointer(list_next_rcu(new->prev), new);
+	new->next->prev = new;
+	old->prev = LIST_POISON2;
+}
+```
+
+### 15.1.5 移动链表中的元素
+
+函数```list_move()```和```list_move_tail()```将元素从一个双向循环链表移动到另外一个双向循环链表中，其定义于include/linux/list.h:
+
+```
+/**
+ * list_move - delete from one list and add as another's head
+ * @list: the entry to move
+ * @head: the head that will precede our entry
+ */
+static inline void list_move(struct list_head *list, struct list_head *head)
+{
+	__list_del_entry(list);
+	list_add(list, head);
+}
+
+/**
+ * list_move_tail - delete from one list and add as another's tail
+ * @list: the entry to move
+ * @head: the head that will follow our entry
+ */
+static inline void list_move_tail(struct list_head *list, struct list_head *head)
+{
+	__list_del_entry(list);
+	list_add_tail(list, head);
+}
+```
+
+### 15.1.6 判断链表是否为空或仅有一个元素
+
+函数```list_empty()```和```list_empty_careful()```用于判断双向循环链表是否为空，函数```list_is_singular()```用于判断双向循环链表是否仅有一个元素，其定义于include/linux/list.h:
+
+```
+/**
+ * list_empty - tests whether a list is empty
+ * @head: the list to test.
+ */
+static inline int list_empty(const struct list_head *head)
+{
+	return head->next == head;
+}
+
+/**
+ * list_empty_careful - tests whether a list is empty and not being modified
+ * @head: the list to test
+ *
+ * Description:
+ * tests whether a list is empty _and_ checks that no other CPU might be
+ * in the process of modifying either member (next or prev)
+ *
+ * NOTE: using list_empty_careful() without synchronization
+ * can only be safe if the only activity that can happen
+ * to the list entry is list_del_init(). Eg. it cannot be used
+ * if another CPU could re-list_add() it.
+ */
+static inline int list_empty_careful(const struct list_head *head)
+{
+	struct list_head *next = head->next;
+	return (next == head) && (next == head->prev);
+}
+
+/**
+ * list_is_singular - tests whether a list has just one entry.
+ * @head: the list to test.
+ */
+static inline int list_is_singular(const struct list_head *head)
+{
+	return !list_empty(head) && (head->next == head->prev);
+}
+```
+
+### 15.1.7 判断某元素是否为链表中的最后一个元素
+
+函数```list_is_last()```用于判断某元素是否位于双向循环链表的末尾，其定义于include/linux/list.h:
+
+```
+/**
+ * list_is_last - tests whether @list is the last entry in list @head
+ * @list: the entry to test
+ * @head: the head of the list
+ */
+static inline int list_is_last(const struct list_head *list, const struct list_head *head)
+{
+	return list->next == head;
+}
+```
+
+### 15.1.8 轮转链表/移动链表头
+
+轮转链表即将链表头向后移动一个位置。函数```list_rotate_left()```用于轮转链表，其定义于include/linux/list.h:
+
+```
+/**
+ * list_rotate_left - rotate the list to the left
+ * @head: the head of the list
+ */
+static inline void list_rotate_left(struct list_head *head)
+{
+	struct list_head *first;
+
+	if (!list_empty(head)) {
+		first = head->next;
+		list_move_tail(first, head);
+	}
+}
+```
+
+其结果如下：
+
+![Data_Structure_list_3](/assets/Data_Structure_list_3.png)
+
+### 15.1.9 切分链表
+
+函数```list_cut_position()```用于切分链表，其定义于include/linux/list.h:
+
+```
+/**
+ * list_cut_position - cut a list into two
+ * @list: a new list to add all removed entries
+ * @head: a list with entries
+ * @entry: an entry within head, could be the head itself
+ *	and if so we won't cut the list
+ *
+ * This helper moves the initial part of @head, up to and
+ * including @entry, from @head to @list. You should
+ * pass on @entry an element you know is on @head. @list
+ * should be an empty list or a list you do not care about
+ * losing its data.
+ *
+ */
+static inline void list_cut_position(struct list_head *list,
+		struct list_head *head, struct list_head *entry)
+{
+	if (list_empty(head))
+		return;
+	if (list_is_singular(head) && (head->next != entry && head != entry))
+		return;
+	if (entry == head)
+		INIT_LIST_HEAD(list);
+	else
+		__list_cut_position(list, head, entry);
+}
+
+static inline void __list_cut_position(struct list_head *list,
+		struct list_head *head, struct list_head *entry)
+{
+	struct list_head *new_first = entry->next;
+	list->next = head->next;
+	list->next->prev = list;
+	list->prev = entry;
+	entry->next = list;
+	head->next = new_first;
+	new_first->prev = head;
+}
+```
+
+函数```list_cut_position(list, head, elem2)```的执行结果如下：
+
+![Data_Structure_list_4](/assets/Data_Structure_list_4.png)
+
+### 15.1.10 拼接链表
+
+函数```list_splice()```，```list_splice_init()```，```list_splice_tail()```和```list_splice_tail_init()```用于拼接两个链表，其定义于include/linux/list.h:
+
+```
+/**
+ * list_splice - join two lists, this is designed for stacks
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ */
+static inline void list_splice(const struct list_head *list, struct list_head *head)
+{
+	if (!list_empty(list))
+		__list_splice(list, head, head->next);
+}
+
+/**
+ * list_splice_tail - join two lists, each list being a queue
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ */
+static inline void list_splice_tail(struct list_head *list, struct list_head *head)
+{
+	if (!list_empty(list))
+		__list_splice(list, head->prev, head);
+}
+
+/**
+ * list_splice_init - join two lists and reinitialise the emptied list.
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ *
+ * The list at @list is reinitialised
+ */
+static inline void list_splice_init(struct list_head *list, struct list_head *head)
+{
+	if (!list_empty(list)) {
+		__list_splice(list, head, head->next);
+		INIT_LIST_HEAD(list);
+	}
+}
+
+/**
+ * list_splice_tail_init - join two lists and reinitialise the emptied list
+ * @list: the new list to add.
+ * @head: the place to add it in the first list.
+ *
+ * Each of the lists is a queue.
+ * The list at @list is reinitialised
+ */
+static inline void list_splice_tail_init(struct list_head *list, struct list_head *head)
+{
+	if (!list_empty(list)) {
+		__list_splice(list, head->prev, head);
+		INIT_LIST_HEAD(list);
+	}
+}
+
+static inline void __list_splice(const struct list_head *list,
+				 struct list_head *prev, struct list_head *next)
+{
+	struct list_head *first = list->next;
+	struct list_head *last = list->prev;
+
+	first->prev = prev;
+	prev->next = first;
+
+	last->next = next;
+	next->prev = last;
+}
+```
+
+函数```list_splice_rcn()```用于拼接两个链表，其定义于include/linux/rculist.h:
+
+```
+/**
+ * list_splice_init_rcu - splice an RCU-protected list into an existing list.
+ * @list:	the RCU-protected list to splice
+ * @head:	the place in the list to splice the first list into
+ * @sync:	function to sync: synchronize_rcu(), synchronize_sched(), ...
+ *
+ * @head can be RCU-read traversed concurrently with this function.
+ *
+ * Note that this function blocks.
+ *
+ * Important note: the caller must take whatever action is necessary to
+ *	prevent any other updates to @head.  In principle, it is possible
+ *	to modify the list as soon as sync() begins execution.
+ *	If this sort of thing becomes necessary, an alternative version
+ *	based on call_rcu() could be created.  But only if -really-
+ *	needed -- there is no shortage of RCU API members.
+ */
+static inline void list_splice_init_rcu(struct list_head *list,
+					struct list_head *head, void (*sync)(void))
+{
+	struct list_head *first = list->next;
+	struct list_head *last = list->prev;
+	struct list_head *at = head->next;
+
+	if (list_empty(list))
+		return;
+
+	/* "first" and "last" tracking list, so initialize it. */
+	INIT_LIST_HEAD(list);
+
+	/*
+	 * At this point, the list body still points to the source list.
+	 * Wait for any readers to finish using the list before splicing
+	 * the list body into the new list.  Any new readers will see
+	 * an empty list.
+	 */
+	sync();
+
+	/*
+	 * Readers are finished with the source list, so perform splice.
+	 * The order is important if the new list is global and accessible
+	 * to concurrent RCU readers.  Note that RCU readers are not
+	 * permitted to traverse the prev pointers without excluding
+	 * this function.
+	 */
+	last->next = at;
+	rcu_assign_pointer(list_next_rcu(head), first);
+	first->prev = head;
+	at->prev = last;
+}
+```
+
+函数```list_splice_init(list, head)```的执行结果如下：
+
+![Data_Structure_list_5](/assets/Data_Structure_list_5.png)
+
+### 15.1.11 获取包含链表元素的对象的地址
+
+宏```list_entry()```和```list_first_entry()```可用于获取包含链表元素的对象的地址，其定义于include/linux/list.h:
+
+```
+/**
+ * list_entry - get the struct for this entry
+ * @ptr:	the &struct list_head pointer.
+ * @type:	the type of the struct this is embedded in.
+ * @member:	the name of the list_struct within the struct.
+ */
+#define list_entry(ptr, type, member)		\
+	container_of(ptr, type, member)
+
+/**
+ * list_first_entry - get the first element from a list
+ * @ptr:	the list head to take the element from.
+ * @type:	the type of the struct this is embedded in.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Note, that list is expected to be not empty.
+ */
+#define list_first_entry(ptr, type, member)	\
+	list_entry((ptr)->next, type, member)
+```
+
+宏```list_entry_rcu()```可用于获取包含链表元素的对象的地址，其定义于include/linux/rculist.h:
+
+```
+/**
+ * list_entry_rcu - get the struct for this entry
+ * @ptr:        the &struct list_head pointer.
+ * @type:       the type of the struct this is embedded in.
+ * @member:     the name of the list_struct within the struct.
+ *
+ * This primitive may safely run concurrently with the _rcu list-mutation
+ * primitives such as list_add_rcu() as long as it's guarded by rcu_read_lock().
+ */
+#define list_entry_rcu(ptr, type, member) 					\
+	({typeof (*ptr) __rcu *__ptr = (typeof (*ptr) __rcu __force *)ptr; 	\
+	  container_of((typeof(ptr))rcu_dereference_raw(__ptr), type, member);	\
+	})
+
+/**
+ * list_first_entry_rcu - get the first element from a list
+ * @ptr:        the list head to take the element from.
+ * @type:       the type of the struct this is embedded in.
+ * @member:     the name of the list_struct within the struct.
+ *
+ * Note, that list is expected to be not empty.
+ *
+ * This primitive may safely run concurrently with the _rcu list-mutation
+ * primitives such as list_add_rcu() as long as it's guarded by rcu_read_lock().
+ */
+#define list_first_entry_rcu(ptr, type, member)	\
+	list_entry_rcu((ptr)->next, type, member)
+
+/**
+ * list_first_or_null_rcu - get the first element from a list
+ * @ptr:        the list head to take the element from.
+ * @type:       the type of the struct this is embedded in.
+ * @member:     the name of the list_struct within the struct.
+ *
+ * Note that if the list is empty, it returns NULL.
+ *
+ * This primitive may safely run concurrently with the _rcu list-mutation
+ * primitives such as list_add_rcu() as long as it's guarded by rcu_read_lock().
+ */
+#define list_first_or_null_rcu(ptr, type, member)					\
+	({struct list_head *__ptr = (ptr);						\
+	  struct list_head *__next = ACCESS_ONCE(__ptr->next);				\
+	  likely(__ptr != __next) ? list_entry_rcu(__next, type, member) : NULL;	\
+	})
+```
+
+其中，宏```container_of()```定义于include/linux/kernel.h:
+
+```
+/**
+ * container_of - cast a member of a structure out to the containing structure
+ * @ptr:	the pointer to the member.
+ * @type:	the type of the container struct this is embedded in.
+ * @member:	the name of the member within the struct.
+ *
+ */
+#define container_of(ptr, type, member) ({				\
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);		\
+	(type *)( (char *)__mptr - offsetof(type,member) ); })
+```
+
+函数```retPtr = list_entry(ptr, type, member)```的执行结果如下：
+
+![Data_Structure_list_6](/assets/Data_Structure_list_6.png)
+
+### 15.1.12 遍历链表元素
+
+下列宏可用于遍历链表元素:
+
+#### 15.1.12.1 list_for_each()/list_for_each_safe()
+
+下列宏用于向后遍历双向循环链表，其中pos指向struct list_head类型的对象，其定义于include/linux/list.h:
+
+```
+/**
+ * list_for_each	-	iterate over a list
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @head:	the head for your list.
+ */
+#define list_for_each(pos, head) 			\
+	for (pos = (head)->next; pos != (head); pos = pos->next)
+
+/**
+ * __list_for_each	-	iterate over a list
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @head:	the head for your list.
+ *
+ * This variant doesn't differ from list_for_each() any more.
+ * We don't do prefetching in either case.
+ */
+#define __list_for_each(pos, head)			\
+	for (pos = (head)->next; pos != (head); pos = pos->next)
+
+/**
+ * list_for_each_safe - iterate over a list safe against removal of list entry
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @n:		another &struct list_head to use as temporary storage
+ * @head:	the head for your list.
+ */
+#define list_for_each_safe(pos, n, head)		\
+	for (pos = (head)->next, n = pos->next;		\
+		  pos != (head); 			\
+		  pos = n, n = pos->next)
+```
+
+#### 15.1.12.2 list_for_each_prev()/list_for_each_prev_safe()
+
+下列宏用于向前遍历双向循环链表，其中pos指向struct list_head类型的对象，其定义于include/linux/list.h:
+
+```
+/**
+ * list_for_each_prev	-	iterate over a list backwards
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @head:	the head for your list.
+ */
+#define list_for_each_prev(pos, head)			\
+	for (pos = (head)->prev; pos != (head); pos = pos->prev)
+
+/**
+ * list_for_each_prev_safe - iterate over a list backwards safe against removal of list entry
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @n:		another &struct list_head to use as temporary storage
+ * @head:	the head for your list.
+ */
+#define list_for_each_prev_safe(pos, n, head)		\
+	for (pos = (head)->prev, n = pos->prev;		\
+		  pos != (head);			\
+		  pos = n, n = pos->prev)
+```
+
+#### 15.1.12.3 list_for_each_entry()/list_for_each_entry_safe()/list_for_each_entry_rcu()
+
+下列宏用于向后遍历双向循环链表，其中pos指向包含struct list_head类型元素的对象，其定义于include/linux/list.h:
+
+```
+/**
+ * list_for_each_entry	-	iterate over list of given type
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ */
+#define list_for_each_entry(pos, head, member)					\
+	for (pos = list_entry((head)->next, typeof(*pos), member);		\
+		  &pos->member != (head);					\
+		  pos = list_entry(pos->member.next, typeof(*pos), member))
+
+/**
+ * list_for_each_entry_safe - iterate over list of given type safe against removal of list entry
+ * @pos:	the type * to use as a loop cursor.
+ * @n:		another type * to use as temporary storage
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ */
+#define list_for_each_entry_safe(pos, n, head, member)				\
+	for (pos = list_entry((head)->next, typeof(*pos), member),		\
+		  n = list_entry(pos->member.next, typeof(*pos), member);	\
+		  &pos->member != (head); 					\
+		  pos = n, n = list_entry(n->member.next, typeof(*n), member))
+```
+
+下列宏用于向后遍历双向循环链表，其中pos指向包含struct list_head类型元素的对象，其定义于include/linux/rculist.h:
+
+```
+/**
+ * list_for_each_entry_rcu	-	iterate over rcu list of given type
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * This list-traversal primitive may safely run concurrently with
+ * the _rcu list-mutation primitives such as list_add_rcu()
+ * as long as the traversal is guarded by rcu_read_lock().
+ */
+#define list_for_each_entry_rcu(pos, head, member)				\
+	for (pos = list_entry_rcu((head)->next, typeof(*pos), member);		\
+		  &pos->member != (head);					\
+		  pos = list_entry_rcu(pos->member.next, typeof(*pos), member))
+```
+
+#### 15.1.12.4 list_for_each_entry_reverse()/list_for_each_entry_safe_reverse()
+
+下列宏用于向前遍历双向循环链表，其中pos指向包含struct list_head类型元素的对象，其定义于include/linux/list.h:
+
+```
+/**
+ * list_for_each_entry_reverse - iterate backwards over list of given type.
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ */
+#define list_for_each_entry_reverse(pos, head, member)				\
+	for (pos = list_entry((head)->prev, typeof(*pos), member);		\
+		  &pos->member != (head);					\
+		  pos = list_entry(pos->member.prev, typeof(*pos), member))
+
+/**
+ * list_for_each_entry_safe_reverse - iterate backwards over list safe against removal
+ * @pos:	the type * to use as a loop cursor.
+ * @n:		another type * to use as temporary storage
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Iterate backwards over list of given type, safe against removal
+ * of list entry.
+ */
+#define list_for_each_entry_safe_reverse(pos, n, head, member)			\
+	for (pos = list_entry((head)->prev, typeof(*pos), member),		\
+		  n = list_entry(pos->member.prev, typeof(*pos), member);	\
+		  &pos->member != (head); 					\
+		  pos = n, n = list_entry(n->member.prev, typeof(*n), member))
+```
+
+#### 15.1.12.5 list_prepare_entry()
+
+其定义于include/linux/list.h:
+
+```
+/**
+ * list_prepare_entry - prepare a pos entry for use in list_for_each_entry_continue()
+ * @pos:	the type * to use as a start point
+ * @head:	the head of the list
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Prepares a pos entry for use as a start point in list_for_each_entry_continue().
+ */
+#define list_prepare_entry(pos, head, member)	\
+	((pos) ? : list_entry(head, typeof(*pos), member))
+```
+
+该用于获取遍历链表的起始位置。如果pos不为空，则pos的值不变；否则，返回head指向的后一个元素。例如：
+
+```
+struct BB *pos = NULL;
+struct head_struct *head = objectA.memberA.next;
+pos = list_prepare_entry(pos, head, memberB);
+```
+
+返回pos的位置如下图所示：
+
+![Data_Structure_list_7](/assets/Data_Structure_list_7.png)
+
+#### 15.1.12.6 list_for_each_continue_rcu()
+
+下列宏定义于include/linux/rculist.h:
+
+```
+/**
+ * list_for_each_continue_rcu
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @head:	the head for your list.
+ *
+ * Iterate over an rcu-protected list, continuing after current point.
+ *
+ * This list-traversal primitive may safely run concurrently with
+ * the _rcu list-mutation primitives such as list_add_rcu()
+ * as long as the traversal is guarded by rcu_read_lock().
+ */
+#define list_for_each_continue_rcu(pos, head)					\
+	for ((pos) = rcu_dereference_raw(list_next_rcu(pos));			\
+		  (pos) != (head);						\
+		  (pos) = rcu_dereference_raw(list_next_rcu(pos)))
+```
+
+#### 15.1.12.7 list_for_each_entry_continue()/list_for_each_entry_safe_continue()/list_for_each_entry_continue_rcu()
+
+下列宏定义于include/linux/list.h:
+
+```
+/**
+ * list_for_each_entry_continue - continue iteration over list of given type
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Continue to iterate over list of given type, continuing after
+ * the current position.
+ */
+#define list_for_each_entry_continue(pos, head, member)				\
+	for (pos = list_entry(pos->member.next, typeof(*pos), member);		\
+		  &pos->member != (head);					\
+		  pos = list_entry(pos->member.next, typeof(*pos), member))
+
+/**
+ * list_for_each_entry_safe_continue - continue list iteration safe against removal
+ * @pos:	the type * to use as a loop cursor.
+ * @n:		another type * to use as temporary storage
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Iterate over list of given type, continuing after current point,
+ * safe against removal of list entry.
+ */
+#define list_for_each_entry_safe_continue(pos, n, head, member) 		\
+	for (pos = list_entry(pos->member.next, typeof(*pos), member),		\
+		  n = list_entry(pos->member.next, typeof(*pos), member);	\
+		  &pos->member != (head);					\
+		  pos = n, n = list_entry(n->member.next, typeof(*n), member))
+```
+
+函数```list_for_each_entry_continue(pos, head, member)```和```list_for_each_entry_continue_reverse(pos, head, member)```分别用于从pos开始向前和向后遍历链表，如下图所示：
+
+![Data_Structure_list_8](/assets/Data_Structure_list_8.png)
+
+下列宏定义于include/linux/rculist.h:
+
+```
+/**
+ * list_for_each_entry_continue_rcu - continue iteration over list of given type
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Continue to iterate over list of given type, continuing after
+ * the current position.
+ */
+#define list_for_each_entry_continue_rcu(pos, head, member)			\
+	for (pos = list_entry_rcu(pos->member.next, typeof(*pos), member);	\
+	      &pos->member != (head);						\
+	      pos = list_entry_rcu(pos->member.next, typeof(*pos), member))
+```
+
+#### 15.1.12.8 list_for_each_entry_continue_reverse()
+
+```
+/**
+ * list_for_each_entry_continue_reverse - iterate backwards from the given point
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Start to iterate over list of given type backwards, continuing after (注意：不包含当前的pos)
+ * the current position.
+ */
+#define list_for_each_entry_continue_reverse(pos, head, member)			\
+	for (pos = list_entry(pos->member.prev, typeof(*pos), member);		\
+		  &pos->member != (head);					\
+		  pos = list_entry(pos->member.prev, typeof(*pos), member))
+```
+
+#### 15.1.12.9 list_for_each_entry_from()/list_for_each_entry_safe_from()
+
+```
+/**
+ * list_for_each_entry_from - iterate over list of given type from the current point
+ * @pos:	the type * to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Iterate over list of given type, continuing from current position. (注意：包含当前的pos)
+ */
+#define list_for_each_entry_from(pos, head, member)				\
+	for (; &pos->member != (head);						\
+		  pos = list_entry(pos->member.next, typeof(*pos), member))
+
+/**
+ * list_for_each_entry_safe_from - iterate over list from current point safe against removal
+ * @pos:	the type * to use as a loop cursor.
+ * @n:		another type * to use as temporary storage
+ * @head:	the head for your list.
+ * @member:	the name of the list_struct within the struct.
+ *
+ * Iterate over list of given type from current point, safe against
+ * removal of list entry.
+ */
+#define list_for_each_entry_safe_from(pos, n, head, member) 			\
+	for (n = list_entry(pos->member.next, typeof(*pos), member);		\
+		  &pos->member != (head);					\
+		  pos = n, n = list_entry(n->member.next, typeof(*n), member))
+```
+
+#### 15.1.12.10 list_safe_reset_next()
+
+```
+/**
+ * list_safe_reset_next - reset a stale list_for_each_entry_safe loop
+ * @pos:	the loop cursor used in the list_for_each_entry_safe loop
+ * @n:		temporary storage used in list_for_each_entry_safe
+ * @member:	the name of the list_struct within the struct.
+ *
+ * list_safe_reset_next is not safe to use in general if the list may be
+ * modified concurrently (eg. the lock is dropped in the loop body). An
+ * exception to this is if the cursor element (pos) is pinned in the list,
+ * and list_safe_reset_next is called after re-taking the lock and before
+ * completing the current iteration of the loop body.
+ */
+#define list_safe_reset_next(pos, n, member)					\
+	n = list_entry(pos->member.next, typeof(*pos), member)
+```
+
+### 15.1.13 双向循环链表的封装/struct klist
+
+该结构定义于include/linux/klist.h:
+
+```
+struct klist {
+	spinlock_t			k_lock;
+	struct list_head		k_list;
+	void				(*get)(struct klist_node *);
+	void				(*put)(struct klist_node *);
+} __attribute__ ((aligned (sizeof(void *))));
+
+struct klist_node {
+	void				*n_klist;	/* never access directly */
+	struct list_head		n_node;
+	struct kref			n_ref;
+};
+```
+
+双向循环链表是由一个struct klist类型的对象和多个struct klist_node类型的对象链接而成(通过struct klist->k_list和struct klist_node->n_node)，链表头为struct klist->k_list，链表元素为struct klist_node->n_node
+* struct klist中的函数```get()```用于向链表中添加元素时调用；
+* struct klist中的函数```put()```用于从链表中删除元素时调用；
+* struct klist_node中的域n_ref用于指示包含该元素的对象的引用计数，这是该链表的主要作用；
+* struct klist_node中的域n_klist指向链表头struct klist。
+
+与struct klist有关的接口函数如下：
+* 初始化struct klist类型的对象：宏```KLIST_INIT()```，函数```klist_init()```
+* 定义并初始化struct klist类型的对象：宏```DEFINE_KLIST()```
+* 将某元素添加到某双向循环链表的头或尾：函数```klist_add_head()```，函数```klist_add_tail()```
+* 将某元素添加到某双向循环链表中某元素之前或之后：函数```klist_add_before()```，函数```klist_add_after()```
+* 从双向循环链表中删除某元素：函数```klist_del()```，函数```klist_remove()```
+* 判断某元素是否链接到某双向循环链表中：函数```klist_node_attached()```
+* 轮询双向循环链表：函数```klist_iter_init()```，函数```klist_iter_init_node()```，函数```klist_next()```，函数```klist_iter_exit()```
+
+## 15.2 哈希链表/struct hlist_head/struct hlist_node
+
+该结构定义于include/linux/types.h:
+
+```
+/*
+* 由此可知，struct hlist_head比struct list_head节省一个指针的存储空间
+ */
+struct hlist_head {
+	struct hlist_node *first;
+};
+
+struct hlist_node {
+	struct hlist_node *next, **pprev;
+};
+```
+
+### 15.2.1 哈希链表的定义与初始化
+
+空哈希链表的结构如下：
+
+![Data_Structure_hlist_1](/assets/Data_Structure_hlist_1.png)
+
+可以通过如下函数或宏初始化哈希链表，参见include/linux/list.h:
+
+```
+#define HLIST_HEAD_INIT { .first = NULL }
+#define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
+#define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
+
+static inline void INIT_HLIST_NODE(struct hlist_node *h)
+{
+	h->next = NULL;
+	h->pprev = NULL;
+}
+```
+
+### 15.2.2 向链表中添加元素
+
+包含有效元素的哈希链表的结构如下：
+
+![Data_Structure_hlist_2](/assets/Data_Structure_hlist_2.png)
+
+下列函数用于向哈希链表中添加元素，其定义于include/linux/list.h：
+
+```
+// 将元素n链接到链表头h之后、第一个元素之前
+static inline void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
+{
+	struct hlist_node *first = h->first;
+	n->next = first;
+	if (first)
+		first->pprev = &n->next;
+	h->first = n;
+	n->pprev = &h->first;
+}
+
+// 本函数将元素n插入到元素next之前。其中，入参n为新插入的元素，入参next为原链表中的元素
+/* next must be != NULL */
+static inline void hlist_add_before(struct hlist_node *n, struct hlist_node *next)
+{
+	n->pprev = next->pprev;
+	n->next = next;
+	next->pprev = &n->next;
+	*(n->pprev) = n;
+}
+
+// 本函数将元素next插入到元素n之后。其中，入参n为原链表中的元素，入参next为新插入的元素
+static inline void hlist_add_after(struct hlist_node *n, struct hlist_node *next)
+{
+	next->next = n->next;
+	n->next = next;
+	next->pprev = &n->next;
+
+	if(next->next)
+		next->next->pprev  = &next->next;
+}
+
+/* after that we'll appear to be on some hlist and hlist_del will work */
+static inline void hlist_add_fake(struct hlist_node *n)
+{
+	n->pprev = &n->next;
+}
+```
+
+下列函数用于向哈希链表中添加元素，其定义于include/linux/rculist.h：
+
+```
+/**
+ * hlist_add_head_rcu
+ * @n: the element to add to the hash list.
+ * @h: the list to add to.
+ *
+ * Description:
+ * Adds the specified element to the specified hlist,
+ * while permitting racing traversals.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as hlist_add_head_rcu()
+ * or hlist_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * hlist_for_each_entry_rcu(), used to prevent memory-consistency
+ * problems on Alpha CPUs.  Regardless of the type of CPU, the
+ * list-traversal primitive must be guarded by rcu_read_lock().
+ */
+static inline void hlist_add_head_rcu(struct hlist_node *n, struct hlist_head *h)
+{
+	struct hlist_node *first = h->first;
+
+	n->next = first;
+	n->pprev = &h->first;
+	rcu_assign_pointer(hlist_first_rcu(h), n);
+	if (first)
+		first->pprev = &n->next;
+}
+
+/**
+ * hlist_add_before_rcu
+ * @n: the new element to add to the hash list.
+ * @next: the existing element to add the new element before.
+ *
+ * Description:
+ * Adds the specified element to the specified hlist
+ * before the specified node while permitting racing traversals.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as hlist_add_head_rcu()
+ * or hlist_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * hlist_for_each_entry_rcu(), used to prevent memory-consistency
+ * problems on Alpha CPUs.
+ */
+static inline void hlist_add_before_rcu(struct hlist_node *n, struct hlist_node *next)
+{
+	n->pprev = next->pprev;
+	n->next = next;
+	rcu_assign_pointer(hlist_pprev_rcu(n), n);
+	next->pprev = &n->next;
+}
+
+/**
+ * hlist_add_after_rcu
+ * @prev: the existing element to add the new element after.
+ * @n: the new element to add to the hash list.
+ *
+ * Description:
+ * Adds the specified element to the specified hlist
+ * after the specified node while permitting racing traversals.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as hlist_add_head_rcu()
+ * or hlist_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * hlist_for_each_entry_rcu(), used to prevent memory-consistency
+ * problems on Alpha CPUs.
+ */
+static inline void hlist_add_after_rcu(struct hlist_node *prev, struct hlist_node *n)
+{
+	n->next = prev->next;
+	n->pprev = &prev->next;
+	rcu_assign_pointer(hlist_next_rcu(prev), n);
+	if (n->next)
+		n->next->pprev = &n->next;
+}
+
+/*
+ * return the first or the next element in an RCU protected hlist
+ */
+#define hlist_first_rcu(head)	(*((struct hlist_node __rcu **)(&(head)->first)))
+#define hlist_next_rcu(node)	(*((struct hlist_node __rcu **)(&(node)->next)))
+#define hlist_pprev_rcu(node)	(*((struct hlist_node __rcu **)((node)->pprev)))
+```
+
+### 15.2.3 判断链表是否为空
+
+```
+static inline int hlist_empty(const struct hlist_head *h)
+{
+	return !h->first;
+}
+```
+
+### 15.2.4 判断元素是否被链接到哈希表
+
+```
+static inline int hlist_unhashed(const struct hlist_node *h)
+{
+	return !h->pprev;
+}
+```
+
+### 15.2.5 从链表中删除元素
+
+下列函数用于从哈希链表删除元素，其定义于include/linux/list.h:
+
+```
+static inline void __hlist_del(struct hlist_node *n)
+{
+	struct hlist_node *next = n->next;
+	struct hlist_node **pprev = n->pprev;
+	*pprev = next;
+	if (next)
+		next->pprev = pprev;
+}
+
+static inline void hlist_del(struct hlist_node *n)
+{
+	__hlist_del(n);
+	n->next = LIST_POISON1;
+	n->pprev = LIST_POISON2;
+}
+
+static inline void hlist_del_init(struct hlist_node *n)
+{
+	if (!hlist_unhashed(n)) {
+		__hlist_del(n);
+		INIT_HLIST_NODE(n);
+	}
+}
+```
+
+下列函数用于从哈希链表删除元素，其定义于include/linux/rculist.h:
+
+```
+/**
+ * hlist_del_rcu - deletes entry from hash list without re-initialization
+ * @n: the element to delete from the hash list.
+ *
+ * Note: list_unhashed() on entry does not return true after this,
+ * the entry is in an undefined state. It is useful for RCU based
+ * lockfree traversal.
+ *
+ * In particular, it means that we can not poison the forward
+ * pointers that may still be used for walking the hash list.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as hlist_add_head_rcu()
+ * or hlist_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * hlist_for_each_entry().
+ */
+static inline void hlist_del_rcu(struct hlist_node *n)
+{
+	__hlist_del(n);
+	n->pprev = LIST_POISON2;
+}
+
+/**
+ * hlist_del_init_rcu - deletes entry from hash list with re-initialization
+ * @n: the element to delete from the hash list.
+ *
+ * Note: list_unhashed() on the node return true after this. It is
+ * useful for RCU based read lockfree traversal if the writer side
+ * must know if the list entry is still hashed or already unhashed.
+ *
+ * In particular, it means that we can not poison the forward pointers
+ * that may still be used for walking the hash list and we can only
+ * zero the pprev pointer so list_unhashed() will return true after
+ * this.
+ *
+ * The caller must take whatever precautions are necessary (such as
+ * holding appropriate locks) to avoid racing with another
+ * list-mutation primitive, such as hlist_add_head_rcu() or
+ * hlist_del_rcu(), running on this same list.  However, it is
+ * perfectly legal to run concurrently with the _rcu list-traversal
+ * primitives, such as hlist_for_each_entry_rcu().
+ */
+static inline void hlist_del_init_rcu(struct hlist_node *n)
+{
+	if (!hlist_unhashed(n)) {
+		__hlist_del(n);
+		n->pprev = NULL;
+	}
+}
+```
+
+### 15.2.6 替换链表中的元素
+
+下列函数用于替换双向循环链表中的某元素，其定义于include/linux/rculist.h:
+
+```
+/**
+ * hlist_replace_rcu - replace old entry by new one
+ * @old : the element to be replaced
+ * @new : the new element to insert
+ *
+ * The @old entry will be replaced with the @new entry atomically.
+ */
+static inline void hlist_replace_rcu(struct hlist_node *old, struct hlist_node *new)
+{
+	struct hlist_node *next = old->next;
+
+	new->next = next;
+	new->pprev = old->pprev;
+	rcu_assign_pointer(*(struct hlist_node __rcu **)new->pprev, new);
+	if (next)
+		new->next->pprev = &new->next;
+	old->pprev = LIST_POISON2;
+}
+```
+
+### 15.2.7 移动链表中的元素
+
+下列函数用于移动哈希链表中的元素，其定义于include/linux/list.h:
+
+```
+/*
+ * Move a list from one list head to another. Fixup the pprev
+ * reference of the first entry if it exists.
+ */
+static inline void hlist_move_list(struct hlist_head *old, struct hlist_head *new)
+{
+	new->first = old->first;
+	if (new->first)
+		new->first->pprev = &new->first;
+	old->first = NULL;
+}
+```
+
+### 15.2.8 获取包含链表元素的对象的地址
+
+下列宏用于获取包含链表元素的对象的地址，其定义于include/linux/list.h:
+
+```
+#define hlist_entry(ptr, type, member) container_of(ptr,type,member)
+```
+
+其中，宏```container_of()```定义于include/linux/kernel.h:
+
+```
+/**
+ * container_of - cast a member of a structure out to the containing structure
+ * @ptr:	the pointer to the member.
+ * @type:	the type of the container struct this is embedded in.
+ * @member:	the name of the member within the struct.
+ *
+ */
+#define container_of(ptr, type, member) ({			\
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+	(type *)( (char *)__mptr - offsetof(type,member) ); })
+```
+
+函数```retPtr = hlist_entry(ptr, type, member)```的执行结果如下：
+
+![Data_Structure_hlist_3](/assets/Data_Structure_hlist_3.png)
+
+### 15.2.9 遍历链表元素
+
+下列宏用于遍历链表元素：
+
+#### 15.2.9.1 hlist_for_each()/hlist_for_each_safe()
+
+下列宏用于向后遍历哈希链表，其中pos指向struct hlist_node类型的对象，其定义于include/linux/list.h:
+
+```
+/*
+ * struct hlist_node *pos;
+ */
+#define hlist_for_each(pos, head)				\
+	for (pos = (head)->first; pos; pos = pos->next)
+
+#define hlist_for_each_safe(pos, n, head)			\
+	for (pos = (head)->first;				\
+		  pos && ({ n = pos->next; 1; });		\
+		  pos = n)
+```
+
+下列宏用于向后遍历哈希链表，其中pos指向struct hlist_node类型的对象，其定义于include/linux/rculist.h:
+
+```
+#define __hlist_for_each_rcu(pos, head)				\
+	for (pos = rcu_dereference(hlist_first_rcu(head));	\
+	      pos;						\
+	      pos = rcu_dereference(hlist_next_rcu(pos)))
+```
+
+#### 15.2.9.2 hlist_for_each_entry()/hlist_for_each_entry_safe()/hlist_for_each_entry_rcu()/hlist_for_each_entry_rcu_bh()
+
+下列宏用于向后遍历哈希链表，其中pos指向包含struct hlist_node类型元素的对象，其定义于include/linux/list.h:
+
+```
+/**
+ * hlist_for_each_entry	- iterate over list of given type
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_for_each_entry(tpos, pos, head, member)					\
+	for (pos = (head)->first;							\
+		  pos && ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;});	\
+		  pos = pos->next)
+
+/**
+ * hlist_for_each_entry_safe - iterate over list of given type safe against removal of list entry
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @n:		another &struct hlist_node to use as temporary storage
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_for_each_entry_safe(tpos, pos, n, head, member)				\
+	for (pos = (head)->first;							\
+		  pos && ({ n = pos->next; 1; }) &&					\
+		  ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;});		\
+		  pos = n)
+```
+
+下列宏用于向后遍历哈希链表，其中pos指向包含struct hlist_node类型元素的对象，其定义于include/linux/rculist.h:
+
+```
+/**
+ * hlist_for_each_entry_rcu - iterate over rcu list of given type
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_node within the struct.
+ *
+ * This list-traversal primitive may safely run concurrently with
+ * the _rcu list-mutation primitives such as hlist_add_head_rcu()
+ * as long as the traversal is guarded by rcu_read_lock().
+ */
+#define hlist_for_each_entry_rcu(tpos, pos, head, member)				\
+	for (pos = rcu_dereference_raw(hlist_first_rcu(head));				\
+		  pos && ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1; });	\
+		  pos = rcu_dereference_raw(hlist_next_rcu(pos)))
+
+/**
+ * hlist_for_each_entry_rcu_bh - iterate over rcu list of given type
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_node within the struct.
+ *
+ * This list-traversal primitive may safely run concurrently with
+ * the _rcu list-mutation primitives such as hlist_add_head_rcu()
+ * as long as the traversal is guarded by rcu_read_lock().
+ */
+#define hlist_for_each_entry_rcu_bh(tpos, pos, head, member)				\
+	for (pos = rcu_dereference_bh((head)->first);					\
+		  pos && ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1; });	\
+		  pos = rcu_dereference_bh(pos->next))
+```
+
+#### 15.2.9.3 hlist_for_each_entry_continue()/hlist_for_each_entry_from()/hlist_for_each_entry_continue_rcu()/hlist_for_each_entry_continue_rcu_bh()
+
+如下宏定义于include/linux/list.h:
+
+```
+/**
+ * hlist_for_each_entry_continue - iterate over a hlist continuing after current point
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_for_each_entry_continue(tpos, pos, member)				\
+	for (pos = (pos)->next;								\
+		  pos &&								\
+		  ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;});		\
+		  pos = pos->next)
+
+/**
+ * hlist_for_each_entry_from - iterate over a hlist continuing from current point
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_for_each_entry_from(tpos, pos, member)					\
+	for (; pos &&									\
+		  ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;});		\
+		  pos = pos->next)
+```
+
+如下宏定义于include/linux/rculist.h:
+
+```
+/**
+ * hlist_for_each_entry_continue_rcu - iterate over a hlist continuing after current point
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_for_each_entry_continue_rcu(tpos, pos, member)				\
+	for (pos = rcu_dereference((pos)->next);					\
+	      pos && ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1; });		\
+	      pos = rcu_dereference(pos->next))
+
+/**
+ * hlist_for_each_entry_continue_rcu_bh - iterate over a hlist continuing after current point
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_node to use as a loop cursor.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_for_each_entry_continue_rcu_bh(tpos, pos, member)				\
+	for (pos = rcu_dereference_bh((pos)->next);					\
+	      pos && ({ tpos = hlist_entry(pos, typeof(*tpos), member); 1; });		\
+	      pos = rcu_dereference_bh(pos->next))
+```
+
+## 15.3 加锁哈希链表/struct hlist_bl_head/struct hlist_bl_node
+
+该结构定义于include/linux/list_bl.h:
+
+```
+struct hlist_bl_head {
+	struct hlist_bl_node *first;
+};
+
+struct hlist_bl_node {
+	struct hlist_bl_node *next, **pprev;
+};
+```
+
+Special version of lists, where head of the list has a lock in the lowest bit. This is useful for scalable hash tables without increasing memory footprint overhead.
+
+For modification operations, the 0 bit of hlist_bl_head->first pointer must be set. With some small modifications, this can easily be adapted to store several arbitrary bits (not just a single lock bit), if the need arises to store some fast and compact auxiliary data.
+
+**NOTE1**: The "bl" in "struct hlist_bl_head" and "struct hlist_bl_node" stands for bit lock.
+
+**NOTE2**: hlist_bl_head->first是struct hlist_bl_node类型的指针，由于地址存在对齐的问题，因而其地址中的低几位为0，因而可将该若干比特位用于其他用途，此处用于加锁！
+
+### 15.3.1 哈希链表的定义与初始化
+
+空哈希链表的结构如下：
+
+![Data_Structure_hlist_bl_1](/assets/Data_Structure_hlist_bl_1.png)
+
+下列函数或宏可用于初始化哈希链表，其定义于include/linux/list_bl.h:
+
+```
+#define INIT_HLIST_BL_HEAD(ptr)		\
+		 ((ptr)->first = NULL)
+
+static inline void INIT_HLIST_BL_NODE(struct hlist_bl_node *h)
+{
+	h->next = NULL;
+	h->pprev = NULL;
+}
+```
+
+### 15.3.2 为链表加锁/解锁
+
+下列函数用于为哈希链表加锁/解锁，其定义于include/linux/list_bl.h:
+
+```
+static inline void hlist_bl_lock(struct hlist_bl_head *b)
+{
+	// 将b地址中的bit #0置位
+	bit_spin_lock(0, (unsigned long *)b);
+}
+
+static inline void hlist_bl_unlock(struct hlist_bl_head *b)
+{
+	// 将b地址中的bit #0复位
+	__bit_spin_unlock(0, (unsigned long *)b);
+}
+```
+
+哈希链表修改前要先调用```hlist_bl_lock()```为链表加锁，修改后调用```hlist_bl_unlock()```解锁，例如：
+
+```
+hlist_bl_lock(b);
+__hlist_bl_del(&dentry->d_hash);
+dentry->d_hash.pprev = NULL;
+hlist_bl_unlock(b);
+
+...
+hlist_bl_lock(&tmp->d_sb->s_anon);
+hlist_bl_add_head(&tmp->d_hash, &tmp->d_sb->s_anon);
+hlist_bl_unlock(&tmp->d_sb->s_anon);
+```
+
+### 15.3.3 向链表中添加元素
+
+包含有效元素的哈希链表的结构如下：
+
+![Data_Structure_hlist_bl_2](/assets/Data_Structure_hlist_bl_2.png)
+
+下列函数用于向哈希链表中添加元素，其定义于include/linux/list_bl.h:
+
+```
+#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
+#define LIST_BL_LOCKMASK	1UL
+#else
+#define LIST_BL_LOCKMASK	0UL
+#endif
+
+// 将元素n链接到链表头h之后、第一个元素之前
+static inline void hlist_bl_add_head(struct hlist_bl_node *n, struct hlist_bl_head *h)
+{
+	struct hlist_bl_node *first = hlist_bl_first(h);
+
+	n->next = first;
+	if (first)
+		first->pprev = &n->next;
+	n->pprev = &h->first;
+	hlist_bl_set_first(h, n);
+}
+
+static inline struct hlist_bl_node *hlist_bl_first(struct hlist_bl_head *h)
+{
+	// 取消h->first最低位的锁标志，即此时h->first只表示地址
+	return (struct hlist_bl_node *)((unsigned long)h->first & ~LIST_BL_LOCKMASK);
+}
+
+static inline void hlist_bl_set_first(struct hlist_bl_head *h, struct hlist_bl_node *n)
+{
+	// 若此判断为真，则说明地址未对齐，因为无法将地址中的最低位用于锁标志
+	LIST_BL_BUG_ON((unsigned long)n & LIST_BL_LOCKMASK);
+
+	/*
+	 * 若此判断为真，则说明调用本函数之前未对h->first地址中的bit #0加锁；
+	 * 在对链表进行修改操作前，调用函数hlist_bl_lock()加锁；之后，
+	 * 调用函数hlist_bl_unlock()解锁
+	 */
+	LIST_BL_BUG_ON(((unsigned long)h->first & LIST_BL_LOCKMASK) != LIST_BL_LOCKMASK);
+
+	// 此处对链表进行了修改，因而需要对h->first地址中的bit #0加锁
+	h->first = (struct hlist_bl_node *)((unsigned long)n | LIST_BL_LOCKMASK);
+}
+```
+
+下列函数用于向哈希链表中添加元素，其定义于include/linux/rculist_bl.h:
+
+```
+/**
+ * hlist_bl_add_head_rcu
+ * @n: the element to add to the hash list.
+ * @h: the list to add to.
+ *
+ * Description:
+ * Adds the specified element to the specified hlist_bl,
+ * while permitting racing traversals.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as hlist_bl_add_head_rcu()
+ * or hlist_bl_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * hlist_bl_for_each_entry_rcu(), used to prevent memory-consistency
+ * problems on Alpha CPUs.  Regardless of the type of CPU, the
+ * list-traversal primitive must be guarded by rcu_read_lock().
+ */
+static inline void hlist_bl_add_head_rcu(struct hlist_bl_node *n, struct hlist_bl_head *h)
+{
+	struct hlist_bl_node *first;
+
+	/* don't need hlist_bl_first_rcu because we're under lock */
+	first = hlist_bl_first(h);
+
+	n->next = first;
+	if (first)
+		first->pprev = &n->next;
+	n->pprev = &h->first;
+
+	/* need _rcu because we can have concurrent lock free readers */
+	hlist_bl_set_first_rcu(h, n);
+}
+
+static inline struct hlist_bl_node *hlist_bl_first_rcu(struct hlist_bl_head *h)
+{
+	return (struct hlist_bl_node *)
+		((unsigned long)rcu_dereference(h->first) & ~LIST_BL_LOCKMASK);
+}
+
+static inline void hlist_bl_set_first_rcu(struct hlist_bl_head *h, struct hlist_bl_node *n)
+{
+	LIST_BL_BUG_ON((unsigned long)n & LIST_BL_LOCKMASK);
+	LIST_BL_BUG_ON(((unsigned long)h->first & LIST_BL_LOCKMASK) != LIST_BL_LOCKMASK);
+	rcu_assign_pointer(h->first, (struct hlist_bl_node *)((unsigned long)n | LIST_BL_LOCKMASK));
+}
+```
+
+### 15.3.4 判断链表是否为空
+
+```
+static inline int hlist_bl_empty(const struct hlist_bl_head *h)
+{
+	return !((unsigned long)h->first & ~LIST_BL_LOCKMASK);
+}
+```
+
+### 15.3.5 判断元素是否被链接到哈希表
+
+```
+static inline int hlist_bl_unhashed(const struct hlist_bl_node *h)
+{
+	return !h->pprev;
+}
+```
+
+### 15.3.6 从链表中删除元素
+
+下列函数用于从哈希链表删除元素，其定义于include/linux/list_bl.h:
+
+```
+static inline void __hlist_bl_del(struct hlist_bl_node *n)
+{
+	struct hlist_bl_node *next = n->next;
+	struct hlist_bl_node **pprev = n->pprev;
+
+	// 若此判断为真，则说明地址未对齐，因为无法将地址中的最低位用于锁标志
+	LIST_BL_BUG_ON((unsigned long)n & LIST_BL_LOCKMASK);
+
+	/* pprev may be `first`, so be careful not to lose the lock bit */
+	*pprev = (struct hlist_bl_node *) ((unsigned long)next | ((unsigned long)*pprev & LIST_BL_LOCKMASK));
+	if (next)
+		next->pprev = pprev;
+}
+
+static inline void hlist_bl_del(struct hlist_bl_node *n)
+{
+	__hlist_bl_del(n);
+	n->next = LIST_POISON1;
+	n->pprev = LIST_POISON2;
+}
+
+static inline void hlist_bl_del_init(struct hlist_bl_node *n)
+{
+	if (!hlist_bl_unhashed(n)) {
+		__hlist_bl_del(n);
+		INIT_HLIST_BL_NODE(n);
+	}
+}
+```
+
+下列函数用于从哈希链表删除元素，其定义于include/linux/rculist_bl.h:
+
+```
+/**
+ * hlist_bl_del_rcu - deletes entry from hash list without re-initialization
+ * @n: the element to delete from the hash list.
+ *
+ * Note: hlist_bl_unhashed() on entry does not return true after this,
+ * the entry is in an undefined state. It is useful for RCU based
+ * lockfree traversal.
+ *
+ * In particular, it means that we can not poison the forward
+ * pointers that may still be used for walking the hash list.
+ *
+ * The caller must take whatever precautions are necessary
+ * (such as holding appropriate locks) to avoid racing
+ * with another list-mutation primitive, such as hlist_bl_add_head_rcu()
+ * or hlist_bl_del_rcu(), running on this same list.
+ * However, it is perfectly legal to run concurrently with
+ * the _rcu list-traversal primitives, such as
+ * hlist_bl_for_each_entry().
+ */
+static inline void hlist_bl_del_rcu(struct hlist_bl_node *n)
+{
+	__hlist_bl_del(n);
+	n->pprev = LIST_POISON2;
+}
+
+/**
+ * hlist_bl_del_init_rcu - deletes entry from hash list with re-initialization
+ * @n: the element to delete from the hash list.
+ *
+ * Note: hlist_bl_unhashed() on the node returns true after this. It is
+ * useful for RCU based read lockfree traversal if the writer side
+ * must know if the list entry is still hashed or already unhashed.
+ *
+ * In particular, it means that we can not poison the forward pointers
+ * that may still be used for walking the hash list and we can only
+ * zero the pprev pointer so list_unhashed() will return true after
+ * this.
+ *
+ * The caller must take whatever precautions are necessary (such as
+ * holding appropriate locks) to avoid racing with another
+ * list-mutation primitive, such as hlist_bl_add_head_rcu() or
+ * hlist_bl_del_rcu(), running on this same list.  However, it is
+ * perfectly legal to run concurrently with the _rcu list-traversal
+ * primitives, such as hlist_bl_for_each_entry_rcu().
+ */
+static inline void hlist_bl_del_init_rcu(struct hlist_bl_node *n)
+{
+	if (!hlist_bl_unhashed(n)) {
+		__hlist_bl_del(n);
+		n->pprev = NULL;
+	}
+}
+```
+
+### 15.3.7 获取包含链表元素的对象的地址
+
+下列宏可用于获取包含链表元素的对象的地址，其定义于include/linux/list_bl.h:
+
+```
+#define hlist_bl_entry(ptr, type, member) container_of(ptr,type,member)
+```
+
+其中，宏```container_of()```定义于include/linux/kernel.h:
+
+```
+/**
+ * container_of - cast a member of a structure out to the containing structure
+ * @ptr:	the pointer to the member.
+ * @type:	the type of the container struct this is embedded in.
+ * @member:	the name of the member within the struct.
+ *
+ */
+#define container_of(ptr, type, member) ({			\
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+	(type *)( (char *)__mptr - offsetof(type,member) ); })
+```
+
+函数```retPtr = hlist_bl_entry(ptr, type, member)```的执行结果如下：
+
+![Data_Structure_hlist_bl_3](/assets/Data_Structure_hlist_bl_3.png)
+
+### 15.3.8 遍历链表元素
+
+如下宏可用于遍历链表元素:
+
+#### 15.3.8.1 hlist_bl_for_each_entry()/hlist_bl_for_each_entry_safe()
+
+下列宏用于向后遍历哈希链表，其中pos指向struct hlist_bl_node类型的对象，其定义于include/linux/list_bl.h:
+
+```
+/**
+ * hlist_bl_for_each_entry	- iterate over list of given type
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_bl_node to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_bl_node within the struct.
+ *
+ */
+#define hlist_bl_for_each_entry(tpos, pos, head, member)				\
+	for (pos = hlist_bl_first(head);						\
+	      pos && ({ tpos = hlist_bl_entry(pos, typeof(*tpos), member); 1;});	\
+	      pos = pos->next)
+
+/**
+ * hlist_bl_for_each_entry_safe - iterate over list of given type safe against removal of list entry
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_bl_node to use as a loop cursor.
+ * @n:		another &struct hlist_node to use as temporary storage
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_node within the struct.
+ */
+#define hlist_bl_for_each_entry_safe(tpos, pos, n, head, member)			\
+	for (pos = hlist_bl_first(head);				 		\
+	      pos && ({ n = pos->next; 1; }) && ({ tpos = hlist_bl_entry(pos, typeof(*tpos), member);1;}); \
+	      pos = n)
+```
+
+#### 15.3.8.2 hlist_bl_for_each_entry_rcu()
+
+下列宏用于向后遍历哈希链表，其中pos指向struct hlist_bl_node类型的对象，其定义于include/linux/rculist_bl.h:
+
+```
+/**
+ * hlist_bl_for_each_entry_rcu - iterate over rcu list of given type
+ * @tpos:	the type * to use as a loop cursor.
+ * @pos:	the &struct hlist_bl_node to use as a loop cursor.
+ * @head:	the head for your list.
+ * @member:	the name of the hlist_bl_node within the struct.
+ *
+ */
+#define hlist_bl_for_each_entry_rcu(tpos, pos, head, member)				\
+	for (pos = hlist_bl_first_rcu(head);						\
+		  pos && ({ tpos = hlist_bl_entry(pos, typeof(*tpos), member); 1; });	\
+		  pos = rcu_dereference_raw(pos->next))
+```
+
+## 15.4 Queues
+
+### 15.4.1 队列结构/struct kfifo
+
+该结构定义于include/linux/kfifo.h:
+
+```
+/*
+ * define compatibility "struct kfifo" for dynamic allocated fifos
+ */
+struct kfifo __STRUCT_KFIFO_PTR(unsigned char, 0, void);
+
+#define __STRUCT_KFIFO_PTR(type, recsize, ptrtype)					\
+{											\
+	__STRUCT_KFIFO_COMMON(type, recsize, ptrtype);					\
+	type		buf[0];								\
+}
+
+#define __STRUCT_KFIFO_COMMON(datatype, recsize, ptrtype)				\
+	union {										\
+		struct __kfifo		kfifo;						\
+		datatype		*type;						\
+		char			(*rectype)[recsize];				\
+		ptrtype			*ptr;						\
+		const ptrtype		*ptr_const;					\
+	}
+```
+
+则扩展后的struct kfifo为：
+
+```
+struct kfifo
+{
+	union {
+		struct __kfifo		kfifo;	// 参见struct __kfifo节
+		unsigned char		*type;
+		char			(*rectype)[0];
+		void			*ptr;
+		const void		*ptr_const;
+	};
+	unsigned char			buf[0];
+};
+```
+
+其结构参见:
+
+![kfifo_03](/assets/kfifo_03.jpg)
+
+若执行如下程序段：
+
+```
+struct kfifo fifo;
+int ret = __is_kfifo_ptr(&fifo);
+int size = sizeof(*fifo.type);
+int recsize = sizeof(*fifo. rectype);
+```
+
+则各变量的取值如下:
+
+```
+ret = 1			// 由于buf[0]不占用空间
+size = 1		// 由于unsigned char类型占1个字节空间
+recsize = 0		// 由于char (*rectype)[0]不占用空间
+```
+
+其中宏```__is_kfifo_ptr()```定义于include/linux/kfifo.h:
+
+```
+/*
+ * helper macro to distinguish between real in place fifo where the fifo
+ * array is a part of the structure and the fifo type where the array is
+ * outside of the fifo structure.
+ */
+#define __is_kfifo_ptr(fifo)	(sizeof(*fifo) == sizeof(struct __kfifo))
+```
+
+#### 15.4.1.1 struct \__kfifo
+
+该结构体定义于include/linux/kfifo.h:
+
+```
+struct __kfifo {
+	unsigned int	in;		// 缓冲区待写入元素下标
+	unsigned int	out; 		// 缓冲区待读出元素下标
+	/*
+	 * 缓冲区元素的个数减一。因为缓冲区元素个数为2的整数次幂，
+	 * 故mask的二进制取值为1的序列
+	 */
+	unsigned int	mask;	
+	unsigned int	esize;		// 缓冲区中每个元素所占的字节数
+	void		*data;		// 指向缓冲区的首地址
+};
+```
+
+各元素的含义:
+
+![kfifo_04](/assets/kfifo_04.jpg)
+
+### 15.4.2 队列的定义与初始化
+
+可以采用静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()节的方法静态创建队列，也可以采用动态创建队列/kfifo_alloc()/kfifo_init()节的方法动态创建队列。
+
+若存在队列fifo，则可以通过宏```__is_kfifo_ptr(fifo)```来判断该对象是如何创建的：
+* 返回true，则说明fifo是动态创建的，参见动态创建队列/kfifo_alloc()/kfifo_init()节的图；
+* 返回false，则说明fifo是静态创建的，参见静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()节的图。
+
+#### 15.4.2.1 静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()/DEFINE_KFIFO()
+
+宏```DECLARE_KFIFO()```用于声明一个struct kfifo类型的对象fifo。该宏定义于include/linux/kfifo.h:
+
+```
+/**
+ * DECLARE_KFIFO - macro to declare a fifo object
+ * @fifo: name of the declared fifo
+ * @type: type of the fifo elements
+ * @size: the number of elements in the fifo, this must be a power of 2
+ */
+#define DECLARE_KFIFO(fifo, type, size)		STRUCT_KFIFO(type, size) fifo
+
+#define STRUCT_KFIFO(type, size)					\
+	struct __STRUCT_KFIFO(type, size, 0, type)
+
+#define __STRUCT_KFIFO(type, size, recsize, ptrtype)			\
+{									\
+	__STRUCT_KFIFO_COMMON(type, recsize, ptrtype);			\
+	type buf[((size < 2) || (size & (size - 1))) ? -1 : size];	\
+}
+
+#define __STRUCT_KFIFO_COMMON(datatype, recsize, ptrtype)		\
+	union {								\
+		struct __kfifo		kfifo;				\
+		datatype		*type;				\
+		char			(*rectype)[recsize];		\
+		ptrtype			*ptr;				\
+		const ptrtype		*ptr_const;			\
+	}
+```
+
+则语句```DECLARE_KFIFO(fifo, type, size);```声明的对象:
+
+![kfifo_01](/assets/kfifo_01.jpg)
+
+宏```INIT_KFIFO()```用于初始化一个用```DECLARE_KFIFO()```声明的对象，其定义于include/linux/kfifo.h:
+
+```
+/**
+ * INIT_KFIFO - Initialize a fifo declared by DECLARE_KFIFO
+ * @fifo: name of the declared fifo datatype
+ */
+#define INIT_KFIFO(fifo)							\
+(void)({									\
+	typeof(&(fifo)) __tmp = &(fifo);					\
+	struct __kfifo *__kfifo = &__tmp->kfifo;				\
+	__kfifo->in = 0;							\
+	__kfifo->out = 0;							\
+	__kfifo->mask = __is_kfifo_ptr(__tmp) ? 0 : ARRAY_SIZE(__tmp->buf) - 1;	\
+	__kfifo->esize = sizeof(*__tmp->buf);					\
+	__kfifo->data = __is_kfifo_ptr(__tmp) ?  NULL : __tmp->buf;		\
+})
+```
+
+则语句```INIT_KFIFO(fifo);```初始化后的对象:
+
+![kfifo_02](/assets/kfifo_02.jpg)
+
+此外，宏```DEFINE_KFIFO()```相当于宏```DECLARE_KFIFO()```和```INIT_KFIFO()```的结合体，其定义于include/linux/kfifo.h:
+
+```
+/**
+ * DEFINE_KFIFO - macro to define and initialize a fifo
+ * @fifo: name of the declared fifo datatype
+ * @type: type of the fifo elements
+ * @size: the number of elements in the fifo, this must be a power of 2
+ *
+ * Note: the macro can be used for global and local fifo data type variables.
+ */
+#define DEFINE_KFIFO(fifo, type, size)						\
+	DECLARE_KFIFO(fifo, type, size) =					\
+	(typeof(fifo)) {							\
+		{								\
+			{							\
+			.in	= 0,						\
+			.out	= 0,						\
+			.mask	= __is_kfifo_ptr(&(fifo)) ?			\
+				  0 : ARRAY_SIZE((fifo).buf) - 1,		\
+			.esize	= sizeof(*(fifo).buf),				\
+			.data	= __is_kfifo_ptr(&(fifo)) ?			\
+				NULL : (fifo).buf,				\
+			}							\
+		}								\
+	}
+```
+
+#### 15.4.2.2 动态创建队列/kfifo_alloc()/kfifo_init()
+
+如果已定义对象struct kfifo fifo，则可以使用宏```kfifo_alloc()```为fifo分配缓冲区buf，并将fifo.data指向刚分配的buf。该宏定义于include/linux/kfifo.h:
+
+```
+static inline int __must_check __kfifo_int_must_check_helper(int val)
+{
+	return val;
+}
+
+/**
+ * kfifo_alloc - dynamically allocates a new fifo buffer
+ * @fifo: pointer to the fifo
+ * @size: the number of elements in the fifo, this must be a power of 2
+ * @gfp_mask: get_free_pages mask, passed to kmalloc()
+ *
+ * This macro dynamically allocates a new fifo buffer.
+ *
+ * The numer of elements will be rounded-up to a power of 2.
+ * The fifo will be release with kfifo_free().
+ * Return 0 if no error, otherwise an error code.
+ */
+#define kfifo_alloc(fifo, size, gfp_mask)						\
+__kfifo_int_must_check_helper(								\
+({											\
+	typeof((fifo) + 1) __tmp = (fifo);						\
+	struct __kfifo *__kfifo = &__tmp->kfifo;					\
+	// 若struct kfifo fifo，则__is_kfifo_ptr(&fifo)=1，参见队列结构/struct kfifo节
+	__is_kfifo_ptr(__tmp) ?								\
+	// sizeof(*__tmp->type)=1，参见队列结构/struct kfifo节
+	__kfifo_alloc(__kfifo, size, sizeof(*__tmp->type), gfp_mask) :			\
+	-EINVAL;									\
+})											\
+)
+```
+
+其中，函数```__kfifo_alloc()```定义于kernel/kfifo.c:
+
+```
+int __kfifo_alloc(struct __kfifo *fifo, unsigned int size, size_t esize, gfp_t gfp_mask)
+{
+	/*
+	 * round down to the next power of 2, since our 'let the indices
+	 * wrap' technique works only in this case.
+	 */
+	if (!is_power_of_2(size))
+		size = rounddown_pow_of_two(size);
+
+	fifo->in = 0;
+	fifo->out = 0;
+	fifo->esize = esize;
+
+	if (size < 2) {
+		fifo->data = NULL;
+		fifo->mask = 0;
+		return -EINVAL;
+	}
+
+	// 动态分配指定的缓冲区，该缓冲区不与fifo的地址相连
+	fifo->data = kmalloc(size * esize, gfp_mask);
+
+	if (!fifo->data) {
+		fifo->mask = 0;
+		return -ENOMEM;
+	}
+	fifo->mask = size - 1;
+
+	return 0;
+}
+```
+
+则如下语句：
+
+```
+struct kfifo fifo;
+int ret;
+
+ret = kfifo_alloc(&kifo, PAGE_SIZE, GFP_KERNEL); 
+
+if (ret)
+	return ret;
+```
+
+创建的队列为：
+
+![kfifo_03](/assets/kfifo_03.jpg)
+
+如果已定义对象struct kfifo fifo，且已存在缓冲区buf，则可以使用宏kfifo_init将fifo.data指向buf。该宏定义于include/linux/kfifo.h:
+
+```
+/**
+ * kfifo_init - initialize a fifo using a preallocated buffer
+ * @fifo: the fifo to assign the buffer
+ * @buffer: the preallocated buffer to be used
+ * @size: the size of the internal buffer, this have to be a power of 2
+ *
+ * This macro initialize a fifo using a preallocated buffer.
+ *
+ * The numer of elements will be rounded-up to a power of 2.
+ * Return 0 if no error, otherwise an error code.
+ */
+#define kfifo_init(fifo, buffer, size)							\
+({											\
+	typeof((fifo) + 1) __tmp = (fifo);						\
+	struct __kfifo *__kfifo = &__tmp->kfifo;					\
+	// 若struct kfifo fifo，则__is_kfifo_ptr(&fifo)=1，参见队列结构/struct kfifo节
+	__is_kfifo_ptr(__tmp) ?								\
+	// sizeof(*__tmp->type)=1，参见队列结构/struct kfifo节
+	__kfifo_init(__kfifo, buffer, size, sizeof(*__tmp->type)) :			\
+	-EINVAL;									\
+})
+```
+
+其中，函数```__kfifo_init()```定义于kernel/kfifo.c:
+
+```
+int __kfifo_init(struct __kfifo *fifo, void *buffer, unsigned int size, size_t esize)
+{
+	size /= esize;
+
+	if (!is_power_of_2(size))
+		size = rounddown_pow_of_two(size);
+
+	fifo->in = 0;
+	fifo->out = 0;
+	fifo->esize = esize;
+	fifo->data = buffer;
+
+	if (size < 2) {
+		fifo->mask = 0;
+		return -EINVAL;
+	}
+	fifo->mask = size - 1;
+
+	return 0;
+}
+```
+
+### 15.4.3 向队列中插入元素/kfifo_in()
+
+该宏定义于include/linux/kfifo.h:
+
+```
+/**
+ * kfifo_in - put data into the fifo
+ * @fifo: address of the fifo to be used
+ * @buf: the data to be added
+ * @n: number of elements to be added
+ *
+ * This macro copies the given buffer into the fifo and returns the
+ * number of copied elements.
+ *
+ * Note that with only one concurrent reader and one concurrent
+ * writer, you don't need extra locking to use these macro.
+ */
+#define kfifo_in(fifo, buf, n)							\
+({										\
+	typeof((fifo) + 1) __tmp = (fifo);					\
+	typeof((buf) + 1) __buf = (buf);					\
+	unsigned long __n = (n);						\
+	// __recsize = 0，参见队列结构/struct kfifo节
+	const size_t __recsize = sizeof(*__tmp→rectype);			\
+	struct __kfifo *__kfifo = &__tmp->kfifo;				\
+	if (0) {								\
+		typeof(__tmp->ptr_const) __dummy __attribute__ ((unused));	\
+		__dummy = (typeof(__buf))NULL;					\
+	}									\
+	(__recsize) ?								\
+	__kfifo_in_r(__kfifo, __buf, __n, __recsize) :				\
+	__kfifo_in(__kfifo, __buf, __n);					\
+})
+```
+
+函数```__kfifo_in()```定义于kernel/kfifo.c:
+
+```
+unsigned int __kfifo_in(struct __kfifo *fifo, const void *buf, unsigned int len)
+{
+	unsigned int l;
+
+	// l表示缓冲区中未使用的元素个数
+	l = kfifo_unused(fifo);
+	if (len > l)
+		len = l;
+
+	kfifo_copy_in(fifo, buf, len, fifo->in);
+	fifo->in += len;
+	return len;	// 返回入队的元素个数
+}
+
+/*
+ * internal helper to calculate the unused elements in a fifo
+ */
+static inline unsigned int kfifo_unused(struct __kfifo *fifo)
+{
+	/*
+	 * fifo->mask + 1表示缓冲区中元素的总数，
+	 * fifo->in - fifo->out表示已使用的元素个数；
+	 * 其差值表示缓冲区中未使用的元素个数
+	 */
+	return (fifo->mask + 1) - (fifo->in - fifo->out);
+}
+
+static void kfifo_copy_in(struct __kfifo *fifo, const void *src,
+			  unsigned int len, unsigned int off)
+{
+	unsigned int size = fifo->mask + 1;	// 缓冲区中元素的总数
+	unsigned int esize = fifo->esize;	// 缓冲区中每个元素所占的字节数
+	unsigned int l;
+
+	// 入参off = fifo->in，因而此处限定off的取值范围，避免缓冲区出界
+	off &= fifo->mask;
+	if (esize != 1) {
+		off *= esize;
+		size *= esize;
+		len *= esize;
+	}
+	l = min(len, size - off);
+
+	// 将l字节拷贝到从fifo->in至缓冲区结尾的区间
+	memcpy(fifo->data + off, src, l);
+	// 将剩余部分拷贝到从缓冲区开始的len-l字节
+	memcpy(fifo->data, src + l, len - l);
+	/*
+	 * make sure that the data in the fifo is up to date before
+	 * incrementing the fifo->in index counter
+	 */
+	smp_wmb();
+}
+```
+
+### 15.4.4 从队列中取出元素
+
+#### 15.4.4.1 kfifo_out()
+
+该宏定义于include/linux/kfifo.h:
+
+```
+/**
+ * kfifo_out - get data from the fifo
+ * @fifo: address of the fifo to be used
+ * @buf: pointer to the storage buffer
+ * @n: max. number of elements to get
+ *
+ * This macro get some data from the fifo and return the numbers of elements
+ * copied.
+ *
+ * Note that with only one concurrent reader and one concurrent
+ * writer, you don't need extra locking to use these macro.
+ */
+#define kfifo_out(fifo, buf, n)					\
+__kfifo_uint_must_check_helper(					\
+({								\
+	typeof((fifo) + 1) __tmp = (fifo);			\
+	typeof((buf) + 1) __buf = (buf);			\
+	unsigned long __n = (n);				\
+	// __recsize = 0，参见队列结构/struct kfifo节
+	const size_t __recsize = sizeof(*__tmp->rectype);	\
+	struct __kfifo *__kfifo = &__tmp->kfifo;		\
+	if (0) {						\
+		typeof(__tmp->ptr) __dummy = NULL;		\
+		__buf = __dummy;				\
+	}							\
+	(__recsize) ?						\
+	__kfifo_out_r(__kfifo, __buf, __n, __recsize) :		\
+	__kfifo_out(__kfifo, __buf, __n);			\
+})								\
+)
+```
+
+函数```__kfifo_out()```定义于kernel/kfifo.c:
+
+```
+unsigned int __kfifo_out(struct __kfifo *fifo, void *buf, unsigned int len)
+{
+	len = __kfifo_out_peek(fifo, buf, len);
+	fifo->out += len;
+	return len;
+}
+
+unsigned int __kfifo_out_peek(struct __kfifo *fifo, void *buf, unsigned int len)
+{
+	unsigned int l;
+
+	// 当前缓冲区中已存在的元素个数为fifo->in – fifo->out
+	l = fifo->in - fifo->out;
+	if (len > l)
+		len = l;
+
+	kfifo_copy_out(fifo, buf, len, fifo->out);
+	// 返回取出的元素个数
+	return len;
+}
+
+static void kfifo_copy_out(struct __kfifo *fifo, void *dst,
+			   unsigned int len, unsigned int off)
+{
+	unsigned int size = fifo->mask + 1;
+	unsigned int esize = fifo->esize;
+	unsigned int l;
+
+	// 入参off = fifo->out，因而此处限定off的取值范围，避免缓冲区出界
+	off &= fifo->mask;
+	if (esize != 1) {
+		off *= esize;
+		size *= esize;
+		len *= esize;
+	}
+	l = min(len, size - off);
+
+	// 从fifo->out至缓冲区结尾的区间读出l字节
+	memcpy(dst, fifo->data + off, l);
+	// 拷贝从缓冲区开始的len-l字节
+	memcpy(dst + l, fifo->data, len - l);
+	/*
+	 * make sure that the data is copied before
+	 * incrementing the fifo->out index counter
+	 */
+	smp_wmb();
+}
+```
+
+#### 15.4.4.2 kfifo_out_peek()
+
+该宏定义于include/linux/kfifo.h:
+
+```
+/**
+ * kfifo_out_peek - gets some data from the fifo
+ * @fifo: address of the fifo to be used
+ * @buf: pointer to the storage buffer
+ * @n: max. number of elements to get
+ *
+ * This macro get the data from the fifo and return the numbers of elements
+ * copied. The data is not removed from the fifo.
+ *
+ * Note that with only one concurrent reader and one concurrent
+ * writer, you don't need extra locking to use these macro.
+ */
+#define kfifo_out_peek(fifo, buf, n)							\
+__kfifo_uint_must_check_helper(								\
+({											\
+	typeof((fifo) + 1) __tmp = (fifo);						\
+	typeof((buf) + 1) __buf = (buf);						\
+	unsigned long __n = (n);							\
+	const size_t __recsize = sizeof(*__tmp->rectype);				\
+	struct __kfifo *__kfifo = &__tmp->kfifo;					\
+	if (0) {									\
+		typeof(__tmp->ptr) __dummy __attribute__ ((unused)) = NULL;		\
+		__buf = __dummy;							\
+	}										\
+	(__recsize) ?									\
+	__kfifo_out_peek_r(__kfifo, __buf, __n, __recsize) :				\
+	// 此处直接调用__kfifo_out_peek()，而不是__kfifo_out()，因而不调整fifo->out的取值
+	__kfifo_out_peek(__kfifo, __buf, __n);						\
+})											\
+)
+```
+
+函数```kfifo_out_peek()```与```kfifo_out()```的唯一区别在于，```kfifo_out_peek()```拷贝完成后，不调整fifo->out的取值，而```kfifo_out()```需要调整fifo->out的取值。
+
+### 15.4.5 操纵队列
+
+在include/linux/kfifo.h中，包含如下操纵队列的宏：
+* kfifo_reset() / kfifo_reset_out(): 重置队列
+* kfifo_free(): 销毁队列(注：缓冲区不会销毁)
+* kfifo_size(): 缓冲区元素的总数
+* kfifo_esize(): 缓冲区每个元素所占的字节数
+* kfifo_len(): 缓冲区中已使用的元素个数
+* kfifo_avail(): 缓冲区中未使用的元素个数
+* kfifo_is_empty() / kfifo_is_full(): 缓冲区是否为空/已满
+* kfifo_skip(): 调整fifo->out++，即跳过缓冲区中的一个元素
+
+## 15.5 Maps
+
+Linux Kernel中定义的Maps确定了整数UID至指针```void *ptr```的映射关系，参见struct idr/struct idr_layer节中的图。
+
+### 15.5.1 与Maps有关的数据结构
+
+#### 15.5.1.1 struct idr/struct idr_layer
+
+该结构用于UID到指针Ptr的映射，其定义于include/linux/idr.h:
+
+```
+struct idr {
+	struct idr_layer __rcu		*top;
+	struct idr_layer		*id_free;
+	int		  		layers; 	/* only valid without concurrent changes */
+	int		  		id_free_cnt;
+	spinlock_t			lock;
+};
+
+struct idr_layer {
+	unsigned long			bitmap; 	/* A zero bit means "space here" */
+	struct idr_layer __rcu		*ary[1<<IDR_BITS];
+	int			 	count;		/* When zero, we can release it */
+	int			 	layer;	 	/* distance from leaf */
+	struct rcu_head			rcu_head;
+};
+```
+
+##### 15.5.1.1.1 当BITS_PER_LONG==32时
+
+最大层数为MAX_LEVEL=7层，顶层最多使用ary[]数组中的前2位，即top->ary[0]，top->ary[1]。各结构之间的关系，参见Subjects/Chapter15_Data_Structure/Figures/idr_03.jpg
+
+##### 15.5.1.1.2 当BITS_PER_LONG==64时
+
+最大层数为MAX_LEVEL=6层，顶层最多使用ary[]数组中的前2位，即top->ary[0]，top->ary[1]。各结构之间的关系，参见Subjects/Chapter15_Data_Structure/Figures/idr_04.jpg
+
+#### 15.5.1.2 struct ida
+
+该结构定义于include/linux/idr.h:
+
+```
+#define IDA_CHUNK_SIZE	128	/* 128 bytes per chunk */
+#define IDA_BITMAP_LONGS	(IDA_CHUNK_SIZE / sizeof(long) - 1)	// 取值为31
+#define IDA_BITMAP_BITS 	(IDA_BITMAP_LONGS * sizeof(long) * 8)	// 取值为992
+
+struct ida {
+	// 参见struct idr/struct idr_layer节
+	struct idr		idr;
+	struct ida_bitmap	*free_bitmap;
+};
+
+// 该结构体所占用的空间大小，与struct idr_layer中的ary[]所占用的空间大小完全相同
+struct ida_bitmap {
+	long			nr_busy;
+	// 该数组包含IDA_BITMAP_BITS个比特位
+	unsigned long		bitmap[IDA_BITMAP_LONGS];
+};
+```
+
+该结构用于指示哪些UID已分配，不存在与该UID相对应的指针Ptr，其结构参见:
+
+![idr_02](/assets/idr_02.jpg)
+
+### 15.5.2 idr的定义及初始化
+
+#### 15.5.2.1 静态创建idr/DEFINE_IDR()
+
+可以直接定义struct hdr类型的对象name，然后调用```IDR_INIT(name)```为之初始化。或者直接调用宏```DEFINE_IDR(name)```定义并初始化struct hdr类型的对象。该宏定义于include/linux/hdr.h:
+
+```
+#define IDR_INIT(name)							\
+{									\
+	.top			= NULL,					\
+	.id_free		= NULL,					\
+	.layers 		= 0,					\
+	.id_free_cnt	= 0,						\
+	.lock			= __SPIN_LOCK_UNLOCKED(name.lock),	\
+}
+
+#define DEFINE_IDR(name)	struct idr name = IDR_INIT(name)
+```
+
+#### 15.5.2.2 动态创建idr/hdr_init()
+
+可以动态分配struct hdr类型的对象name，然后调用函数```idr_init()```为之初始化。该函数定义于lib/idr.c:
+
+```
+/**
+ * idr_init - initialize idr handle
+ * @idp:	idr handle
+ *
+ * This function is use to set up the handle (@idp) that you will pass
+ * to the rest of the functions.
+ */
+void idr_init(struct idr *idp)
+{
+	memset(idp, 0, sizeof(struct idr));
+	spin_lock_init(&idp->lock);
+}
+```
+
+### 15.5.3 分配新的UID
+
+UID: Unique Identification Number
+
+#### 15.5.3.1 分配节点空间/idr_pre_get()
+
+该函数用于分配节点空间，其定义于lib/idr.c:
+
+```
+/**
+ * idr_pre_get - reserve resources for idr allocation
+ * @idp:	idr handle
+ * @gfp_mask:	memory allocation flags
+ *
+ * This function should be called prior to calling the idr_get_new* functions.
+ * It preallocates enough memory to satisfy the worst possible allocation. The
+ * caller should pass in GFP_KERNEL if possible.  This of course requires that
+ * no spinning locks be held.
+ *
+ * If the system is REALLY out of memory this function returns %0,
+ * otherwise %1.
+ */
+int idr_pre_get(struct idr *idp, gfp_t gfp_mask)
+{
+	/*
+	 * 当BITS_PER_LONG == 32时，IDR_FREE_MAX = 14
+	 * 当BITS_PER_LONG == 64时，IDR_FREE_MAX = 12
+	 */
+	while (idp->id_free_cnt < IDR_FREE_MAX) {
+		struct idr_layer *new;
+		// 从idr_layer_cache缓存中分配空间，参见idr_init_cache()节
+		new = kmem_cache_zalloc(idr_layer_cache, gfp_mask);
+		if (new == NULL)
+			return (0);
+		/*
+		 * 将新分配的new节点链接到idp->id_free，
+		 * 并更新idp->id_free_cnt计数
+		 */
+		move_to_free_list(idp, new);
+	}
+	return 1;
+}
+```
+
+执行后的结果:
+
+![idr_01](/assets/idr_01.jpg)
+
+#### 15.5.3.2 分配从0开始的最小可用的UID并关联ptr/idr_get_new()
+
+该函数定义于lib/idr.c:
+
+```
+/**
+ * idr_get_new - allocate new idr entry
+ * @idp: idr handle
+ * @ptr: pointer you want associated with the id
+ * @id: pointer to the allocated handle
+ *
+ * If allocation from IDR's private freelist fails, idr_get_new_above() will
+ * return %-EAGAIN.  The caller should retry the idr_pre_get() call to refill
+ * IDR's preallocation and then retry the idr_get_new_above() call.
+ *
+ * If the idr is full idr_get_new_above() will return %-ENOSPC.
+ *
+ * @id returns a value in the range %0 ... %0x7fffffff
+ */
+int idr_get_new(struct idr *idp, void *ptr, int *id)
+{
+	int rv;
+
+	// 从0开始查找最小可用的UID
+	rv = idr_get_new_above_int(idp, ptr, 0);
+	/*
+	 * This is a cheap hack until the IDR code can be fixed to
+	 * return proper error values.
+	 */
+	if (rv < 0)
+		return _idr_rc_to_errno(rv);
+	// 传回新分配的UID
+	*id = rv;
+	return 0;
+}
+
+static int idr_get_new_above_int(struct idr *idp, void *ptr, int starting_id)
+{
+	struct idr_layer *pa[MAX_LEVEL];
+	int id;
+
+	// 从starting_id开始查找最小可用的UID
+	id = idr_get_empty_slot(idp, starting_id, pa);
+	if (id >= 0) {
+		/*
+		 * Successfully found an empty slot.  Install the user
+		 * pointer and mark the slot full.
+		 */
+		// id对应的ptr都是挂到叶子节点的ary[]数组中，因此必然是pa[0]->ary[*]
+		rcu_assign_pointer(pa[0]->ary[id & IDR_MASK], (struct idr_layer *)ptr);
+		pa[0]->count++;
+		idr_mark_full(pa, id);
+	}
+
+	return id;
+}
+```
+
+#### 15.5.3.3  分配从starting_id开始的最小可用的UID并关联ptr/idr_get_new_above()
+
+该函数定义于lib/idr.c:
+
+```
+/**
+ * idr_get_new_above - allocate new idr entry above or equal to a start id
+ * @idp: idr handle
+ * @ptr: pointer you want associated with the id
+ * @starting_id: id to start search at
+ * @id: pointer to the allocated handle
+ *
+ * This is the allocate id function.  It should be called with any
+ * required locks.
+ *
+ * If allocation from IDR's private freelist fails, idr_get_new_above() will
+ * return %-EAGAIN.  The caller should retry the idr_pre_get() call to refill
+ * IDR's preallocation and then retry the idr_get_new_above() call.
+ *
+ * If the idr is full idr_get_new_above() will return %-ENOSPC.
+ *
+ * @id returns a value in the range @starting_id ... %0x7fffffff
+ */
+int idr_get_new_above(struct idr *idp, void *ptr, int starting_id, int *id)
+{
+	int rv;
+
+	/*
+	 * 本函数与分配从0开始的最小可用的UID并关联ptr/idr_get_new()节
+	 * 的idr_get_new()类似，区别仅在于查找id的起始点变为了starting_id而不是0
+	rv = idr_get_new_above_int(idp, ptr, starting_id);
+	/*
+	 * This is a cheap hack until the IDR code can be fixed to
+	 * return proper error values.
+	 */
+	if (rv < 0)
+		return _idr_rc_to_errno(rv);
+	*id = rv;
+	return 0;
+}
+```
+
+### 15.5.4  查找id对应的ptr/idr_find()
+
+该函数定义于lib/idr.c:
+
+```
+/**
+ * idr_find - return pointer for given id
+ * @idp: idr handle
+ * @id: lookup key
+ *
+ * Return the pointer given the id it has been registered with.  A %NULL
+ * return indicates that @id is not valid or you passed %NULL in
+ * idr_get_new().
+ *
+ * This function can be called under rcu_read_lock(), given that the leaf
+ * pointers lifetimes are correctly managed.
+ */
+void *idr_find(struct idr *idp, int id)
+{
+	int n;
+	struct idr_layer *p;
+
+	p = rcu_dereference_raw(idp->top);
+	if (!p)
+		return NULL;
+	n = (p->layer+1) * IDR_BITS;
+
+	/* Mask off upper bits we don't use for the search. */
+	id &= MAX_ID_MASK;
+
+	if (id >= (1 << n))
+		return NULL;
+	BUG_ON(n == 0);
+
+	while (n > 0 && p) {
+		n -= IDR_BITS;
+		BUG_ON(n != p->layer*IDR_BITS);
+		p = rcu_dereference_raw(p->ary[(id >> n) & IDR_MASK]);
+	}
+	return((void *)p);
+}
+```
+
+### 15.5.5  操纵idr
+
+此外，还有如下函数可以操纵idr：
+
+```
+int idr_for_each(struct idr *idp, int (*fn)(int id, void *p, void *data), void *data);
+void *idr_get_next(struct idr *idp, int *nextid);
+void *idr_replace(struct idr *idp, void *ptr, int id);
+```
+
+### 15.5.6  idr_init_cache()
+
+该函数定义于lib/idr.c:
+
+```
+static struct kmem_cache *idr_layer_cache;
+
+void __init idr_init_cache(void)
+{
+	/*
+	 * 为idr分配缓存空间，用于idr_pre_get()，参见分配节点空间/idr_pre_get()节
+	 * kmem_cache_create()参见Create a Specific Cache/kmem_cache_create()节
+	 */
+	idr_layer_cache = kmem_cache_create("idr_layer_cache",
+					    sizeof(struct idr_layer), 0, SLAB_PANIC, NULL);
+}
+```
+
+在系统启动过程中，该函数被```start_kernel()```调用，参见start_kernel()节。
+
+## 15.6 Red-Black Tree (rbtree)
+
+Reading Materials on Red-Black Tree:
+* Documentation/rbtree.txt
+* http://lwn.net/Articles/184495/
+* http://en.wikipedia.org/wiki/Red-black_tree
+
+### 15.6.1 rbtree属性
+
+参见http://en.wikipedia.org/wiki/Red-black_tree：
+
+In addition to the requirements imposed on a binary search tree the following must be satisfied by a red–black tree:
+
+1) A node is either red or black.
+
+2) The root is black. (This rule is sometimes omitted. Since the root can always be changed from red to black, but not necessarily vice-versa, this rule has little effect on analysis.) 参见rb_insert_color()节的函数调用rb_insert_color()->rb_set_black(root->rb_node);
+
+3) All leaves (NIL) are black. (All leaves are same color as the root.)
+
+4) Every red node must have two black child nodes.
+
+5) Every path from a given node to any of its descendant leaves contains the same number of black nodes.
+
+These constraints enforce a critical property of red–black trees: that the path from the root to the furthest leaf is no more than twice as long as the path from the root to the nearest leaf. The result is that the tree is roughly height-balanced. Since operations such as inserting, deleting, and finding values require worst-case time proportional to the height of the tree, this theoretical upper bound on the height allows red–black trees to be efficient in the worst case, unlike ordinary binary search trees.
+
+To see why this is guaranteed, it suffices to consider the effect of properties 4) and 5) together. For a red–black tree T, let B be the number of black nodes in property 5). Let the shortest possible path from the root of T to any leaf consist of B black nodes. Longer possible paths may be constructed by inserting red nodes. However, property 4) makes it impossible to insert more than one consecutive red node. Therefore the longest possible path consists of 2B nodes, alternating black and red.
+
+The shortest possible path has all black nodes, and the longest possible path alternates between red and black nodes. Since all maximal paths have the same number of black nodes, by property 5), this shows that no path is more than twice as long as any other path.
+
+rbtree示例:
+
+![rbtree_3](/assets/rbtree_3.jpg)
+
+### 15.6.2 与rbtree有关的数据结构/struct rb_root/struct rb_node
+
+该结构定义于include/linux/rbtree.h:
+
+```
+struct rb_root
+{
+	struct rb_node	*rb_node;
+};
+
+struct rb_node
+{
+	unsigned long	rb_parent_color;
+#define	RB_RED	0
+#define	RB_BLACK	1
+	struct rb_node	*rb_right;
+	struct rb_node	*rb_left;
+}	__attribute__((aligned(sizeof(long))));
+	/* The alignment might seem pointless, but allegedly CRIS needs it */
+```
+
+struct rb_node使用了编译器属性```__attribute__((aligned(sizeof(long))))```，因而该类型的对象是4字节对齐的。举例：
+
+```
+struct rb_node rb;
+```
+
+则rb变量地址的最低2 bit取值为00，故可以使用成员rb_parent_color同时保存两种数据：父节点地址和本节点的颜色，参见:
+
+![rbtree_2](/assets/rbtree_2.jpg)
+
+### 15.6.3 定义及初始化rbtree
+
+#### 15.6.3.1 定义并初始化struct rb_root类型的变量
+
+宏RB_ROOT用于初始化struct rb_root类型的变量，例如：
+
+```
+struct rb_root root = RB_ROOT;
+```
+
+该宏定义于include/linux/rbtree.h:
+
+```
+#define RB_ROOT	(struct rb_root) { NULL, }
+```
+
+宏```RB_EMPTY_ROOT()```用于判断root是否为空根节点，其定义于include/linux/rbtree.h:
+
+```
+#define RB_EMPTY_ROOT(root)	((root)->rb_node == NULL)
+```
+
+#### 15.6.3.2 定义并初始化struct rb_node类型的变量
+
+与struct list_head的使用方法类似(参见双向循环链表/struct list_head节)，首先要定义包含struct rb_node成员的数据类型，例如：
+
+```
+struct mytype {
+	struct rb_node node;
+	char *keystring;
+};
+```
+
+然后定义struct mytype类型的对象mydata，例如：
+
+```
+struct mytype mydata;
+```
+
+调用函数```rb_init_node()```初始化struct rb_node类型的变量，例如：
+
+```
+rb_init_node(&mydata.node);
+``
+
+该函数定义于include/linux/rbtree.h:
+
+```
+static inline void rb_init_node(struct rb_node *rb)
+{
+	rb->rb_parent_color = 0;
+	rb->rb_right = NULL;
+	rb->rb_left = NULL;
+	RB_CLEAR_NODE(rb);	// 参见下文
+}
+```
+
+初始化后的节点结构:
+
+![rbtree_1](/assets/rbtree_1.jpg)
+
+宏```rb_entry()```用于获取包含struct rb_node类型成员的变量，例如：
+
+```
+struct mytype *data = rb_entry(&mydata.node, struct mytype, node);
+```
+
+该宏定义于include/linux/rbtree.h:
+
+```
+#define rb_entry(ptr, type, member)	container_of(ptr, type, member)
+```
+
+此外，include/linux/rbtree.h中的如下宏可以用来操纵struct rb_node类型的变量：
+
+```
+#define rb_parent(r)		((struct rb_node *)((r)->rb_parent_color & ~3))
+#define rb_color(r)		((r)->rb_parent_color & 1)
+
+#define rb_is_red(r)		(!rb_color(r))
+#define rb_is_black(r)		rb_color(r)
+
+#define rb_set_red(r)		do { (r)->rb_parent_color &= ~1; } while (0)
+#define rb_set_black(r)		do { (r)->rb_parent_color |= 1; } while (0)
+
+static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
+{
+	/*
+	 * rb_parent_color包含父节点的地址和本节点的颜色，
+	 * 参见与rbtree有关的数据结构/struct rb_root/struct rb_node节
+	 */
+	rb->rb_parent_color = (rb->rb_parent_color & 3) | (unsigned long)p;
+}
+static inline void rb_set_color(struct rb_node *rb, int color)
+{
+	rb->rb_parent_color = (rb->rb_parent_color & ~1) | color;
+}
+
+#define RB_EMPTY_NODE(node)	(rb_parent(node) == node)
+#define RB_CLEAR_NODE(node)	(rb_set_parent(node, node))
+```
+
+### 15.6.4 搜索指定节点
+
+由于struct rb_node不包含用户数据，因而rbtree无法直接提供用于搜索指定节点的函数。不过，在rbtree中搜索指定节点的算法很简单，例如：
+
+```
+struct mytype *my_search(struct rb_root *root, char *string)
+{
+	struct rb_node *node = root->rb_node;
+
+	while (node) {
+		struct mytype *data = rb_entry(node, struct mytype, node);
+		int result;
+
+		result = strcmp(string, data->keystring);
+
+		if (result < 0)
+			node = node->rb_left;
+		else if (result > 0)
+			node = node->rb_right;
+		else
+			return data;
+	}
+	return NULL;
+}
+```
+
+### 15.6.5 插入新节点
+
+插入新节点到rbtree中需要两个步骤：
+* 1) 使用类似搜索指定节点节的算法查找新节点的插入位置，并调用函数rb_link_node()将新节点插入到rbtree中，参见rb_link_node()节；
+* 2) 然后调用函数rb_insert_color()再平衡rbtree，参见rb_insert_color()节。
+
+例如：
+
+```
+int my_insert(struct rb_root *root, struct mytype *data)
+{
+	struct rb_node **new = &(root->rb_node), *parent = NULL;
+
+	/* Figure out where to put new node */
+	while (*new) {
+		struct mytype *this = rb_entry(*new, struct mytype, node);
+		int result = strcmp(data->keystring, this->keystring);
+
+		parent = *new;
+		if (result < 0)
+			new = &((*new)->rb_left);
+		else if (result > 0)
+			new = &((*new)->rb_right);
+		else
+			return FALSE;
+	}
+
+	/* Add new node and rebalance tree. */
+	rb_link_node(&data->node, parent, new);		// 参见rb_link_node()节
+	rb_insert_color(&data->node, root);		// 参见rb_insert_color()节
+
+	return TRUE;
+}
+```
+
+#### 15.6.5.1 rb_link_node()
+
+该函数定义于include/linux/rbtree.h:
+
+```
+static inline void rb_link_node(struct rb_node * node, struct rb_node * parent,
+				struct rb_node ** rb_link)
+{
+	// 设置rb_parent_color中的父节点地址，此时本节点的颜色为红色
+	node->rb_parent_color = (unsigned long )parent;
+	node->rb_left = node->rb_right = NULL;
+
+	// 根据入参的不同，此处将新节点连接到父节点的rb_left或rb_right中
+	*rb_link = node;
+}
+```
+
+#### 15.6.5.2 rb_insert_color()
+
+该函数定义于lib/rbtree.c:
+
+```
+// 入参node为新增的节点
+void rb_insert_color(struct rb_node *node, struct rb_root *root)
+{
+	struct rb_node *parent, *gparent;
+
+	/*
+	 * rbtree根节点的父节点指向NULL，参见rbtree属性节图；
+	 * 根据node获得其父节点parent，且颜色为红色，则分情况处理：
+	 */
+	while ((parent = rb_parent(node)) && rb_is_red(parent))
+	{
+		gparent = rb_parent(parent);
+
+		if (parent == gparent->rb_left)
+		{
+			{
+				register struct rb_node *uncle = gparent->rb_right;
+				if (uncle && rb_is_red(uncle))
+				{
+					rb_set_black(uncle);
+					rb_set_black(parent);
+					rb_set_red(gparent);
+					node = gparent;
+					continue;
+				}
+			}
+
+			if (parent->rb_right == node)
+			{
+				register struct rb_node *tmp;
+				// 左旋，参见左旋/__rb_rotate_left()节
+				__rb_rotate_left(parent, root);
+				/*
+				 * 左旋后，父子关系颠倒，参见左旋/__rb_rotate_left()节的图；
+				 * 此处更新parent和node，使其符合左旋后的实际情况
+				 */
+				tmp = parent;
+				parent = node;
+				node = tmp;
+			}
+
+			rb_set_black(parent);
+			rb_set_red(gparent);
+			// 右旋，参见右旋/__rb_rotate_right()节
+			__rb_rotate_right(gparent, root);
+		} else {
+			{
+				register struct rb_node *uncle = gparent->rb_left;
+				if (uncle && rb_is_red(uncle))
+				{
+					rb_set_black(uncle);
+					rb_set_black(parent);
+					rb_set_red(gparent);
+					node = gparent;
+					continue;
+				}
+			}
+
+			if (parent->rb_left == node)
+			{
+				register struct rb_node *tmp;
+				// 右旋，参见右旋/__rb_rotate_right()节
+				__rb_rotate_right(parent, root);
+				tmp = parent;
+				parent = node;
+				node = tmp;
+			}
+
+			rb_set_black(parent);
+			rb_set_red(gparent);
+			// 左旋，参见左旋/__rb_rotate_left()节
+			__rb_rotate_left(gparent, root);
+		}
+	} // end of while ((parent = ...
+
+	// 根据rbtree属性节的属性2)，将根节点设置为黑色
+	rb_set_black(root->rb_node);
+}
+```
+
+##### 15.6.5.2.1 左旋/\__rb_rotate_left()
+
+该函数定义于lib/rbtree.c:
+
+```
+static void __rb_rotate_left(struct rb_node *node, struct rb_root *root)
+{
+	struct rb_node *right = node->rb_right;
+	struct rb_node *parent = rb_parent(node);
+
+	if ((node->rb_right = right->rb_left))
+		rb_set_parent(right->rb_left, node);
+	right->rb_left = node;
+
+	rb_set_parent(right, parent);
+
+	if (parent)
+	{
+		if (node == parent->rb_left)
+			parent->rb_left = right;
+		else
+			parent->rb_right = right;
+	}
+	else
+		root->rb_node = right;
+	rb_set_parent(node, right);
+}
+```
+
+##### 15.6.5.2.2 右旋/\__rb_rotate_right()
+
+该函数定义于lib/rbtree.c:
+
+```
+static void __rb_rotate_right(struct rb_node *node, struct rb_root *root)
+{
+	struct rb_node *left = node->rb_left;
+	struct rb_node *parent = rb_parent(node);
+
+	if ((node->rb_left = left->rb_right))
+		rb_set_parent(left->rb_right, node);
+	left->rb_right = node;
+
+	rb_set_parent(left, parent);
+
+	if (parent)
+	{
+		if (node == parent->rb_right)
+			parent->rb_right = left;
+		else
+			parent->rb_left = left;
+	}
+	else
+		root->rb_node = left;
+	rb_set_parent(node, left);
+}
+```
+
+##### 15.6.5.2.3 左旋/右旋的关系
+
+由下列图可知，执行如下语句前后的rbtree没有变化：
+
+左旋/\__rb_rotate_left()节左旋前的图 => 左旋/\__rb_rotate_left()节左旋后的图 => 右旋/\__rb_rotate_right()节右旋前的图 => 右旋/\__rb_rotate_right()节右旋后的图
+
+```
+__rb_rotate_left(node, root);
+__rb_rotate_right(rb_parent(node), root);
+```
+
+由下列图可知，执行如下语句前后的rbtree没有变化：
+
+右旋/\__rb_rotate_right()节右旋前的图 => 右旋/\__rb_rotate_right()节右旋后的图 => 左旋/\__rb_rotate_left()节左旋前的图 => 左旋/\__rb_rotate_left()节左旋后的图
+
+```
+__rb_rotate_right(node, root);
+__rb_rotate_left(rb_parent(node), root);
+```
+
+### 15.6.6 遍历rbtree
+
+在lib/rbtree.c中，定义了如下函数用于遍历rbtree:
+
+```
+/*
+ * This function returns the first node (in sort order) of the tree.
+ */
+// 该函数返回rbtree中最左子树的左节点
+struct rb_node *rb_first(const struct rb_root *root)
+{
+	struct rb_node *n;
+
+	n = root->rb_node;
+	if (!n)
+		return NULL;
+	while (n->rb_left)
+		n = n->rb_left;
+	return n;
+}
+
+// 该函数返回rbtree中最右子树的右节点
+struct rb_node *rb_last(const struct rb_root *root)
+{
+	struct rb_node	*n;
+
+	n = root->rb_node;
+	if (!n)
+		return NULL;
+	while (n->rb_right)
+		n = n->rb_right;
+	return n;
+}
+
+// 该函数返回rbtree中最靠近节点node的右侧节点
+struct rb_node *rb_next(const struct rb_node *node)
+{
+	struct rb_node *parent;
+
+	/*
+	 * 如果node节点刚被初始化(参见定义并初始化struct rb_node类型的变量节)，
+	 * 且还未被加入rbtree，则返回NULL
+	 */
+	if (rb_parent(node) == node)
+		return NULL;
+
+	/* If we have a right-hand child, go down and then left as far
+	    as we can. */
+	if (node->rb_right) {
+		node = node->rb_right; 
+		while (node->rb_left)
+			node = node->rb_left;
+		return (struct rb_node *)node;
+	}
+
+	/* No right-hand children.  Everything down and left is
+	   smaller than us, so any 'next' node must be in the general
+	   direction of our parent. Go up the tree; any time the
+	   ancestor is a right-hand child of its parent, keep going
+	   up. First time it's a left-hand child of its parent, said
+	   parent is our 'next' node. */
+	while ((parent = rb_parent(node)) && node == parent->rb_right)
+		node = parent;
+
+	return parent;
+}
+
+// 该函数返回rbtree中最靠近节点node的左侧节点
+struct rb_node *rb_prev(const struct rb_node *node)
+{
+	struct rb_node *parent;
+
+	/*
+	 * 如果node节点刚被初始化(参见定义并初始化struct rb_node类型的变量节)，
+	 * 且还未被加入rbtree，则返回NULL
+	 */
+	if (rb_parent(node) == node)
+		return NULL;
+
+	/* If we have a left-hand child, go down and then right as far
+	    as we can. */
+	if (node->rb_left) {
+		node = node->rb_left; 
+		while (node->rb_right)
+			node = node->rb_right;
+		return (struct rb_node *)node;
+	}
+
+	/* No left-hand children. Go up till we find an ancestor which
+	   is a right-hand child of its parent */
+	while ((parent = rb_parent(node)) && node == parent->rb_left)
+		node = parent;
+
+	return parent;
+}
+```
+
+这些函数返回指向类型为struct rb_node的对象的指针，通过宏rb_entry()访问包含该对象的用户数据，例如：
+
+```
+struct rb_node *node;
+
+// 从前向后遍历rbtree，并打印字符串取值
+for (node = rb_first(&mytree); node; node = rb_next(node))
+	printk("key=%s\n", rb_entry(node, struct mytype, node)->keystring);
+
+// 从后向前遍历rbtree，并打印字符串取值
+for (node = rb_last(&mytree); node; node = rb_prev(node))
+	printk("key=%s\n", rb_entry(node, struct mytype, node)->keystring);
+```
+
+### 15.6.7 移除节点/rb_erase()
+
+函数```rb_erase()```用于从rbtree中移除指定的节点。注意，移除的节点并未被销毁，需要用户自己销毁该节点。
+
+该定义于lib/rbtree.c:
+
+```
+void rb_erase(struct rb_node *node, struct rb_root *root)
+{
+	struct rb_node *child, *parent;
+	int color;
+
+	if (!node->rb_left)
+		child = node->rb_right;
+	else if (!node->rb_right)
+		child = node->rb_left;
+	else	// 当node的左右两个子节点都存在时，...
+	{
+		struct rb_node *old = node, *left;
+
+		/*
+		 * 查找最靠近节点node的左侧节点(设为new_node)，
+		 * 并将其链接到node的父节点
+		 */
+		node = node->rb_right;
+		while ((left = node->rb_left) != NULL)
+			node = left;
+
+		if (rb_parent(old)) {
+			if (rb_parent(old)->rb_left == old)
+				rb_parent(old)->rb_left = node;
+			else
+				rb_parent(old)->rb_right = node;
+		} else
+			root->rb_node = node;
+
+		child = node->rb_right;
+		parent = rb_parent(node);
+		color = rb_color(node);
+
+		// 将new_node的右子节点链接到rb_parent(new_node)的左子节点
+		if (parent == old) {
+			parent = node;
+		} else {
+			if (child)
+				rb_set_parent(child, parent);
+			parent->rb_left = child;
+
+			node->rb_right = old->rb_right;
+			rb_set_parent(old->rb_right, node);
+		}
+
+		// 将原node的左子节点链接到new_node的左子节点
+		node->rb_parent_color = old->rb_parent_color;
+		node->rb_left = old->rb_left;
+		rb_set_parent(old->rb_left, node);
+
+		goto color;
+	}
+
+	// 当node最多存在一个有效的子节点时，...
+	parent = rb_parent(node);
+	color = rb_color(node);
+
+	if (child)
+		rb_set_parent(child, parent);
+	if (parent)
+	{
+		if (parent->rb_left == node)
+			parent->rb_left = child;
+		else
+			parent->rb_right = child;
+	}
+	else
+		root->rb_node = child;
+
+ color:
+	if (color == RB_BLACK)
+		__rb_erase_color(child, parent, root);
+}
+```
+
+### 15.6.8 替换节点/rb_replace_node()
+
+函数```rb_replace_node()```用于替换已有节点，其定义于lib/rbtree.c:
+
+```
+void rb_replace_node(struct rb_node *victim, struct rb_node *new, struct rb_root *root)
+{
+	struct rb_node *parent = rb_parent(victim);
+
+	/* Set the surrounding nodes to point to the replacement */
+	if (parent) {
+		if (victim == parent->rb_left)
+			parent->rb_left = new;
+		else
+			parent->rb_right = new;
+	} else {
+		root->rb_node = new;
+	}
+
+	if (victim->rb_left)
+		rb_set_parent(victim->rb_left, new);
+	if (victim->rb_right)
+		rb_set_parent(victim->rb_right, new);
+
+	/* Copy the pointers/colour from the victim to the replacement */
+	*new = *victim;
+}
+```
+
+Replacing a node this way does not re-sort the tree: If the new node doesn't have the same key as the old node, the rbtree will probably become corrupted.
+
+### 15.6.9 Augmented rbtree
+
+如果使用augmented rbtree，需要先定义如下类型的回调函数，参见include/linux/rbtree.h:
+
+```
+typedef void (*rb_augment_f)(struct rb_node *node, void *data);
+```
+
+该回调函数作为```rb_augment_insert()```, ```rb_augment_erase_begin()```, ```rb_augment_erase_end()```的入参，参见下文。
+
+#### 15.6.9.1 rb_augment_insert()
+
+该函数定义于lib/rbtree.c:
+
+```
+/*
+ * after inserting @node into the tree, update the tree to account for
+ * both the new entry and any damage done by rebalance
+ */
+void rb_augment_insert(struct rb_node *node, rb_augment_f func, void *data)
+{
+	if (node->rb_left)
+		node = node->rb_left;
+	else if (node->rb_right)
+		node = node->rb_right;
+
+	/*
+	 * 从node的左右子节点开始，直到根节点，
+	 * 对其间的每个节点执行函数func()
+	 */
+	rb_augment_path(node, func, data);
+}
+```
+
+其中，函数```rb_augment_path()```定义于lib/rbtree.c:
+
+```
+static void rb_augment_path(struct rb_node *node, rb_augment_f func, void *data)
+{
+	struct rb_node *parent;
+
+up:
+	func(node, data);
+	parent = rb_parent(node);
+	if (!parent)	// 直到根节点才退出循环
+		return;
+
+	if (node == parent->rb_left && parent->rb_right)
+		func(parent->rb_right, data);
+	else if (parent->rb_left)
+		func(parent->rb_left, data);
+
+	node = parent;
+	goto up;
+}
+```
+
+#### 15.6.9.2 rb_augment_erase_begin()/rb_augment_erase_end()
+
+该函数定义于lib/rbtree.c:
+
+```
+/*
+ * before removing the node, find the deepest node on the rebalance path
+ * that will still be there after @node gets removed
+ */
+struct rb_node *rb_augment_erase_begin(struct rb_node *node)
+{
+	struct rb_node *deepest;
+
+	if (!node->rb_right && !node->rb_left)		// node的左右子节点均为NULL
+		deepest = rb_parent(node);
+	else if (!node->rb_right)			// node的左子节点不为NULL，右子节点为NULL
+		deepest = node->rb_left;
+	else if (!node->rb_left) 			// node的左子节点为NULL，右子节点不为NULL
+		deepest = node->rb_right;
+	else {						// node的左右子节点不为NULL
+		deepest = rb_next(node);
+		if (deepest->rb_right)
+			deepest = deepest->rb_right;
+		else if (rb_parent(deepest) != node)
+			deepest = rb_parent(deepest);
+	}
+
+	return deepest;
+}
+
+/*
+ * after removal, update the tree to account for the removed entry
+ * and any rebalance damage.
+ */
+void rb_augment_erase_end(struct rb_node *node, rb_augment_f func, void *data)
+{
+	if (node)
+		rb_augment_path(node, func, data);	// 参见rb_augment_insert()节
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

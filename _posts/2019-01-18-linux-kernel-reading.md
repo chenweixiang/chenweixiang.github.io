@@ -63746,6 +63746,1471 @@ kern_path()					// 参见kern_path()/do_path_lookup()节
                   -> __lookup_mnt()		// 参见__lookup_mnt()节
 ```
 
+# 12 网络/net
+
+网络代码保存在net/目录中，大部分的include文件在include/net下，BSD套接字代码在net/socket.c中，IP第4版本的套节口代码在net/ipv4/af_inet.c。一般的协议支持代码(包括sk_buff处理例程)在net/core下，TCP/IP网络代码在net/ipv4下，网络设备驱动程序在drivers/net下。
+
+socket可以用于进程间通信，参见套接字/socket节。
+
+# 13 可加载内核模块/Loadable Kernel Module
+
+Loadable kernel modules (LKM) in Linux are loaded (and unloaded) by the modprobe command. They are located in /lib/modules and have had the extension .ko ("kernel object") since version 2.6 (previous versions used the .o extension). The lsmod command lists the loaded kernel modules. In emergency cases, when the system fails to boot due to e.g. broken modules, specific modules can be enabled or disabled by modifying the kernel boot parameters list (for example, if using GRUB, by pressing 'e' in the GRUB start menu, then editing the kernel parameter line).
+
+* [Introduction to Linux Loadable Kernel Modules](http://www.tldp.org/HOWTO/Module-HOWTO/x73.html)
+
+module被动态加载到kernel里成为kernel的一部分，加载到kernel中的module具有跟kernel一样的权力，可访问kernel中的任何数据结构。kdebug是用来debug kernel的，其工作原理如下：先将它本身的一个module加载到kernel中，而在user space的gdb就可以跟这个module沟通，获得kernel里数据结构的取值；此外，还可以经由加载到kernel的module来更改kernel里数据结构的取值。
+
+参见如下文档：
+* Documentation/kbuild/modules.txt
+
+## 13.0 Why Modules?
+
+The benefit of kernel modules:
+* To update the kernel features while running;
+* To reduce memory consumption (and CPU overhead) by loading only necessary modules;
+* Avoiding GPL (Not required to compliant with GPL; proprietary drivers).
+
+There are six main things LKMs are used for:
+
+**Device drivers**. A device driver is designed for a specific piece of hardware. The kernel uses it to communicate with that piece of hardware without having to know any details of how the hardware works. For example, there is a device driver for ATA disk drives. There is one for NE2000 compatible Ethernet cards. To use any device, the kernel must contain a device driver for it.
+
+**Filesystem drivers**. A filesystem driver interprets the contents of a filesystem (which is typically the contents of a disk drive) as files and directories and such. There are lots of different ways of storing files and directories and such on disk drives, on network servers, and in other ways. For each way, you need a filesystem driver. For example, there's a filesystem driver for the ext2 filesystem type used almost universally on Linux disk drives. There is one for the MS-DOS filesystem too, and one for NFS.
+
+**System calls**. User space programs use system calls to get services from the kernel. For example, there are system calls to read a file, to create a new process, and to shut down the system. Most system calls are integral to the system and very standard, so are always built into the base kernel (no LKM option). But you can invent a system call of your own and install it as an LKM. Or you can decide you don't like the way Linux does something and override an existing system call with an LKM of your own.
+
+**Network drivers**. A network driver interprets a network protocol. It feeds and consumes data streams at various layers of the kernel's networking function. For example, if you want an IPX link in your network, you would use the IPX driver.
+
+**TTY line disciplines**. These are essentially augmentations of device drivers for terminal devices.
+
+**Executable interpreters**. An executable interpreter loads and runs an executable. Linux is designed to be able to run executables in various formats, and each must have its own executable interpreter.
+
+## 13.1 模块的编写
+
+### 13.1.1 模块源文件示例
+
+模块源文件hello.c:
+
+```
+#include <linux/module.h>
+#include <linux/init.h>
+
+MODULE_LICENSE("GPL"); 
+MODULE_AUTHOR("Chen Weixiang");
+MODULE_DESCRIPTION("A Hello Module");
+
+int isSayHello = 0;
+static int sayHello()
+{
+	isSayHello = 1;
+	printk("Hello World\n");
+	return 0;
+}
+EXPORT_SYMBOL(sayHello);
+
+static int __init hello_init(void)
+{
+    printk("Hello module init\n");
+    return 0;
+}
+
+static void __exit hello_exit(void)
+{
+    printk("Hello module exit\n");
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+```
+
+**NOTE1**: Because module init/exit functions (here is hello_init, hello_exit) are typically not directly invoked by external code, you don’t need to export the function beyond file-level scope, and they can be marked as static.
+
+**NOTE2**: In actual modules, init functions register resources, initialize hardware, allocate data structures, and so on.
+
+### 13.1.2 与模块有关的宏
+
+#### 13.1.2.1 MODULE_INFO()/\__MODULE_INFO()
+
+宏__MODULE_INFO()定义于include/linux/moduleparam.h:
+
+```
+#define ___module_cat(a,b)		__mod_ ## a ## b
+#define __module_cat(a,b)		___module_cat(a,b)
+
+#ifdef MODULE
+
+/*
+ * 该宏在.modinfo段中添加字符串"tag=info"
+ */
+#define __MODULE_INFO(tag, name, info)					\
+static const char __module_cat(name,__LINE__)[]				\
+  __used __attribute__((section(".modinfo"), unused, aligned(1)))	\
+  = __stringify(tag) "=" info
+
+#else  /* !MODULE */
+
+/* This struct is here for syntactic coherency, it is not used */
+#define __MODULE_INFO(tag, name, info)					\
+  struct __module_cat(name,__LINE__) {}
+
+#endif
+```
+
+宏```MODULE_INFO()```定义于include/linux/module.h:
+
+```
+/*
+ * Generic info of form tag = "info"
+ * 该宏在.modinfo段中添加字符串"tag=info"
+ */
+#define MODULE_INFO(tag, info)		__MODULE_INFO(tag, tag, info)
+```
+
+下列宏是通过```MODULE_INFO()```和```__MODULE_INFO()```来定义的：
+
+```
+/* 该宏在.modinfo段中添加字符串"author=_author" */
+#define MODULE_AUTHOR(_author)		MODULE_INFO(author, _author)
+
+/* 该宏在.modinfo段中添加字符串"license=_license" */
+#define MODULE_LICENSE(_license)	MODULE_INFO(license, _license)
+
+/* 该宏在.modinfo段中添加字符串"version=_version" */
+#if defined(MODULE) || !defined(CONFIG_SYSFS)
+#define MODULE_VERSION(_version)	MODULE_INFO(version, _version)
+#else
+#define MODULE_VERSION(_version)					\
+	static struct module_version_attribute ___modver_attr = {	\
+		.mattr = {						\
+			.attr	= {					\
+				.name	= "version",			\
+				.mode	= S_IRUGO,			\
+			},						\
+			.show	= __modver_version_show,		\
+		},							\
+		.module_name 	= KBUILD_MODNAME,			\
+		.version     	= _version,				\
+	};								\
+	static const struct module_version_attribute			\
+	__used __attribute__ ((__section__ ("__modver")))		\
+	* __moduleparam_const __modver_attr = &___modver_attr
+#endif
+```
+
+**NOTE1**: The specific licenses recognized by the kernel are:
+* "GPL" (for any version of the GNU General Public License),
+* "GPL v2" (for GPL version two only),
+* "GPL and additional rights",
+* "Dual BSD/GPL",
+* "Dual MPL/GPL", and
+* "Proprietary". 
+
+**NOTE2**: Unless your module is explicitly marked as being under a free license recognized by the kernel, it is assumed to be proprietary, and the kernel is "tainted" when the module is loaded.
+
+```
+/* 该宏在.modinfo段中添加字符串"description=_description" */
+#define MODULE_DESCRIPTION(_description)	MODULE_INFO(description, _description)
+
+/* 该宏在.modinfo段中添加字符串"parm=_parm:desc" */
+#define MODULE_PARM_DESC(_parm, desc)		__MODULE_INFO(parm, _parm, #_parm ":" desc)
+
+/* 该宏在.modinfo段中添加字符串"alias=_alias" */
+#define MODULE_ALIAS(_alias)			MODULE_INFO(alias, _alias)
+
+/* 该宏在.modinfo段中添加字符串"firmware=_firmware" */
+#define MODULE_FIRMWARE(_firmware)		MODULE_INFO(firmware, _firmware)
+
+/* Not Yet Implemented */
+#define MODULE_SUPPORTED_DEVICE(name)
+```
+
+**NOTE**: The various MODULE_ declarations can appear anywhere within your source file out-side of a function. A relatively recent convention in kernel code, however, is to put these declarations at the end of the file.
+
+通过下列命令查看.modinfo段的内容：
+
+```
+chenwx@chenwx ~/Downloads/helloworld $ objdump -s --section=.modinfo helloworld.ko 
+
+helloworld.ko:     file format elf64-x86-64 
+
+Contents of section .modinfo: 
+ 0000 64657363 72697074 696f6e3d 41204865  description=A He 
+ 0010 6c6c6f20 4d6f6475 6c650061 7574686f  llo Module.autho 
+ 0020 723d4368 656e2057 65697869 616e6700  r=Chen Weixiang. 
+ 0030 6c696365 6e73653d 47504c00 73726376  license=GPL.srcv 
+ 0040 65727369 6f6e3d45 35454538 38324232  ersion=E5EE882B2 
+ 0050 37364339 35353035 37334533 31420064  76C9550573E31B.d 
+ 0060 6570656e 64733d00 7665726d 61676963  epends=.vermagic 
+ 0070 3d342e31 2e302d61 6c657820 534d5020  =4.1.0-alex SMP 
+ 0080 6d6f645f 756e6c6f 6164206d 6f647665  mod_unload modve 
+ 0090 7273696f 6e732000                    rsions .        
+
+chenwx@chenwx ~/Downloads/helloworld $ modinfo helloworld.ko 
+filename:       /home/chenwx/Downloads/helloworld/helloworld.ko 
+description:    A Hello Module 
+author:         Chen Weixiang 
+license:        GPL 
+srcversion:     4D296D6B8A330EA0D60086F 
+depends:        
+vermagic:       4.1.0-alex SMP mod_unload modversions 
+parm:           isSayHello:set 0 to disable printing hello world. set 1 to enable it (int) 
+```
+
+#### 13.1.2.2 MODULE_DEVICE_TABLE()
+
+This Macro is used by all USB and PCI drivers. This macro describes which devices each specific driver can support. At compilation time, the build process extracts this information out of the driver and builds a table. The table is called modules.pcimap and modules.usbmap for all PCI and USB devices, respectively, and exists in the directory ```/lib/modules/<kernel_version>/```.
+
+该宏定义于include/linux/module.h:
+
+```
+/*
+ * 声明类型为struct type##_device_id的变量，并为之创建别名name
+ * 其中，type的取值为pci, usb, ieee1394, pcmcia, ...
+ * 该宏在驱动程序中的用法参见10.2B.1 驱动程序声明其支持的硬件设备版本节
+ */
+#define MODULE_DEVICE_TABLE(type,name)		MODULE_GENERIC_TABLE(type##_device,name)
+
+#ifdef MODULE
+
+/*
+ * 编译成模块后，由MODULE_DEVICE_TABLE()定义的device table被提取
+ * 到*.mod.c文件中，参见3.4.3.4.2.1 __modpost节中的示例e1000e.mod.c
+ */
+#define MODULE_GENERIC_TABLE(gtype,name)			\
+extern const struct gtype##_id __mod_##gtype##_table		\
+  __attribute__ ((unused, alias(__stringify(name))))
+
+#else  /* !MODULE */
+
+/*
+ * 编译进内核后，由MODULE_DEVICE_TABLE()定义的device table
+ * 可直接被访问到，无需提取出来
+ */
+#define MODULE_GENERIC_TABLE(gtype,name)
+
+#endif
+```
+
+宏```MODULE_DEVICE_TABLE()```一般用于热插拔设备的驱动程序中，参见Documentation/usb/hotplug.txt:
+
+A short example, for a driver that supports several specific USB devices and their quirks, might have a MODULE_DEVICE_TABLE like this: 
+
+```
+static const struct usb_device_id mydriver_id_table = { 
+    { USB_DEVICE (0x9999, 0xaaaa), driver_info: QUIRK_X }, 
+    { USB_DEVICE (0xbbbb, 0x8888), driver_info: QUIRK_Y|QUIRK_Z }, 
+    ... 
+    { } /* end with an all-zeroes entry */ 
+}
+MODULE_DEVICE_TABLE(usb, mydriver_id_table);
+```
+
+Most USB device drivers should pass these tables to the USB subsystem as well as to the module management subsystem. Not all, though: some driver frameworks connect using interfaces layered over USB, and so they won't need such a "struct usb_driver".
+
+Drivers that connect directly to the USB subsystem should be declared something like this: 
+
+```
+static struct usb_driver mydriver = { 
+    .name		= "mydriver", 
+    .id_table		= mydriver_id_table, 
+    .probe		= my_probe, 
+    .disconnect		= my_disconnect, 
+
+    /* if using the usb chardev framework: */
+    .minor		= MY_USB_MINOR_START, 
+    .fops		= my_file_ops, 
+    /* if exposing any operations through usbdevfs: */
+    .ioctl		= my_ioctl,
+} 
+```
+
+When the USB subsystem knows about a driver's device ID table, it's used when choosing drivers to ```probe()```. The thread doing new device processing checks drivers' device ID entries from the MODULE_DEVICE_TABLE against interface and device descriptors for the device. It will only call ```probe()``` if there is a match, and the third argument to ```probe()``` will be the entry that matched. 
+
+If you don't provide an id_table for your driver, then your driver may get probed for each new device; the third parameter to ```probe()``` will be null.
+
+其中，函数```probe()```参见10.2.4 struct device_driver节中struct device_driver的成员函数```probe()```。
+
+#### 13.1.2.3 EXPORT_SYMBOL()
+
+下列宏用于导出符号:
+* EXPORT_SYMBOL()
+* EXPORT_SYMBOL_GPL()
+* EXPORT_SYMBOL_GPL_FUTURE()
+
+其定义于include/linux/export.h:
+
+```
+#ifdef CONFIG_MODULES
+
+/* 若配置支持编译模块，则才可以export symbols */
+
+/* For every exported symbol, place a struct in the __ksymtab section */
+#define __EXPORT_SYMBOL(sym, sec)						\
+	extern typeof(sym) sym;							\
+	__CRC_SYMBOL(sym, sec)							\
+	static const char __kstrtab_##sym[]					\
+	__attribute__((section("__ksymtab_strings"), aligned(1)))		\
+	= MODULE_SYMBOL_PREFIX #sym;						\
+	static const struct kernel_symbol __ksymtab_##sym			\
+	__used									\
+	__attribute__((section("___ksymtab" sec "+" #sym), unused))		\
+	= { (unsigned long)&sym, __kstrtab_##sym }
+
+#define EXPORT_SYMBOL(sym)			__EXPORT_SYMBOL(sym, "")
+#define EXPORT_SYMBOL_GPL(sym)			__EXPORT_SYMBOL(sym, "_gpl")
+#define EXPORT_SYMBOL_GPL_FUTURE(sym)		__EXPORT_SYMBOL(sym, "_gpl_future")
+
+#ifdef CONFIG_UNUSED_SYMBOLS
+#define EXPORT_UNUSED_SYMBOL(sym)		__EXPORT_SYMBOL(sym, "_unused")
+#define EXPORT_UNUSED_SYMBOL_GPL(sym)		__EXPORT_SYMBOL(sym, "_unused_gpl")
+#else  /* !CONFIG_UNUSED_SYMBOLS */
+#define EXPORT_UNUSED_SYMBOL(sym)
+#define EXPORT_UNUSED_SYMBOL_GPL(sym)
+#endif
+
+#else /* !CONFIG_MODULES... */
+
+/* 若配置不支持编译模块，则下列宏被定义成空，即不可以export symbols */
+
+#define EXPORT_SYMBOL(sym)
+#define EXPORT_SYMBOL_GPL(sym)
+#define EXPORT_SYMBOL_GPL_FUTURE(sym)
+#define EXPORT_UNUSED_SYMBOL(sym)
+#define EXPORT_UNUSED_SYMBOL_GPL(sym)
+
+#endif /* CONFIG_MODULES */
+```
+
+宏```EXPORT_SYMBOL(sym)```扩展后的代码如下:
+
+```
+extern typeof(sym) sym;
+
+/*
+ * Part 1: Mark the CRC weak since genksyms apparently decides
+ *         not to generate a checksums for some symbols
+ */
+extern void *__crc_##sym __attribute__((weak));
+static const unsigned long __kcrctab_##sym
+__used __attribute__((section("___kcrctab" "+" #sym), unused))
+= (unsigned long) &__crc_##sym;
+
+/*
+ * Part 2: For every exported symbol, place a struct in the
+ *         __ksymtab+sym section
+ */
+static const char __kstrtab_##sym[]
+__attribute__((section("__ksymtab_strings"), aligned(1)))
+= MODULE_SYMBOL_PREFIX #sym;
+
+static const struct kernel_symbol __ksymtab_##sym
+__used __attribute__((section("___ksymtab" "+" #sym), unused))
+= { (unsigned long)&sym, __kstrtab_##sym }
+```
+
+宏```EXPORT_SYMBOL_GPL(sym)```扩展后的代码如下：
+
+```
+extern typeof(sym) sym;
+
+/*
+ * Part 1: Mark the CRC weak since genksyms apparently decides
+ *         not to generate a checksums for some symbols
+ */
+extern void *__crc_##sym __attribute__((weak));
+static const unsigned long __kcrctab_##sym
+__used __attribute__((section("___kcrctab" "_gpl" "+" #sym), unused))
+= (unsigned long) &__crc_##sym;
+
+/*
+ * Part 2: For every exported symbol, place a struct in the
+ *         __ksymtab_gpl+sym section
+ */
+static const char __kstrtab_##sym[]
+__attribute__((section("__ksymtab_strings"), aligned(1)))
+= MODULE_SYMBOL_PREFIX #sym;
+
+static const struct kernel_symbol __ksymtab_##sym
+__used __attribute__((section("___ksymtab" "_gpl" "+" #sym), unused))
+= { (unsigned long)&sym, __kstrtab_##sym }
+```
+
+宏```EXPORT_SYMBOL_GPL_FUTURE(sym)```扩展后的代码如下：
+
+```
+extern typeof(sym) sym;
+
+/*
+ * Part 1: Mark the CRC weak since genksyms apparently decides
+ *         not to generate a checksums for some symbols
+ */
+extern void *__crc_##sym __attribute__((weak));
+static const unsigned long __kcrctab_##sym
+__used __attribute__((section("___kcrctab" "_gpl_future" "+" #sym), unused))
+= (unsigned long) &__crc_##sym;
+
+/*
+ * Part 2: For every exported symbol, place a struct in the
+ *         __ksymtab_gpl_future+sym section
+ */
+static const char __kstrtab_##sym[]
+__attribute__((section("__ksymtab_strings"), aligned(1)))
+= MODULE_SYMBOL_PREFIX #sym;
+
+static const struct kernel_symbol __ksymtab_##sym
+__used __attribute__((section("___ksymtab" "_gpl_future" "+" #sym), unused))
+= { (unsigned long)&sym, __kstrtab_##sym }
+```
+
+宏```EXPORT_UNUSED_SYMBOL(sym)```扩展后的代码如下：
+
+```
+extern typeof(sym) sym;
+
+/*
+ * Part 1: Mark the CRC weak since genksyms apparently decides
+ *         not to generate a checksums for some symbols
+ */
+extern void *__crc_##sym __attribute__((weak));
+static const unsigned long __kcrctab_##sym
+__used __attribute__((section("___kcrctab" "_unused" "+" #sym), unused))
+= (unsigned long) &__crc_##sym;
+
+/*
+ * Part 2: For every exported symbol, place a struct in the
+ *         __ksymtab_unused+sym section
+ */
+static const char __kstrtab_##sym[]
+__attribute__((section("__ksymtab_strings"), aligned(1)))
+= MODULE_SYMBOL_PREFIX #sym;
+
+static const struct kernel_symbol __ksymtab_##sym
+__used __attribute__((section("___ksymtab" "_unused" "+" #sym), unused))
+= { (unsigned long)&sym, __kstrtab_##sym }
+```
+
+宏```EXPORT_UNUSED_SYMBOL_GPL(sym)```扩展后的代码如下：
+
+```
+extern typeof(sym) sym;
+
+/*
+ * Part 1: Mark the CRC weak since genksyms apparently decides
+ *         not to generate a checksums for some symbols
+ */
+extern void *__crc_##sym __attribute__((weak));
+static const unsigned long __kcrctab_##sym
+__used __attribute__((section("___kcrctab" "_unused_gpl" "+" #sym), unused))
+= (unsigned long) &__crc_##sym;
+
+/*
+ * Part 2: For every exported symbol, place a struct in the
+ *         __ksymtab_unused_gpl+sym section
+ */
+static const char __kstrtab_##sym[]
+__attribute__((section("__ksymtab_strings"), aligned(1)))
+= MODULE_SYMBOL_PREFIX #sym;
+
+static const struct kernel_symbol __ksymtab_##sym
+__used __attribute__((section("___ksymtab" "_unused_gpl" "+" #sym), unused))
+= { (unsigned long)&sym, __kstrtab_##sym }
+```
+
+由此可知，这些宏export出来的符号分别被放置到下列section中：
+
+| Macros | Sections after compiling | Sections after linking<br>(参见13.1.2.3.1 如何将符号从__ksymtab+sym段移到__ksymtab段节) |
+| :----- | -----------------------: | :------------|
+| EXPORT_SYMBOL(sym) | ___ksymtab+sym<br>___kcrctab+sym<br>__ksymtab_strings | __ksymtab<br>__kcrctab<br>__ksymtab_strings |
+| EXPORT_SYMBOL_GPL(sym) | ___ksymtab_gpl+sym<br>___kcrctab_gpl+sym<br>__ksymtab_strings | __ksymtab_gpl<br>__kcrctab_gpl<br>__ksymtab_strings |
+| EXPORT_SYMBOL_GPL_FUTURE(sym) | ___ksymtab_gpl_future+sym<br>___kcrctab_gpl_future+sym<br>__ksymtab_strings | __ksymtab_gpl_future<br>__kcrctab_gpl_future<br>__ksymtab_strings |
+| EXPORT_UNUSED_SYMBOL(sym) | ___ksymtab_unused+sym<br>___kcrctab_unused+sym<br>__ksymtab_strings | __ksymtab_unused<br>__kcrctab_unused<br>__ksymtab_strings |
+| EXPORT_UNUSED_SYMBOL_GPL(sym) | ___ksymtab_unused_gpl+sym<br>___kcrctab_unused_gpl+sym<br>__ksymtab_strings | __ksymtab_unused_gpl<br>__kcrctab_unused_gpl<br>__ksymtab_strings |
+
+<br>
+
+**NOTE**: Either of the above macros makes the given symbol available outside the module. The _GPL version makes the symbol available to GPL-licensed modules only.
+
+使用下列命令查看该宏导出的符号：
+
+```
+chenwx@chenwx ~ $ objdump -t -j __ksymtab  helloworld.ko 
+
+helloworld.ko:     file format elf64-x86-64 
+
+SYMBOL TABLE: 
+0000000000000000 l    d  __ksymtab	0000000000000000 __ksymtab 
+0000000000000000 g     O __ksymtab	0000000000000010 __ksymtab_sayHello 
+```
+
+##### 13.1.2.3.1 如何将符号从\__ksymtab+sym段移到\__ksymtab段
+
+1) 将模块编译进内核的情况
+
+在include/asm-generic/vmlinux.lds.h中，包含如下内容:
+
+```
+	/* Kernel symbol table: Normal symbols */					\
+	__ksymtab         : AT(ADDR(__ksymtab) - LOAD_OFFSET) {				\
+		VMLINUX_SYMBOL(__start___ksymtab) = .;					\
+		*(SORT(___ksymtab+*))							\
+		VMLINUX_SYMBOL(__stop___ksymtab) = .;					\
+	}										\
+											\
+	/* Kernel symbol table: GPL-only symbols */					\
+	__ksymtab_gpl     : AT(ADDR(__ksymtab_gpl) - LOAD_OFFSET) {			\
+		VMLINUX_SYMBOL(__start___ksymtab_gpl) = .;				\
+		*(SORT(___ksymtab_gpl+*))						\
+		VMLINUX_SYMBOL(__stop___ksymtab_gpl) = .;				\
+	}										\
+											\
+	/* Kernel symbol table: Normal unused symbols */				\
+	__ksymtab_unused  : AT(ADDR(__ksymtab_unused) - LOAD_OFFSET) {			\
+		VMLINUX_SYMBOL(__start___ksymtab_unused) = .;				\
+		*(SORT(___ksymtab_unused+*))						\
+		VMLINUX_SYMBOL(__stop___ksymtab_unused) = .;				\
+	}										\
+											\
+	/* Kernel symbol table: GPL-only unused symbols */				\
+	__ksymtab_unused_gpl : AT(ADDR(__ksymtab_unused_gpl) - LOAD_OFFSET) {		\
+		VMLINUX_SYMBOL(__start___ksymtab_unused_gpl) = .;			\
+		*(SORT(___ksymtab_unused_gpl+*))					\
+		VMLINUX_SYMBOL(__stop___ksymtab_unused_gpl) = .;			\
+	}										\
+											\
+	/* Kernel symbol table: GPL-future-only symbols */				\
+	__ksymtab_gpl_future : AT(ADDR(__ksymtab_gpl_future) - LOAD_OFFSET) {		\
+		VMLINUX_SYMBOL(__start___ksymtab_gpl_future) = .;			\
+		*(SORT(___ksymtab_gpl_future+*))					\
+		VMLINUX_SYMBOL(__stop___ksymtab_gpl_future) = .;			\
+	}										\
+											\
+	/* Kernel symbol table: Normal symbols */					\
+	__kcrctab         : AT(ADDR(__kcrctab) - LOAD_OFFSET) {				\
+		VMLINUX_SYMBOL(__start___kcrctab) = .;					\
+		*(SORT(___kcrctab+*))							\
+		VMLINUX_SYMBOL(__stop___kcrctab) = .;					\
+	}										\
+											\
+	/* Kernel symbol table: GPL-only symbols */					\
+	__kcrctab_gpl     : AT(ADDR(__kcrctab_gpl) - LOAD_OFFSET) {			\
+		VMLINUX_SYMBOL(__start___kcrctab_gpl) = .;				\
+		*(SORT(___kcrctab_gpl+*))						\
+		VMLINUX_SYMBOL(__stop___kcrctab_gpl) = .;				\
+	}										\
+											\
+	/* Kernel symbol table: Normal unused symbols */				\
+	__kcrctab_unused  : AT(ADDR(__kcrctab_unused) - LOAD_OFFSET) {			\
+		VMLINUX_SYMBOL(__start___kcrctab_unused) = .;				\
+		*(SORT(___kcrctab_unused+*))						\
+		VMLINUX_SYMBOL(__stop___kcrctab_unused) = .;				\
+	}										\
+											\
+	/* Kernel symbol table: GPL-only unused symbols */				\
+	__kcrctab_unused_gpl : AT(ADDR(__kcrctab_unused_gpl) - LOAD_OFFSET) {		\
+		VMLINUX_SYMBOL(__start___kcrctab_unused_gpl) = .;			\
+		*(SORT(___kcrctab_unused_gpl+*))					\
+		VMLINUX_SYMBOL(__stop___kcrctab_unused_gpl) = .;			\
+	}										\
+											\
+	/* Kernel symbol table: GPL-future-only symbols */				\
+	__kcrctab_gpl_future : AT(ADDR(__kcrctab_gpl_future) - LOAD_OFFSET) {		\
+		VMLINUX_SYMBOL(__start___kcrctab_gpl_future) = .;			\
+		*(SORT(___kcrctab_gpl_future+*))					\
+		VMLINUX_SYMBOL(__stop___kcrctab_gpl_future) = .;			\
+	}										\
+											\
+	/* Kernel symbol table: strings */						\
+   __ksymtab_strings : AT(ADDR(__ksymtab_strings) - LOAD_OFFSET) {			\
+		*(__ksymtab_strings)							\
+	}
+```
+
+由此生成的vmlinux.lds包含如下内容，参见Annex G: vmlinux.lds节:
+
+```
+__ksymtab : AT(ADDR(__ksymtab) - 0xC0000000) { __start___ksymtab = .; *(SORT(___ksymtab+*)) __stop___ksymtab = .; }
+__ksymtab_gpl : AT(ADDR(__ksymtab_gpl) - 0xC0000000) { __start___ksymtab_gpl = .; *(SORT(___ksymtab_gpl+*)) __stop___ksymtab_gpl = .; }
+__ksymtab_unused : AT(ADDR(__ksymtab_unused) - 0xC0000000) { __start___ksymtab_unused = .; *(SORT(___ksymtab_unused+*)) __stop___ksymtab_unused = .; }
+__ksymtab_unused_gpl : AT(ADDR(__ksymtab_unused_gpl) - 0xC0000000) { __start___ksymtab_unused_gpl = .; *(SORT(___ksymtab_unused_gpl+*)) __stop___ksymtab_unused_gpl = .; }
+__ksymtab_gpl_future : AT(ADDR(__ksymtab_gpl_future) - 0xC0000000) { __start___ksymtab_gpl_future = .; *(SORT(___ksymtab_gpl_future+*)) __stop___ksymtab_gpl_future = .; }
+
+__kcrctab : AT(ADDR(__kcrctab) - 0xC0000000) { __start___kcrctab = .; *(SORT(___kcrctab+*)) __stop___kcrctab = .; }
+__kcrctab_gpl : AT(ADDR(__kcrctab_gpl) - 0xC0000000) { __start___kcrctab_gpl = .; *(SORT(___kcrctab_gpl+*)) __stop___kcrctab_gpl = .; }
+__kcrctab_unused : AT(ADDR(__kcrctab_unused) - 0xC0000000) { __start___kcrctab_unused = .; *(SORT(___kcrctab_unused+*)) __stop___kcrctab_unused = .; }
+__kcrctab_unused_gpl : AT(ADDR(__kcrctab_unused_gpl) - 0xC0000000) { __start___kcrctab_unused_gpl = .; *(SORT(___kcrctab_unused_gpl+*)) __stop___kcrctab_unused_gpl = .; }
+__kcrctab_gpl_future : AT(ADDR(__kcrctab_gpl_future) - 0xC0000000) { __start___kcrctab_gpl_future = .; *(SORT(___kcrctab_gpl_future+*)) __stop___kcrctab_gpl_future = .; }
+
+__ksymtab_strings : AT(ADDR(__ksymtab_strings) - 0xC0000000) { *(__ksymtab_strings) }
+```
+
+因而，在链接vmlinux时，使用的链接脚本文件为arch/x86/kernel/vmlinux.lds，故:
+
+```
+段___ksymtab+sym中的符号被移到段__ksymtab中，
+段___ksymtab_gpl+sym中的符号被移到段__ksymtab_gpl中,
+段___ksymtab_gpl_future+sym中的符号被移到段__ksymtab_gpl_future中，
+段___ksymtab_unused+sym中的符号被移到段__ksymtab_unused中，
+段___ksymtab_unused_gpl+sym中的符号被移到段__ksymtab_unused_gpl中
+```
+
+```
+段___kcrctab+sym中的符号被移到段__kcrctab中，
+段___kcrctab_gpl+sym中的符号被移到段__kcrctab_gpl中,
+段___kcrctab_gpl_future+sym中的符号被移到段__kcrctab_gpl_future中，
+段___kcrctab_unused+sym中的符号被移到段__kcrctab_unused中，
+段___kcrctab_unused_gpl+sym中的符号被移到段__kcrctab_unused_gpl中
+```
+
+```
+段___ksymtab_strings中的符号被移到段__ksymtab_strings中
+```
+
+2) 将模块编译成独立模块的情况
+
+在链接*.ko时，使用的链接脚本文件为scripts/module-common.lds，参见3.4.3.4.2.3 $(modules)节和Annex H: scripts/module-common.lds节。故:
+
+```
+段___ksymtab+sym中的符号被移到段__ksymtab中，
+段___ksymtab_gpl+sym中的符号被移到段__ksymtab_gpl中,
+段___ksymtab_gpl_future+sym中的符号被移到段__ksymtab_gpl_future中，
+段___ksymtab_unused+sym中的符号被移到段__ksymtab_unused中，
+段___ksymtab_unused_gpl+sym中的符号被移到段__ksymtab_unused_gpl中
+```
+
+```
+段___kcrctab+sym中的符号被移到段__kcrctab中。同理，
+段___kcrctab_gpl+sym中的符号被移到段__kcrctab_gpl中,
+段___kcrctab_gpl_future+sym中的符号被移到段__kcrctab_gpl_future中，
+段___kcrctab_unused+sym中的符号被移到段__kcrctab_unused中，
+段___kcrctab_unused_gpl+sym中的符号被移到段__kcrctab_unused_gpl中
+```
+
+```
+段___ksymtab_strings中的符号被移到段__ksymtab_strings中
+```
+
+此后，这些段中的符号被如下函数使用:
+
+```
+load_module()				// 参见13.5.1.2.1 load_module()节
+-> find_module_sections()		// 参见13.5.1.2.1.1 find_module_sections()节
+```
+
+Exported symbols的作用范围，参见13.4.2.0 Scope of Kernel symbols节。
+
+#### 13.1.2.4 \__init/\__initdata, \__exit/\__exitdata
+
+The ```__init``` macro causes the init function to be discarded and its memory freed once the init function finishes for built−in drivers, but not loadable modules. If you think about when the init function is invoked, this makes perfect sense. There is also an ```__initdata``` which works similarly to ```__init``` but for init variables rather than functions.
+
+The ```__exit``` macro causes the omission of the function when the module is built into the kernel, and like ```__init```, has no effect for loadable modules. Again, if you consider when the cleanup function runs, this makes complete sense; built−in drivers don't need a cleanup function, while loadable modules do.
+
+Those macros are defined in include/linux/init.h:
+
+```
+/*
+ * 对如下段的链接，参见Annex G: vmlinux.lds节:
+ * .init.text, init.data, .exit.text, .exit.data
+ */
+
+#define __init			__section(.init.text) __cold notrace
+#define __initdata		__section(.init.data)
+
+#define __exit			__section(.exit.text) __exitused __cold notrace
+#define __exitdata		__section(.exit.data)
+```
+
+**NOTE1**: If your module does not define a cleanup function, the kernel does not allow it to be unloaded.
+
+**NOTE2**: Does my module even need an exit routine?
+
+What if there's absolutely no cleanup required when your module is unloaded? Can you just not define an exit routine at all? Well, sort of. The problem is that, once you load that module, you can't unload it anymore. 
+
+The reasoning behind this is (apparently) that if you don't define an exit routine for your module, the kernel simply can't trust your module to simply exit and not leave a mess behind. So if you don't define an exit routine, you're not allowed to leave. It's as simple as that. 
+
+If you load module which without exit routine, you have only two options to get rid of that module. You can either reboot the system, or you can use rmmod -f (for "force"), but only if your kernel has been configured to allow forced module unloading.
+
+**NOTE3**: Technically speaking, the ```__init``` and ```__exit``` are not essential, they exist simply for the sake of efficiency.
+
+The ```__init``` qualifier is the simpler of the two; it identifies any routine that can be discarded once the module has loaded, which makes perfect sense since, once a module's initialization code has executed, it has no further value and it can be thrown away, and that's why you should see that qualifier on every module entry routine you ever run across -- so that entry code doesn't just hang around in kernel memory, wasting space. And as for the ```__exit``` qualifier? Well, that one's a bit trickier.
+
+Clearly, it can't also possibly represent code that can be discarded after loading; after all, it's the exit code so it needs to stick around until unloading. But there are two situations where the exit code can be discarded, and both of those situations represent cases where you know for a fact that that exit code will never, ever, ever be called.
+
+The first case is when you've simply configured a kernel that doesn't support module unloading. Unusual, yes, but if you pop back into the kernel configuration menu, you do have the right to build a kernel that allows module loading but doesn't allow module unloading. Admittedly, that's a strange situation but, technically, it can be done and, if that's the case, then there's no possibility of that module ever being unloaded and, therefore, the exit code is superfluous.
+
+The second case is if you eventually add your module code into the kernel source tree and add configuration information for it. If you then choose to add that feature to your kernel as a loadable module, then the exit code has to stay. On the other hand, if you choose to build that feature directly into the kernel, then it's not a loadable module anymore and the exit code will again never have a chance of executing.
+
+And one more point. It's possible to have more than one routine in a source file tagged with either ```__init``` or ```__exit```, if either your entry or exit routines call other routines for modularity. There's no reason for all your entry or exit code to exist in a single routine -- you're certainly welcome to break all that functionality over multiple functions if it makes your code more readable. 
+
+### 13.1.3 模块参数
+
+The Linux kernel provides a simple framework, enabling drivers to declare parameters that the user can specify on either boot or module load and then have these parameters exposed in your driver as global variables.
+
+**NOTE1**: All new module parameters should be documented with ```MODULE_PARM_DESC()```, see 13.1.2.1 MODULE_INFO()/__MODULE_INFO():
+
+```
+MODULE_PARM_DESC(mod_parm_name, "description string of specific module parameter");
+```
+
+**NOTE2**: All module parameters should be given a default value; insmod changes the value only if explicitly told to by the user.
+
+#### 13.1.3.1 与模块参数有关的宏
+
+##### 13.1.3.1.0 MODULE_PARAM_PREFIX
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/*
+ * You can override this manually, but generally this should match
+ * the module name.
+ */
+#ifdef MODULE
+
+#define MODULE_PARAM_PREFIX		/* empty */
+
+#else
+
+/* KBUILD_MODNAME的定义参见scripts/Makefile.lib */
+#define MODULE_PARAM_PREFIX		KBUILD_MODNAME "."
+
+#endif
+```
+
+可按如下方式定义自己所需的MODULE_PARAM_PREFIX，参见block/genhd.c：
+
+```
+#undef MODULE_PARAM_PREFIX 
+#define MODULE_PARAM_PREFIX		"block."
+```
+
+以helloworld.ko为例，若将MODULE_PARAM_PREFIX设置为"helloworld."，则参数名变为：
+
+```
+chenwx@chenwx ~ $ ll /sys/module/helloworld/parameters/ 
+-r--r--r-- 1 root root 4.0K Jul 26 22:17 helloworld.isSayHello 
+
+chenwx@chenwx ~ $ cat /sys/module/helloworld/parameters/helloworld.isSayHello 
+0 
+```
+
+##### 13.1.3.1.1 module_param_cb()/\__module_param_call()
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/* Obsolete - use module_param_cb() */
+#define module_param_call(name, set, get, arg, perm)						\
+	static struct kernel_param_ops __param_ops_##name = { (void *)set, (void *)get };	\
+	__module_param_call(MODULE_PARAM_PREFIX, name, &__param_ops_##name, arg,		\
+			__same_type(arg, bool *), (perm) + sizeof(__check_old_set_param(set))*0)
+
+/**
+ * module_param_cb - general callback for a module/cmdline parameter
+ * @name: a valid C identifier which is the parameter name.
+ * @ops: the set & get operations for this parameter.
+ * @perm: visibility in sysfs.
+ *
+ * The ops can have NULL set or get functions.
+ */
+#define module_param_cb(name, ops, arg, perm)							\
+	__module_param_call(MODULE_PARAM_PREFIX, name, ops, arg,				\
+			 __same_type((arg), bool *), perm)
+
+/*
+ * This is the fundamental function for registering boot/module parameters.
+ * 在__param段中添加类型为struct kernel_param的元素，且这些元素可通过数组
+ * [__start___param, __stop___param]来访问，参见函数param_sysfs_builtin()；
+ * 当加载内核模块时，该段中的元素被函数load_module()->find_module_sections()访问，
+ * 参见13.1.3.3.1 模块加载时对模块参数的处理节
+ */
+#define __module_param_call(prefix, name, ops, arg, isbool, perm)				\
+	/* Default value instead of permissions? */						\
+	static int __param_perm_check_##name __attribute__((unused)) =				\
+	BUILD_BUG_ON_ZERO((perm) < 0 || (perm) > 0777 || ((perm) & 2))				\
+	+ BUILD_BUG_ON_ZERO(sizeof(""prefix) > MAX_PARAM_PREFIX_LEN);				\
+												\
+	static const char __param_str_##name[] = prefix #name;					\
+												\
+	static struct kernel_param __moduleparam_const __param_##name				\
+	__used __attribute__((unused,__section__ ("__param"),aligned(sizeof(void *))))		\
+	= { __param_str_##name, ops, perm, isbool ? KPARAM_ISBOOL : 0, { arg } }
+```
+
+参见下图：
+
+![module_param_cb.jpg](/assets/module_param_cb.jpg)
+
+##### 13.1.3.1.2 __MODULE_PARM_TYPE()
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/*
+ * 在.modinfo段中添加字符串"parmtype=name:_type"，其中，
+ * 宏__MODULE_INFO()参见13.1.2.1 MODULE_INFO()/__MODULE_INFO()节
+ */
+#define __MODULE_PARM_TYPE(name, _type)	\
+		__MODULE_INFO(parmtype, name##type, #name ":" _type)
+```
+
+##### 13.1.3.1.3 module_param()/module_param_named()
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/**
+ * module_param - typesafe helper for a module/cmdline parameter
+ * @name: the variable to alter, and exposed parameter name.
+ * @type: the type of the parameter
+ * @perm: visibility in sysfs.
+ *
+ * @name becomes the module parameter, or (prefixed by KBUILD_MODNAME and a
+ * ".") the kernel commandline parameter.  Note that - is changed to _, so
+ * the user can use "foo-bar=1" even for variable "foo_bar".
+ *
+ * @perm is 0 if the the variable is not to appear in sysfs, or 0444
+ * for world-readable, 0644 for root-writable, etc.  Note that if it
+ * is writable, you may need to use kparam_block_sysfs_write() around
+ * accesses (esp. charp, which can be kfreed when it changes).
+ * See 13.1.3.3.1 模块加载时对模块参数的处理.
+ *
+ * The @type is simply pasted to refer to a param_ops_##type and a
+ * param_check_##type: for convenience many standard types are provided but
+ * you can create your own by defining those variables.
+ *
+ * Standard types are:
+ *	byte, short, ushort, int, uint, long, ulong
+ *	charp: a character pointer
+ *	bool: a bool, values 0/1, y/n, Y/N.
+ *	invbool: the above, only sense-reversed (N = true).
+ */
+#define module_param(name, type, perm)						\
+		module_param_named(name, name, type, perm)
+
+/**
+ * module_param_named - typesafe helper for a renamed module/cmdline parameter
+ * @name: a valid C identifier which is the parameter name.
+ * @value: the actual lvalue to alter.
+ * @type: the type of the parameter
+ * @perm: visibility in sysfs.
+ *
+ * Usually it's a good idea to have variable names and user-exposed names the
+ * same, but that's harder if the variable must be non-static or is inside a
+ * structure.  This allows exposure under a different name.
+ */
+#define module_param_named(name, value, type, perm)				\
+		param_check_##type(name, &(value));				\
+		module_param_cb(name, &param_ops_##type, &value, perm);		\
+		__MODULE_PARM_TYPE(name, #type)
+```
+
+分别参见如下示意图：
+
+![module_param](/assets/module_param.jpg)
+
+![module_param_named](/assets/module_param_named.jpg)
+
+宏```module_param(name, type, perm)```中入参type所对应的ops如下：
+
+|  type   | ops  | Reference |
+| :------ | :--- | :-------- |
+| byte    | param_ops_byte    | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| short   | param_ops_short   | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| ushort  | param_ops_ushort  | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| int     | param_ops_int     | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| uint    | param_ops_uint    | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| long    | param_ops_long    | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| ulong   | param_ops_ulong   | 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name |
+| charp   | param_ops_charp   | 13.1.3.1.3.2 param_ops_charp |
+| bool    | param_ops_bool    | 13.1.3.1.3.3 param_ops_bool |
+| invbool | param_ops_invbool | 13.1.3.1.3.4 param_ops_invbool |
+
+<p/>
+
+###### 13.1.3.1.3.1 STANDARD_PARAM_DEF(name, ..)定义的param_ops_name
+
+类型byte, short, ushort, int, uint, long, ulong所对应的ops是由宏STANDARD_PARAM_DEF()定义的，参见kernel/params.c:
+
+```
+#define STANDARD_PARAM_DEF(name, type, format, tmptype, strtolfn)      		\ 
+	int param_set_##name(const char *val, const struct kernel_param *kp) 	\ 
+	{									\
+		tmptype l;							\
+		int ret;							\
+										\
+		ret = strtolfn(val, 0, &l);					\
+		if (ret < 0 || ((type)l != l))					\
+			return ret < 0 ? ret : -EINVAL;				\
+		*((type *)kp->arg) = l;						\
+		return 0;							\
+	}									\
+	int param_get_##name(char *buffer, const struct kernel_param *kp) 	\
+	{									\
+		return sprintf(buffer, format, *((type *)kp->arg));		\
+	}									\
+	struct kernel_param_ops param_ops_##name = {				\
+		.set = param_set_##name,					\
+		.get = param_get_##name,					\
+	};									\
+	EXPORT_SYMBOL(param_set_##name);					\
+	EXPORT_SYMBOL(param_get_##name);					\
+	EXPORT_SYMBOL(param_ops_##name)
+
+STANDARD_PARAM_DEF(byte, unsigned char, "%c", unsigned long, strict_strtoul);
+STANDARD_PARAM_DEF(short, short, "%hi", long, strict_strtol);
+STANDARD_PARAM_DEF(ushort, unsigned short, "%hu", unsigned long, strict_strtoul);
+STANDARD_PARAM_DEF(int, int, "%i", long, strict_strtol);
+STANDARD_PARAM_DEF(uint, unsigned int, "%u", unsigned long, strict_strtoul);
+STANDARD_PARAM_DEF(long, long, "%li", long, strict_strtol);
+STANDARD_PARAM_DEF(ulong, unsigned long, "%lu", unsigned long, strict_strtoul);
+```
+
+###### 13.1.3.1.3.2 param_ops_charp
+
+类型charp所对应的ops定义于kernel/params.c:
+
+```
+int param_set_charp(const char *val, const struct kernel_param *kp) 
+{ 
+	if (strlen(val) > 1024) { 
+		printk(KERN_ERR "%s: string parameter too long\n", 
+		       kp->name); 
+		return -ENOSPC; 
+	} 
+
+	maybe_kfree_parameter(*(char **)kp->arg); 
+
+	/* This is a hack.  We can't kmalloc in early boot, and we 
+	 * don't need to; this mangled commandline is preserved. */ 
+	if (slab_is_available()) { 
+		*(char **)kp->arg = kmalloc_parameter(strlen(val)+1); 
+		if (!*(char **)kp->arg) 
+			return -ENOMEM; 
+		strcpy(*(char **)kp->arg, val); 
+	} else 
+		*(const char **)kp->arg = val; 
+
+	return 0; 
+} 
+EXPORT_SYMBOL(param_set_charp); 
+
+int param_get_charp(char *buffer, const struct kernel_param *kp) 
+{ 
+	return sprintf(buffer, "%s", *((char **)kp->arg)); 
+} 
+EXPORT_SYMBOL(param_get_charp); 
+
+static void param_free_charp(void *arg) 
+{ 
+	maybe_kfree_parameter(*((char **)arg)); 
+} 
+
+struct kernel_param_ops param_ops_charp = { 
+	.set	= param_set_charp, 
+	.get	= param_get_charp, 
+	.free	= param_free_charp, 
+}; 
+EXPORT_SYMBOL(param_ops_charp);
+```
+
+###### 13.1.3.1.3.3 param_ops_bool
+
+类型bool所对应的ops定义于kernel/params.c:
+
+```
+/* Actually could be a bool or an int, for historical reasons. */ 
+int param_set_bool(const char *val, const struct kernel_param *kp) 
+{ 
+	bool v; 
+	int ret; 
+
+	/* No equals means "set"... */ 
+	if (!val) val = "1"; 
+
+	/* One of =[yYnN01] */ 
+	ret = strtobool(val, &v); 
+	if (ret) 
+		return ret; 
+
+	if (kp->flags & KPARAM_ISBOOL) 
+		*(bool *)kp->arg = v; 
+	else 
+		*(int *)kp->arg = v; 
+	return 0; 
+} 
+EXPORT_SYMBOL(param_set_bool); 
+
+int param_get_bool(char *buffer, const struct kernel_param *kp) 
+{ 
+	bool val; 
+	if (kp->flags & KPARAM_ISBOOL) 
+		val = *(bool *)kp->arg; 
+	else 
+		val = *(int *)kp->arg; 
+
+	/* Y and N chosen as being relatively non-coder friendly */ 
+	return sprintf(buffer, "%c", val ? 'Y' : 'N'); 
+} 
+EXPORT_SYMBOL(param_get_bool); 
+
+struct kernel_param_ops param_ops_bool = { 
+	.set = param_set_bool, 
+	.get = param_get_bool, 
+}; 
+EXPORT_SYMBOL(param_ops_bool);
+```
+
+###### 13.1.3.1.3.4 param_ops_invbool
+
+类型invbool所对应的ops定义于kernel/params.c:
+
+```
+/* This one must be bool. */ 
+int param_set_invbool(const char *val, const struct kernel_param *kp) 
+{ 
+	int ret; 
+	bool boolval; 
+	struct kernel_param dummy; 
+
+	dummy.arg = &boolval; 
+	dummy.flags = KPARAM_ISBOOL; 
+	ret = param_set_bool(val, &dummy); 
+	if (ret == 0) 
+		*(bool *)kp->arg = !boolval; 
+	return ret; 
+} 
+EXPORT_SYMBOL(param_set_invbool); 
+
+int param_get_invbool(char *buffer, const struct kernel_param *kp) 
+{ 
+	return sprintf(buffer, "%c", (*(bool *)kp->arg) ? 'N' : 'Y'); 
+} 
+EXPORT_SYMBOL(param_get_invbool); 
+
+struct kernel_param_ops param_ops_invbool = { 
+	.set = param_set_invbool, 
+	.get = param_get_invbool, 
+}; 
+EXPORT_SYMBOL(param_ops_invbool);
+```
+
+##### 13.1.3.1.4 module_param_string()
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/**
+ * module_param_string - a char array parameter
+ * @name: the name of the parameter
+ * @string: the string variable
+ * @len: the maximum length of the string, incl. terminator
+ * @perm: visibility in sysfs.
+ *
+ * This actually copies the string when it's set (unlike type charp).
+ * @len is usually just sizeof(string).
+ */
+#define module_param_string(name, string, len, perm)					\
+	static const struct kparam_string __param_string_##name = { len, string };	\
+	__module_param_call(MODULE_PARAM_PREFIX, name, &param_ops_string,		\
+					.str = &__param_string_##name, 0, perm);	\
+					__MODULE_PARM_TYPE(name, "string")
+```
+
+参见下图：
+
+![module_param_string](/assets/module_param_string.jpg)
+
+###### 13.1.3.1.4.1 param_ops_string
+
+类型string所对应的ops定义于kernel/params.c:
+
+```
+int param_set_copystring(const char *val, const struct kernel_param *kp) 
+{ 
+	const struct kparam_string *kps = kp->str; 
+
+	if (strlen(val)+1 > kps->maxlen) { 
+		printk(KERN_ERR "%s: string doesn't fit in %u chars.\n", 
+		       kp->name, kps->maxlen-1); 
+		return -ENOSPC; 
+	} 
+	strcpy(kps->string, val); 
+	return 0; 
+}
+EXPORT_SYMBOL(param_set_copystring); 
+
+int param_get_string(char *buffer, const struct kernel_param *kp) 
+{ 
+	const struct kparam_string *kps = kp->str; 
+	return strlcpy(buffer, kps->string, kps->maxlen); 
+} 
+EXPORT_SYMBOL(param_get_string); 
+
+struct kernel_param_ops param_ops_string = { 
+	.set = param_set_copystring, 
+	.get = param_get_string, 
+}; 
+EXPORT_SYMBOL(param_ops_string);
+```
+
+##### 13.1.3.1.5 module_param_array()/module_param_array_named()
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/**
+ * module_param_array - a parameter which is an array of some type
+ * @name: the name of the array variable
+ * @type: the type, as per module_param()
+ * @nump: optional pointer filled in with the number written
+ * @perm: visibility in sysfs
+ *
+ * Input and output are as comma-separated values.  Commas inside values
+ * don't work properly (eg. an array of charp).
+ *
+ * ARRAY_SIZE(@name) is used to determine the number of elements in the
+ * array, so the definition must be visible.
+ */
+#define module_param_array(name, type, nump, perm)			\
+		module_param_array_named(name, name, type, nump, perm)
+
+/**
+ * module_param_array_named - renamed parameter which is an array of some type
+ * @name: a valid C identifier which is the parameter name
+ * @array: the name of the array variable
+ * @type: the type, as per module_param()
+ * @nump: optional pointer filled in with the number written
+ * @perm: visibility in sysfs
+ *
+ * This exposes a different name than the actual variable name.  See
+ * module_param_named() for why this might be necessary.
+ */
+#define module_param_array_named(name, array, type, nump, perm)		\
+	static const struct kparam_array __param_arr_##name = {		\
+		.max = ARRAY_SIZE(array),				\
+		.num = nump,						\
+		.ops = &param_ops_##type,				\
+		.elemsize = sizeof(array[0]),				\
+		.elem = array						\
+	};								\
+	__module_param_call(MODULE_PARAM_PREFIX, name,			\
+		&param_array_ops, .arr = &__param_arr_##name,		\
+		__same_type(array[0], bool), perm);			\
+		__MODULE_PARM_TYPE(name, "array of " #type)
+```
+
+参见下图：
+
+![module_param_array](/assets/module_param_array.jpg)
+
+![module_param_array_named](/assets/module_param_array_named.jpg)
+
+###### 13.1.3.1.5.1 param_array_ops
+
+类型array所对应的ops定义于kernel/params.c:
+
+```
+/* We break the rule and mangle the string. */ 
+static int param_array(const char *name, const char *val, unsigned int min,
+		       unsigned int max, void *elem, int elemsize, 
+		       int (*set)(const char *, const struct kernel_param *kp), 
+		       u16 flags, unsigned int *num) 
+{ 
+	int ret; 
+	struct kernel_param kp; 
+	char save; 
+
+	/* Get the name right for errors. */ 
+	kp.name = name; 
+	kp.arg = elem; 
+	kp.flags = flags; 
+
+	*num = 0; 
+	/* We expect a comma-separated list of values. */ 
+	do { 
+		int len; 
+
+		if (*num == max) { 
+			printk(KERN_ERR "%s: can only take %i arguments\n", 
+			       name, max); 
+			return -EINVAL; 
+		} 
+		len = strcspn(val, ","); 
+
+		/* nul-terminate and parse */ 
+		save = val[len]; 
+		((char *)val)[len] = '\0'; 
+		BUG_ON(!mutex_is_locked(&param_lock)); 
+		ret = set(val, &kp); 
+
+		if (ret != 0) 
+			return ret; 
+		kp.arg += elemsize; 
+		val += len+1; 
+		(*num)++; 
+	} while (save == ','); 
+
+	if (*num < min) { 
+		printk(KERN_ERR "%s: needs at least %i arguments\n", 
+		       name, min); 
+		return -EINVAL; 
+	} 
+	return 0; 
+} 
+
+static int param_array_set(const char *val, const struct kernel_param *kp) 
+{ 
+	const struct kparam_array *arr = kp->arr; 
+	unsigned int temp_num; 
+
+	return param_array(kp->name, val, 1, arr->max, arr->elem, 
+			   arr->elemsize, arr->ops->set, kp->flags, 
+			   arr->num ?: &temp_num); 
+} 
+
+static int param_array_get(char *buffer, const struct kernel_param *kp) 
+{ 
+	int i, off, ret; 
+	const struct kparam_array *arr = kp->arr; 
+	struct kernel_param p; 
+
+	p = *kp; 
+	for (i = off = 0; i < (arr->num ? *arr->num : arr->max); i++) { 
+		if (i) 
+			buffer[off++] = ','; 
+		p.arg = arr->elem + arr->elemsize * i; 
+		BUG_ON(!mutex_is_locked(&param_lock)); 
+		ret = arr->ops->get(buffer + off, &p); 
+		if (ret < 0) 
+			return ret; 
+		off += ret; 
+	} 
+	buffer[off] = '\0'; 
+	return off; 
+} 
+
+static void param_array_free(void *arg) 
+{ 
+	unsigned int i; 
+	const struct kparam_array *arr = arg; 
+
+	if (arr->ops->free) 
+		for (i = 0; i < (arr->num ? *arr->num : arr->max); i++) 
+			arr->ops->free(arr->elem + arr->elemsize * i); 
+} 
+
+struct kernel_param_ops param_array_ops = { 
+	.set	= param_array_set, 
+	.get	= param_array_get, 
+	.free	= param_array_free, 
+}; 
+EXPORT_SYMBOL(param_array_ops);
+```
+
+##### 13.1.3.1.6 core_param()
+
+该宏定义于include/linux/moduleparam.h:
+
+```
+/**
+ * core_param - define a historical core kernel parameter.
+ * @name: the name of the cmdline and sysfs parameter (often the same as var)
+ * @var: the variable
+ * @type: the type of the parameter
+ * @perm: visibility in sysfs
+ *
+ * core_param is just like module_param(), but cannot be modular and
+ * doesn't add a prefix (such as "printk.").  This is for compatibility
+ * with __setup(), and it makes sense as truly core parameters aren't
+ * tied to the particular file they're in.
+ */
+#define core_param(name, var, type, perm)				\
+	param_check_##type(name, &(var));				\
+	__module_param_call("", name, &param_ops_##type,		\
+				    &var, __same_type(var, bool), perm)
+```
+
+**NOTE**: The parameter appears in ```/sys/module/kernel/parameters/```, not ```/sys/module/<module-name>/parameters/```.
+
+##### 13.1.3.1.7 Define specific type for module parameter
+
+If you really need a type that does not appear in the list of above sections, there are hooks in the module code that allow you to define them; see moduleparam.h for details on how to do that.
+
+首先，定义如下宏，新类型为myType:
+
+```
+#define module_param_myType(name, myType, perm)				\ 
+	module_param_named_myType(name, name, myType, perm) 
+
+#define module_param_named_myType(name, value, myType, perm)		\
+	param_check_##myType(name, &(value));				\
+	module_param_cb(name, &param_ops_##myType, &value, perm);	\
+	__MODULE_PARM_TYPE(name, #myType) 
+```
+
+然后，定义如下宏或者函数：
+
+* ```param_check_myType(name, p)```，可参考```param_check_byte(name, p)```的定义；
+* 函数指针param_ops_myType中的```set()```, ```get()```, ```free()```等函数，参见13.1.3.1.1 module_param_cb()/__module_param_call()节。
+
+#### 13.1.3.2 系统启动过程时对.init.setup段模块参数的处理
+
+在系统启动过程中，处理由```early_param()```和```__setup()```定义在.init.setup段中的模块参数，参见4.3.4.1.4.3.3.2 注册内核参数的处理函数节，其函数调用关系如下：
+
+```
+start_kernel()
+-> parse_early_param()				// 参见4.3.4.1.4.3.3.3.1 parse_early_param()节
+   -> parse_early_options()
+      -> parse_args(.., do_early_param)		// 参见4.3.4.1.4.3.3.3.2 parse_args()节
+         -> do_early_param()
+            -> p->setup_func(val)		// (1) 处理由宏early_param()定义的模块参数
+-> parse_args("Booting kernel", static_command_line, __start___param,
+              __stop___param - __start___param, &unknown_bootoption)
+   -> unknown_bootoption()
+      -> obsolete_checksetup()
+         -> if (p->early) {
+                ...
+            } else if (!p->setup_func) {
+                ...
+            } else if (p->setup_func(line + n))	// (2) 处理由宏__setup()定义的模块参数
+                ...
+-> rest_init()
+   -> kernel_init()
+      -> do_pre_smp_initcalls()
+         -> do_one_initcall()			// init functions in [__initcall_start, __early_initcall_end)
+            -> fn()
+      -> do_basic_setup()
+         -> do_initcalls()
+            -> do_one_initcall()		// init functions in [__early_initcall_end, __initcall_end)
+               -> fn()				// (3) method param_sysfs_init() is called here!
+
+/*
+ * The method param_sysfs_init() is in section .initcall4.init,
+ * which is located in [__early_initcall_end, __initcall_end).
+ */
+param_sysfs_init()
+-> module_kset = kset_create_and_add("module", &module_uevent_ops, NULL)
+-> module_sysfs_initialized = 1;
+-> version_sysfs_builtin()
+-> param_sysfs_builtin()
+```
+
+参见下图：
+
+![setup_early_param](/assets/setup_early_param.jpg)
+
+#### 13.1.3.3 编译成模块时对模块参数的处理
+
+##### 13.1.3.3.1 模块加载时对模块参数的处理
+
+使用下列命令获取指定模块的模块参数：
+
+```
+# modinfo <module-name> | grep parm:
+```
+
+在加载模块时，使用下列命令为模块参数赋值：
+
+```
+# insmod <module-name> <param-name>=<param-value>
+```
+
+在加载模块时，由下列函数调用处理模块参数：
+
+```
+load_module()								// 参见13.5.1.2.1 load_module()节
+-> find_module_sections(mod, &info)
+   /*
+    * 获取该模块中定义的所有模块参数，参见13.1.3.1.1 module_param_cb()/__module_param_call()节
+    */
+   -> mod->kp = section_objs(info, "__param", sizeof(*mod->kp), &mod->num_kp);
+-> mod->args = strndup_user(uargs, ~0UL >> 1)				// 获取加载模块时传入的模块参数
+-> parse_args(mod->name, mod->args, mod->kp, mod->num_kp, NULL)
+   -> while (*args) {
+          next_arg(args, &param, &val)
+          parse_one(param, val, params, num, NULL)
+          -> params[i].ops->set(val, &params[i])			// 调用该模块参数对应的set()函数
+      }
+-> mod_sysfs_setup(mod, &info, mod->kp, mod->num_kp)
+   -> mod_sysfs_init(mod)
+      /*
+       * 变量module_kset是/sys/module对应的kset，由函数param_sysfs_init()为之赋值，
+       * 参见13.1.3.2 系统启动过程时对.init.setup段模块参数的处理节
+       */
+      -> kset_find_obj(module_kset, mod->name)
+      /*
+       * 创建目录/sys/module/<module-name>，参见15.7.1.1 kobject_init_and_add()节
+       */
+      -> kobject_init_and_add(&mod->mkobj.kobj, &module_ktype, NULL, "%s", mod->name)
+   /*
+    * 创建目录/sys/module/<module-name>/holders
+    */
+   -> kobject_create_and_add("holders", &mod->mkobj.kobj)
+   -> module_param_sysfs_setup(mod, kparam, num_params)
+      -> for (i = 0; i < num_params; i++) {
+            /*
+             * 设置参数的处理函数，参见13.1.3.3.2 模块加载后对模块参数的处理节
+             */
+            add_sysfs_param(&mod->mkobj, &kparam[i], kparam[i].name)
+            -> sysfs_attr_init(&new->attrs[num].mattr.attr);
+            -> new->attrs[num].param = kp;
+            -> new->attrs[num].mattr.show = param_attr_show;
+            -> new->attrs[num].mattr.store = param_attr_store;
+            -> new->attrs[num].mattr.attr.name = (char *)name;
+            -> new->attrs[num].mattr.attr.mode = kp->perm;
+            -> new->num = num+1;
+         }
+      -> sysfs_create_group()
+   -> module_add_modinfo_attrs(mod)
+      -> mod->modinfo_attrs = kzalloc((sizeof(struct module_attribute) *
+             (ARRAY_SIZE(modinfo_attrs) + 1)), GFP_KERNEL);
+      -> sysfs_attr_init(&temp_attr->attr);
+      -> sysfs_create_file(&mod->mkobj.kobj,&temp_attr->attr);
+   -> add_usage_links(mod)
+      -> sysfs_create_link(use->target->holders_dir, &mod->mkobj.kobj, mod->name);
+   -> add_sect_attrs(mod, info)
+      -> sysfs_create_group(&mod->mkobj.kobj, &sect_attrs->grp)
+   -> add_notes_attrs(mod, info)
+      -> kobject_create_and_add("notes", &mod->mkobj.kobj)
+      -> sysfs_create_bin_file(notes_attrs->dir, &notes_attrs->attrs[i])
+   -> kobject_uevent(&mod->mkobj.kobj, KOBJ_ADD)
+```
+
+##### 13.1.3.3.2 模块加载后对模块参数的处理
+
+对于已加载到内核的模块，其模块参数会列举在```/sys/module/<module-name>/parameters/```目录下，若拥有相应权限，则可使用下列命令显示/修改指定的模块参数：
+
+```
+# ls -l /sys/module/<module-name>/parameters/<parm-name>
+# cat /sys/module/<module-name>/parameters/<parm-name>
+# echo -n <new-module-value> > /sys/module/<module-name>/parameters/<parm-name>
+```
+
+sysfs文件系统最终调用如下函数显示/修改模块参数，参见13.1.3.3.1 模块加载时对模块参数的处理节:
+
+```
+param_attr_show()
+-> attribute->param->ops->get(buf, attribute->param)
+
+param_attr_store()
+-> attribute->param->ops->set(buf, attribute->param)
+```
+
+##### 13.1.3.3.3 模块卸载时对模块参数的处理
+
+在卸载模块时，调用模块参数对应的free函数来释放模块参数:
+
+```
+delete_module() 					// 参见13.5.1.3 rmmod调用sys_delete_module()节
+-> free_module(mod) 
+   -> mod_sysfs_teardown(mod) 
+   -> destroy_params(mod->kp, mod->num_kp) 
+      -> for (i = 0; i < num; i++)
+             if (params[i].ops->free)
+                 params[i].ops->free(params[i].arg);
+```
+
+由13.1.3.1.3 module_param()/module_param_named()节至13.1.3.1.5 module_param_array()/module_param_array_named()节可知，宏```module_param(.., charp, ..)```和```module_param_array()```定义的模块参数有```param[i].ops->free()```函数。
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

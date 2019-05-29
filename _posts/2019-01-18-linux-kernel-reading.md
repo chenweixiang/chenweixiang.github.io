@@ -72492,6 +72492,1236 @@ void rb_augment_erase_end(struct rb_node *node, rb_augment_f func, void *data)
 }
 ```
 
+## 15.7 kobject
+
+The core concept of kobject is relatively simple: kobjects can be used to (1) maintain a reference count for an object and clean up when the object is no longer used, and (2) create a hierarchical data structure through kset membership.
+
+kobject是组成设备模型的基本结构，一个kset是嵌入相同类型结构的kobject集合，一系列的kset就组成了subsystem。
+
+该结构定义于include/linux/kobject.h:
+
+```
+struct kobject {
+	// 指向设备名称的指针
+	const char		*name;
+
+	// 链接到以struct kset->list为链表头的链表中
+	struct list_head	entry;
+
+	// 父节点
+	struct kobject		*parent;
+
+	/*
+	 * A kset is a group of kobjects all of which are embedded
+	 * in structures of the same type. It's the basic container
+	 * type for collections of kobjects. Ksets contain their own
+	 * kobjects, for what it's worth. Among other things, that
+	 * means that a kobject's parent is usually the kset that
+	 * contains it, though things don't normally have to be that way. 
+	 */
+	struct kset		*kset;
+
+	/*
+	 * ktype controls what happens when a kobject is no longer
+	 * referenced and the kobject's default representation in sysfs.
+	 */
+	struct kobj_type	*ktype;
+
+	// 本kobject在sysfs文件系统中的节点
+	struct sysfs_dirent	*sd;
+
+	/*
+	 * 标识本kobject的引用计数。通过kobject_get()和kobject_put()来
+	 * 增加和减少该引用计数。当引用计数为0时，所有该对象使用的资源将被释放
+	 */
+	struct kref		kref;
+
+	// 标志位
+	unsigned int state_initialized:1;
+	unsigned int state_in_sysfs:1;
+	unsigned int state_add_uevent_sent:1;
+	unsigned int state_remove_uevent_sent:1;
+	unsigned int uevent_suppress:1;
+};
+
+struct kobj_type {
+	// 用于释放本kobject占用的资源
+	void (*release)(struct kobject *kobj);
+
+	/*
+	 * control how objects of this type are represented
+	 * in sysfs file system and its default attributes
+	 */
+	const struct sysfs_ops *sysfs_ops;
+	struct attribute **default_attrs;
+
+	const struct kobj_ns_type_operations *(*child_ns_type)(struct kobject *kobj);
+	const void *(*namespace)(struct kobject *kobj);
+};
+```
+
+### 15.7.1 创建并初始化kobject对象
+
+#### 15.7.1.1 kobject_init_and_add()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_init_and_add - initialize a kobject structure and add it to the kobject hierarchy
+ * @kobj: pointer to the kobject to initialize
+ * @ktype: pointer to the ktype for this kobject.
+ * @parent: pointer to the parent of this kobject.
+ * @fmt: the name of the kobject.
+ *
+ * This function combines the call to kobject_init() and
+ * kobject_add().  The same type of error handling after a call to
+ * kobject_add() and kobject lifetime rules are the same here.
+ */
+int kobject_init_and_add(struct kobject *kobj, struct kobj_type *ktype,
+			 struct kobject *parent, const char *fmt, ...)
+{
+	va_list args;
+	int retval;
+
+	// 参见15.7.1.2.1.1 kobject_init()/kobject_init_internal()节
+	kobject_init(kobj, ktype);
+
+	va_start(args, fmt);
+	// 参见15.7.1.2.2.1 kobject_add_varg()节
+	retval = kobject_add_varg(kobj, parent, fmt, args);
+	va_end(args);
+
+	return retval;
+}
+```
+
+#### 15.7.1.2 kobject_create_and_add()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_create_and_add - create a struct kobject dynamically and register it with sysfs
+ *
+ * @name: the name for the kset
+ * @parent: the parent kobject of this kobject, if any.
+ *
+ * This function creates a kobject structure dynamically and registers it
+ * with sysfs.  When you are finished with this structure, call
+ * kobject_put() and the structure will be dynamically freed when
+ * it is no longer being used.
+ *
+ * If the kobject was not able to be created, NULL will be returned.
+ */
+// 示例：kobject_create_and_add("fs", NULL)
+struct kobject *kobject_create_and_add(const char *name, struct kobject *parent)
+{
+	struct kobject *kobj;
+	int retval;
+
+	/*
+	 * 分配并初始化一个struct kobject类型的对象kobj，
+	 * 参见15.7.1.2.1 kobject_create()节
+	 */
+	kobj = kobject_create();
+	if (!kobj)
+		return NULL;
+
+	/*
+	 * 示例：kobject_add(kobj, NULL, "%s", "fs");
+	 * 即在sysfs文件系统的根目录下创建fs目录，而通常sysfs
+	 * 文件系统被安装在/sys目录下，因而此处为/sys/fs目录
+	 * 参见15.7.1.2.2 kobject_add()节
+	 */
+	retval = kobject_add(kobj, parent, "%s", name);
+	if (retval) {
+		printk(KERN_WARNING "%s: kobject_add error: %d\n", __func__, retval);
+		kobject_put(kobj);	// 参见15.7.2.2 kobject_put()节
+		kobj = NULL;
+	}
+	return kobj;
+}
+```
+
+##### 15.7.1.2.1 kobject_create()
+
+该函数定义于lib/kobject.c:
+
+```
+const struct sysfs_ops kobj_sysfs_ops = {
+	.show		= kobj_attr_show,
+	.store		= kobj_attr_store,
+};
+
+static struct kobj_type dynamic_kobj_ktype = {
+	.release	= dynamic_kobj_release,
+	.sysfs_ops	= &kobj_sysfs_ops,
+};
+
+/**
+ * kobject_create - create a struct kobject dynamically
+ *
+ * This function creates a kobject structure dynamically and sets it up
+ * to be a "dynamic" kobject with a default release function set up.
+ *
+ * If the kobject was not able to be created, NULL will be returned.
+ * The kobject structure returned from here must be cleaned up with a
+ * call to kobject_put() and not kfree(), as kobject_init() has
+ * already been called on this structure.
+ */
+struct kobject *kobject_create(void)
+{
+	struct kobject *kobj;
+
+	kobj = kzalloc(sizeof(*kobj), GFP_KERNEL);
+	if (!kobj)
+		return NULL;
+
+	/*
+	 * 参见15.7.1.2.1.1 kobject_init()/kobject_init_internal()节
+	 * 默认的kobj->ktype = &dynamic_kobj_ktype
+	 */
+	kobject_init(kobj, &dynamic_kobj_ktype);
+	return kobj;
+}
+```
+
+###### 15.7.1.2.1.1 kobject_init()/kobject_init_internal()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_init - initialize a kobject structure
+ * @kobj: pointer to the kobject to initialize
+ * @ktype: pointer to the ktype for this kobject.
+ *
+ * This function will properly initialize a kobject such that it can then
+ * be passed to the kobject_add() call.
+ *
+ * After this function is called, the kobject MUST be cleaned up by a call
+ * to kobject_put(), not by a call to kfree directly to ensure that all of
+ * the memory is cleaned up properly.
+ */
+void kobject_init(struct kobject *kobj, struct kobj_type *ktype)
+{
+	char *err_str;
+
+	if (!kobj) {
+		err_str = "invalid kobject pointer!";
+		goto error;
+	}
+	if (!ktype) {
+		err_str = "must have a ktype to be initialized properly!\n";
+		goto error;
+	}
+	if (kobj->state_initialized) {
+		/* do not error out as sometimes we can recover */
+		printk(KERN_ERR "kobject (%p): tried to init an initialized "
+		       "object, something is seriously wrong.\n", kobj);
+		dump_stack();
+	}
+
+	kobject_init_internal(kobj);	// 参见下文
+	kobj->ktype = ktype;		// kobj->ktype = &dynamic_kobj_ktype
+	return;
+
+error:
+	printk(KERN_ERR "kobject (%p): %s\n", kobj, err_str);
+	dump_stack();
+}
+
+static void kobject_init_internal(struct kobject *kobj)
+{
+	if (!kobj)
+		return;
+
+	// 设置引用计数为1
+	kref_init(&kobj->kref);
+
+	INIT_LIST_HEAD(&kobj->entry);
+	kobj->state_in_sysfs = 0;
+	kobj->state_add_uevent_sent = 0;
+	kobj->state_remove_uevent_sent = 0;
+	kobj->state_initialized = 1;
+}
+```
+
+##### 15.7.1.2.2 kobject_add()
+
+该函数定义于lib/kobject.c:
+
+```
+/*
+ * NOTE: An initialized kobject will perform reference counting without trouble,
+ * but it will not appear in sysfs. To create sysfs entries, kernel code must
+ * pass the object to kobject_add(). The function kobject_del() will remove the
+ * kobject from sysfs. 参见15.7.2.2.1.1 kobject_del()节
+ */
+int kobject_add(struct kobject *kobj, struct kobject *parent, const char *fmt, ...)
+{
+	va_list args;
+	int retval;
+
+	if (!kobj)
+		return -EINVAL;
+
+	if (!kobj->state_initialized) {
+		printk(KERN_ERR "kobject '%s' (%p): tried to add an "
+		       "uninitialized object, something is seriously wrong.\n",
+		       kobject_name(kobj), kobj);
+		dump_stack();
+		return -EINVAL;
+	}
+
+	va_start(args, fmt);
+	/*
+	 * 示例：kobject_add_varg(kobj, NULL, "%s", "fs");
+	 * 参见15.7.1.2.2.1 kobject_add_varg()节
+	 */
+	retval = kobject_add_varg(kobj, parent, fmt, args);
+	va_end(args);
+
+	return retval;
+}
+```
+
+###### 15.7.1.2.2.1 kobject_add_varg()
+
+该函数定义于lib/kobject.c:
+
+```
+static int kobject_add_varg(struct kobject *kobj, struct kobject *parent,
+			    const char *fmt, va_list vargs)
+{
+	int retval;
+
+	/*
+	 * 参见15.7.3.2.1 kobject_set_name_vargs节
+	 * 设置kobj->name，示例：kobj->name = "fs"
+	 */
+	retval = kobject_set_name_vargs(kobj, fmt, vargs);
+	if (retval) {
+		printk(KERN_ERR "kobject: can not set name properly!\n");
+		return retval;
+	}
+
+	kobj->parent = parent;
+
+	// 参见15.7.1.2.2.2 kobject_add_internal()节
+	return kobject_add_internal(kobj);
+}
+```
+
+###### 15.7.1.2.2.2 kobject_add_internal()
+
+函数定义于lib/kobject.c:
+
+```
+static int kobject_add_internal(struct kobject *kobj)
+{
+	int error = 0;
+	struct kobject *parent;
+
+	if (!kobj)
+		return -ENOENT;
+
+	if (!kobj->name || !kobj->name[0]) {
+		WARN(1, "kobject: (%p): attempted to be registered with empty name!\n", kobj);
+		return -EINVAL;
+	}
+
+	// 增加父节点引用计数，并返回父节点的kobject引用
+	parent = kobject_get(kobj->parent);
+
+	/* join kset if set, use it as parent if we do not already have one */
+	if (kobj->kset) {
+		/*
+		 * If parent is NULL when kobject_add() is called, kobj->parent
+		 * will be set to the kobject of the containing kset. 
+		 */
+		if (!parent)
+			parent = kobject_get(&kobj->kset->kobj);
+		kobj_kset_join(kobj);
+		kobj->parent = parent;
+	}
+
+	pr_debug("kobject: '%s' (%p): %s: parent: '%s', set: '%s'\n",
+		 kobject_name(kobj), kobj, __func__,
+		 parent ? kobject_name(parent) : "<NULL>",
+		 kobj->kset ? kobject_name(&kobj->kset->kobj) : "<NULL>");
+
+	/*
+	 * 创建kobj对应的目录，参见15.7.1.2.2.2.1 create_dir()/populate_dir()节
+	 * 1) 若目录创建失败，则打印错误信息；
+	 * 2) 若目录创建成功，则标记已经注册到sysfs中
+	 */
+	error = create_dir(kobj);
+	if (error) {
+		kobj_kset_leave(kobj);
+		kobject_put(parent);	// 参见15.7.2.2 kobject_put()节
+		kobj->parent = NULL;
+
+		/* be noisy on error issues */
+		if (error == -EEXIST)
+			printk(KERN_ERR "%s failed for %s with "
+				"-EEXIST, don't try to register things with "
+				"the same name in the same directory.\n",
+				__func__, kobject_name(kobj));
+		else
+			printk(KERN_ERR "%s failed for %s (%d)\n",
+				__func__, kobject_name(kobj), error);
+		dump_stack();
+	} else 
+		kobj->state_in_sysfs = 1;
+
+	return error;
+}
+```
+
+###### 15.7.1.2.2.2.1 create_dir()/populate_dir()
+
+该函数定义于lib/kobject.c:
+
+```
+static int create_dir(struct kobject *kobj)
+{
+	int error = 0;
+
+	/*
+	 * 若kobj->name不为空，则在sysfs文件系统中创建kojbect对应的目录；
+	 * 1) The name of the directory will be the same as the name
+	 *    given to the kobject itself.
+	 * 2) The location within sysfs will reflect the kobject's
+	 *    position in the hierarchy you've created. In short:
+	 *    the kobject's directory will be found in its parent's
+	 * directory, as determined by the kobject's parent field.
+	 * If you have not explicitly set the parent field, but you
+	 * have set its kset pointer, then the kset will become the
+	 * kobject's parent. If there is no parent and no kset, the
+	 * kobject's directory will become a top-level directory
+	 * within sysfs, which is rarely what you really want.
+	 */
+	if (kobject_name(kobj)) {
+		error = sysfs_create_dir(kobj);			// 参见11.3.5.5.1 sysfs_create_dir()节
+		if (!error) {
+			error = populate_dir(kobj);		// 参见下文
+			if (error)
+				sysfs_remove_dir(kobj);
+		}
+	}
+	return error;
+}
+
+/*
+ * populate_dir - populate directory with attributes.
+ * @kobj: object we're working on.
+ *
+ * Most subsystems have a set of default attributes that are associated
+ * with an object that registers with them.  This is a helper called during
+ * object registration that loops through the default attributes of the
+ * subsystem and creates attributes files for them in sysfs.
+ */
+static int populate_dir(struct kobject *kobj)
+{
+	struct kobj_type *t = get_ktype(kobj);
+	struct attribute *attr;
+	int error = 0;
+	int i;
+
+	/*
+	 * The default_attrs describes the attributes that
+	 * all kobjects of this type should have.
+	 */
+	if (t && t->default_attrs) {
+		for (i = 0; (attr = t->default_attrs[i]) != NULL; i++) {
+			// 参见11.3.5.6.2 sysfs_create_file()节
+			error = sysfs_create_file(kobj, attr);	
+			if (error)
+				break;
+		}
+	}
+	return error;
+}
+```
+
+### 15.7.2 kobject的引用计数
+
+#### 15.7.2.1 kobject_get()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_get - increment refcount for object.
+ * @kobj: object.
+ */
+struct kobject *kobject_get(struct kobject *kobj)
+{
+	if (kobj)
+		kref_get(&kobj->kref);
+	return kobj;
+}
+
+/**
+ * kref_get - increment refcount for object.
+ * @kref: object.
+ */
+void kref_get(struct kref *kref)
+{
+	WARN_ON(!atomic_read(&kref->refcount));
+	atomic_inc(&kref->refcount);
+	smp_mb__after_atomic_inc();
+}
+```
+
+#### 15.7.2.2 kobject_put()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_put - decrement refcount for object.
+ * @kobj: object.
+ *
+ * Decrement the refcount, and if 0, call kobject_cleanup().
+ */
+void kobject_put(struct kobject *kobj)
+{
+	if (kobj) {
+		if (!kobj->state_initialized)
+			 WARN(1, KERN_WARNING "kobject: '%s' (%p): is not "
+			      "initialized, yet kobject_put() is being "
+			      "called.\n", kobject_name(kobj), kobj);
+
+		/*
+		 * 函数kobject_release()，
+		 * 参见15.7.2.2.1 kobject_release()节
+		 */
+		kref_put(&kobj->kref, kobject_release);
+	}
+}
+
+/**
+ * kref_put - decrement refcount for object.
+ * @kref: object.
+ * @release: pointer to the function that will clean up the object when the
+ *	     last reference to the object is released.
+ *	     This pointer is required, and it is not acceptable to pass kfree
+ *	     in as this function.
+ *
+ * Decrement the refcount, and if 0, call release().
+ * Return 1 if the object was removed, otherwise return 0.  Beware, if this
+ * function returns 0, you still can not count on the kref from remaining in
+ * memory.  Only use the return value if you want to see if the kref is now
+ * gone, not present.
+ */
+/*
+ * Note that kobject_init() sets the reference count to one, so the code
+ * which sets up the kobject will need to do a kobject_put() eventually
+ * to release that reference.
+ */
+int kref_put(struct kref *kref, void (*release)(struct kref *kref))
+{
+	WARN_ON(release == NULL);
+	WARN_ON(release == (void (*)(struct kref *))kfree);
+
+	if (atomic_dec_and_test(&kref->refcount)) {
+		release(kref);
+		return 1;
+	}
+	return 0;
+}
+```
+
+##### 15.7.2.2.1 kobject_release()
+
+该函数定义于lib/kobject.c:
+
+```
+static void kobject_release(struct kref *kref)
+{
+	kobject_cleanup(container_of(kref, struct kobject, kref));
+}
+
+/*
+ * kobject_cleanup - free kobject resources.
+ * @kobj: object to cleanup
+ */
+static void kobject_cleanup(struct kobject *kobj)
+{
+	struct kobj_type *t = get_ktype(kobj);
+	const char *name = kobj->name;
+
+	pr_debug("kobject: '%s' (%p): %s\n", kobject_name(kobj), kobj, __func__);
+
+	if (t && !t->release)
+		pr_debug("kobject: '%s' (%p): does not have a release() "
+			 "function, it is broken and must be fixed.\n",
+			 kobject_name(kobj), kobj);
+
+	/* send "remove" if the caller did not do it but sent "add" */
+	if (kobj->state_add_uevent_sent && !kobj->state_remove_uevent_sent) {
+		pr_debug("kobject: '%s' (%p): auto cleanup 'remove' event\n",
+			 kobject_name(kobj), kobj);
+		kobject_uevent(kobj, KOBJ_REMOVE);
+	}
+
+	/* remove from sysfs if the caller did not do it */
+	if (kobj->state_in_sysfs) {
+		pr_debug("kobject: '%s' (%p): auto cleanup kobject_del\n",
+			 kobject_name(kobj), kobj);
+		// 参见15.7.2.2.1.1 kobject_del()节
+		kobject_del(kobj);
+	}
+
+	if (t && t->release) {
+		pr_debug("kobject: '%s' (%p): calling ktype release\n",
+			 kobject_name(kobj), kobj);
+		t->release(kobj);
+	}
+
+	/* free name if we allocated it */
+	if (name) {
+		pr_debug("kobject: '%s': free name\n", name);
+		kfree(name);
+	}
+}
+```
+
+###### 15.7.2.2.1.1 kobject_del()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_del - unlink kobject from hierarchy.
+ * @kobj: object.
+ */
+/*
+ * NOTE: An initialized kobject will perform reference counting
+ * without trouble, but it will not appear in sysfs. To create
+ * sysfs entries, kernel code must pass the object to kobject_add().
+ * 参见15.7.1.2.2 kobject_add()节.
+ * The function kobject_del() will remove the kobject from sysfs.
+ */
+void kobject_del(struct kobject *kobj)
+{
+	if (!kobj)
+		return;
+
+	sysfs_remove_dir(kobj);		// 参见11.3.5.5.2 sysfs_remove_dir()节
+	kobj->state_in_sysfs = 0;
+	kobj_kset_leave(kobj);		// remove the kobject from its kset's list
+	kobject_put(kobj->parent);	// 参见15.7.2.2 kobject_put()节
+	kobj->parent = NULL;
+}
+```
+
+### 15.7.3 kobject name
+
+#### 15.7.3.1 kobject_name()
+
+该宏定义于include/linux/kobject.h:
+
+```
+static inline const char *kobject_name(const struct kobject *kobj)
+{
+	return kobj->name;
+}
+```
+
+#### 15.7.3.2 kobject_set_name()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_set_name - Set the name of a kobject
+ * @kobj: struct kobject to set the name of
+ * @fmt: format string used to build the name
+ *
+ * This sets the name of the kobject.  If you have already added the
+ * kobject to the system, you must call kobject_rename() in order to
+ * change the name of the kobject.
+ */
+int kobject_set_name(struct kobject *kobj, const char *fmt, ...)
+{
+	va_list vargs;
+	int retval;
+
+	va_start(vargs, fmt);
+	// 参见15.7.3.2.1 kobject_set_name_vargs节
+	retval = kobject_set_name_vargs(kobj, fmt, vargs);
+	va_end(vargs);
+
+	return retval;
+}
+```
+
+##### 15.7.3.2.1 kobject_set_name_vargs
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_set_name_vargs - Set the name of an kobject
+ * @kobj: struct kobject to set the name of
+ * @fmt: format string used to build the name
+ * @vargs: vargs to format the string.
+ */
+int kobject_set_name_vargs(struct kobject *kobj, const char *fmt, va_list vargs)
+{
+	const char *old_name = kobj->name;
+	char *s;
+
+	if (kobj->name && !fmt)
+		return 0;
+
+	kobj->name = kvasprintf(GFP_KERNEL, fmt, vargs);
+	if (!kobj->name)
+		return -ENOMEM;
+
+	/* ewww... some of these buggers have '/' in the name ... */
+	while ((s = strchr(kobj->name, '/')))
+		s[0] = '!';
+
+	kfree(old_name);
+	return 0;
+}
+```
+
+#### 15.7.3.3 kobject_rename()
+
+该函数定义于lib/kobject.c:
+
+```
+/**
+ * kobject_rename - change the name of an object
+ * @kobj: object in question.
+ * @new_name: object's new name
+ *
+ * It is the responsibility of the caller to provide mutual
+ * exclusion between two different calls of kobject_rename
+ * on the same kobject and to ensure that new_name is valid and
+ * won't conflict with other kobjects.
+ */
+int kobject_rename(struct kobject *kobj, const char *new_name)
+{
+	int error = 0;
+	const char *devpath = NULL;
+	const char *dup_name = NULL, *name;
+	char *devpath_string = NULL;
+	char *envp[2];
+
+	kobj = kobject_get(kobj);
+	if (!kobj)
+		return -EINVAL;
+	if (!kobj->parent)
+		return -EINVAL;
+
+	devpath = kobject_get_path(kobj, GFP_KERNEL);
+	if (!devpath) {
+		error = -ENOMEM;
+		goto out;
+	}
+	devpath_string = kmalloc(strlen(devpath) + 15, GFP_KERNEL);
+	if (!devpath_string) {
+		error = -ENOMEM;
+		goto out;
+	}
+	sprintf(devpath_string, "DEVPATH_OLD=%s", devpath);
+	envp[0] = devpath_string;
+	envp[1] = NULL;
+
+	name = dup_name = kstrdup(new_name, GFP_KERNEL);
+	if (!name) {
+		error = -ENOMEM;
+		goto out;
+	}
+
+	error = sysfs_rename_dir(kobj, new_name);
+	if (error)
+		goto out;
+
+	/* Install the new kobject name */
+	dup_name = kobj->name;
+	kobj->name = name;
+
+	/* This function is mostly/only used for network interface.
+	 * Some hotplug package track interfaces by their name and
+	 * therefore want to know when the name is changed by the user. */
+	// 参见15.7.5 kobject_uevent()节
+	kobject_uevent_env(kobj, KOBJ_MOVE, envp);
+
+out:
+	kfree(dup_name);
+	kfree(devpath_string);
+	kfree(devpath);
+	kobject_put(kobj);	// 参见15.7.2.2 kobject_put()节
+
+	return error;
+}
+```
+
+### 15.7.4 kset
+
+In many ways, a kset looks like an extension of the kobj_type structure; a kset is a collection of identical kobjects. But, while struct kobj_type concerns itself with the type of an object, struct kset is concerned with aggregation and collection. The two concepts have been separated so that objects of identical type can appear in distinct sets.
+
+A kset serves these functions:
+
+* It serves as a bag containing a group of identical objects. A kset can be used by the kernel to track "all block devices" or "all PCI device drivers."
+
+* A kset is the directory-level glue that holds the device model (and sysfs) together. Every kset contains a kobject which can be set up to be the parent of other kobjects; in this way the device model hierarchy is constructed.
+
+* Ksets can support the "hotplugging" of kobjects and influence how hotplug events are reported to user space. 
+
+In object-oriented terms, "kset" is the top-level container class; ksets inherit their own kobject, and can be treated as a kobject as well. 
+
+该结构定义于include/linux/kobject.h:
+
+```
+/**
+ * struct kset - a set of kobjects of a specific type, belonging to a specific subsystem.
+ *
+ * A kset defines a group of kobjects.  They can be individually
+ * different "types" but overall these kobjects all want to be grouped
+ * together and operated on in the same manner.  ksets are used to
+ * define the attribute callbacks and other common events that happen to
+ * a kobject.
+ *
+ * @list: the list of all kobjects for this kset
+ * @list_lock: a lock for iterating over the kobjects
+ * @kobj: the embedded kobject for this kset (recursion, isn't it fun...)
+ * @uevent_ops: the set of uevent operations for this kset.  These are
+ * called whenever a kobject has something happen to it so that the kset
+ * can add new environment variables, or filter out the uevents if so
+ * desired.
+ */
+struct kset {
+	// 用于连接该kset中所有kobject的双向循环链表
+	struct list_head		list;
+	// 用于保护list双向循环链表的自旋锁
+	spinlock_t			list_lock;
+	/*
+	 * 内嵌本kset的kobject对象。属于本kset的所有
+	 * kobject对象的parent域均指向这个内嵌的对象
+	 */
+	struct kobject			kobj;
+
+	const struct kset_uevent_ops	*uevent_ops;
+};
+```
+
+For initialization and setup, ksets have an interface very similar to that of kobjects. The following functions exist:
+
+```
+void kset_init(struct kset *kset);
+int  kset_add(struct kset *kset);
+int  kset_register(struct kset *kset);
+void kset_unregister(struct kset *kset);
+```
+
+For the most part, these functions just call the analogous kobject_xxx function on the kset's embedded kobject.
+
+For managing the reference counts of ksets, the situation is about the same:
+
+```
+struct kset *kset_get(struct kset *kset);
+void kset_put(struct kset *kset);
+```
+
+A kset, too, has a name, which is stored in the embedded kobject. So, if you have a kset called my_set, you would set its name with:
+
+```
+kobject_set_name(my_set->kobj, "The name");
+```
+
+#### 15.7.4.1 kset_create_and_add()
+
+```
+kset_create_and_add()
+-> kset_create()
+-> kset_register()
+	-> kset_init()
+	-> kobject_add_internal()
+	-> kobject_uevent()		// 参见15.7.5 kobject_uevent()节
+```
+
+### 15.7.5 kobject_uevent()
+
+该函数定义于lib/kobject_uevent.c:
+
+```
+/**
+ * kobject_uevent - notify userspace by sending an uevent
+ *
+ * @action: action that is happening
+ * @kobj: struct kobject that the action is happening to
+ *
+ * Returns 0 if kobject_uevent() is completed with success or the
+ * corresponding error when it fails.
+ */
+int kobject_uevent(struct kobject *kobj, enum kobject_action action)
+{
+	return kobject_uevent_env(kobj, action, NULL);
+}
+
+/**
+ * kobject_uevent_env - send an uevent with environmental data
+ *
+ * @action: action that is happening
+ * @kobj: struct kobject that the action is happening to
+ * @envp_ext: pointer to environmental data
+ *
+ * Returns 0 if kobject_uevent_env() is completed with success or the
+ * corresponding error when it fails.
+ */
+int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
+		       char *envp_ext[])
+{
+	struct kobj_uevent_env *env;
+	const char *action_string = kobject_actions[action];
+	const char *devpath = NULL;
+	const char *subsystem;
+	struct kobject *top_kobj;
+	struct kset *kset;
+	const struct kset_uevent_ops *uevent_ops;
+	u64 seq;
+	int i = 0;
+	int retval = 0;
+#ifdef CONFIG_NET
+	struct uevent_sock *ue_sk;
+#endif
+
+	pr_debug("kobject: '%s' (%p): %s\n",
+		 kobject_name(kobj), kobj, __func__);
+
+	/* search the kset we belong to */
+	top_kobj = kobj;
+	while (!top_kobj->kset && top_kobj->parent)
+		top_kobj = top_kobj->parent;
+
+	if (!top_kobj->kset) {
+		pr_debug("kobject: '%s' (%p): %s: attempted to send uevent "
+			 "without kset!\n", kobject_name(kobj), kobj, __func__);
+		return -EINVAL;
+	}
+
+	/*
+	 * 变量uevent_ops存在下列取值:
+	 *   bus_uevent_ops
+	 *   device_uevent_ops, 参见15.7.5.1 device_uevent_ops节
+	 *   module_uevent_ops
+	 */
+	kset = top_kobj->kset;
+	uevent_ops = kset->uevent_ops;
+
+	/* skip the event, if uevent_suppress is set*/
+	if (kobj->uevent_suppress) {
+		pr_debug("kobject: '%s' (%p): %s: uevent_suppress "
+			 "caused the event to drop!\n",
+			 kobject_name(kobj), kobj, __func__);
+		return 0;
+	}
+	/* skip the event, if the filter returns zero. */
+	/*
+	 * 对于device_uevent_ops, 调用dev_uevent_filter(), 
+	 * 参见15.7.5.1.1 dev_uevent_filter()节
+	 */
+	if (uevent_ops && uevent_ops->filter)
+		if (!uevent_ops->filter(kset, kobj)) {
+			pr_debug("kobject: '%s' (%p): %s: filter function "
+				 "caused the event to drop!\n",
+				 kobject_name(kobj), kobj, __func__);
+			return 0;
+		}
+
+	/* originating subsystem */
+	/*
+	 * 对于device_uevent_ops, 调用dev_uevent_name(), 
+	 * 参见15.7.5.1.2 dev_uevent_name()节
+	 */
+	if (uevent_ops && uevent_ops->name)
+		subsystem = uevent_ops->name(kset, kobj);
+	else
+		subsystem = kobject_name(&kset->kobj);
+	if (!subsystem) {
+		pr_debug("kobject: '%s' (%p): %s: unset subsystem caused the "
+			 "event to drop!\n", kobject_name(kobj), kobj, __func__);
+		return 0;
+	}
+
+	/* environment buffer */
+	env = kzalloc(sizeof(struct kobj_uevent_env), GFP_KERNEL);
+	if (!env)
+		return -ENOMEM;
+
+	/* complete object path */
+	devpath = kobject_get_path(kobj, GFP_KERNEL);
+	if (!devpath) {
+		retval = -ENOENT;
+		goto exit;
+	}
+
+	/* default keys */
+	retval = add_uevent_var(env, "ACTION=%s", action_string);
+	if (retval)
+		goto exit;
+	retval = add_uevent_var(env, "DEVPATH=%s", devpath);
+	if (retval)
+		goto exit;
+	retval = add_uevent_var(env, "SUBSYSTEM=%s", subsystem);
+	if (retval)
+		goto exit;
+
+	/* keys passed in from the caller */
+	if (envp_ext) {
+		for (i = 0; envp_ext[i]; i++) {
+			retval = add_uevent_var(env, "%s", envp_ext[i]);
+			if (retval)
+				goto exit;
+		}
+	}
+
+	/* let the kset specific function add its stuff */
+	/*
+	 * 对于device_uevent_ops, 调用dev_uevent(), 
+	 * 参见15.7.5.1.3 dev_uevent()节
+	 */
+	if (uevent_ops && uevent_ops->uevent) {
+		retval = uevent_ops->uevent(kset, kobj, env);
+		if (retval) {
+			pr_debug("kobject: '%s' (%p): %s: uevent() returned "
+				 "%d\n", kobject_name(kobj), kobj, __func__, retval);
+			goto exit;
+		}
+	}
+
+	/*
+	 * Mark "add" and "remove" events in the object to ensure proper
+	 * events to userspace during automatic cleanup. If the object did
+	 * send an "add" event, "remove" will automatically generated by
+	 * the core, if not already done by the caller.
+	 */
+	if (action == KOBJ_ADD)
+		kobj->state_add_uevent_sent = 1;
+	else if (action == KOBJ_REMOVE)
+		kobj->state_remove_uevent_sent = 1;
+
+	/* we will send an event, so request a new sequence number */
+	/*
+	 * 递增uevent序列号uevent_seqnum，
+	 * 可通过命令"cat /sys/kernel/uevent_seqnum"查看
+	 */
+	spin_lock(&sequence_lock);
+	seq = ++uevent_seqnum;
+	spin_unlock(&sequence_lock);
+	retval = add_uevent_var(env, "SEQNUM=%llu", (unsigned long long)seq);
+	if (retval)
+		goto exit;
+
+#if defined(CONFIG_NET)
+	/* send netlink message */
+	mutex_lock(&uevent_sock_mutex);
+	list_for_each_entry(ue_sk, &uevent_sock_list, list) {
+		struct sock *uevent_sock = ue_sk->sk;
+		struct sk_buff *skb;
+		size_t len;
+
+		/* allocate message with the maximum possible size */
+		len = strlen(action_string) + strlen(devpath) + 2;
+		skb = alloc_skb(len + env->buflen, GFP_KERNEL);
+		if (skb) {
+			char *scratch;
+
+			/* add header */
+			scratch = skb_put(skb, len);
+			sprintf(scratch, "%s@%s", action_string, devpath);
+
+			/* copy keys to our continuous event payload buffer */
+			for (i = 0; i < env->envp_idx; i++) {
+				len = strlen(env->envp[i]) + 1;
+				scratch = skb_put(skb, len);
+				strcpy(scratch, env->envp[i]);
+			}
+
+			NETLINK_CB(skb).dst_group = 1;
+
+			/*
+			 * 通过netlink将该uevent广播到用户空间，用户空间通过udev监控该热插拔事件:
+			 * (通过创建一个socket描述符，将描述符绑定到接收地址，即可实现监听热拔插事件);
+			 * 参见10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序节
+			 */
+			retval = netlink_broadcast_filtered(uevent_sock, skb,
+							    0, 1, GFP_KERNEL,
+							    kobj_bcast_filter,
+							    kobj);
+			/* ENOBUFS should be handled in userspace */
+			if (retval == -ENOBUFS || retval == -ESRCH)
+				retval = 0;
+		} else
+			retval = -ENOMEM;
+	}
+	mutex_unlock(&uevent_sock_mutex);
+#endif
+
+	/* call uevent_helper, usually only enabled during early boot */
+	if (uevent_helper[0] && !kobj_usermode_filter(kobj)) {
+		char *argv [3];
+
+		argv [0] = uevent_helper;
+		argv [1] = (char *)subsystem;
+		argv [2] = NULL;
+		retval = add_uevent_var(env, "HOME=/");
+		if (retval)
+			goto exit;
+		retval = add_uevent_var(env, "PATH=/sbin:/bin:/usr/sbin:/usr/bin");
+		if (retval)
+			goto exit;
+
+		/*
+		 * 函数call_usermodehelper()调用函数call_usermodehelper_fns()，
+		 * 参见13.3.2.2.2 __call_usermodehelper()节
+		 */
+		retval = call_usermodehelper(argv[0], argv, env->envp, UMH_WAIT_EXEC);
+	}
+
+exit:
+	kfree(devpath);
+	kfree(env);
+	return retval;
+}
+```
+
+#### 15.7.5.1 device_uevent_ops
+
+该变量定义于driver/base/core.c:
+
+```
+// 函数devices_init()引用该变量，参见10.2.1.1 devices_init()节
+static const struct kset_uevent_ops device_uevent_ops = {
+	.filter		= dev_uevent_filter,
+	.name		= dev_uevent_name,
+	.uevent		= dev_uevent,
+};
+```
+
+##### 15.7.5.1.1 dev_uevent_filter()
+
+该函数定义于driver/base/core.c:
+
+```
+static int dev_uevent_filter(struct kset *kset, struct kobject *kobj)
+{
+	struct kobj_type *ktype = get_ktype(kobj);
+
+	if (ktype == &device_ktype) {
+		struct device *dev = kobj_to_dev(kobj);
+		if (dev->bus)
+			return 1;
+		if (dev->class)
+			return 1;
+	}
+	return 0;
+}
+```
+
+##### 15.7.5.1.2 dev_uevent_name()
+
+该函数定义于driver/base/core.c:
+
+```
+static const char *dev_uevent_name(struct kset *kset, struct kobject *kobj)
+{
+	struct device *dev = kobj_to_dev(kobj);
+
+	if (dev->bus)
+		return dev->bus->name;
+	if (dev->class)
+		return dev->class->name;
+	return NULL;
+}
+```
+
+##### 15.7.5.1.3 dev_uevent()
+
+该函数定义于driver/base/core.c:
+
+```
+static int dev_uevent(struct kset *kset, struct kobject *kobj,
+		      struct kobj_uevent_env *env)
+{
+	struct device *dev = kobj_to_dev(kobj);
+	int retval = 0;
+
+	/* add device node properties if present */
+	if (MAJOR(dev->devt)) {
+		const char *tmp;
+		const char *name;
+		umode_t mode = 0;
+		kuid_t uid = GLOBAL_ROOT_UID;
+		kgid_t gid = GLOBAL_ROOT_GID;
+
+		add_uevent_var(env, "MAJOR=%u", MAJOR(dev->devt));
+		add_uevent_var(env, "MINOR=%u", MINOR(dev->devt));
+		name = device_get_devnode(dev, &mode, &uid, &gid, &tmp);
+		if (name) {
+			add_uevent_var(env, "DEVNAME=%s", name);
+			if (mode)
+				add_uevent_var(env, "DEVMODE=%#o", mode & 0777);
+			if (!uid_eq(uid, GLOBAL_ROOT_UID))
+				add_uevent_var(env, "DEVUID=%u", from_kuid(&init_user_ns, uid));
+			if (!gid_eq(gid, GLOBAL_ROOT_GID))
+				add_uevent_var(env, "DEVGID=%u", from_kgid(&init_user_ns, gid));
+			kfree(tmp);
+		}
+	}
+
+	if (dev->type && dev->type->name)
+		add_uevent_var(env, "DEVTYPE=%s", dev->type->name);
+
+	if (dev->driver)
+		add_uevent_var(env, "DRIVER=%s", dev->driver->name);
+
+	/* Add common DT information about the device */
+	of_device_uevent(dev, env);
+
+	/* have the bus specific function add its stuff */
+	/*
+	 * For PCI devices, call pci_uevent(), which add following key-values:
+	 *   PCI_CLASS=%04X, PCI_ID=%04X:%04X, PCI_SUBSYS_ID=%04X:%04X, PCI_SLOT_NAME=%s
+	 * and most important one:
+	 *   MODALIAS=pci:v%08Xd%08Xsv%08Xsd%08Xbc%02Xsc%02Xi%02X
+	 */
+	if (dev->bus && dev->bus->uevent) {
+		retval = dev->bus->uevent(dev, env);
+		if (retval)
+			pr_debug("device: '%s': %s: bus uevent() returned %d\n",
+				 dev_name(dev), __func__, retval);
+	}
+
+	/* have the class specific function add its stuff */
+	if (dev->class && dev->class->dev_uevent) {
+		retval = dev->class->dev_uevent(dev, env);
+		if (retval)
+			pr_debug("device: '%s': %s: class uevent() "
+				 "returned %d\n", dev_name(dev), __func__, retval);
+	}
+
+	/* have the device type specific function add its stuff */
+	if (dev->type && dev->type->uevent) {
+		retval = dev->type->uevent(dev, env);
+		if (retval)
+			pr_debug("device: '%s': %s: dev_type uevent() "
+				 "returned %d\n", dev_name(dev), __func__, retval);
+	}
+
+	return retval;
+}
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

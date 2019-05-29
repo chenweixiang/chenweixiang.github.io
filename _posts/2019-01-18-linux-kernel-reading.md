@@ -77125,6 +77125,142 @@ Refer to Documentation/cputopology.txt, CPUs that are online and being scheduled
 
 get the current CPU ID.
 
+# 18 64-Bit Kernel
+
+## 18.1 配置选项/编译选项
+
+要启用64-bit Kernel，编译内核前需要配置选项(以x86架构为例)：
+
+```
+CONFIG_64BIT=y
+CONFIG_X86_64=y
+```
+
+在arch/x86/Makefile中，定义了如下编译选项：
+
+```
+# Unified Makefile for i386 and x86_64
+
+# select defconfig based on actual architecture
+ifeq ($(ARCH),x86)
+        KBUILD_DEFCONFIG := i386_defconfig
+else
+        KBUILD_DEFCONFIG := $(ARCH)_defconfig
+endif
+
+# BITS is used as extension for files which are available in a 32 bit
+# and a 64 bit version to simplify shared Makefiles.
+# e.g.: obj-y += foo_$(BITS).o
+export BITS
+
+ifeq ($(CONFIG_X86_32),y)
+        BITS		:= 32
+        UTS_MACHINE	:= i386
+        CHECKFLAGS	+= -D__i386__
+
+        biarch		:= $(call cc-option,-m32)
+        KBUILD_AFLAGS	+= $(biarch)
+        KBUILD_CFLAGS	+= $(biarch)
+
+        ifdef CONFIG_RELOCATABLE
+                LDFLAGS_vmlinux := --emit-relocs
+        endif
+
+        KBUILD_CFLAGS += -msoft-float -mregparm=3 -freg-struct-return
+
+        # prevent gcc from keeping the stack 16 byte aligned
+        KBUILD_CFLAGS += $(call cc-option,-mpreferred-stack-boundary=2)
+
+        # Disable unit-at-a-time mode on pre-gcc-4.0 compilers, it makes gcc use
+        # a lot more stack due to the lack of sharing of stacklots:
+        KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0400, $(call cc-option,-fno-unit-at-a-time))
+
+        # CPU-specific tuning. Anything which can be shared with UML should go here.
+        include $(srctree)/arch/x86/Makefile_32.cpu
+        KBUILD_CFLAGS += $(cflags-y)
+
+        # temporary until string.h is fixed
+        KBUILD_CFLAGS += -ffreestanding
+else
+        BITS		:= 64
+        UTS_MACHINE	:= x86_64
+        CHECKFLAGS	+= -D__x86_64__ -m64
+
+        KBUILD_AFLAGS	+= -m64
+        KBUILD_CFLAGS	+= -m64
+
+        # FIXME - should be integrated in Makefile.cpu (Makefile_32.cpu)
+        cflags-$(CONFIG_MK8)	+= $(call cc-option,-march=k8)
+        cflags-$(CONFIG_MPSC)	+= $(call cc-option,-march=nocona)
+
+        cflags-$(CONFIG_MCORE2)	+= $(call cc-option,-march=core2,$(call cc-option,-mtune=generic))
+	cflags-$(CONFIG_MATOM)	+= $(call cc-option,-march=atom) \
+				   $(call cc-option,-mtune=atom,$(call cc-option,-mtune=generic))
+        cflags-$(CONFIG_GENERIC_CPU)	+= $(call cc-option,-mtune=generic)
+        KBUILD_CFLAGS += $(cflags-y)
+
+        KBUILD_CFLAGS += -mno-red-zone
+        KBUILD_CFLAGS += -mcmodel=kernel
+
+        # -funit-at-a-time shrinks the kernel .text considerably
+        # unfortunately it makes reading oopses harder.
+        KBUILD_CFLAGS += $(call cc-option,-funit-at-a-time)
+
+        # this works around some issues with generating unwind tables in older gccs
+        # newer gccs do it by default
+        KBUILD_CFLAGS += -maccumulate-outgoing-args
+endif
+
+...
+
+# Stackpointer is addressed different for 32 bit and 64 bit x86
+sp-$(CONFIG_X86_32) := esp
+sp-$(CONFIG_X86_64) := rsp
+
+...
+
+###
+# Kernel objects
+
+head-y := arch/x86/kernel/head_$(BITS).o
+head-y += arch/x86/kernel/head$(BITS).o
+```
+
+可运行下列命令查看当前系统的配置：
+
+```
+chenwx@chenwx ~ $ uname -m
+x86_64
+```
+
+## 18.2 64-Bit Kernel中数据类型的大小
+
+宏```BITS_PER_LONG```定义于include/asm-generic/bitsperlong.h:
+
+```
+#ifdef CONFIG_64BIT
+#define BITS_PER_LONG	64
+#else
+#define BITS_PER_LONG	32
+#endif /* CONFIG_64BIT */
+```
+
+| C Type    | 32-bit System / bits | 64-bit System / bits |
+| :-------- | :------------------: | :------------------: |
+| char      | 8                    | 8                    |
+| short     | 16                   | 16                   |
+| float     | 32                   | 32                   |
+| double    | 64                   | 64                   |
+| int       | 32                   | 32                   |
+| long      | 32                   | 64                   |
+| long long | 64                   | 64                   |
+| pointer   | 32                   | 64                   |
+
+<p/>
+
+## 18.3 Memory Management on 64-Bit Kernel
+
+参见Paging for 64-bit Architectures节。
 
 # Appendixes
 

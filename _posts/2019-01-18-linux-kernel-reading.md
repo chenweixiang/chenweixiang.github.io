@@ -24,15 +24,15 @@ Git repositories hosted at [kernel.org](https://git.kernel.org/cgit/).
 
 Refer to chapter 6.1.3 of **Pro Git** for the Git workflow of Linux kernel:
 
-> 1) Regular developers work on their topic branch and rebase their work on top of master. The master branch is that of the dictator.
->
-> 2) Lieutenants merge the developers' topic branches into their master branch.
->
-> 3) The dictator merges the lieutenants' master branches into the dictator's master branch.
->
-> 4) The dictator pushes their master to the reference repository so the other developers can rebase on it.
+1) Regular developers work on their topic branch and rebase their work on top of master. The master branch is that of the dictator.
 
-[**NOTE**] For Linux kernel developers, maybe it’s better for them to rebase their work on top of **linux-next** branch, refer to [1.2.2 linux-next tree](#1-2-2-linux-next-tree).
+2) Lieutenants merge the developers' topic branches into their master branch.
+
+3) The dictator merges the lieutenants' master branches into the dictator's master branch.
+
+4) The dictator pushes their master to the reference repository so the other developers can rebase on it.
+
+**NOTE**: For Linux kernel developers, maybe it’s better for them to rebase their work on top of **linux-next** branch, refer to [1.2.2 linux-next tree](#1-2-2-linux-next-tree).
 
 Git workflow:
 
@@ -97,9 +97,9 @@ Materials related to **linux-next** tree:
 
 This tree, to be maintained by *Stephen Rothwell*, is intended to be a gathering point for the patches which are planned to be merged in the next development cycle.
 
-[**NOTE1**] As a kernel developer, you should send patches against **linux-next** tree, not the **mainline** tree.
+**NOTE 1**: As a kernel developer, you should send patches against **linux-next** tree, not the **mainline** tree.
 
-[**NOTE2**] You can see which trees have been included by looking in the [*linux/Next/Trees*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/Trees) file in the source. There are also [*quilt-import.log*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/quilt-import.log) and [*merge.log*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/merge.log) files in the [*linux/Next*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next) directory:
+**NOTE 2**: You can see which trees have been included by looking in the [*linux/Next/Trees*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/Trees) file in the source. There are also [*quilt-import.log*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/quilt-import.log) and [*merge.log*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/merge.log) files in the [*linux/Next*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next) directory:
 
 ```
 chenwx@chenwx ~/linux/Next $ ll
@@ -161,7 +161,7 @@ Switched to a new branch 'ec-task10'
 
 #### 1.2.2.2 Subsystem trees
 
-[**NOTE**] Refer to file [*linux/Next/Trees*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/Trees) in **linux-next** tree for subsystem trees.
+**NOTE**: Refer to file [*linux/Next/Trees*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/Trees) in **linux-next** tree for subsystem trees.
 
 ##### 1.2.2.2.1 linux-staging tree
 
@@ -196,9 +196,9 @@ Linux **mainline** tree:
 
 This is *Linux Torvalds*' git tree. There is only one branch, that's **master** branch, on the mainline tree.
 
-[**NOTE1**] As a kernel developer, you should send patches against **linux-staging** or **linux-next** tree, not the mainline tree.
+**NOTE 1**: As a kernel developer, you should send patches against **linux-staging** or **linux-next** tree, not the mainline tree.
 
-[**NOTE2**] Linux Torvalds负责维护mainline tree，在每个开发周期的merge window，新功能补丁会被合入mainline tree.
+**NOTE 2**: Linux Torvalds负责维护mainline tree，在每个开发周期的merge window，新功能补丁会被合入mainline tree.
 
 ### 1.2.4 linux-stable tree
 
@@ -263,7 +263,7 @@ chenwx@chenwx ~/linux $ git br
   master
 ```
 
-[**NOTE**] **linux-stable** tree是对已发布的正式版本的后续维护，只包括一些bugfix或安全补丁，但不包括功能补丁。
+**NOTE**: **linux-stable** tree是对已发布的正式版本的后续维护，只包括一些bugfix或安全补丁，但不包括功能补丁。
 
 ### 1.2.5 Setup Linux Kernel Workarea
 
@@ -394,7 +394,7 @@ https://lkml.org/lkml/\<Year\>/\<Month\>/\<Day\>
 
 例如：[https://lkml.org/lkml/2014/3/31](https://lkml.org/lkml/2014/3/31)
 
-[**NOTE**] 可以通过左侧的"Get diff 1"提取邮件中的Patch.
+**NOTE**: 可以通过左侧的"Get diff 1"提取邮件中的Patch.
 
 ### 1.3.2 lkml.iu.edu
 
@@ -408,7 +408,7 @@ marc.info
 
 * [http://marc.info/?l=linux-kernel](http://marc.info/?l=linux-kernel)
 
-[**NOTE**] 采用Courier New字体，视觉效果好。
+**NOTE**: 采用Courier New字体，视觉效果好。
 
 ## 1.4 Linux Kernel Releases
 
@@ -777,9 +777,9 @@ step 2) 运行下列脚本来检查代码格式的合法性：
 # scripts/checkpatch.pl --terse --file <file>
 ```
 
-[**NOTE**] The style checker ```scripts/chechpatch.pl``` should be viewed as a guide not as the final word. If your code looks better with a violation then its probably best left alone.
+**NOTE 1**: The style checker ```scripts/chechpatch.pl``` should be viewed as a guide not as the final word. If your code looks better with a violation then its probably best left alone.
 
-[**NOTE**] The pre-condition of running ```scripts/Lindent``` and ```indent``` is that the source files use unix format, use below command to transfer source file format:
+**NOTE 2**: The pre-condition of running ```scripts/Lindent``` and ```indent``` is that the source files use unix format, use below command to transfer source file format:
 
 ```
 # dos2unix <file>
@@ -845,7 +845,7 @@ chenwx@chenwx ~/linux $ firefox ../linux-build/Documentation/DocBook/index.html 
 
 | Directory | Description |
 | :-------- | :---------- |
-| arch/ | 包含所有与特定硬件结构相关的内核代码。arch目录下处理器体系架构介绍，参见arch目录下处理器体系架构介绍节。 |
+| arch/ | 包含所有与特定硬件结构相关的内核代码。arch目录下处理器体系架构介绍，参见[Appendix E: arch目录下处理器体系架构介绍](#appendix-e-arch-)节。 |
 | block/ | block层的实现。最初block层的代码一部分位于drivers/目录，一部分位于fs/目录，从2.6.15开始，block 层的核心代码被提取出来放在了顶层的block/目录。 |
 | certs/ | Since Linux kernel version 3.7 onwards, support has been added for signed kernel modules. When enabled, the Linux kernel will only load kernel modules that are digitally signed with the proper key. This allows further hardening of the system by disallowing unsigned kernel modules, or kernel modules signed with the wrong key, to be loaded. Malicious kernel modules are a common method for loading rootkits on a Linux system. Refer to [Signed Kernel Module Support](/docs/signed_kernel_module_support.pdf). |
 | crypto/ | 内核本身所用的加密API，实现了常用的加密和散列算法，还有一些压缩和CRC校验算法。 |
@@ -898,7 +898,7 @@ Linux kernel的编译流程：
 
 <p/>
 
-[**NOTE**] 编译系统前，需要先检查系统中相关工具的版本是否满足文件Documentation/Changes所列出的最小要求，参见[3.1A Prerequisite of Building Kernel](#3-1a-prerequisite-of-building-kernel)节。
+**NOTE**: 编译系统前，需要先检查系统中相关工具的版本是否满足文件Documentation/Changes所列出的最小要求，参见[3.1A Prerequisite of Building Kernel](#3-1a-prerequisite-of-building-kernel)节。
 
 ## 3.1A Prerequisite of Building Kernel
 
@@ -1343,9 +1343,9 @@ File: lib/lib.a(cmdline.o)
 obj-$(CONFIG_EXT2_FS) += ext2/
 ```
 
-如果CONFIG_EXT2_FS被设置为'y'(编译进内核)或是'm'(编译成模块)，相应的obj-变量就会被设置，故Kbuild就会递归向下访问ext2目录。Kbuild只是用这些信息来决定是否需要访问该目录，而具体怎么编译由该目录中的Makefile来决定，参见编译$(obj)下的子目录节。
+如果CONFIG_EXT2_FS被设置为'y'(编译进内核)或是'm'(编译成模块)，相应的obj-变量就会被设置，故Kbuild就会递归向下访问ext2目录。Kbuild只是用这些信息来决定是否需要访问该目录，而具体怎么编译由该目录中的Makefile来决定，参见[3.4.2.1.3.1.1.1.2 编译$(obj)下的子目录](#3-4-2-1-3-1-1-1-2-obj-)节。
 
-[**NOTE**] 将CONFIG_变量设置成目录名是一个好的编程习惯，这让Kbuild在完全忽略那些相应的CONFIG_值不是'y'和'm'的目录。
+**NOTE**: 将CONFIG_变量设置成目录名是一个好的编程习惯，这让Kbuild在完全忽略那些相应的CONFIG_值不是'y'和'm'的目录。
 
 #### 3.2.2.5 编译标志
 
@@ -1550,7 +1550,7 @@ chenwx@chenwx ~/linux $ make O=../linux-build/ menuconfig
 // 定义$(build)变量
 include $(srctree)/scripts/Kbuild.include
 
-// 目标config参见config节
+// 目标config参见[3.3.1.3 config]节
 config: scripts_basic outputmakefile FORCE
 	// 创建目录
 	$(Q)mkdir -p include/linux include/config
@@ -1560,13 +1560,13 @@ config: scripts_basic outputmakefile FORCE
 	 */
 	$(Q)$(MAKE) $(build)=scripts/kconfig $@			
 
-// 编译script/basic/fixdep，参见scripts_basic节
+// 编译script/basic/fixdep，参见[3.4.2.1.1.8 scripts_basic]节
 scripts_basic:
 	// 扩展为 $(MAKE) -f scripts/Makefile.build obj=scripts/basic
 	$(Q)$(MAKE) $(build)=scripts/basic
 	$(Q)rm -f .tmp_quiet_recordmcount
 
-// 参见outputmakefile节
+// 参见[3.3.1.2 outputmakefile]节
 outputmakefile:
 ifneq ($(KBUILD_SRC),)
 	$(Q)ln -fsn $(srctree) source
@@ -1976,7 +1976,7 @@ make listnewconfig	// List new options
 // 定义$(build)变量
 include $(srctree)/scripts/Kbuild.include
 
-// 下列两行与config相同，参见config节
+// 下列两行与config相同，参见[3.3.1.3 config]节
 %config: scripts_basic outputmakefile FORCE
 	$(Q)mkdir -p include/linux include/config
 	/*
@@ -1985,13 +1985,13 @@ include $(srctree)/scripts/Kbuild.include
 	 */
 	$(Q)$(MAKE) $(build)=scripts/kconfig $@
 
-// To build script/basic/fixdep，参见scripts_basic节
+// To build script/basic/fixdep，参见[3.3.1.1 scripts_basic]节
 scripts_basic:
 	// $(Q)$(MAKE) -f scripts/Makefile.build obj=scripts/basic
 	$(Q)$(MAKE) $(build)=scripts/basic
 	$(Q)rm -f .tmp_quiet_recordmcount
 
-// 参见outputmakefile节
+// 参见[3.3.1.2 outputmakefile]节
 outputmakefile:
 ifneq ($(KBUILD_SRC),)
 	$(Q)ln -fsn $(srctree) source
@@ -2068,14 +2068,14 @@ endif
 
 make \*config的具体编译链接过程与[3.3.1 make config](#3-3-1-make-config)节类似。
 
-[**NOTE1**] It's entirely possible that that existing .config you used as the basis for your configuration isn't quite up to date; that is, it may have no entries representing extremely new features that have been added to the kernel. If that's the case, the "make oldconfig" will stop at each one of those choices and ask you what to do. And if you're new to building a kernel, you may not know the right answer. One solution is to just keep hitting ENTER and take the default, but that can get tedious. A faster solution is:
+**NOTE 1**: It's entirely possible that that existing .config you used as the basis for your configuration isn't quite up to date; that is, it may have no entries representing extremely new features that have been added to the kernel. If that's the case, the "make oldconfig" will stop at each one of those choices and ask you what to do. And if you're new to building a kernel, you may not know the right answer. One solution is to just keep hitting ENTER and take the default, but that can get tedious. A faster solution is:
 
 ```
 // two single quotes, no space between
 chenwx ~/linux # yes '' | make oldconfig
 ```
 
-[**NOTE2**] Perhaps the most useful target for beginners is defconfig (short for "default config") which simply sets your .config to an established set of defaults for your system and architecture. And how can you see these defaults? Simple -- from the top of the kernel source tree, just run following command, and you'll see dozens of default config files for all of the kernel's supported architectures.
+**NOTE 2**: Perhaps the most useful target for beginners is defconfig (short for "default config") which simply sets your .config to an established set of defaults for your system and architecture. And how can you see these defaults? Simple -- from the top of the kernel source tree, just run following command, and you'll see dozens of default config files for all of the kernel's supported architectures.
 
 ```
 chenwx ~/linux # find arch -name "*defconfig"
@@ -2211,7 +2211,7 @@ Linux内核的Makefile分为下列5个部分：
 
 ```
 Makefile			- 顶层Makefile
-.config				- 内核配置结果文件，参见.config/内核配置结果文件节
+.config				- 内核配置结果文件，参见[3.3.4 .config/内核配置结果文件]节
 arch/$(ARCH)/Makefile		- 具体架构的Makefile
 scripts/Makefile.*		- 通用的规则等，面向所有的Kbuild Makefiles
 Kbuild Makefiles		- 内核源代码中大约有500个这样的文件(文件名为Kbuild)
@@ -2456,7 +2456,7 @@ scripts_basic:
 # and if so do:
 # 1) Check that make has not been executed in the kernel src $(srctree)
 prepare3: include/config/kernel.release
-ifneq ($(KBUILD_SRC),)	// 当不在linux源代码目录编译(参见outputmakefile节)时，执行下列命令
+ifneq ($(KBUILD_SRC),)	// 当不在linux源代码目录编译(参见[3.4.2.1.1.3 outputmakefile]节)时，执行下列命令
 	@$(kecho) '  Using $(srctree) as source for kernel'
 	$(Q)if [ -f $(srctree)/.config -o -d $(srctree)/include/config ]; then \
 		echo "  $(srctree) is not clean, please run 'make mrproper'"; \
@@ -3035,8 +3035,8 @@ cmd_link_o_target = $(if $(strip $(obj-y)),				\
 		    $(cmd_secanalysis),					\
 		    rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@)
 
-$(builtin-target): $(obj-y) FORCE		// $(obj-y)参见$(obj-y)节
-	$(call if_changed,link_o_target)	// 调用cmd_link_o_target，参见cmd_link_o_target节
+$(builtin-target): $(obj-y) FORCE		// $(obj-y)参见[3.4.2.1.3.1.1.1 $(obj-y)]节
+	$(call if_changed,link_o_target)	// 调用cmd_link_o_target，参见[3.4.2.1.3.1.1.2 cmd_link_o_target]节
 
 targets += $(builtin-target)
 endif # builtin-target
@@ -3244,7 +3244,7 @@ $(sort $(subdir-obj-y)): $(subdir-ym) ;
 $(subdir-ym):
 	/*
 	 * 编译$(obj-y)和$(obj-m)中的子目录，
-	 * 参见[make -f scripts/Makefile.build obj=XXX命令的执行过程](#)节;
+	 * 参见[3.4.2.1.3.1 make -f scripts/Makefile.build obj=XXX命令的执行过程]节;
 	 * 以fs/notify为例，该命令扩展为： make -f scripts/Makefile.build obj=fs/notify
 	 */
 	$(Q)$(MAKE) $(build)=$@
@@ -3286,7 +3286,7 @@ subdir-obj-y := $(filter %/built-in.o, $(obj-y))
 
 /*
  * $(subdir-obj-y)的取值，如 fs/notify/built-in.o fs/proc/built-in.o ...
- * 而这些目标文件的编译参见[$(builtin-target)节](#)
+ * 而这些目标文件的编译参见[3.4.2.1.3.1.1 $(builtin-target)]节]
  */
 subdir-obj-y := $(addprefix $(obj)/,$(subdir-obj-y))
 ```
@@ -3342,7 +3342,7 @@ cmd_link_l_target = rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@ $(lib-y)
 
 /*
  * $(lib-y)定义于$(obj)指定目录下的Kbuild或Makefile，
- * 并经过scripts/Makefile.lib的进一步处理，参见[$(lib-y)](#)节
+ * 并经过scripts/Makefile.lib的进一步处理，参见[3.4.2.1.3.1.2.1 $(lib-y)]节
  */
 $(lib-target): $(lib-y) FORCE
 	// 调用cmd_link_l_target编译$(lib-target)
@@ -3381,7 +3381,7 @@ lib-y := $(filter-out $(obj-y), $(sort $(lib-y) $(lib-m)))
 /*
  * 此时，$(lib-y)中包含了要编译进库文件中的目标文件列表，如lib/ctype.o lib/string.o ...
  * 编译$(lib-y)时，符合规则"$(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE"
- */ 参见[编译$(obj)目录下的目标文件](#)节
+ */ 参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件]节
 lib-y := $(addprefix $(obj)/,$(lib-y))
 ```
 
@@ -3393,7 +3393,7 @@ $(extra-y)的取值参见$(obj)指定目录下的Kbuild或Makefile。在scripts/
 /*
  * 此时，$(extra-y)为目标文件列表
  * 编译$(lib-y)时，符合规则"$(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE"
- * 参见编译$(obj)目录下的目标文件节
+ * 参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件]节
  */
 extra-y := $(addprefix $(obj)/,$(extra-y))
 ```
@@ -3410,7 +3410,7 @@ obj-m			:= $(filter-out $(obj-y),$(obj-m))
 __subdir-m		:= $(patsubst %/,%,$(filter %/, $(obj-m)))
 /*
  * $(subdir-m)中包含$(obj-m)中的子目录名，
- * 其将在$(builtin-target)中编译，参见[编译$(obj)下的子目录](#)节
+ * 其将在$(builtin-target)中编译，参见[3.4.2.1.3.1.1.1.2 编译$(obj)下的子目录]节
  */
 subdir-m		+= $(__subdir-m)
 obj-m			:= $(filter-out %/, $(obj-m))
@@ -3418,7 +3418,7 @@ obj-m			:= $(filter-out %/, $(obj-m))
 /*
  * 此时，$(obj-m)中仅包含$(obj)指定目录下的目标文件列表，不包含子目录
  * 编译$(obj-m)时，符合规则"$(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE"，
- * 参见[编译$(obj)目录下的目标文件](#)节
+ * 参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件]节
  */
 obj-m			:= $(addprefix $(obj)/,$(obj-m))
 ```
@@ -3441,7 +3441,7 @@ modorder-cmds =						\
 		$(if $(filter %/modules.order, $m),	\
 			cat $m;, echo kernel/$m;))
 
-// $(subdir-ym)的编译参见[编译$(obj)下的子目录](#)节
+// $(subdir-ym)的编译参见[3.4.2.1.3.1.1.1.2 编译$(obj)下的子目录编译$(obj)下的子目录]节
 $(modorder-target): $(subdir-ym) FORCE
 	/*
 	 * 调用modorder-cmds生成$(obj)/modules.order文件，
@@ -3473,7 +3473,7 @@ $(always)的取值参见$(obj)指定目录下的Kbuild或Makefile。在scripts/M
 /*
  * 此时，$(always)中仅包含$(obj)指定目录下的目标文件列表
  * 编译$(always)时，符合规则"$(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE"，
- * 参见[编译$(obj)目录下的目标文件](#)节
+ * 参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件]节
  */
 always		:= $(addprefix $(obj)/,$(always))
 ```
@@ -3707,7 +3707,7 @@ vmlinux-main := $(core-y) $(libs-y) $(drivers-y) $(net-y)
 $(sort $(vmlinux-init) $(vmlinux-main)) $(vmlinux-lds): $(vmlinux-dirs) ;
 ```
 
-$(vmlinux-main)依赖于$(vmlinux-dirs)，其编译过程参见$(vmlinux-dirs)节，即通过下列命令编译：
+$(vmlinux-main)依赖于$(vmlinux-dirs)，其编译过程参见[3.4.2.1 $(vmlinux-dirs)](#3-4-2-1-vmlinux-dirs-)节，即通过下列命令编译：
 
 ```
 // 编译$(core-y)
@@ -4061,7 +4061,7 @@ endif
 	$(call vmlinux-modpost)
 	/*
 	 * 调用rule_vmlinux__链接vmlinux，并
-	 * 生成System.map，参见rule_vmlinux__节
+	 * 生成System.map，参见[3.4.2.7.4 rule_vmlinux__]节
 	 */
 	$(call if_changed_rule,vmlinux__)
 	$(Q)rm -f .old_version
@@ -4354,7 +4354,7 @@ $(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/head_$(BITS).o $(obj)/misc.o $(obj)/st
 ld -m elf_i386   -T arch/x86/boot/compressed/vmlinux.lds arch/x86/boot/compressed/head_32.o arch/x86/boot/compressed/misc.o arch/x86/boot/compressed/string.o arch/x86/boot/compressed/cmdline.o arch/x86/boot/compressed/early_serial_console.o arch/x86/boot/compressed/piggy.o -o arch/x86/boot/compressed/vmlinux
 ```
 
-输出为arch/x86/boot/compressed/vmlinux，该压缩内核文件大小约为1.6M，要比/usr/src/linux-3.2/vmlinux (参见rule_vmlinux__节，其大小约46M) 小很多。
+输出为arch/x86/boot/compressed/vmlinux，该压缩内核文件大小约为1.6M，要比/usr/src/linux-3.2/vmlinux (参见[3.4.2.7.4 rule_vmlinux__](#3-4-2-7-4-rule-vmlinux-)节，其大小约46M) 小很多。
 
 查看arch/x86/boot/compressed/vmlinux的文件属性：
 
@@ -4373,7 +4373,7 @@ arch/x86/boot/compressed/misc.o				<= arch/x86/boot/compressed/misc.c, misc.h
 arch/x86/boot/compressed/string.o			<= arch/x86/boot/compressed/string.c
 arch/x86/boot/compressed/cmdline.o			<= arch/x86/boot/compressed/cmdline.c
 arch/x86/boot/compressed/early_serial_console.o		<= arch/x86/boot/compressed/early_serial_console.c
-arch/x86/boot/compressed/piggy.o			<= arch/x86/boot/compressed/piggy.S，参见$(obj)/piggy.o节
+arch/x86/boot/compressed/piggy.o			<= arch/x86/boot/compressed/piggy.S，参见[3.4.2.8.5.1 $(obj)/piggy.o]节
 ```
 
 ###### 3.4.2.8.5.1 $(obj)/piggy.o
@@ -4381,20 +4381,20 @@ arch/x86/boot/compressed/piggy.o			<= arch/x86/boot/compressed/piggy.S，参见$
 在arch/x86/boot/compressed/Makefile中，包含如下规则：
 
 ```
-// (1) 参见3.4.2.8.5.1.1 $(obj)/vmlinux.bin节
+// (1) 参见[3.4.2.8.5.1.1 $(obj)/vmlinux.bin]节
 OBJCOPYFLAGS_vmlinux.bin :=  -R .comment -S
 $(obj)/vmlinux.bin: vmlinux FORCE
 	$(call if_changed,objcopy)
 
-// (2) 参见3.4.2.8.5.1.2 $(obj)/vmlinux.bin.gz节
+// (2) 参见[3.4.2.8.5.1.2 $(obj)/vmlinux.bin.gz]节
 vmlinux.bin.all-y := $(obj)/vmlinux.bin
 $(obj)/vmlinux.bin.gz: $(vmlinux.bin.all-y) FORCE
 	$(call if_changed,gzip)
 
 /*
- * (3) 参见3.4.2.8.5.1.3 $(obj)/mkpiggy节，
- *     3.4.2.8.5.1.4 $(obj)/piggy.S节，
- *     3.4.2.8.5.1.5 $(obj)/piggy.o节
+ * (3) 参见[3.4.2.8.5.1.3 $(obj)/mkpiggy]节，
+ *     [3.4.2.8.5.1.4 $(obj)/piggy.S]节，
+ *     [3.4.2.8.5.1.5 $(obj)/piggy.o]节
  */
 suffix-$(CONFIG_KERNEL_GZIP)	:= gz
 
@@ -4484,10 +4484,10 @@ arch/x86/boot/compressed/mkpiggy arch/x86/boot/compressed/vmlinux.bin.gz > arch/
 ```
 /*
  * 此代码被放到.rodata..compressed段中，对该段的连接参见:
- * 3.4.2.8.5.2 arch/x86/boot/compressed/vmlinux.lds
+ * [3.4.2.8.5.2 arch/x86/boot/compressed/vmlinux.lds]节
  * 下列变量用于解压二进制文件vmlinux.bin.gz:
  * z_input_len, z_extract_offset, input_data
- * 参见4.3.4.1.3 arch/x86/boot/compressed/head_32.S节
+ * 参见[4.3.4.1.3 arch/x86/boot/compressed/head_32.S]节
  */
 .section .rodata..compressed,"a",@progbits
 .globl z_input_len
@@ -4508,8 +4508,9 @@ input_data:
 .incbin arch/x86/boot/compressed/vmlinux.bin.gz
 input_data_end:
 
-NOTE: How to embed a binary in your executable?
-Method #1: Covert the binary to the "hex" text, and #include
+**NOTE**: How to embed a binary in your executable?
+
+**Method #1**: Covert the binary to the "hex" text, and #include
 (binary_file.hex)
 0xeb, 0xfe, 0x90, 0x90, ...
 
@@ -4518,7 +4519,7 @@ unsigned char binary[] = {
     #include "binary_file.hex"
 };
 
-Method #2: Use ".incbin" mnemonic in the assembler
+**Method #2**: Use ".incbin" mnemonic in the assembler
 .section .rodata
 .global input_data, input_data_end
 input_data:
@@ -4585,7 +4586,7 @@ SECTIONS
 	.rodata..compressed : {
 		/*
 		 * 包含arch/x86/boot/compressed/piggy.S中的代码，
-		 * 参见3.4.2.8.5.1.4 $(obj)/piggy.S节
+		 * 参见[3.4.2.8.5.1.4 $(obj)/piggy.S]节
 		 */
 		*(.rodata..compressed)
 	}
@@ -4799,7 +4800,7 @@ else # CONFIG_MODULES
 endif # CONFIG_MODULES
 ```
 
-由$(vmlinux-dirs)节可知，$(vmlinux-dirs:%=%/modules.builtin)被扩展为：
+由[3.4.3.1 $(vmlinux-dirs)](#3-4-3-1-vmlinux-dirs-)节可知，$(vmlinux-dirs:%=%/modules.builtin)被扩展为：
 
 ```
 init/modules.builtin usr/modules.builtin arch/x86/modules.builtin kernel/modules.builtin mm/modules.builtin fs/modules.builtin ipc/modules.builtin security/modules.builtin crypto/modules.builtin block/modules.builtin drivers/modules.builtin sound/modules.builtin firmware/modules.builtin net/modules.builtin lib/modules.builtin arch/x86/lib/modules.builtin
@@ -4808,7 +4809,7 @@ init/modules.builtin usr/modules.builtin arch/x86/modules.builtin kernel/modules
 该列表匹配规则：
 
 ```
-// include/config/auto.conf参见.config如何被顶层Makefile调用节和include/config/auto.conf节
+// include/config/auto.conf参见[3.3.4.2 .config如何被顶层Makefile调用]节和[3.4.2.1.1.1 include/config/auto.conf]节
 %/modules.builtin: include/config/auto.conf
 	$(Q)$(MAKE) $(modbuiltin)=$*
 ```
@@ -4978,7 +4979,7 @@ $(Q)$(AWK) '!x[$$0]++' $^ > $(objtree)/modules.builtin
 awk '!x[$0]++' init/modules.builtin usr/modules.builtin arch/x86/modules.builtin kernel/modules.builtin mm/modules.builtin fs/modules.builtin ipc/modules.builtin security/modules.builtin crypto/modules.builtin block/modules.builtin drivers/modules.builtin sound/modules.builtin firmware/modules.builtin arch/x86/pci/modules.builtin arch/x86/power/modules.builtin arch/x86/video/modules.builtin net/modules.builtin lib/modules.builtin arch/x86/lib/modules.builtin > /usr/src/linux-3.2/modules.builtin
 ```
 
-该命令将所有子目录下的modules.builtin文件(参见[3.4.3.3.1.2 $(modbuiltin-target)](#3-4-3-3-1-2-modbuiltin-target-)节)内容输出到文件linux-3.2/modules.builtin中。该文件包含make modules命令生成的所有*.ko文件列表。执行make modules_install时，将linux-3.2/modules.builtin拷贝到/lib/modules/3.2.0/modules.builtin，参见[安装内核](#3-5-5-)节。
+该命令将所有子目录下的modules.builtin文件(参见[3.4.3.3.1.2 $(modbuiltin-target)](#3-4-3-3-1-2-modbuiltin-target-)节)内容输出到文件linux-3.2/modules.builtin中。该文件包含make modules命令生成的所有*.ko文件列表。执行make modules_install时，将linux-3.2/modules.builtin拷贝到/lib/modules/3.2.0/modules.builtin，参见[3.5.5 安装内核](#3-5-5-)节。
 
 #### 3.4.3.4 modules
 
@@ -4989,12 +4990,12 @@ ifdef CONFIG_MODULES
 
 ...
 modules: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),vmlinux) modules.builtin
-	// 生成linux-3.2/modules.order，参见modules.order节
+	// 生成linux-3.2/modules.order，参见[3.4.3.4.1 modules.order]节
 	$(Q)$(AWK) '!x[$$0]++' $(vmlinux-dirs:%=$(objtree)/%/modules.order) > $(objtree)/modules.order
 	@$(kecho) '  Building modules, stage 2.';
-	// 参见make -f scripts/Makefile.modpost节
+	// 参见[3.4.3.4.2 make -f scripts/Makefile.modpost]节
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
-	// 参见make -f scripts/Makefile.fwinst obj=firmware __fw_modbuild节
+	// 参见[3.4.3.4.3 make -f scripts/Makefile.fwinst obj=firmware __fw_modbuild]节
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.fwinst obj=firmware __fw_modbuild
 
 ...
@@ -5011,7 +5012,7 @@ endif # CONFIG_MODULES
 awk '!x[$0]++' /usr/src/linux-3.2/init/modules.order /usr/src/linux-3.2/usr/modules.order /usr/src/linux-3.2/arch/x86/modules.order /usr/src/linux-3.2/kernel/modules.order /usr/src/linux-3.2/mm/modules.order /usr/src/linux-3.2/fs/modules.order /usr/src/linux-3.2/ipc/modules.order /usr/src/linux-3.2/security/modules.order /usr/src/linux-3.2/crypto/modules.order /usr/src/linux-3.2/block/modules.order /usr/src/linux-3.2/drivers/modules.order /usr/src/linux-3.2/sound/modules.order /usr/src/linux-3.2/firmware/modules.order /usr/src/linux-3.2/arch/x86/video/modules.order /usr/src/linux-3.2/net/modules.order /usr/src/linux-3.2/lib/modules.order /usr/src/linux-3.2/arch/x86/lib/modules.order > /usr/src/linux-3.2/modules.order
 ```
 
-该命令将所有子目录下的modules.order文件(参见$(modorder-target)节)内容输出到文件linux-3.2/modules.order中，该文件列出了构建系统内部模块的次序。执行make modules_install时，将linux-3.2/modules.order拷贝到/lib/modules/3.2.0/modules.order，参见[安装内核](#3-5-5-)节。
+该命令将所有子目录下的modules.order文件(参见[3.4.2.1.3.1.5 $(modorder-target)](#3-4-2-1-3-1-5-modorder-target-)节)内容输出到文件linux-3.2/modules.order中，该文件列出了构建系统内部模块的次序。执行make modules_install时，将linux-3.2/modules.order拷贝到/lib/modules/3.2.0/modules.order，参见[3.5.5 安装内核](#3-5-5-)节。
 
 ##### 3.4.3.4.2 make -f scripts/Makefile.modpost
 
@@ -5029,7 +5030,7 @@ _modpost: __modpost
 
 /*
  * 在顶层Makefile中，MODVERDIR := $(if $(KBUILD_EXTMOD),$(firstword $(KBUILD_EXTMOD))/).tmp_versions
- * .tmp_versions目录是在目标prepare1中创建的，参见prepare1节
+ * .tmp_versions目录是在目标prepare1中创建的，参见[3.4.2.1.1.7 prepare1]节
  * __modules用于保存.tmp_versions/*.mod文件中以dir/subdir/*.ko结尾的所有行，并按字母顺序进行排序
  */
 __modules	:= $(sort $(shell grep -h '\.ko' /dev/null $(wildcard $(MODVERDIR)/*.mod)))
@@ -5108,7 +5109,7 @@ See Documentation/kbuild/modules.txt:
 
 **2) *.mod.c**
 
-以hello.c为例，生成的hello.mod.c文件如下，另参见[mod->init/mod->exit与init_module()/cleanup_module()的关联](#)节:
+以hello.c为例，生成的hello.mod.c文件如下，另参见[13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联](#13-5-1-4-mod-gt-init-mod-gt-exit-init-module-cleanup-module-)节:
 
 ```
 #include <linux/module.h>
@@ -5331,7 +5332,7 @@ __attribute__((section(".modinfo"))) =
 "depends=ptp";
 
 /*
- * 宏MODULE_ALIAS参见13.1.2.1 MODULE_INFO()/__MODULE_INFO()节;
+ * 宏MODULE_ALIAS参见[13.1.2.1 MODULE_INFO()/__MODULE_INFO()]节;
  * 通过下列命令查看编译后的e1000e.ko中的alias:
  *   # objdump -s --section=.modinfo ./drivers/net/ethernet/intel/e1000e/e1000e.ko
  */
@@ -5444,9 +5445,9 @@ $(modules): %.ko : %.o %.mod.o FORCE
 ld -r -m elf_i386 -T /usr/src/linux-3.2/scripts/module-common.lds --build-id  -o arch/x86/crypto/aes-i586.ko arch/x86/crypto/aes-i586.o arch/x86/crypto/aes-i586.mod.o
 ```
 
-[**NOTE1**] 执行make modules_install命令时，这些*.ko文件会被安装到/lib/modules/3.2.0/kernel/目录，参见[安装内核](#3-5-5-)节；
+**NOTE 1**: 执行make modules_install命令时，这些*.ko文件会被安装到/lib/modules/3.2.0/kernel/目录，参见[3.5.5 安装内核](#3-5-5-)节；
 
-[**NOTE2**] script/module-common.lds是生成*.ko文件的链接脚本文件，参见[Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds)节。
+**NOTE 2**: script/module-common.lds是生成*.ko文件的链接脚本文件，参见[Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds)节。
 
 ##### 3.4.3.4.3 make -f scripts/Makefile.fwinst obj=firmware \_\_fw_modbuild
 
@@ -5617,7 +5618,7 @@ PHONY += $(module-dirs) modules
 $(module-dirs): crmodverdir $(objtree)/Module.symvers
 	/*
 	 * 示例：扩展为make –f scripts/Makefile.build obj=/ext/module/src
-	 * 编译外部模块源代码目录，参见make -f scripts/Makefile.build obj=XXX命令的执行过程节，
+	 * 编译外部模块源代码目录，参见[3.4.2.1.3.1 make -f scripts/Makefile.build obj=XXX命令的执行过程]节，
 	 * 其中，$(obj-m)由外部模块源代码目录中的Makefile配置
 	 */
 	$(Q)$(MAKE) $(build)=$(patsubst _module_%,%,$@)
@@ -5629,7 +5630,7 @@ modules: $(module-dirs)
 	@$(kecho) '  Building modules, stage 2.';
 	/*
 	 * 扩展为make –f scripts/Makefile.modpost，
-	 * 其执行过程参见make -f scripts/Makefile.modpost节
+	 * 其执行过程参见[3.4.3.4.2 make -f scripts/Makefile.modpost]节
 	 */
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
 
@@ -6360,7 +6361,7 @@ struct edid_info {
 
 Technically, there's no actual harm in leaving in that kernel-only content since, when you're compiling in user space, you're guaranteed that the preprocessor macro ```__KERNEL__``` will never be set, but it's cleaner to just strip out that irrelevant content during the export process.
 
-NOTE: If you look carefully, you'll notice that many of the Kbuild files contain both the variables header-y and unifdef-y to identify the header files to be sanitized and exported. The latter is now deprecated and Kbuild files should now contain only the first form, but the older form is still supported.
+**NOTE**: If you look carefully, you'll notice that many of the Kbuild files contain both the variables header-y and unifdef-y to identify the header files to be sanitized and exported. The latter is now deprecated and Kbuild files should now contain only the first form, but the older form is still supported.
 
 #### 3.4.6.3 Installation of Linux API Headers in LFS
 
@@ -6450,7 +6451,7 @@ chenwx ～ $ uname -r
 3.5.0-17-generic
 ```
 
-[**NOTE**] If you see anything at all after the dash, you are running a distribution kernel. Please use the support channels offered by your distribution vendor to obtain kernel support.
+**NOTE**: If you see anything at all after the dash, you are running a distribution kernel. Please use the support channels offered by your distribution vendor to obtain kernel support.
 
 也可通过下列命令查看内核版本:
 
@@ -6512,7 +6513,7 @@ Refer to linux/README:
 
 3) Apply patches
 
-参见[内核补丁/Patch](#)节。
+参见[3.6 内核补丁/Patch](#3-6-patch)节。
 
 ### 3.5.3 配置内核
 
@@ -6526,7 +6527,7 @@ $ make mrproper
 $ make clean
 $ make distclean
 
-// 参见make config节和make *config节，产生配置输出文件~/linux-build/.config
+// 参见[3.3.1 make config]节和[3.3.2 make *config]节，产生配置输出文件~/linux-build/.config
 $ make config O=../linux-build
 $ make *config O=../linux-build
 or,
@@ -6538,7 +6539,7 @@ $ make kernelrelease O=../linux-build
 3.2.0-chenwx
 ```
 
-[**NOTE**] It's more convenient to preserve the kernel source untouched and have all the configuration output and compilation results generated in a remote directory.
+**NOTE**: It's more convenient to preserve the kernel source untouched and have all the configuration output and compilation results generated in a remote directory.
 
 1) it leaves the source unpolluted by all of those output files, which makes it easier if you want to search the tree using something like grep.
 
@@ -6623,9 +6624,9 @@ sh /home/linux-3.2/arch/x86/boot/install.sh 3.2.0 arch/x86/boot/bzImage System.m
 本命令进行如下操作：
 
 ```
-~/linux-build/arch/x86/boot/bzImage (参见bzImage节)	==安装==>	/boot/vmlinuz-3.2.0-chenwx
-~/linux-build/System.map (参见rule_vmlinux__节)		==安装==>	/boot/System.map-3.2.0-chenwx
-~/linux-build/.config (参见.config/内核配置结果文件节)	==安装==>	/boot/config-3.2.0-chenwx
+~/linux-build/arch/x86/boot/bzImage (参见[3.4.2.8 bzImage]节)	==安装==>	/boot/vmlinuz-3.2.0-chenwx
+~/linux-build/System.map (参见[3.4.2.7.4 rule_vmlinux__]节)	==安装==>	/boot/System.map-3.2.0-chenwx
+~/linux-build/.config (参见[3.3.4 .config/内核配置结果文件]节)	==安装==>	/boot/config-3.2.0-chenwx
 ```
 
 生成文件：
@@ -6691,7 +6692,7 @@ PHONY += _modinst_post
 _modinst_post: _modinst_
 	// 执行scripts/Makefile.fwinst中的目标__fw_modinst
 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.fwinst obj=firmware __fw_modinst
-	// 参见3.5.5.1.1 cmd_depmod节
+	// 参见[3.5.5.1.1 cmd_depmod]节
 	$(call cmd,depmod)
 
 else # CONFIG_MODULES
@@ -6720,7 +6721,7 @@ CONFIG_SHELL		:= $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 			     else if [ -x /bin/bash ]; then echo /bin/bash; \
 			     else echo sh; fi ; fi)
 
-// 该命令来自module-init-tools或kmod，参见13.3.1 加载/卸载模块的命令节
+// 该命令来自module-init-tools或kmod，参见[13.3.1 加载/卸载模块的命令]节
 DEPMOD			= /sbin/depmod
 
 // 获取当前编译的内核版本号，例如: 4.2.0-alex
@@ -7190,7 +7191,7 @@ dmesg -t > `uname -r`.dmesg_current
 
 ## 3.5A 采用make deb-pkg为Debian系统升级内核
 
-[**NOTE**] Thinkpad R61i采用LinuxMint系统，故使用此方法升级内核更方便，简单！
+**NOTE**: Thinkpad R61i采用LinuxMint系统，故使用此方法升级内核更方便，简单！
 
 除了采用[3.5 内核升级](#)节所述的方法升级内核外，也可以采用```make deb-pkg```命令编译内核并为Debian系统升级内核：
 
@@ -7592,9 +7593,9 @@ A useful utility is diffstat, which generates a histogram of a patch’s changes
 # diffstat -p 1 -w 70 my-patch
 ```
 
-[**NOTE1**] Patches generated with diff should always be unified diff, include the C function that the change affects and be generated from one directory above the kernel source root. A unified diff include more information that just the differences between two lines. It begins with a two line header with the names and creation date of the two files that diff is comparing.
+**NOTE 1**: Patches generated with diff should always be unified diff, include the C function that the change affects and be generated from one directory above the kernel source root. A unified diff include more information that just the differences between two lines. It begins with a two line header with the names and creation date of the two files that diff is comparing.
 
-[**NOTE2**] "dontdiff" is a list of files which are generated by the kernel during the build process, and should be ignored in any diff(1)-generated patch. The "dontdiff" file is included in the kernel tree in 2.6.12 and later. For earlier kernel versions, you can get it from <http://www.xenotime.net/linux/doc/dontdiff>.
+**NOTE 2**: "dontdiff" is a list of files which are generated by the kernel during the build process, and should be ignored in any diff(1)-generated patch. The "dontdiff" file is included in the kernel tree in 2.6.12 and later. For earlier kernel versions, you can get it from <http://www.xenotime.net/linux/doc/dontdiff>.
 
 #### 3.6.3.2 通过git生成内核补丁
 
@@ -7628,7 +7629,7 @@ where, the ```-M``` enables rename detection, and the ```--summary``` enables a 
 
 ## 4.1 内核映像的内存布局
 
-在linux-3.2/Documentation/x86/boot.txt中，包含有关内核映像(参见[bzImage](#)节和[安装内核](#3-5-5-)节)的内存布局的描述。根据内核版本的不同，内核映像的内存布局也存在差异，分别参见[4.1.1 Image/zImage (old kernels)](#4-1-1-image-zimage-old-kernels-)节和[4.1.2 bzImage (modern kernel)](#4-1-2-bzimage-modern-kernel-)节，以及下图：
+在linux-3.2/Documentation/x86/boot.txt中，包含有关内核映像(参见[3.4.2.8 bzImage](#3-4-2-8-bzimage)节和[3.5.5 安装内核](#3-5-5-)节)的内存布局的描述。根据内核版本的不同，内核映像的内存布局也存在差异，分别参见[4.1.1 Image/zImage (old kernels)](#4-1-1-image-zimage-old-kernels-)节和[4.1.2 bzImage (modern kernel)](#4-1-2-bzimage-modern-kernel-)节，以及下图：
 
 ![bzImage_2](/assets/bzImage_2.png)
 
@@ -7730,7 +7731,7 @@ where, the address X is as low as the design of the boot loader permits.
 
 当找到一个引导设备之后，第一阶段的引导加载程序就被装入RAM并执行。这个引导加载程序的大小小于512字节(一个扇区)，其作用是加载第二阶段引导加载程序。
 
-当第二阶段引导加载程序被装入RAM并执行时，通常会显示一个动画界面，并将Linux和一个可选的初始RAM磁盘(临时根文件系统)加载到内存中。在加载内核映像时，第二阶段引导加载程序会将控制权交给内核映像，然后内核就可以进行解压和初始化了。在这个阶段中，第二阶段引导加载程序会检测系统硬件、枚举系统连接的硬件设备、安装根设备，然后加载必要的内核模块。完成这些操作之后启动第一个用户空间程序(init，参见4.3.5 init节)，并执行高级系统初始化工作。
+当第二阶段引导加载程序被装入RAM并执行时，通常会显示一个动画界面，并将Linux和一个可选的初始RAM磁盘(临时根文件系统)加载到内存中。在加载内核映像时，第二阶段引导加载程序会将控制权交给内核映像，然后内核就可以进行解压和初始化了。在这个阶段中，第二阶段引导加载程序会检测系统硬件、枚举系统连接的硬件设备、安装根设备，然后加载必要的内核模块。完成这些操作之后启动第一个用户空间程序(init，参见[4.3.5 init](#4-3-5-init)节)，并执行高级系统初始化工作。
 
 这就是 Linux 引导的整个过程。
 
@@ -7740,7 +7741,7 @@ where, the address X is as low as the design of the boot loader permits.
 
 在嵌入式平台中，当系统加电或重置时，会使用一个启动环境。这方面的例子包括U-Boot、RedBoot和Lucent的MicroMonitor。嵌入式平台通常都是与引导监视器搭配销售的。这些程序位于目标硬件上的闪存中的某一段特殊区域，它们提供了将Linux内核映像下载到闪存并继续执行的方法。除了可以存储并引导Linux映像之外，这些引导监视器还执行一定级别的系统测试和硬件初始化过程。在嵌入式平台中，这些引导监视器通常会涉及第一阶段和第二阶段的引导加载程序。
 
-在PC中，引导Linux系统是从BIOS中的地址0xFFFF0处(即接近于1M内存处)开始的。BIOS的第一个步骤是加电自检(POST, Power On Self Test)。POST的工作是对硬件进行检测。BIOS的第二个步骤是进行本地设备的枚举和初始化。给定BIOS功能的不同用法之后，BIOS由两部分组成：POST代码和运行时服务。当POST完成之后，它被从内存中清理了出来，但是BIOS运行时服务依然保留在内存中，目标操作系统可以使用这些服务。要引导一个操作系统，BIOS运行时会按照CMOS的设置中定义的顺序来搜索处于活动状态且可以引导的设备。引导设备可以是软盘、CD-ROM、硬盘上的某个分区、网络上的某个设备，甚至是USB闪存。通常Linux是从硬盘引导的，其中主引导记录(MBR)中包含主引导加载程序(即第一阶段引导加载程序)。MBR是一个512字节大小的扇区，位于磁盘的第一个扇区中(0柱面0磁头1扇区，参见[主引导扇区](#)节)。当MBR被加载到RAM中后，BIOS就会将控制权交给MBR。
+在PC中，引导Linux系统是从BIOS中的地址0xFFFF0处(即接近于1M内存处)开始的。BIOS的第一个步骤是加电自检(POST, Power On Self Test)。POST的工作是对硬件进行检测。BIOS的第二个步骤是进行本地设备的枚举和初始化。给定BIOS功能的不同用法之后，BIOS由两部分组成：POST代码和运行时服务。当POST完成之后，它被从内存中清理了出来，但是BIOS运行时服务依然保留在内存中，目标操作系统可以使用这些服务。要引导一个操作系统，BIOS运行时会按照CMOS的设置中定义的顺序来搜索处于活动状态且可以引导的设备。引导设备可以是软盘、CD-ROM、硬盘上的某个分区、网络上的某个设备，甚至是USB闪存。通常Linux是从硬盘引导的，其中主引导记录(MBR)中包含主引导加载程序(即第一阶段引导加载程序)。MBR是一个512字节大小的扇区，位于磁盘的第一个扇区中(0柱面0磁头1扇区，参见[4.2.2 主引导扇区](#4-2-2-)节)。当MBR被加载到RAM中后，BIOS就会将控制权交给MBR。
 
 **提取MBR的信息**
 
@@ -7755,7 +7756,7 @@ where, the address X is as low as the design of the boot loader permits.
 
 ### 4.3.2 第一阶段引导加载程序 (Stage 1 Bootloader)
 
-MBR中的主引导加载程序(第一阶段引导加载程序)是一个512字节大小的映像，其中包含程序代码和硬盘分区表(参见[主引导扇区](#)节)。前446字节是主引导加载程序，其中包含可执行代码和错误消息文本。接下来的64字节是硬盘分区表，其中包含4个分区的记录(每个记录的大小是16字节)。MBR以两个特殊字节(0x55AA)结束，该数字会用来检查MBR的有效性。
+MBR中的主引导加载程序(第一阶段引导加载程序)是一个512字节大小的映像，其中包含程序代码和硬盘分区表(参见[4.2.2 主引导扇区](#4-2-2-)节)。前446字节是主引导加载程序，其中包含可执行代码和错误消息文本。接下来的64字节是硬盘分区表，其中包含4个分区的记录(每个记录的大小是16字节)。MBR以两个特殊字节(0x55AA)结束，该数字会用来检查MBR的有效性。
 
 主引导加载程序用于查找并加载次引导加载程序(第二阶段引导加载程序)。它是通过在硬盘分区表中查找一个活动分区来实现这种功能的。当找到一个活动分区时，它会扫描分区表中的其他分区，以确保它们都不是活动的。当这个过程验证完成之后，就将该活动分区的引导记录从这个设备中读入RAM中并执行它。
 
@@ -7763,7 +7764,7 @@ MBR中的主引导加载程序(第一阶段引导加载程序)是一个512字节
 
 次引导加载程序(第二阶段引导加载程序)被形象地称为内核加载程序。这个阶段的任务是加载Linux内核和可选的初始RAM磁盘。
 
-在x86 PC环境中，第一阶段引导加载程序和第二阶段引导加载程序一起被称为GRand Unified Bootloader (GRUB，参见[GRUB Legacy](#)节和[GNU GRUB](#)节)或者Linux Loader (LILO，参见[LILO](#)节)。由于LILO有一些缺点，而GRUB克服了这些缺点(参见[LILO与GRUB的比较](#)节)，因此下面重点关注GRUB。
+在x86 PC环境中，第一阶段引导加载程序和第二阶段引导加载程序一起被称为GRand Unified Bootloader (GRUB，参见[3.5.6.2 GRUB Legacy](#3-5-6-2-grub-legacy)节和[3.5.6.3 GNU GRUB 2](#3-5-6-3-gnu-grub-2)节)或者Linux Loader (LILO，参见[3.5.6.1 LILO](#3-5-6-1-lilo)节)。由于LILO有一些缺点，而GRUB克服了这些缺点(参见[3.5.6.0 LILO与GRUB的比较](#3-5-6-0-lilo-grub-)节)，因此下面重点关注GRUB。
 
 GRUB包含了有关Linux文件系统的知识。GRUB不像LILO一样使用裸扇区，而是可以从ext2或ext3文件系统中加载Linux内核。它是通过将两阶段的引导加载程序转换成三阶段的引导加载程序来实现这项功能的。阶段1 (MBR)引导阶段1.5的引导加载程序，它可以理解包含Linux内核映像的特殊文件系统。这方面的例子包括reiserfs_stage1_5 (要从Reiser日志文件系统上进行加载)或者e2fs_stage1_5 (要从ext2或ext3文件系统上进行加载)。当阶段1.5的引导加载程序被加载并运行时，阶段2的引导加载程序就可以被加载了。
 
@@ -7777,7 +7778,7 @@ GRUB包含了有关Linux文件系统的知识。GRUB不像LILO一样使用裸扇
 
 ### 4.3.4 Kernel v3.2.0
 
-当内核映像被加载到内存中，且第二阶段引导加载程序释放控制权之后，内核阶段就开始了。内核映像并不是一个可执行的内核，而是一个压缩过的内核映像。通常它是一个zImage (压缩映像，小于512KB)或一个bzImage (较大的压缩映像，大于512KB)，它是用gzip压缩的(参见[$(obj)/piggy.o](#)节)。在这个内核映像之前是一个例程，它实现少量硬件设置，并对内核映像中包含的内核进行解压，然后将其放入高端内存中，如果有初始RAM磁盘映像，就会将它移动到内存中，并标明以后使用。然后该例程会调用内核，并开始启动内核引导的过程。
+当内核映像被加载到内存中，且第二阶段引导加载程序释放控制权之后，内核阶段就开始了。内核映像并不是一个可执行的内核，而是一个压缩过的内核映像。通常它是一个zImage (压缩映像，小于512KB)或一个bzImage (较大的压缩映像，大于512KB)，它是用gzip压缩的(参见[3.4.2.8.5.1 $(obj)/piggy.o](#3-4-2-8-5-1-obj-piggy-o)节)。在这个内核映像之前是一个例程，它实现少量硬件设置，并对内核映像中包含的内核进行解压，然后将其放入高端内存中，如果有初始RAM磁盘映像，就会将它移动到内存中，并标明以后使用。然后该例程会调用内核，并开始启动内核引导的过程。
 
 #### 4.3.4.1 内核启动过程中的函数调用关系
 
@@ -7787,7 +7788,7 @@ GRUB包含了有关Linux文件系统的知识。GRUB不像LILO一样使用裸扇
 ENTRY(_start)
 ```
 
-可知，setup.bin (参见[bzImage](#)节)的入口点是_start。GRUB会执行jmp_far(0x20, 0)跳过/boot/vmlinuz-3.2.0-chenwx的前0x200个字节，即跳到vmlinuz实模式代码_start处执行，即arch/x86/boot/header.S中的_start，参见[arch/x86/boot/header.S](#)节。
+可知，setup.bin (参见[3.4.2.8 bzImage](#3-4-2-8-bzimage)节)的入口点是_start。GRUB会执行jmp_far(0x20, 0)跳过/boot/vmlinuz-3.2.0-chenwx的前0x200个字节，即跳到vmlinuz实模式代码_start处执行，即arch/x86/boot/header.S中的_start，参见[4.3.4.1.1 arch/x86/boot/header.S](#4-3-4-1-1-arch-x86-boot-header-s)节。
 
 ##### 4.3.4.1.1 arch/x86/boot/header.S
 
@@ -7824,7 +7825,7 @@ CAN_USE_HEAP	= 0x80		# If set, the loader also has set
 /*
  * STACK_SIZE定义于arch/x86/boot/boot.h中，取值为512，故堆的大小为512字节
  * _end来自arch/x86/boot/setup.ld，表示整个setup.bin的结尾，
- * 参见Image/zImage (old kernels)节(0x00098000处)和bzImage (modern kernel)节(X+08000)
+ * 参见[4.1.1 Image/zImage (old kernels)]节(0x00098000处)和[4.1.2 bzImage (modern kernel)]节(X+08000)
  */
 heap_end_ptr:	.word	_end+STACK_SIZE-512
 
@@ -7853,8 +7854,8 @@ start_of_setup:
 	movw	%sp, %dx
 	je	2f		# -> assume %sp is reasonably set
 
-	# Invalid %ss, make up a new stack	// 设置实模式下的堆栈，参见bzImage (modern kernel)节
-	movw	$_end, %dx					// _end来自arch/x86/boot/setup.ld，表示整个setup.bin的结尾
+	# Invalid %ss, make up a new stack	// 设置实模式下的堆栈，参见[4.1.2 bzImage (modern kernel)]节
+	movw	$_end, %dx			// _end来自arch/x86/boot/setup.ld，表示整个setup.bin的结尾
 	testb	$CAN_USE_HEAP, loadflags
 	jz	1f
 	movw	heap_end_ptr, %dx
@@ -7895,7 +7896,7 @@ start_of_setup:
 	rep; stosl
 
 # Jump to C code (should not return)
-	calll	main		// 跳转到arch/x86/boot/main.c中的main()，参见arch/x86/boot/main.c节
+	calll	main		// 跳转到arch/x86/boot/main.c中的main()，参见[4.3.4.1.2 arch/x86/boot/main.c]节
 ```
 
 ##### 4.3.4.1.2 arch/x86/boot/main.c
@@ -7906,7 +7907,7 @@ arch/x86/boot/header.S最终调用arch/x86/boot/main.c中的main()函数。在�
 void main(void)
 {
 	/* First, copy the boot header into the "zeropage" */
-	copy_boot_params();					// 参见copy_boot_params()节
+	copy_boot_params();					// 参见[4.3.4.1.2.1 copy_boot_params()]节
 
 	/* Initialize the early-boot console */
 	console_init();						// 解析内核参数earlyprintk
@@ -7914,33 +7915,34 @@ void main(void)
 		puts("early console in setup code\n");
 
 	/* End of heap check */
-	init_heap();						// 参见init_heap()节
+	init_heap();						// 参见[4.3.4.1.2.2 init_heap()]节
 
 	/* Make sure we have all the proper CPU support */
-	if (validate_cpu()) {					// 参见validate_cpu()节
+	if (validate_cpu()) {					// 参见[4.3.4.1.2.3 validate_cpu()]节
 		puts("Unable to boot - please use a kernel appropriate for your CPU.\n");
 		die();
 	}
 
 	/* Tell the BIOS what CPU mode we intend to run in. */
-	set_bios_mode();						// 参见set_bios_mode()节
+	set_bios_mode();					// 参见[4.3.4.1.2.4 set_bios_mode()]节
 
 	/* Detect memory layout */
-	// 参见detect_memory()节和检测内存段及其大小/boot_params.e820_map节
+	// 参见[4.3.4.1.2.5 detect_memory()]节和[6.3.1 检测内存段及其大小/boot_params.e820_map]节
 	detect_memory();
 
 	/* Set keyboard repeat rate (why?) */
-	keyboard_set_repeat();				// 参见keyboard_set_repeat()节
+	keyboard_set_repeat();					// 参见[4.3.4.1.2.6 keyboard_set_repeat()
+]节
 
 	/* Query MCA information */
-	query_mca();						// 参见query_mca()节
+	query_mca();						// 参见[4.3.4.1.2.7 query_mca()]节
 
 	/* Query Intel SpeedStep (IST) information */
-	query_ist();						// 参见query_ist()节
+	query_ist();						// 参见[4.3.4.1.2.8 query_ist()]节
 
 	/* Query APM information */
 #if defined(CONFIG_APM) || defined(CONFIG_APM_MODULE)
-	// 填充boot_params.apm_bios_info，其执行过程与query_ist()类似，参见query_ist()节
+	// 填充boot_params.apm_bios_info，其执行过程与query_ist()类似，参见[4.3.4.1.2.8 query_ist()]节
 	query_apm_bios();
 #endif
 
@@ -7948,16 +7950,16 @@ void main(void)
 #if defined(CONFIG_EDD) || defined(CONFIG_EDD_MODULE)
 	/*
 	 * 填充boot_params.eddbuf_entries, boot_params.edd_mbr_sig_buf_entries,
-	 * boot_params.eddbuf，其执行过程与query_ist()类似，参见query_edd()节
+	 * boot_params.eddbuf，其执行过程与query_ist()类似，参见[4.3.4.1.2.9 query_edd()]节
 	 */
 	query_edd();
 #endif
 
 	/* Set the video mode */
-	set_video();						// 参见set_video()节
+	set_video();						// 参见[4.3.4.1.2.10 set_video()]节
 
 	/* Do the last things and invoke protected mode */
-	go_to_protected_mode();				// 参见go_to_protected_mode()节
+	go_to_protected_mode();					// 参见[4.3.4.1.2.11 go_to_protected_mode()]节
 }
 ```
 
@@ -8027,7 +8029,7 @@ static void init_heap(void)
 	if (boot_params.hdr.loadflags & CAN_USE_HEAP) {
 		asm("leal %P1(%%esp),%0" : "=r" (stack_end) : "i" (-STACK_SIZE));
 
-		// heap_end_ptr参见arch/x86/boot/header.S节，堆栈大小为512字节
+		// heap_end_ptr参见[4.3.4.1.1 arch/x86/boot/header.S]节，堆栈大小为512字节
 		heap_end = (char *) ((size_t)boot_params.hdr.heap_end_ptr + 0x200);
 		// 检查堆的大小，不能溢出，否则就调整到stack_end
 		if (heap_end > stack_end)
@@ -8037,10 +8039,13 @@ static void init_heap(void)
 		puts("WARNING: Ancient bootloader, some functionality may be limited!\n");
 	}
 }
+```
 
-4.3.4.1.2.3 validate_cpu()
+###### 4.3.4.1.2.3 validate_cpu()
 
 该函数定义于arch/x86/boot/cpu.c:
+
+```
 int validate_cpu(void)
 {
 	u32 *err_flags;
@@ -8130,7 +8135,7 @@ int detect_memory(void)
 {
 	int err = -1;
 
-	// 填充boot_params.e820_entries和boot_params.e820_map，参见detect_memory_e820()节
+	// 填充boot_params.e820_entries和boot_params.e820_map，参见[4.3.4.1.2.5.1 detect_memory_e820()]节
 	if (detect_memory_e820() > 0)
 		err = 0;
 
@@ -8148,7 +8153,7 @@ int detect_memory(void)
 
 ###### 4.3.4.1.2.5.1 detect_memory_e820()
 
-该函数定义于arch/x86/boot/memory.c，另参见检测内存段及其大小/boot_params.e820_map节：
+该函数定义于arch/x86/boot/memory.c，另参见[6.3.1 检测内存段及其大小/boot_params.e820_map](#6-3-1-boot-params-e820-map)节：
 
 ```
 static int detect_memory_e820(void)
@@ -8356,7 +8361,7 @@ void set_video(void)
 	// vid_mode定义于arch/x86/boot/header.S，其取值为SVGA_MODE
 	u16 mode = boot_params.hdr.vid_mode;
 
-	// 重新设置堆的位置，把它设定到_end处，参见arch/x86/boot/header.S节
+	// 重新设置堆的位置，把它设定到_end处，参见[4.3.4.1.1 arch/x86/boot/header.S]节
 	RESET_HEAP();
 
 	store_mode_params();	// 利用BIOS的显示服务程序对视频显示进行设置，保存到boot_params.screen_info
@@ -8413,7 +8418,7 @@ void go_to_protected_mode(void)
 	realmode_switch_hook();
 
 	/* Enable the A20 gate */
-	if (enable_a20()) {			// 参见enable_a20()节
+	if (enable_a20()) {			// 参见[4.3.4.1.2.11.1 enable_a20()]节
 		puts("A20 gate not responding, unable to boot...\n");
 		die();
 	}
@@ -8428,12 +8433,12 @@ void go_to_protected_mode(void)
 	setup_idt();
 	setup_gdt();
 	/*
-	 * 函数protected_mode_jump()参见protected_mode_jump()节，该函数需要两个入参：
+	 * 函数protected_mode_jump()参见[4.3.4.1.2.11.2 protected_mode_jump()]节，该函数需要两个入参：
 	 * 1) 第一个入参：boot_params.hdr.code32_start，定义于arch/x86/boot/header.S，
 	 *    取值为0x100000，由bzImage (modern kernel)节的图可知，该参数表示进入保护模式后
 	 *    执行的第一条内核代码(Protected-mode kernel)；
 	 * 2) 第二个入参：&boot_params+(ds()<<4)是传递给内核的参数，为0号页面的地址，
-	 *    即变量boot_params，参见copy_boot_params()节
+	 *    即变量boot_params，参见[4.3.4.1.2.1 copy_boot_params()]节
 	 */
 	protected_mode_jump(boot_params.hdr.code32_start, (u32)&boot_params + (ds() << 4));
 }
@@ -8471,7 +8476,7 @@ GLOBAL(protected_mode_jump)
 	movw	%cs, %bx
 	shll	$4, %ebx
 	addl	%ebx, 2f
-	jmp	1f				# Short jump to serialize on 386/486
+	jmp	1f			# Short jump to serialize on 386/486
 1:
 
 	movw	$__BOOT_DS, %cx
@@ -8479,13 +8484,13 @@ GLOBAL(protected_mode_jump)
 
 	movl	%cr0, %edx
 	// 执行完本行代码后，内核从此告别实模式，开始了内核的保护模式
-	orb	$X86_CR0_PE, %dl		# Protected mode
+	orb	$X86_CR0_PE, %dl	# Protected mode
 	movl	%edx, %cr0
 
 	# Transition to 32-bit mode
 	.byte	0x66, 0xea		# ljmpl opcode
-2:	.long	in_pm32			# offset		// 开始执行in_pm32函数
-	.word	__BOOT_CS			# segment
+2:	.long	in_pm32			# offset	// 开始执行in_pm32函数
+	.word	__BOOT_CS		# segment
 ENDPROC(protected_mode_jump)
 
 
@@ -8519,15 +8524,15 @@ GLOBAL(in_pm32)
 	/*
 	 * 开始执行由入参传来的boot_params.hdr.code32_start，
 	 * 即0x100000处的代码(Protected-mode Kernel)，
-	 * 参见bzImage (modern kernel)节；
+	 * 参见[4.1.2 bzImage (modern kernel)]节；
 	 * 在解压vmlinuz之前，这段代码为arch/x86/boot/compressed/head_32.S
-	 * 中的函数startup_32，参见arch/x86/boot/compressed/head_32.S节
+	 * 中的函数startup_32，参见[4.3.4.1.3 arch/x86/boot/compressed/head_32.S]节
 	 */
 	jmpl	*%eax			# Jump to the 32-bit entrypoint
 ENDPROC(in_pm32)
 ```
 
-注意：从系统启动到函数protected_mode_jump()，并不是第一次进入保护模式，在bootloader阶段，GRUB已经执行过一次保护模式的命令了，即把vmlinuz第三部分的代码拷贝到内存0x100000之后。参见[第二阶段引导加载程序 (Stage 2 Bootloader](#)节。
+注意：从系统启动到函数protected_mode_jump()，并不是第一次进入保护模式，在bootloader阶段，GRUB已经执行过一次保护模式的命令了，即把vmlinuz第三部分的代码拷贝到内存0x100000之后。参见[4.3.3 第二阶段引导加载程序 (Stage 2 Bootloader)](#4-3-3-stage-2-bootloader-)节。
 
 ##### 4.3.4.1.3 arch/x86/boot/compressed/head_32.S
 
@@ -8676,20 +8681,20 @@ relocated:
 	/*
 	 * 此段中的下列变量均来自于arch/x86/boot/compressed/mkpiggy.c:
 	 * z_extract_offset_negative, z_input_len, input_data
-	 * 参见3.4.2.8.5.1.4 $(obj)/piggy.S节
+	 * 参见[3.4.2.8.5.1.4 $(obj)/piggy.S]节
 	 */
 	leal	z_extract_offset_negative(%ebx), %ebp
 						/* push arguments for decompress_kernel: */
-	pushl	%ebp				/* output address */		// 解压缩的缓存首地址
-	pushl	$z_input_len		/* input_len */			// 待解压缩内核的大小
+	pushl	%ebp				/* output address */	// 解压缩的缓存首地址
+	pushl	$z_input_len			/* input_len */		// 待解压缩内核的大小
 	leal	input_data(%ebx), %eax
-	pushl	%eax				/* input_data */			// 待解压缩内核的开始地址
+	pushl	%eax				/* input_data */	// 待解压缩内核的开始地址
 	leal	boot_heap(%ebx), %eax
-	pushl	%eax				/* heap area */			// 解压缩内核所用的堆
+	pushl	%eax				/* heap area */		// 解压缩内核所用的堆
 	pushl	%esi				/* real mode pointer */	// 表示拷贝内核映像之前的内核映像地址
 	/*
 	 * 调用arch/x86/boot/compressed/misc.c中的decompress_kernel()解压内核，
-	 * 参见decompress_kernel()节
+	 * 参见[4.3.4.1.3.1 decompress_kernel()]节
 	 */
 	call	decompress_kernel
 	addl	$20, %esp
@@ -8727,7 +8732,7 @@ relocated:
 	/*
 	 * 开始执行解压后的内核，即第二个startup_32()函数，
 	 * 该函数定义于arch/x86/kernel/head_32.S，
-	 * 参见arch/x86/kernel/head_32.S节
+	 * 参见[4.3.4.1.4 arch/x86/kernel/head_32.S]节
 	 */
 	jmp	*%ebp
 ```
@@ -8819,7 +8824,7 @@ ENTRY(startup_32)
 	movl $(__KERNEL_STACK_CANARY),%eax
 	movl %eax,%gs
 
-	xorl %eax,%eax			# Clear LDT
+	xorl %eax,%eax				# Clear LDT
 	lldt %ax
 
 	cld					# gcc2 wants the direction flag cleared at all times
@@ -8831,13 +8836,13 @@ ENTRY(startup_32)
 	__REFDATA
 .align 4
 ENTRY(initial_code)
-	.long i386_start_kernel			// 参见386_start_kernel()节
+	.long i386_start_kernel			// 参见[4.3.4.1.4.2 i386_start_kernel()]节
 
 ...
 .data
 .balign 4
 ENTRY(stack_start)
-	.long init_thread_union+THREAD_SIZE	// 为进程0建立内核态堆栈，参见init_thread_union节
+	.long init_thread_union+THREAD_SIZE	// 为进程0建立内核态堆栈，参见[4.3.4.1.4.1 init_thread_union]节
 ```
 
 ###### 4.3.4.1.4.1 init_thread_union
@@ -8847,16 +8852,16 @@ ENTRY(stack_start)
 ```
 union thread_union {
 	struct thread_info thread_info;				// 0号进程的thread_info
-	unsigned long stack[THREAD_SIZE/sizeof(long)];	// THREAD_SIZE的取值为8kB
+	unsigned long stack[THREAD_SIZE/sizeof(long)];		// THREAD_SIZE的取值为8kB
 };
 
 extern union thread_union init_thread_union;
 
 init_thread_union实际定义于arch/x86/kernel/init_task.c中：
 union thread_union init_thread_union __init_task_data =
-	{ INIT_THREAD_INFO(init_task) };				// 参见arch/x86/include/asm/thread_info.h
+	{ INIT_THREAD_INFO(init_task) };			// 参见arch/x86/include/asm/thread_info.h
 
-struct task_struct init_task = INIT_TASK(init_task);	// 0号进程的task_struct
+struct task_struct init_task = INIT_TASK(init_task);		// 0号进程的task_struct
 ```
 
 其中的__init_task_data定义于include/linux/init_task.h中：
@@ -8906,7 +8911,7 @@ void __init i386_start_kernel(void)
 	 * or BIOS or kernel text should be early reserved or marked not
 	 * RAM in e820. All other memory is free game.
 	 */
-	start_kernel();		// 参见start_kernel()节
+	start_kernel();		// 参见[4.3.4.1.4.3 start_kernel()]节
 }
 ```
 
@@ -8916,7 +8921,7 @@ As specified in chapter 16 of **Linux Device Drivers, 2nd Edition**:
 
 > The architecture-independent starting point is start_kernel() in init/main.c. This function is invoked from architecture-specific code, to which it never returns.
 
-由[386_start_kernel()](#)节可知，i386_start_kernel()将调用start_kernel()，其定义于init/main.c:
+由[4.3.4.1.4.2 i386_start_kernel()](#4-3-4-1-4-2-i386-start-kernel-)节可知，i386_start_kernel()将调用start_kernel()，其定义于init/main.c:
 
 ```
 asmlinkage void __init start_kernel(void)
@@ -8925,7 +8930,7 @@ asmlinkage void __init start_kernel(void)
 	/*
 	 * 在arch/x86/kernel/vmlinux.lds中包含该变量的定义；
 	 * 与__initcall_start[], __initcall_end[], __early_initcall_end[]类似，
-	 * 参见__initcall_start[], __early_initcall_end[]节
+	 * 参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]]节
 	 */
 	extern const struct kernel_param __start___param[], __stop___param[];
 
@@ -8935,8 +8940,8 @@ asmlinkage void __init start_kernel(void)
 	 * Need to run as early as possible, to initialize the
 	 * lockdep hash:
 	 */
-	lockdep_init();					// 参见lockdep_init()节
-	debug_objects_early_init();			// 参见debug_objects_early_init()节
+	lockdep_init();				// 参见[4.3.4.1.4.3.1 lockdep_init()]节
+	debug_objects_early_init();		// 参见[4.3.4.1.4.3.2 debug_objects_early_init()]节
 
 	/*
 	 * Set up the the initial canary ASAP:
@@ -8945,7 +8950,7 @@ asmlinkage void __init start_kernel(void)
 
 	cgroup_init_early();
 
-	local_irq_disable();				// 关闭可屏蔽中断，与下文中的local_irq_enable()对应
+	local_irq_disable();			// 关闭可屏蔽中断，与下文中的local_irq_enable()对应
 	early_boot_irqs_disabled = true; 	// 在下文调用local_irq_enable()前将该变量置为false
 
 /*
@@ -8953,27 +8958,27 @@ asmlinkage void __init start_kernel(void)
  * enable them
  */
 
-	// 参见Architecture-dependent routine / tick_handle_periodic()节
+	// 参见[7.6.4.2.1.1 Architecture-dependent routine / tick_handle_periodic()]节
 	tick_init();
 	boot_cpu_init();
 	page_address_init();
 	printk(KERN_NOTICE "%s", linux_banner);
 	/*
 	 * 该函数与体系架构有关。内核启动命令行参见内核启动命令行节，
-	 * 内存初始化参见boot_params.e820_map[]=>e820 / e820_saved节
+	 * 内存初始化参见[6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved]节
 	 */
 	setup_arch(&command_line);
 	mm_init_owner(&init_mm, &init_task);	// 与配置项CONFIG_MM_OWNER的取值有关
-	mm_init_cpumask(&init_mm);			// 与配置项CONFIG_CPUMASK_OFFSTACK的取值有关
-	setup_command_line(command_line);	// 保存命令行参数，以备后续使用，参见内核启动命令行节
+	mm_init_cpumask(&init_mm);		// 与配置项CONFIG_CPUMASK_OFFSTACK的取值有关
+	setup_command_line(command_line);	// 保存命令行参数，以备后续使用，参见[4.3.4.1.4.3.3.1 内核启动命令行]节
 	setup_nr_cpu_ids();
-	setup_per_cpu_areas();			// 参见Per-CPU Variables的初始化节
+	setup_per_cpu_areas();			// 参见[16.1.2 Per-CPU Variables的初始化]节
 	smp_prepare_boot_cpu();	/* arch-specific boot-cpu hooks */
 
 	build_all_zonelists(NULL);
 	page_alloc_init();
 
-	// 解析boot_command_line中的内核选项，参见parse_early_param() / parse_args()节
+	// 解析boot_command_line中的内核选项，参见[4.3.4.1.4.3.3 parse_early_param() / parse_args()]节
 	printk(KERN_NOTICE "Kernel command line: %s\n", boot_command_line);
 	parse_early_param();
 	parse_args("Booting kernel", static_command_line, __start___param,
@@ -8983,14 +8988,14 @@ asmlinkage void __init start_kernel(void)
 
 	/*
 	 * These use large bootmem allocations and must precede
-	 * kmem_cache_init(). 参见19.2.1.1.1 默认分配的log_buf节
+	 * kmem_cache_init(). 参见[19.2.1.1.1 默认分配的log_buf]节
 	 */
 	setup_log_buf(0);
-	// 初始化PID哈希链表头，参见PID散列表和链表节
+	// 初始化PID哈希链表头，参见[7.1.1.21 PID散列表和链表]节
 	pidhash_init();
 	/*
 	 * 初始化VFS的两个重要数据结构dcache和inode的缓存，
-	 * 参见vfs_caches_init_early()节
+	 * 参见[4.3.4.1.4.3.4 vfs_caches_init_early()]节
 	 */
 	vfs_caches_init_early();
 	/*
@@ -9001,9 +9006,9 @@ asmlinkage void __init start_kernel(void)
 	 * 以及arch/x86/kernel/entry_32.S中的__ex_table
 	 */
 	sort_main_extable();
-	// 初始化中断描述符表idt_table[NR_VECTORS]，参见trap_init()节
+	// 初始化中断描述符表idt_table[NR_VECTORS]，参见[4.3.4.1.4.3.5 trap_init()]节
 	trap_init();
-	// 初始化内存管理，参见mm_init()节
+	// 初始化内存管理，参见[4.3.4.1.4.3.6 mm_init()]节
 	mm_init();
 
 	/*
@@ -9011,27 +9016,27 @@ asmlinkage void __init start_kernel(void)
 	 * timer interrupt). Full topology setup happens at smp_init()
 	 * time - but meanwhile we still have a functioning scheduler.
 	 */
-	sched_init();			// 初始化调度程序，参见sched_init()节
+	sched_init();			// 初始化调度程序，参见[4.3.4.1.4.3.7 sched_init()]节
 	/*
 	 * Disable preemption - early bootup scheduling is extremely
 	 * fragile until we cpu_idle() for the first time.
 	 */
-	preempt_disable();		// 与配置项CONFIG_PREEMPT_COUNT的取值有关，参见preempt_disable()节
+	preempt_disable();		// 与配置项CONFIG_PREEMPT_COUNT的取值有关，参见[16.10.2 preempt_disable()]节
 	if (!irqs_disabled()) {
 		printk(KERN_WARNING "start_kernel(): bug: interrupts were "
 				"enabled *very* early, fixing it\n");
 		local_irq_disable();
 	}
-	idr_init_cache();		// 参见idr_init_cache()节
+	idr_init_cache();		// 参见[15.5.6 idr_init_cache()]节
 	perf_event_init();		// 与配置项CONFIG_PERF_EVENTS的取值有关
-	rcu_init();			// 参见RCU的初始化节
+	rcu_init();			// 参见[16.12.3 RCU的初始化]节
 	radix_tree_init();
 	/* init some links before init_ISA_irqs() */
-	early_irq_init();		// 参见early_irq_init()节
-	init_IRQ();			// 参见init_IRQ()节
+	early_irq_init();		// 参见[4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节
+	init_IRQ();			// 参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节
 	prio_tree_init();
 	init_timers();			// 参见定时器模块的编译及初始化节
-	hrtimers_init();			// 参见hrtimer的编译及初始化节
+	hrtimers_init();		// 参见hrtimer的编译及初始化节
 	softirq_init();			// 初始化软中断的TASKLET_SOFTIRQ和HI_SOFTIRQ，参见softirq_init()节
 	timekeeping_init();
 	// 初始化系统日期和时间，参见Architecture-dependent routine / tick_handle_periodic()节
@@ -10324,7 +10329,7 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
-	// 各调度类组成的链表参见pick_next_task()节和错误：引用源未找到节
+	// 各调度类组成的链表参见[7.4.5.2.2 pick_next_task()]节和错误：引用源未找到节
 	current->sched_class = &fair_sched_class;
 
 	...
@@ -10726,20 +10731,20 @@ ENTRY(interrupt)
 	.p2align CONFIG_X86_L1_CACHE_SHIFT
 ENTRY(irq_entries_start)
 	RING0_INT_FRAME
-vector=FIRST_EXTERNAL_VECTOR					// FIRST_EXTERNAL_VECTOR取值为0x20
-.rept (NR_VECTORS-FIRST_EXTERNAL_VECTOR+6)/7		// 外层循环，共32次
-	.balign 32								// 32字节对齐
-	.rept	7								// 内层循环，共7次
+vector=FIRST_EXTERNAL_VECTOR						// FIRST_EXTERNAL_VECTOR取值为0x20
+.rept (NR_VECTORS-FIRST_EXTERNAL_VECTOR+6)/7				// 外层循环，共32次
+	.balign 32							// 32字节对齐
+	.rept	7							// 内层循环，共7次
 		.if vector < NR_VECTORS
 			.if vector <> FIRST_EXTERNAL_VECTOR
 				CFI_ADJUST_CFA_OFFSET -4		// 按照CFA规则修改前一个offset，以达到4字节对齐
 			.endif
-1: 			pushl_cfi $(~vector+0x80) 	/* Note: always in signed byte range */ // 占2字节
+1: 			pushl_cfi $(~vector+0x80) 			/* Note: always in signed byte range */ // 占2字节
 			.if ((vector-FIRST_EXTERNAL_VECTOR)%7) <> 6
 				jmp 2f					// 跳转到2处，即long jmp，占5字节
 			.endif
 			.previous
-			.long 1b						// 跳转到1处，即short jmp，占2字节
+			.long 1b					// 跳转到1处，即short jmp，占2字节
 			.section .entry.text, "ax"
 			vector=vector+1
 		.endif
@@ -10759,7 +10764,7 @@ END(interrupt)
 	.p2align CONFIG_X86_L1_CACHE_SHIFT
 common_interrupt:
 	addl $-0x80,(%esp)	/* Adjust vector into the [-256,-1] range */
-	SAVE_ALL			// 保存中断处理程序可能用到的寄存器
+	SAVE_ALL		// 保存中断处理程序可能用到的寄存器
 	TRACE_IRQS_OFF
 	movl %esp,%eax		// 把栈顶指针传给eax寄存器，该寄存器的内容将作为do_IRQ()函数的入参
 	call do_IRQ		// 调用do_IRQ()处理中断，参见do_IRQ()节
@@ -11522,7 +11527,7 @@ static noinline void __init_refok rest_init(void)
 	schedule();				// 如果存在一个准备好的进程，则运行它；否则，调用下面的cpu_init()函数
 
 	/* Call into cpu_idle with preempt disabled */
-	preempt_disable();			// 与配置CONFIG_PREEMPT_COUNT有关，参见preempt_disable()节
+	preempt_disable();			// 与配置CONFIG_PREEMPT_COUNT有关，参见[16.10.2 preempt_disable()]节
 	cpu_idle();				// 参见cpu_idle()节
 }
 ```
@@ -11612,7 +11617,7 @@ static void __init do_pre_smp_initcalls(void)
 	initcall_t *fn;
 
 	for (fn = __initcall_start; fn < __early_initcall_end; fn++)
-		do_one_initcall(*fn);		// 参见do_one_initcall()节
+		do_one_initcall(*fn);		// 参见[13.5.1.1.1.2 do_one_initcall()]节
 }
 ```
 
@@ -11630,7 +11635,7 @@ static void __init do_basic_setup(void)
 	init_irq_proc();
 	do_ctors();
 	usermodehelper_enable();
-	do_initcalls();			// 参见module被编译进内核时的初始化过程节
+	do_initcalls();			// 参见[13.5.1.1 module被编译进内核时的初始化过程]节
 }
 ```
 
@@ -13514,7 +13519,7 @@ static inline struct desc_struct *get_cpu_gdt_table(unsigned int cpu)
 }
 ```
 
-NOTE: In uniprocessor systems there is only one GDT, while in multiprocessor systems there is one GDT for every CPU in the system.
+**NOTE**: In uniprocessor systems there is only one GDT, while in multiprocessor systems there is one GDT for every CPU in the system.
 
 全局描述符表gdt_page定义于arch/x86/kernel/cpu/common.c:
 
@@ -13762,7 +13767,7 @@ int_msg:
 
 中断描述符表的最终初始化分为两部分：
 * 异常：由函数trap_init()实现，被系统初始化入口函数start_kernel()调用，参见trap_init()节；
-* 中断：由函数init_IRQ()实现，被系统初始化入口函数start_kernel()调用，参见init_IRQ()节。
+* 中断：由函数init_IRQ()实现，被系统初始化入口函数start_kernel()调用，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
 ##### 6.1.1.3.2 中断描述符表寄存器IDTR
 
@@ -13855,9 +13860,9 @@ Starting with the 80386, all 80×86 processors support paging; it is enabled by 
 
 两级页表结构的第二级为页表，也刚好存储在一个4KB的页中。页表中共有1024个表项，每个表项大小为4字节并包含一个页的物理基地址。线性地址的中间10位(即21-12位)用来产生第二级的索引，以获得包含页物理地址的页表项。这个物理地址的高20位与线性地址的低12位形成最后的物理地址，也就是页转化过程输出的物理地址。
 
-NOTE 1: The aim of this two-level scheme is to reduce the amount of RAM required for per-process Page Tables.
+**NOTE 1**: The aim of this two-level scheme is to reduce the amount of RAM required for per-process Page Tables.
 
-NOTE 2: Each active process must have a Page Directory assigned to it. However, there is no need to allocate RAM for all Page Tables of a process at once; it is more efficient to allocate RAM for a Page Table only when the process effectively needs it.
+**NOTE 2**: Each active process must have a Page Directory assigned to it. However, there is no need to allocate RAM for all Page Tables of a process at once; it is more efficient to allocate RAM for a Page Table only when the process effectively needs it.
 
 ##### 6.1.2.1.1 页目录项/Page Directory Entry
 
@@ -13924,7 +13929,7 @@ Extended paging is enabled by setting the Page Size (PS) flag of a Page Director
 
 ![Extended_Paging](/assets/Extended_Paging.jpg)
 
-NOTE: Only the 10 most significant bits of the 20-bit physical address field are significant. This is because each physical address is aligned on a 4-MB boundary, so the 22 least significant bits of the address are 0.
+**NOTE**: Only the 10 most significant bits of the 20-bit physical address field are significant. This is because each physical address is aligned on a 4-MB boundary, so the 22 least significant bits of the address are 0.
 
 #### 6.1.2.3 Physical Address Extension (PAE)
 
@@ -13968,7 +13973,7 @@ For that reason, all hardware paging systems for 64-bit processors make use of a
 
 ![Paging_Levels](/assets/Paging_Levels.png)
 
-NOTE: 在x86-64架构下，不存在高端内存(ZONE_HIGHMEM)区域。
+**NOTE**: 在x86-64架构下，不存在高端内存(ZONE_HIGHMEM)区域。
 
 #### 6.1.2.5 页面高速缓冲寄存器
 
@@ -15959,7 +15964,7 @@ struct vm_struct {
 ## 6.3 内存管理的初始化
 
 内存管理的初始化分为如下步骤：
-* 检测内存段及其大小，参见检测内存段及其大小/boot_params.e820_map节；
+* 检测内存段及其大小，参见[6.3.1 检测内存段及其大小/boot_params.e820_map](#6-3-1-boot-params-e820-map)节；
 * 映射内存页面映射至分区，参见映射内存页面页至分区节。
 
 内存管理的初始化参见mm_init()节。
@@ -15982,7 +15987,7 @@ boot_params.e820_map:
 
 ### 6.3.2 映射内存页面页至分区/node_data[]->node_zones[]
 
-由检测内存段及其大小/boot_params.e820_map节可知，系统中的内存状态信息保存到数组boot_params.e820_map[]中。此后，在系统启动过程中，该数组将进行如下转换：
+由[6.3.1 检测内存段及其大小/boot_params.e820_map](#6-3-1-boot-params-e820-map)节可知，系统中的内存状态信息保存到数组boot_params.e820_map[]中。此后，在系统启动过程中，该数组将进行如下转换：
 
 ```
 boot_params.e820_map[]
@@ -18044,7 +18049,7 @@ General setup  --->
 
 由此可知，这三个配置选项是互斥的，因而只能选择其中之一！
 
-NOTE: SLAB/SLUB/SLOB allocator的区别
+**NOTE**: SLAB/SLUB/SLOB allocator的区别
 * SLAB是基础，是最早从Sun OS那引进的；
 * SLUB是在Slab上进行的改进，在大型机上表现出色，据说还被IA-64作为默认；
 * SLOB是针对小型系统设计的，主要是嵌入式。
@@ -21284,7 +21289,7 @@ unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
 		}
 	}
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	error = security_file_mmap(file, reqprot, prot, flags, addr, 0);
 	if (error)
 		return error;
@@ -21344,7 +21349,7 @@ munmap_back:
 	 */
 	if (accountable_mapping(file, vm_flags)) {
 		charged = len >> PAGE_SHIFT;
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		if (security_vm_enough_memory(charged))
 			return -ENOMEM;
 		vm_flags |= VM_ACCOUNT;
@@ -21716,7 +21721,7 @@ unsigned long do_mremap(unsigned long addr, unsigned long old_len,
 			goto out;
 		}
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		ret = security_file_mmap(NULL, 0, 0, 0, new_addr, 1);
 		if (ret)
 			goto out;
@@ -22634,7 +22639,7 @@ int __meminit init_per_zone_wmark_min(void)
 /*
  * 由mm/Makefile可知，mm/page_alloc.c被直接编译进内核，
  * 故在系统启动时如下初始化函数被调用，
- * 参见module被编译进内核时的初始化过程节
+ * 参见[13.5.1.1 module被编译进内核时的初始化过程]节
  */
 module_init(init_per_zone_wmark_min)
 ```
@@ -23192,7 +23197,7 @@ typedef int		__kernel_pid_t;
 
 In fact, the POSIX 1003.1c standard states that all threads of a multithreaded application must have the same PID. To comply with this standard, Linux makes use of thread groups. The identifier shared by the threads is the PID of the thread group leader, that is, the PID of the first lightweight process in the group; it is stored in the tgid field of the process descriptors. The getpid() system call returns the value of tgid relative to the current process instead of the value of pid, so all the threads of a multithreaded application share the same identifier. Most processes belong to a thread group consisting of a single member; as thread group leaders, they have the tgid field equal to the pid field, thus the getpid() system call works as usual for this kind of process.
 
-NOTE: If the system is willing to break compatibility with old applications, the administrator may increase the maximum value via /proc/sys/kernel/pid_max.
+**NOTE**: If the system is willing to break compatibility with old applications, the administrator may increase the maximum value via /proc/sys/kernel/pid_max.
 
 #### 7.1.1.3 进程内核栈
 
@@ -25081,7 +25086,7 @@ static struct task_struct *copy_process(unsigned long clone_flags, unsigned long
 	/*
 	 * 调用系统安全框架创建进程，在配置内核时没有选择CONFIG_SECURITY，
 	 * 则系统安全框架函数为空函数，返回值为0;调用变量security_ops中的
-	 * 对应函数，参见security_xxx()节
+	 * 对应函数，参见[14.4.2 security_xxx()]节
 	 */
 	retval = security_task_create(clone_flags);
 	if (retval)
@@ -25917,7 +25922,7 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs)
 	struct linux_binfmt *fmt;
 	pid_t old_pid;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	retval = security_bprm_check(bprm);
 	if (retval)
 		return retval;
@@ -26091,7 +26096,7 @@ static void __exit exit_elf_binfmt(void)
 
 /*
  * 若module被编译进内核，其初始化函数在系统启动时被调用，
- * 其清理函数将不会被调用，参见module被编译进内核时的初始化过程节；
+ * 其清理函数将不会被调用，参见[13.5.1.1 module被编译进内核时的初始化过程]节；
  * 若module被编译成独立模块，其初始化函数在执行insmod时调用，
  * 参见insmod调用sys_init_module()节；其清理函数在执行rmmod时
  * 调用，参见rmmod调用sys_delete_module()节
@@ -26129,9 +26134,9 @@ start_kernel() -> sched_init() -> init_idle():
 #endif
 ```
 
-进程0所属的调度类为idle_sched_class，其处于调度类链表中的最后一个位置，参见pick_next_task()节。
+进程0所属的调度类为idle_sched_class，其处于调度类链表中的最后一个位置，参见[7.4.5.2.2 pick_next_task()](#7-4-5-2-2-pick-next-task-)节。
 
-NOTE: 参见<<Understanding the Linux Kernel, 3rd Edition>>第3. Process章第Process 0节：
+**NOTE**: 参见<<Understanding the Linux Kernel, 3rd Edition>>第3. Process章第Process 0节：
 
 In multiprocessor systems there is a process 0 for each CPU. Right after the power on, the BIOS of the computer starts a single CPU while disabling the others. The swapper process running on CPU 0 initializes the kernel data structures, then enables the other CPUs and creates the additional swapper processes by means of the copy_process() function passing to it the value 0 as the new PID. Moreover, the kernel sets the cpu field of the thread_info descriptor of each forked process to the proper CPU index.
 
@@ -26647,7 +26652,7 @@ NORET_TYPE void do_exit(long code)
 
 	validate_creds_for_do_exit(tsk);
 
-	preempt_disable();	// 参见preempt_disable()节
+	preempt_disable();	// 参见[16.10.2 preempt_disable()]节
 	exit_rcu();
 	/* causes final put_task_struct in finish_task_switch(). */
 	tsk->state = TASK_DEAD;
@@ -27301,11 +27306,11 @@ init_waitqueue_head(&my_queue);
 
 #define __WAITQUEUE_INITIALIZER(name, tsk) {				\
 	.private		= tsk,					\
-	.func			= default_wake_function,		\	// 参见default_wake_function()节
+	.func			= default_wake_function,		\	// 参见[7.4.10.2.2 default_wake_function()]节
 	.task_list	= { NULL, NULL } }
 
 #define DEFINE_WAIT(name)						\
-	DEFINE_WAIT_FUNC(name, autoremove_wake_function)			// 参见autoremove_wake_function()节
+	DEFINE_WAIT_FUNC(name, autoremove_wake_function)			// 参见[7.4.10.2.1 autoremove_wake_function()]节
 
 #define DEFINE_WAIT_FUNC(name, function)				\
 	wait_queue_t name = {						\
@@ -27317,7 +27322,7 @@ init_waitqueue_head(&my_queue);
 #define init_wait(wait)							\
 	do {								\
 		(wait)->private = current;				\
-		(wait)->func = autoremove_wake_function;		\	// 参见autoremove_wake_function()节
+		(wait)->func = autoremove_wake_function;		\	// 参见[7.4.10.2.1 autoremove_wake_function()]节
 		INIT_LIST_HEAD(&(wait)->task_list);			\
 		(wait)->flags = 0;					\
 	} while (0)
@@ -27326,7 +27331,7 @@ static inline void init_waitqueue_entry(wait_queue_t *q, struct task_struct *p)
 {
 	q->flags = 0;
 	q->private = p;
-	q->func = default_wake_function;					// 参见default_wake_function()节
+	q->func = default_wake_function;					// 参见[7.4.10.2.2 default_wake_function()]节
 }
 
 static inline void init_waitqueue_func_entry(wait_queue_t *q, wait_queue_func_t func)
@@ -27373,7 +27378,7 @@ struct task_struct中与实时进程的调度有关的域包括：
 unsigned int rt_priority;
 ```
 
-其取值范围为[0, MAX_RT_PRIO)，即[0, 100)，参见进程优先级节。
+其取值范围为[0, MAX_RT_PRIO)，即[0, 100)，参见[7.1.1.8.1 进程优先级](#7-1-1-8-1-)节。
 
 The scheduler always favors a higher priority runnable process over a lower priority one; in other words, a real-time process inhibits the execution of every lower-priority process while it remains runnable.
 
@@ -27399,7 +27404,7 @@ struct task_struct中与实时进程的调度有关的域包括：
 int prio, static_prio, normal_prio;
 ```
 
-其中，prio为动态优先级，static_prio为静态优先级。这二者的取值范围均为[MAX_RT_PRIO, MAX_RT_PRIO)，即[100, 140)，参见进程优先级节。
+其中，prio为动态优先级，static_prio为静态优先级。这二者的取值范围均为[MAX_RT_PRIO, MAX_RT_PRIO)，即[100, 140)，参见[7.1.1.8.1 进程优先级](#7-1-1-8-1-)节。
 
 参见<<Understanding the Linux Kernel, 3rd Edition>>第7. Process Scheduling章第Scheduling of Conventional Processes节。
 
@@ -27520,7 +27525,7 @@ chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sched_rt_runtime_us
 
 ```
 struct sched_class {
-	// 指向下一个调度类。各调度类的链接关系参见pick_next_task()节
+	// 指向下一个调度类。各调度类的链接关系参见[7.4.5.2.2 pick_next_task()]节
 	const struct sched_class *next;
 
 	/*
@@ -27700,7 +27705,7 @@ static void __sched __schedule(void)
 	int cpu;
 
 need_resched:
-	preempt_disable();		// 参见preempt_disable()节
+	preempt_disable();		// 参见[16.10.2 preempt_disable()]节
 	cpu = smp_processor_id();	// 获得当前CPU的标示符
 	rq = cpu_rq(cpu); 		// 获得当前CPU的变量runqueues，参见运行队列变量/runqueues节
 	rcu_note_context_switch(cpu);
@@ -27771,7 +27776,7 @@ need_resched:
 	 * 队列的合适位置。对于CFS而言，将当前进程插入到cfs_rq红黑树的合适位置；
 	 */
 	put_prev_task(rq, prev);
-	// 从runqueues中选择最适合的进程，并保存到next中。参见pick_next_task()节
+	// 从runqueues中选择最适合的进程，并保存到next中。参见[7.4.5.2.2 pick_next_task()]节
 	next = pick_next_task(rq);
 	clear_tsk_need_resched(prev); 		// 清除当前进程的重调度标识
 	rq->skip_clock_update = 0;
@@ -28058,12 +28063,12 @@ do {											\
 	asm volatile("pushfl\n\t"			/* save    flags */		\
 		     "pushl %%ebp\n\t"			/* save    EBP   */		\
 		     "movl %%esp,%[prev_sp]\n\t"	/* save    ESP   */ 		\
-		     "movl %[next_sp],%%esp\n\t"	/* restore ESP   */ 		\	// NOTE #1
-		     "movl $1f,%[prev_ip]\n\t"		/* save    EIP   */		\	// NOTE #2
+		     "movl %[next_sp],%%esp\n\t"	/* restore ESP   */ 		\	// NOTE 1
+		     "movl $1f,%[prev_ip]\n\t"		/* save    EIP   */		\	// NOTE 2
 		     "pushl %[next_ip]\n\t"		/* restore EIP   */		\
 		     __switch_canary							\
-		     "jmp __switch_to\n"		/* regparm call  */		\	// NOTE #3
-		     "1:\t"								\	// NOTE #4
+		     "jmp __switch_to\n"		/* regparm call  */		\	// NOTE 3
+		     "1:\t"								\	// NOTE 4
 		     "popl %%ebp\n\t"			/* restore EBP   */		\
 		     "popfl\n"				/* restore flags */		\
 											\
@@ -28093,17 +28098,17 @@ do {											\
 } while (0)
 ```
 
-**NOTE #1:**
+**NOTE 1:**
 
 movel %[next_sp],%%esp为修改堆栈指针，使其指向next进程的堆栈。因为在内核态中，栈顶指针减去8K偏移(两页)便可得到thread_info位置，从而在切换后current_thread_info内容为切换后的新进程的thread_info内容。
 
 Loads next->thread.esp in esp. From now on, the kernel operates on the Kernel Mode stack of next, so this instruction performs the actual process switch from prev to next.
 
-**NOTE #2:**
+**NOTE 2:**
 
-Saves the address labeled 1 (shown later in NOTE #3) in prev->thread.eip. When the process being replaced resumes its execution, the process executes the instruction labeled as 1.
+Saves the address labeled 1 (shown later in **NOTE 3**) in prev->thread.eip. When the process being replaced resumes its execution, the process executes the instruction labeled as 1.
 
-**NOTE #3:**
+**NOTE 3:**
 
 调用arch/x86/kernel/process_32.c或arch/x86/kernel/process_64.c中的函数__switch_to()，参见_switch_to()节。
 
@@ -28272,7 +28277,7 @@ set_current_state(TASK_UNINTERRUPTIBLE);	// set task’s state to un-interruptib
 schedule_timeout(s * HZ);			// take a nap and wake up in “s” seconds
 ```
 
-NOTE: The task must be in one of these two states before schedule_timeout() is called or else the task will not go to sleep.
+**NOTE**: The task must be in one of these two states before schedule_timeout() is called or else the task will not go to sleep.
 
 该函数定义于kernel/timer.c:
 
@@ -28495,7 +28500,7 @@ static void __cond_resched(void)
 
 #### 7.4.9.1 加入等待队列
 
-当进程进入休眠状态时，进程被加入到等待队列(参见等待队列/wait_queue_head_t/wait_queue_t节)中，通过如下几节中的函数添加等待队列：
+当进程进入休眠状态时，进程被加入到等待队列(参见[7.4.2.4 等待队列/wait_queue_head_t/wait_queue_t](#7-4-2-4-wait-queue-head-t-wait-queue-t)节)中，通过如下几节中的函数添加等待队列：
 
 ##### 7.4.9.1.1 add_wait_queue()/\__add_wait_queue_exclusive()
 
@@ -28591,7 +28596,7 @@ long __sched interruptible_sleep_on_timeout(wait_queue_head_t *q, long timeout)
 
 As you might expect, these functions unconditionally put the current process to sleep on the given queue. These functions are strongly deprecated, however, and you should never use them. The problem is obvious if you think about it: sleep_on offers no way to protect against race conditions. There is always a window between when your code decides it must sleep and when sleep_on actually effects that sleep. A wakeup that arrives during that window is missed. For this reason, code that calls sleep_on is never entirely safe.
 
-NOTE: Those macros are removed from kernel after v3.15. Refer to commit b8780c363d808a726a34793caa900923d32b6b80:
+**NOTE**: Those macros are removed from kernel after v3.15. Refer to commit b8780c363d808a726a34793caa900923d32b6b80:
 
 ```
 chenwx@chenwx ~/linux $ git lc b8780c363d808a726a34793caa900923d32b6b80
@@ -28641,7 +28646,7 @@ static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeou
 
 	/*
 	 * 参见定义/初始化等待队列/wait_queue_t节，为当前进程创建等待队列，
-	 * 其唤醒函数为default_wake_function()，参见default_wake_function()节
+	 * 其唤醒函数为default_wake_function()，参见[7.4.10.2.2 default_wake_function()]节
 	 */
 	init_waitqueue_entry(&wait, current);
 
@@ -28658,7 +28663,7 @@ static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeou
 
 	/*
 	 * 调度其他进程运行，当前进程转入休眠状态，并指定的休眠时间，
-	 * 参见schedule_timeout()节
+	 * 参见[7.4.7 schedule_timeout()]节
 	 */
 	timeout = schedule_timeout(timeout);
 
@@ -28908,7 +28913,7 @@ do {											\
 		prepare_to_wait(&wq, &__wait, TASK_UNINTERRUPTIBLE);			\
 		if (condition)								\
 			break;								\
-		ret = schedule_timeout(ret);						\	// 参见schedule_timeout()节
+		ret = schedule_timeout(ret);						\	// 参见[7.4.7 schedule_timeout()]节
 		if (!ret)								\
 			break;								\
 	}										\
@@ -28953,7 +28958,7 @@ do {											\
 		if (condition)								\
 			break;								\
 		if (!signal_pending(current)) {						\
-			ret = schedule_timeout(ret);					\	// 参见schedule_timeout()节
+			ret = schedule_timeout(ret);					\	// 参见[7.4.7 schedule_timeout()]节
 			if (!ret)							\
 				break;							\
 			continue;							\
@@ -28967,7 +28972,7 @@ do {											\
 
 #### 7.4.9.5 移出等待队列
 
-当进程被唤醒时，进程被移出等待队列(参见等待队列/wait_queue_head_t/wait_queue_t节)中，通过如下几节中的函数移出等待队列：
+当进程被唤醒时，进程被移出等待队列(参见[7.4.2.4 等待队列/wait_queue_head_t/wait_queue_t](#7-4-2-4-wait-queue-head-t-wait-queue-t)节)中，通过如下几节中的函数移出等待队列：
 
 ##### 7.4.9.5.1 remove_wait_queue()
 
@@ -29116,7 +29121,7 @@ static void __wake_up_common(wait_queue_head_t *q, unsigned int mode,
 ```
 int autoremove_wake_function(wait_queue_t *wait, unsigned mode, int sync, void *key)
 {
-	// 唤醒等待队列wait中的进程，参见default_wake_function()节
+	// 唤醒等待队列wait中的进程，参见[7.4.10.2.2 default_wake_function()]节
 	int ret = default_wake_function(wait, mode, sync, key);
 
 	if (ret)
@@ -30719,7 +30724,7 @@ obj-y  = sched.o fork.o exec_domain.o panic.o printk.o \
 early_initcall(init_workqueues);
 ```
 
-及module被编译进内核时的初始化过程节可知，系统启动时，workqueue的初始化过程如下：
+以及[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节可知，系统启动时，workqueue的初始化过程如下：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -31246,9 +31251,9 @@ unsigned long long __attribute__((weak)) sched_clock(void)
 }
 ```
 
-**NOTE1**: You might wonder why jiffies has not been directly declared as a 64-bit unsigned long long integer on the 80×86 architecture. The answer is that accesses to 64-bit variables in 32-bit architectures cannot be done atomically. Therefore, every read operation on the whole 64 bits requires some synchronization technique to ensure that the counter is not updated while the two 32-bit half-counters are read; as a consequence, every 64-bit read operation is significantly slower than a 32-bit read operation.
+**NOTE 1**: You might wonder why jiffies has not been directly declared as a 64-bit unsigned long long integer on the 80×86 architecture. The answer is that accesses to 64-bit variables in 32-bit architectures cannot be done atomically. Therefore, every read operation on the whole 64 bits requires some synchronization technique to ensure that the counter is not updated while the two 32-bit half-counters are read; as a consequence, every 64-bit read operation is significantly slower than a 32-bit read operation.
 
-**NOTE2**: Needless to say, both jiffies and jiffies_64 must be considered read-only.
+**NOTE 2**: Needless to say, both jiffies and jiffies_64 must be considered read-only.
 
 #### 7.6.2.1 获得Jiffies的取值
 
@@ -34434,7 +34439,7 @@ fs_initcall(init_pipe_fs);
 module_exit(exit_pipe_fs);
 ```
 
-其中，fs_initcall()和module_exit()参见module被编译进内核时的初始化过程节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+其中，fs_initcall()和module_exit()参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -36771,7 +36776,7 @@ idr结构中的top域是指向一个32叉树的树根，其结构参见：
 
 ![IPC_05](/assets/IPC_05.jpg)
 
-另参见[idr机制(32叉树)](http://blog.csdn.net/orz415678659/article/details/8539794)。其中，pa[*]->ary[id & IDR_MASK]域指向了消息队列中的q_perm域，即msq.q_perm(参见struct msg_queue/struct msg_msg节)，其调用函数关系如下(参见newque()节)：
+另参见[idr机制(32叉树)](http://blog.csdn.net/orz415678659/article/details/8539794)。其中，pa[*]->ary[id & IDR_MASK]域指向了消息队列中的q_perm域，即msq.q_perm(参见[8.4.2.1 struct msg_queue/struct msg_msg](#8-4-2-1-struct-msg-queue-struct-msg-msg)节)，其调用函数关系如下(参见[8.4.3.1.1.2 newque()](8-4-3-1-1-2-newque-)节)：
 
 ```
 newque() -> ipc_addid() -> idr_get_new() -> idr_get_new_above_int() -> rcu_assign_pointer()
@@ -36783,7 +36788,7 @@ struct msg_queue和struct msg_msg定义于include/linux/msg.h，其结构参见�
 
 ![IPC_06](/assets/IPC_06.jpg)
 
-struct msg_queue类型的对象即为消息队列，假设为msq，则msq.q_perm域指明了该消息队列的属性，其中msq.q_perm.key和msq.q_perm.id建立了对应关系，参见newque()节。
+struct msg_queue类型的对象即为消息队列，假设为msq，则msq.q_perm域指明了该消息队列的属性，其中msq.q_perm.key和msq.q_perm.id建立了对应关系，参见[8.4.3.1.1.2 newque()](8-4-3-1-1-2-newque-)节。
 
 #### 8.4.2.2 struct msgbuf
 
@@ -36830,7 +36835,7 @@ SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
 
 	/*
 	 * 设置newque()函数指针，该函数在ipcget_new()或ipcget_public()
-	 * 中被调用，参见ipcget_new()/ipcget_public()节
+	 * 中被调用，参见[8.4.3.1.1.1 ipcget_new()/ipcget_public()]节
 	 */
 	msg_ops.getnew = newque;
 	msg_ops.associate = msg_security;
@@ -36899,9 +36904,9 @@ retry:
 
 	down_write(&ids->rw_mutex);
 	/*
-	 * 调用函数newque()创建新的消息队列，参见sys_msgget()节；
-	 * 或者，调用函数newseg()创建新的共享内存段，参见newseg()节；
-	 * 或者，调用函数newary()创建新的信号量，参见newary()节
+	 * 调用函数newque()创建新的消息队列，参见[8.4.3.1.1.2 newque()]节；
+	 * 或者，调用函数newseg()创建新的共享内存段，参见[8.5.3.1.1 newseg()]节；
+	 * 或者，调用函数newary()创建新的信号量，参见[8.6.3.1.1 newary()]节
 	 */
 	err = ops->getnew(ns, params);
 	up_write(&ids->rw_mutex);
@@ -36949,8 +36954,8 @@ retry:
 			err = -ENOMEM;
 		else
 			/*
-			 * 调用函数newque()创建新的消息队列，参见sys_msgget()节；
-			 * 或者调用函数newseg()创建新的共享内存段，参见newseg()节
+			 * 调用函数newque()创建新的消息队列，参见[8.4.3.1.1.2 newque()]节；
+			 * 或者调用函数newseg()创建新的共享内存段，参见[8.5.3.1.1 newseg()]节
 			 */
 			err = ops->getnew(ns, params);
 	} else {
@@ -37009,7 +37014,7 @@ static int newque(struct ipc_namespace *ns, struct ipc_params *params)
 	msq->q_perm.key = key; 
 
 	msq->q_perm.security = NULL;
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	retval = security_msg_queue_alloc(msq);
 	if (retval) {
 		ipc_rcu_putref(msq);
@@ -37023,11 +37028,11 @@ static int newque(struct ipc_namespace *ns, struct ipc_params *params)
 	 * ipc_addid()为q_perm.id赋值，先前已为q_perm.key赋值，因而key
 	 * 与id建立了映射关系；另外，通过ipc_addid() -> idr_get_new()
 	 * -> idr_get_new_above_int() -> rcu_assign_pointer()将
-	 * pa[0]->ary[id & IDR_MASK]指向msq->q_perm，参见struct idr节
+	 * pa[0]->ary[id & IDR_MASK]指向msq->q_perm，参见[8.4.2.1 struct idr]节
 	 */
 	id = ipc_addid(&msg_ids(ns), &msq->q_perm, ns->msg_ctlmni);
 	if (id < 0) {
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		security_msg_queue_free(msq);
 		ipc_rcu_putref(msq);
 		return id;
@@ -37079,8 +37084,8 @@ long do_msgsnd(int msqid, long mtype, void __user *mtext, size_t msgsz, int msgf
 		return -EINVAL;
 
 	/*
-	 * 重新组装消息体，参见struct msg_queue节；
-	 * 与store_msg()对应，参见sys_msgrcv()节
+	 * 重新组装消息体，参见[8.4.2.1 struct msg_queue/struct msg_msg]节；
+	 * 与store_msg()对应，参见[8.4.5.1 sys_msgrcv()]节
 	 */
 	msg = load_msg(mtext, msgsz);
 	if (IS_ERR(msg))
@@ -37103,7 +37108,7 @@ long do_msgsnd(int msqid, long mtype, void __user *mtext, size_t msgsz, int msgf
 		if (ipcperms(ns, &msq->q_perm, S_IWUGO))
 			goto out_unlock_free;
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_msg_queue_msgsnd(msq, msg, msgflg);
 		if (err)
 			goto out_unlock_free;
@@ -37162,7 +37167,7 @@ long do_msgsnd(int msqid, long mtype, void __user *mtext, size_t msgsz, int msgf
 		/* no one is waiting for this message, enqueue it */
 		/*
 		 * 否则，将消息添加到消息队列末尾，
-		 * 参见struct msg_queue/struct msg_msg节
+		 * 参见[8.4.2.1 struct msg_queue/struct msg_msg]节
 		 */
 		list_add_tail(&msg->m_list, &msq->q_messages);
 		msq->q_cbytes += msgsz;
@@ -37237,7 +37242,7 @@ long do_msgrcv(int msqid, long *pmtype, void __user *mtext,
 			struct msg_msg *walk_msg;
 
 			walk_msg = list_entry(tmp, struct msg_msg, m_list);
-			// 调用变量security_ops中的对应函数，参见security_xxx()节
+			// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 			if (testmsg(walk_msg, msgtyp, mode) &&
 			     !security_msg_queue_msgrcv(msq, walk_msg, current, msgtyp, mode)) {
 				msg = walk_msg;
@@ -37362,8 +37367,8 @@ out_unlock:
 	msgsz = (msgsz > msg->m_ts) ? msg->m_ts : msgsz;
 	*pmtype = msg->m_type;
 	/*
-	 * 重新组装该消息体，参见struct msg_queue/struct msg_msg节；
-	 * 与load_msg()对应，参见sys_msgsnd()节
+	 * 重新组装该消息体，参见[8.4.2.1 struct msg_queue/struct msg_msg]节；
+	 * 与load_msg()对应，参见[8.4.4.1 sys_msgsnd()]节
 	 */
 	if (store_msg(mtext, msg, msgsz))
 		msgsz = -EFAULT;
@@ -37413,7 +37418,7 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
 		 * due to padding, it's not enough
 		 * to set all member fields.
 		 */
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_msg_queue_msgctl(NULL, cmd);
 		if (err)
 			return err;
@@ -37464,7 +37469,7 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
 		if (ipcperms(ns, &msq->q_perm, S_IRUGO))
 			goto out_unlock;
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_msg_queue_msgctl(msq, cmd);
 		if (err)
 			goto out_unlock;
@@ -37531,7 +37536,7 @@ __initcall(ipc_init);
 #define __initcall(fn) 		device_initcall(fn)
 ```
 
-而device_initcall()的定义参见module被编译进内核时的初始化过程节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+而device_initcall()的定义参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -37671,7 +37676,7 @@ key        msqid      owner      perms      used-bytes   messages
 
 #### 8.5.2.1 struct idr
 
-与消息队列类似，struct idr可通过进程描述符引用到，参见struct idr节。
+与消息队列类似，struct idr可通过进程描述符引用到，参见[8.4.2.1 struct idr](#8-4-2-1-struct-idr)节。
 
 #### 8.5.2.2 struct shmid_kernel
 
@@ -37694,7 +37699,7 @@ SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
 
 	/*
 	 * 设置newseg()函数指针，该函数在ipcget_new()或ipcget_public()
-	 * 中被调用，参见ipcget_new()/ipcget_public()节
+	 * 中被调用，参见[8.4.3.1.1.1 ipcget_new()/ipcget_public()]节
 	 */
 	shm_ops.getnew = newseg;
 	shm_ops.associate = shm_security;
@@ -37704,7 +37709,7 @@ SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
 	shm_params.flg = shmflg;
 	shm_params.u.size = size;
 
-	// 与消息队列类似，参见ipcget()节
+	// 与消息队列类似，参见[8.4.3.1.1 ipcget()]节
 	return ipcget(ns, &shm_ids(ns), &shm_ops, &shm_params);
 }
 ```
@@ -37751,7 +37756,7 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 	shp->mlock_user = NULL;
 
 	shp->shm_perm.security = NULL;
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	error = security_shm_alloc(shp);
 	if (error) {
 		ipc_rcu_putref(shp);
@@ -37781,7 +37786,7 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 	 * ipc_addid()为shm_perm.id赋值，先前已为shm_perm.key赋值，因而key
 	 * 与id建立了映射关系；另外，通过ipc_addid() -> idr_get_new() ->
 	 * idr_get_new_above_int() -> rcu_assign_pointer()将
-	 * pa[0]->ary[id & IDR_MASK]指向msq->shm_perm，参见struct idr节
+	 * pa[0]->ary[id & IDR_MASK]指向msq->shm_perm，参见[8.4.2.1 struct idr]节
 	 */
 	id = ipc_addid(&shm_ids(ns), &shp->shm_perm, ns->shm_ctlmni);
 	if (id < 0) {
@@ -37813,7 +37818,7 @@ no_id:
 		user_shm_unlock(size, shp->mlock_user);
 	fput(file);
 no_file:
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	security_shm_free(shp);
 	ipc_rcu_putref(shp);
 	return error;
@@ -37846,7 +37851,7 @@ SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
 	{
 		struct shminfo64 shminfo;
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_shm_shmctl(NULL, cmd);
 		if (err)
 			return err;
@@ -37872,7 +37877,7 @@ SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
 	{
 		struct shm_info shm_info;
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_shm_shmctl(NULL, cmd);
 		if (err)
 			return err;
@@ -37918,7 +37923,7 @@ SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
 		err = -EACCES;
 		if (ipcperms(ns, &shp->shm_perm, S_IRUGO))
 			goto out_unlock;
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_shm_shmctl(shp, cmd);
 		if (err)
 			goto out_unlock;
@@ -37962,7 +37967,7 @@ SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
 				goto out_unlock;
 		}
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_shm_shmctl(shp, cmd);
 		if (err)
 			goto out_unlock;
@@ -38091,7 +38096,7 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg, ulong *raddr)
 	if (ipcperms(ns, &shp->shm_perm, acc_mode))
 		goto out_unlock;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	err = security_shm_shmat(shp, shmaddr, shmflg);
 	if (err)
 		goto out_unlock;
@@ -38133,7 +38138,7 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg, ulong *raddr)
 			goto invalid;
 	}
 
-	// 参见Allocate a Linear Address Interval节
+	// 参见[6.8.2 Allocate a Linear Address Interval]节
 	user_addr = do_mmap(file, addr, size, prot, flags, 0);
 	*raddr = user_addr;
 	err = 0;
@@ -38296,7 +38301,7 @@ static int __init ipc_ns_init(void)
 pure_initcall(ipc_ns_init);
 ```
 
-其中，pure_initcall()定义与include/linux/init.h中，参见module被编译进内核时的初始化过程节。当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+其中，pure_initcall()定义与include/linux/init.h中，参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节。当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -38307,7 +38312,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 此后，还存在如下初始化调用：
 
 ```
-ipc_init()		// 参见消息队列的初始化节
+ipc_init()		// 参见[8.4.7 消息队列的初始化]节
 -> shm_init()
    -> ipc_init_proc_interface()
 ```
@@ -38394,7 +38399,7 @@ SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
 
 	/*
 	 * 设置newary()函数指针，该函数在ipcget_new()或ipcget_public()
-	 * 中被调用，参见ipcget_new()/ipcget_public()节
+	 * 中被调用，参见[8.4.3.1.1.1 ipcget_new()/ipcget_public()]节
 	 */
 	sem_ops.getnew = newary;
 	sem_ops.associate = sem_security;
@@ -38405,8 +38410,8 @@ SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
 	sem_params.u.nsems = nsems;
 
 	/*
-	 * 与消息队列类似，参见ipcget()节，返回值为新创建的信号量集的句柄，
-	 * 参见newary()节
+	 * 与消息队列类似，参见[8.4.3.1.1 ipcget()]节，返回值为新创建的信号量集的句柄，
+	 * 参见[8.6.3.1.1 newary()]节
 	 */
 	return ipcget(ns, &sem_ids(ns), &sem_ops, &sem_params);
 }
@@ -38441,7 +38446,7 @@ static int newary(struct ipc_namespace *ns, struct ipc_params *params)
 	if (ns->used_sems + nsems > ns->sc_semmns)
 		return -ENOSPC;
 
-	// 由此可知，信号量数组结尾处紧接着数个信号量，参见struct sem_array节
+	// 由此可知，信号量数组结尾处紧接着数个信号量，参见[8.6.2.2 struct sem_array]节
 	size = sizeof (*sma) + nsems * sizeof (struct sem);
 	sma = ipc_rcu_alloc(size);
 	if (!sma) {
@@ -38454,7 +38459,7 @@ static int newary(struct ipc_namespace *ns, struct ipc_params *params)
 	sma->sem_perm.key = key;
 
 	sma->sem_perm.security = NULL;
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	retval = security_sem_alloc(sma);
 	if (retval) {
 		ipc_rcu_putref(sma);
@@ -38465,11 +38470,11 @@ static int newary(struct ipc_namespace *ns, struct ipc_params *params)
 	 * ipc_addid()为sem_perm.id赋值，先前已为sem_perm.key赋值，因而key
 	 * 与id建立了映射关系；另外，通过ipc_addid() -> idr_get_new() ->
 	 * idr_get_new_above_int() -> rcu_assign_pointer()将
-	 * pa[0]->ary[id & IDR_MASK]指向msq->sem_perm，参见struct idr节
+	 * pa[0]->ary[id & IDR_MASK]指向msq->sem_perm，参见[8.4.2.1 struct idr]节
 	 */
 	id = ipc_addid(&sem_ids(ns), &sma->sem_perm, ns->sc_semmni);
 	if (id < 0) {
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		security_sem_free(sma);
 		ipc_rcu_putref(sma);
 		return id;
@@ -38488,7 +38493,7 @@ static int newary(struct ipc_namespace *ns, struct ipc_params *params)
 	sma->sem_ctime = get_seconds();
 	sem_unlock(sma);
 
-	// 返回值为信号量集的句柄，参见struct sem_array节
+	// 返回值为信号量集的句柄，参见[8.6.2.2 struct sem_array]节
 	return sma->sem_perm.id;
 }
 ```
@@ -38556,7 +38561,7 @@ sys_semop()用于操作一个信号量集，其实质是通过修改sem_op指定
 
 ```
 /*
- * semid – 信号量集的句柄，即sys_semget()的返回值，参见sys_semget()节
+ * semid – 信号量集的句柄，即sys_semget()的返回值，参见[8.6.3.1 sys_semget()]节
  * tsops – 用户指定的操作
  * nsops – tsops指定的空间中包含sembuf结构的个数
  */
@@ -38678,7 +38683,7 @@ SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
 	if (ipcperms(ns, &sma->sem_perm, alter ? S_IWUGO : S_IRUGO))
 		goto out_unlock_free;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	error = security_sem_semop(sma, sops, nsops, alter);
 	if (error)
 		goto out_unlock_free;
@@ -38726,7 +38731,7 @@ sleep_again:
 	sem_unlock(sma);
 
 	if (timeout)
-		// 参见schedule_timeout()节
+		// 参见[7.4.7 schedule_timeout()]节
 		jiffies_left = schedule_timeout(jiffies_left);
 	else
 		schedule();
@@ -38797,7 +38802,7 @@ out_free:
 
 ### 8.6.5 信号量的初始化
 
-信号量的初始化过程与消息队列的初始化过程类似，参见消息队列的初始化节。函数调用关系如下：
+信号量的初始化过程与消息队列的初始化过程类似，参见[8.4.7 消息队列的初始化]（#8-4-7-）节。函数调用关系如下：
 
 ```
 ipc_init()
@@ -38983,7 +38988,7 @@ static int __init inet_init(void)
 }
 
 /*
- * 当本模块被编译进内核时，fs_initcall()的定义，参见module被编译进内核时的初始化过程节，
+ * 当本模块被编译进内核时，fs_initcall()的定义，参见[13.5.1.1 module被编译进内核时的初始化过程]节，
  * 即__define_initcall("5",fn,5)。在系统启动时，该协议族会被注册到系统中；
  * 当本模块被编译成module时，在执行insmod xxx时，该协议族被注册到系统中
  */
@@ -39086,7 +39091,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 		family = PF_PACKET;
 	}
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	err = security_socket_create(family, type, protocol, kern);
 	if (err)
 		return err;
@@ -39149,7 +39154,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	 * module can have its refcnt decremented
 	 */
 	module_put(pf->owner);
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	err = security_socket_post_create(sock, family, type, protocol, kern);
 	if (err)
 		goto out_sock_release;
@@ -39202,7 +39207,7 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 	if (sock) {
 		err = move_addr_to_kernel(umyaddr, addrlen, (struct sockaddr *)&address);
 		if (err >= 0) {
-			// 调用变量security_ops中的对应函数，参见security_xxx()节
+			// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 			err = security_socket_bind(sock, (struct sockaddr *)&address, addrlen);
 
 			// 参见网络协议族的注册与取消节
@@ -39248,7 +39253,7 @@ SYSCALL_DEFINE2(listen, int, fd, int, backlog)
 		if ((unsigned)backlog > somaxconn)
 			backlog = somaxconn;
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_socket_listen(sock, backlog);
 
 		// 参见网络协议族的注册与取消节
@@ -39291,7 +39296,7 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr, int, addr
 	if (err < 0)
 		goto out_put;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	err = security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
 	if (err)
 		goto out_put;
@@ -39368,7 +39373,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
 		goto out_put;
 	}
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	err = security_socket_accept(sock, newsock);
 	if (err)
 		goto out_fd;
@@ -39441,7 +39446,7 @@ SYSCALL_DEFINE2(shutdown, int, fd, int, how)
 
 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
 	if (sock != NULL) {
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_socket_shutdown(sock, how);
 
 		// 参见网络协议族的注册与取消节
@@ -39509,7 +39514,7 @@ static int __init sock_init(void)
 core_initcall(sock_init);	/* early initcall */
 ```
 
-其中，core_initcall()的定义参见module被编译进内核时的初始化过程节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
+其中，core_initcall()的定义参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节。可知，当module被编译进内核时，其初始化函数需要在系统启动时被调用。其调用过程为：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -39620,7 +39625,7 @@ Intel x86通过两片中断控制器8259A来响应15个外中断源，每个8259
 * 一种是从CPU的角度，也就是清除eflag的中断标志位(IF)。当IF=0时，禁止任何外部I/O的中断请求，即关中断；
 * 一种是从中断控制器的角度，因为中断控制器中有一个8位的中断屏蔽寄存器(IMR)，每比特位对应8259A中的一条中断线，如果要禁用某条中断线，则把IMR相应位置1，若要启用该中断线，则置0。
 
-可屏蔽中断(INTR)的取值范围为[0x30, 0xFF]，参见错误：引用源未找到。这些可屏蔽中断对应的处理程序是由init_IRQ()设置的，参见init_IRQ()节。
+可屏蔽中断(INTR)的取值范围为[0x30, 0xFF]，参见错误：引用源未找到。这些可屏蔽中断对应的处理程序是由init_IRQ()设置的，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
 #### 9.1.1.2 高级可编程中断控制器(APIC)
 
@@ -39698,8 +39703,8 @@ endif
 ![Interrupt_01](/assets/Interrupt_01.jpg)
 
 数组irq_desc[]的初始化及赋值：
-* 由early_irq_init()初始化，参见early_irq_init()节；
-* 由init_IRQ()->native_init_IRQ()->init_ISA_irqs()将其中的中断处理函数设置为handle_level_irq()，参见init_IRQ()节。
+* 由early_irq_init()初始化，参见[4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节；
+* 由init_IRQ()->native_init_IRQ()->init_ISA_irqs()将其中的中断处理函数设置为handle_level_irq()，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
 ### 9.2.2 struct softirq_action/softirq_vec[]
 
@@ -40257,7 +40262,7 @@ static void tasklet_hi_action(struct softirq_action *a)
 
 当异常/中断发生后，首先根据中断号和IDTR(参见中断描述符表寄存器IDTR节)在IDT(参见中断描述符表IDT节)中查找对应项(假设为SS1)，并从该项中取出段选择子，由该段选择子和GDTR(参见全局描述符表寄存器GDTR节)在GDT(参见全局描述符表GDT节)中查找对应项(假设为SS2)。SS1中的DPL域表示中断处理程序应该在哪个级别下运行(一般是0级，即内核态下运行中断处理程序)。如果当前进程的CS中的低两位比中断处理程序的DPL还小(数值越小，级别越高，kernel的数值为0)，那么就直接出现异常，因为不可能会有某个进程的运行级别会被中断还低。经过此步骤的确认后，CS和EIP分别被赋值予SS1中的段选择子和偏移量，这意味着下一个执行的指令是：
 * 若中断号在[0, 31]范围内(即异常)，则执行trap_init()函数中指定的中断处理函数，参见trap_init()节；
-* 若中断号在[32, 255]范围内(即中断)，则执行init_IRQ()函数中指定的中断处理函数(参见init_IRQ()节)，即interrupt数组中对应项(参见interrupt[]节)，也就是跳转到common_interrupt处，并开始执行do_IRQ()进行中断处理(参见do_IRQ()节)，完成后，执行ret_from_intr(参见ret_from_intr节)从中断中返回。
+* 若中断号在[32, 255]范围内(即中断)，则执行init_IRQ()函数中指定的中断处理函数(参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节)，即interrupt数组中对应项(参见interrupt[]节)，也就是跳转到common_interrupt处，并开始执行do_IRQ()进行中断处理(参见do_IRQ()节)，完成后，执行ret_from_intr(参见ret_from_intr节)从中断中返回。
 
 ### 9.3.1 do_IRQ()
 
@@ -40336,7 +40341,7 @@ DEFINE_PER_CPU(vector_irq_t, vector_irq) = {
 typedef int vector_irq_t[NR_VECTORS]; 	// NR_VECTORS取值为256
 ```
 
-因此，vector_irq是包含256个元素的整型数组，每个元素表示中断号。定义时，每个元素被初始化为-1，在init_IRQ()中，IRQ 0x30-0x3F被分别设置为0-15，参见init_IRQ()节，如下表所示：
+因此，vector_irq是包含256个元素的整型数组，每个元素表示中断号。定义时，每个元素被初始化为-1，在init_IRQ()中，IRQ 0x30-0x3F被分别设置为0-15，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节，如下表所示：
 
 vector_irq:
 
@@ -41053,7 +41058,7 @@ static __init int spawn_ksoftirqd(void)
 
 /*
  * kernel/softirq.c是直接编译进内核的，参见kernel/Makefile中的变量obj-y；
- * 因而在系统初始化时调用spawn_ksoftirqd()，参见module被编译进内核时的初始化过程节
+ * 因而在系统初始化时调用spawn_ksoftirqd()，参见[13.5.1.1 module被编译进内核时的初始化过程]节
  */
 early_initcall(spawn_ksoftirqd);
 ```
@@ -41306,7 +41311,7 @@ request_threaded_irq(unsigned int irq, irq_handler_t handler,
 
 <p/>
 
-Note that request_irq() can sleep and therefore cannot be called from interrupt context or other situations where code cannot block. It is a common mistake to call request_irq() when it is unsafe to sleep.
+Note that ```request_irq()``` can sleep and therefore cannot be called from interrupt context or other situations where code cannot block. It is a common mistake to call request_irq() when it is unsafe to sleep.
 
 #### 9.4.1.1 request_threaded_irq()
 
@@ -42075,8 +42080,8 @@ static irqreturn_t rtc_interrupt(int irq, void *dev_id)
 * 中断描述符表的初步初始化节
 * 中断描述符表的最终初始化节
 * trap_init()节
-* early_irq_init()节
-* init_IRQ()节
+* [4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节
+* [4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节
 
 # 10 设备驱动程序/device driver
 
@@ -45537,9 +45542,9 @@ MODULE_DEVICE_TABLE(pci, e1000_pci_tbl);
 
 当编译驱动程序时，根据编译方式的不同，对宏MODULE_DEVICE_TABLE的处理方式也不同:
 * 当驱动程序编译进内核时，因为内核可以直接访问该数组，故MODULE_GENERIC_TABLE(gtype,name)被定义为空；
-* 当驱动程序编译成模块时，宏MODULE_GENERIC_TABLE(gtype,name)通过*.mod.c->*.mod.o被编译到*.ko文件中的.modinfo段，参见3.4.3.4.2.1 __modpost节。
+* 当驱动程序编译成模块时，宏MODULE_GENERIC_TABLE(gtype,name)通过*.mod.c->*.mod.o被编译到*.ko文件中的.modinfo段，参见[3.4.3.4.2.1 __modpost](#3-4-3-4-2-1-modpost)节。
 
-当安装模块时，各模块中.modinfo段的 MODULE_GENERIC_TABLE()被提取到下列文件中， 参见3.5.5.1.1 cmd_depmod节:
+当安装模块时，各模块中.modinfo段的 MODULE_GENERIC_TABLE()被提取到下列文件中， 参见[3.5.5.1.1 cmd_depmod](#3-5-5-1-1-cmd-depmod)节:
 * /lib/modules/<kernelrelease>/modules.alias
 
 ### 10.2B.2 内核发现硬件设备并发送uevent到用户空间
@@ -46189,7 +46194,7 @@ main()
 
 当udevd接收到内核广播的netlink uevent后，根据如下信息来加载对应的驱动程序:
 * 内核广播的netlink uevent中的参数MODALIAS;
-* /lib/modules/\`uname -r\`/modules.alias, 参见3.5.5.1.1 cmd_depmod节;
+* /lib/modules/\`uname -r\`/modules.alias, 参见[3.5.5.1.1 cmd_depmod](#3-5-5-1-1-cmd-depmod)节;
 * /lib/udev/rules.d/80-drivers.rules.
 
 其中，/lib/udev/rules.d/80-drivers.rules包含下列规则:
@@ -46398,7 +46403,7 @@ static int __init chr_dev_init(void)
 fs_initcall(chr_dev_init);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -46486,7 +46491,7 @@ int __init tty_init(void)
 
 2) 分如下步骤完成字符设备的注册与注销，这种方式是register_chrdev()/unregister_chrdev()的组成步骤，参见10.3.3.3 注册/注销字符设备的分步骤节。
 
-NOTE: If you dig through much driver code in the 2.6 kernel, you may notice that quite a few char drivers do not use the cdev interface described in section 10.3.3.3 注册/注销字符设备的分步骤. But new code should not use it; this mechanism will likely go away in a future kernel.
+**NOTE**: If you dig through much driver code in the 2.6 kernel, you may notice that quite a few char drivers do not use the cdev interface described in section 10.3.3.3 注册/注销字符设备的分步骤. But new code should not use it; this mechanism will likely go away in a future kernel.
 
 2.1) 申请设备号
 
@@ -51980,7 +51985,7 @@ out_fs:
 core_initcall(sock_init);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -52006,7 +52011,7 @@ static int __init proto_init(void)
 subsys_initcall(proto_init);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -52155,7 +52160,7 @@ out_free_reserved_ports:
 fs_initcall(inet_init);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -52372,7 +52377,7 @@ out_unregister_tcp_proto:
 module_init(inet6_init);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -52479,7 +52484,7 @@ out:
 subsys_initcall(net_dev_init);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -52687,7 +52692,7 @@ file_systems单链表，参见:
          -> <fs-object-ptr> is appended into list file_systems
 ```
 
-在单链表file_systems中注册的文件系统参见查看系统中注册的文件系统节，其先后顺序是如何确定的呢？由.initcall*.init节可知，宏fs_install(), fs_install_sync(), rootfs_initcall()和module_init()分别被扩展为__early_initcall_end和__initcall_end之间的*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)，如下所示(另参见__initcall_start[], __early_initcall_end[], __initcall_end[]节):
+在单链表file_systems中注册的文件系统参见查看系统中注册的文件系统节，其先后顺序是如何确定的呢？由.initcall*.init节可知，宏fs_install(), fs_install_sync(), rootfs_initcall()和module_init()分别被扩展为__early_initcall_end和__initcall_end之间的*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)，如下所示(另参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]](#13-5-1-1-1-1-initcall-start-early-initcall-end-initcall-end-)节):
 
 ```
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
@@ -54366,7 +54371,7 @@ struct file_operations {
 	 * unloaded while its operations are in use. Almost all
 	 * the time, it is simply initialized to THIS_MODULE,
 	 * a macro defined in <linux/module.h>.
-	 * 参见Kernel Symbol Table节的"How to access symbols"
+	 * 参见[13.4.2.4 How to access symbols]节
 	 */
 	struct module *owner;
 
@@ -55180,7 +55185,7 @@ struct dentry *mount_fs(struct file_system_type *type, int flags,
 		if (!secdata)
 			goto out;
 
-		// 调用变量security_ops中的对应函数，参见security_xxx()节
+		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		error = security_sb_copy_data(data, secdata);
 		if (error)
 			goto out_free_secdata;
@@ -55210,7 +55215,7 @@ struct dentry *mount_fs(struct file_system_type *type, int flags,
 	WARN_ON(sb->s_bdi == &default_backing_dev_info);
 	sb->s_flags |= MS_BORN;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	error = security_sb_kern_mount(sb, flags, secdata);
 	if (error)
 		goto out_sb;
@@ -55529,7 +55534,7 @@ void d_instantiate(struct dentry *entry, struct inode * inode)
 	__d_instantiate(entry, inode);
 	if (inode)
 		spin_unlock(&inode->i_lock);
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	security_d_instantiate(entry, inode);
 }
 
@@ -56292,7 +56297,7 @@ long do_mount(char *dev_name, char *dir_name, char *type_page,
 	if (retval)
 		return retval;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	retval = security_sb_mount(dev_name, &path, type_page, flags, data_page);
 	if (retval)
 		goto dput_out;
@@ -57858,7 +57863,7 @@ static int do_umount(struct vfsmount *mnt, int flags)
 	int retval;
 	LIST_HEAD(umount_list);
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	retval = security_sb_umount(mnt, flags);
 	if (retval)
 		return retval;
@@ -58183,7 +58188,7 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, int, mode, uns
 	if (error)
 		goto out_dput;
 
-	// 参见14.4.2 security_xxx()节
+	// 参见[14.4.2 security_xxx()]节
 	error = security_path_mknod(&path, dentry, mode, dev);
 	if (error)
 		goto out_drop_write;
@@ -58449,7 +58454,7 @@ struct inode *ramfs_get_inode(struct super_block *sb,
 
 Check the variables assigned to ```inode->i_fop``` with different mode, you will get file operation methods.
 
-[NOTE] Refer to 11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open(). Also check following statements in methods ```sys_open()->do_sys_open()->do_filp_open()->path_openat()->do_last()->nameidata_to_filp()->__dentry_open()```:
+**NOTE**: Refer to 11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open(). Also check following statements in methods ```sys_open()->do_sys_open()->do_filp_open()->path_openat()->do_last()->nameidata_to_filp()->__dentry_open()```:
 
 ```
 static struct file *__dentry_open(struct dentry *dentry, struct vfsmount *mnt,
@@ -59616,7 +59621,7 @@ module_init(init_ramfs_fs)
 obj-y += ramfs/
 ```
 
-可知，没有选项配置可以将Ramfs编译成模块，因而Ramfs是被编译进内核的，其初始化过程参见module被编译进内核时的初始化过程节，即：
+可知，没有选项配置可以将Ramfs编译成模块，因而Ramfs是被编译进内核的，其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -59807,7 +59812,7 @@ out:
 rootfs_initcall(default_rootfs);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -59881,7 +59886,7 @@ static int __init populate_rootfs(void)
 rootfs_initcall(populate_rootfs);
 ```
 
-其初始化过程参见module被编译进内核时的初始化过程节，即：
+其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -60136,7 +60141,7 @@ chenwx linux # hostname
 chenwx-pc 
 ```
 
-NOTE: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数节。
+**NOTE**: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数节。
 
 ###### 11.3.4.4.2.1.2 通过命令/sbin/sysctl配置内核参数
 
@@ -61988,7 +61993,7 @@ module_init(fuse_init);
 module_exit(fuse_exit);
 ```
 
-当FUSE编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+当FUSE编译进内核时，其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -62257,7 +62262,7 @@ static int __init debugfs_init(void)
 core_initcall(debugfs_init);
 ```
 
-当Debugfs编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+当Debugfs编译进内核时，其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -62347,7 +62352,7 @@ static int __init securityfs_init(void)
 core_initcall(securityfs_init);
 ```
 
-当Securityfs编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+当Securityfs编译进内核时，其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -63043,7 +63048,7 @@ static int __init init_devpts_fs(void)
 module_init(init_devpts_fs)
 ```
 
-当Devpts编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+当Devpts编译进内核时，其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -63102,7 +63107,7 @@ module_init(init_vfat_fs)
 module_exit(exit_vfat_fs)
 ```
 
-当VFAT编译进内核时，其初始化过程参见module被编译进内核时的初始化过程节，即：
+当VFAT编译进内核时，其初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -63173,7 +63178,7 @@ module_init(init_ext2_fs)
 module_exit(exit_ext2_fs)
 ```
 
-若将CONFIG_EXT2_FS配置为y，即将Ext2编译进内核时，Ext2的初始化过程参见module被编译进内核时的初始化过程节，即：
+若将CONFIG_EXT2_FS配置为y，即将Ext2编译进内核时，Ext2的初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -63227,7 +63232,7 @@ Ext3的初始化代码定义于fs/ext3/super.c:
 
 ```
 static struct file_system_type ext3_fs_type = {
-	// 参见Kernel Symbol Table节的"How to access symbols"
+	// 参见[13.4.2.4 How to access symbols]节
 	.owner		= THIS_MODULE,
 	.name		= "ext3",
 	/*
@@ -63283,7 +63288,7 @@ module_init(init_ext3_fs)
 module_exit(exit_ext3_fs)
 ```
 
-若将CONFIG_EXT3_FS配置为y，即将Ext3编译进内核时，Ext3的初始化过程参见module被编译进内核时的初始化过程节，即：
+若将CONFIG_EXT3_FS配置为y，即将Ext3编译进内核时，Ext3的初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -63410,7 +63415,7 @@ module_init(ext4_init_fs)
 module_exit(ext4_exit_fs)
 ```
 
-若将CONFIG_EXT4_FS配置为y，即将Ext4编译进内核时，Ext4的初始化过程参见module被编译进内核时的初始化过程节，即：
+若将CONFIG_EXT4_FS配置为y，即将Ext4编译进内核时，Ext4的初始化过程参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节，即：
 
 ```
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
@@ -63822,9 +63827,9 @@ module_init(hello_init);
 module_exit(hello_exit);
 ```
 
-**NOTE1**: Because module init/exit functions (here is hello_init, hello_exit) are typically not directly invoked by external code, you don’t need to export the function beyond file-level scope, and they can be marked as static.
+**NOTE 1**: Because module init/exit functions (here is hello_init, hello_exit) are typically not directly invoked by external code, you don’t need to export the function beyond file-level scope, and they can be marked as static.
 
-**NOTE2**: In actual modules, init functions register resources, initialize hardware, allocate data structures, and so on.
+**NOTE 2**: In actual modules, init functions register resources, initialize hardware, allocate data structures, and so on.
 
 ### 13.1.2 与模块有关的宏
 
@@ -63896,7 +63901,7 @@ static const char __module_cat(name,__LINE__)[]				\
 #endif
 ```
 
-**NOTE1**: The specific licenses recognized by the kernel are:
+**NOTE 1**: The specific licenses recognized by the kernel are:
 * "GPL" (for any version of the GNU General Public License),
 * "GPL v2" (for GPL version two only),
 * "GPL and additional rights",
@@ -63904,7 +63909,7 @@ static const char __module_cat(name,__LINE__)[]				\
 * "Dual MPL/GPL", and
 * "Proprietary". 
 
-**NOTE2**: Unless your module is explicitly marked as being under a free license recognized by the kernel, it is assumed to be proprietary, and the kernel is "tainted" when the module is loaded.
+**NOTE 2**: Unless your module is explicitly marked as being under a free license recognized by the kernel, it is assumed to be proprietary, and the kernel is "tainted" when the module is loaded.
 
 ```
 /* 该宏在.modinfo段中添加字符串"description=_description" */
@@ -63923,7 +63928,7 @@ static const char __module_cat(name,__LINE__)[]				\
 #define MODULE_SUPPORTED_DEVICE(name)
 ```
 
-**NOTE**: The various MODULE_ declarations can appear anywhere within your source file out-side of a function. A relatively recent convention in kernel code, however, is to put these declarations at the end of the file.
+**NOTE 3**: The various MODULE_ declarations can appear anywhere within your source file out-side of a function. A relatively recent convention in kernel code, however, is to put these declarations at the end of the file.
 
 通过下列命令查看.modinfo段的内容：
 
@@ -63973,7 +63978,7 @@ This Macro is used by all USB and PCI drivers. This macro describes which device
 
 /*
  * 编译成模块后，由MODULE_DEVICE_TABLE()定义的device table被提取
- * 到*.mod.c文件中，参见3.4.3.4.2.1 __modpost节中的示例e1000e.mod.c
+ * 到*.mod.c文件中，参见[3.4.3.4.2.1 __modpost]节中的示例e1000e.mod.c
  */
 #define MODULE_GENERIC_TABLE(gtype,name)			\
 extern const struct gtype##_id __mod_##gtype##_table		\
@@ -64418,9 +64423,9 @@ Those macros are defined in include/linux/init.h:
 #define __exitdata		__section(.exit.data)
 ```
 
-**NOTE1**: If your module does not define a cleanup function, the kernel does not allow it to be unloaded.
+**NOTE 1**: If your module does not define a cleanup function, the kernel does not allow it to be unloaded.
 
-**NOTE2**: Does my module even need an exit routine?
+**NOTE 2**: Does my module even need an exit routine?
 
 What if there's absolutely no cleanup required when your module is unloaded? Can you just not define an exit routine at all? Well, sort of. The problem is that, once you load that module, you can't unload it anymore. 
 
@@ -64428,7 +64433,7 @@ The reasoning behind this is (apparently) that if you don't define an exit routi
 
 If you load module which without exit routine, you have only two options to get rid of that module. You can either reboot the system, or you can use rmmod -f (for "force"), but only if your kernel has been configured to allow forced module unloading.
 
-**NOTE3**: Technically speaking, the ```__init``` and ```__exit``` are not essential, they exist simply for the sake of efficiency.
+**NOTE 3**: Technically speaking, the ```__init``` and ```__exit``` are not essential, they exist simply for the sake of efficiency.
 
 The ```__init``` qualifier is the simpler of the two; it identifies any routine that can be discarded once the module has loaded, which makes perfect sense since, once a module's initialization code has executed, it has no further value and it can be thrown away, and that's why you should see that qualifier on every module entry routine you ever run across -- so that entry code doesn't just hang around in kernel memory, wasting space. And as for the ```__exit``` qualifier? Well, that one's a bit trickier.
 
@@ -64444,13 +64449,13 @@ And one more point. It's possible to have more than one routine in a source file
 
 The Linux kernel provides a simple framework, enabling drivers to declare parameters that the user can specify on either boot or module load and then have these parameters exposed in your driver as global variables.
 
-**NOTE1**: All new module parameters should be documented with ```MODULE_PARM_DESC()```, see 13.1.2.1 MODULE_INFO()/__MODULE_INFO():
+**NOTE 1**: All new module parameters should be documented with ```MODULE_PARM_DESC()```, see 13.1.2.1 MODULE_INFO()/__MODULE_INFO():
 
 ```
 MODULE_PARM_DESC(mod_parm_name, "description string of specific module parameter");
 ```
 
-**NOTE2**: All module parameters should be given a default value; insmod changes the value only if explicitly told to by the user.
+**NOTE 2**: All module parameters should be given a default value; insmod changes the value only if explicitly told to by the user.
 
 #### 13.1.3.1 与模块参数有关的宏
 
@@ -65271,7 +65276,7 @@ make sure the kernel contains the information required. The target
 exists solely as a simple way to prepare a kernel source tree for 
 building external modules. 
 
-NOTE: "modules_prepare" will not build Module.symvers even if 
+**NOTE**: "modules_prepare" will not build Module.symvers even if 
 CONFIG_MODVERSIONS is set; therefore, a full kernel build needs to be 
 executed to make module versioning work.
 
@@ -65713,7 +65718,7 @@ vermagic:       4.1.6 SMP mod_unload modversions
 parm:           isSayHello:set 0 to disable printing hello world. set 1 to enable it (int) 
 ```
 
-**NOTE1**: You can't build a module against an absolutely sterile, pristine, make distcleaned kernel tree. At the very least, the kernel tree being used must be configured because there are some versioning files that are created by the configuration process that are essential to the module build process. But that's not enough. 
+**NOTE**: You can't build a module against an absolutely sterile, pristine, make distcleaned kernel tree. At the very least, the kernel tree being used must be configured because there are some versioning files that are created by the configuration process that are essential to the module build process. But that's not enough. 
 
 You also need to perform at least the first part of the kernel build process since that will generate a few more files that the module build process needs. However, unlike what some documentation tells you, you don't need to perform an entire build. All that's required is, in the kernel source tree, to run the subsequent command: 
 
@@ -65790,7 +65795,7 @@ The compiled modules may have following sections, you can run command "readelf -
 
 | Section Name | Description |
 | :----------- | :---------- |
-| ```.gnu.linkonce.this_module``` | Module structue, that's struct module. See 13.4.2.4 How to access symbols |
+| ```.gnu.linkonce.this_module``` | Module structue, that's struct module. See [13.4.2.4 How to access symbols](#13-4-2-4-how-to-access-symbols) |
 | ```.modinfo``` | String-style module information (Licence, etc). See 13.1.2.1 MODULE_INFO()/\__MODULE_INFO() |
 | ```__versions``` | Expected (compile-time) versions (CRC) of the symbols that this module depends on. |
 | ```__ksymtab*``` | Table of symbols which this module exports. See 13.1.2.3 EXPORT_SYMBOL(), 13.5.1.2.1.1 find_module_sections(), and Annex H: scripts/module-common.lds |
@@ -66228,7 +66233,7 @@ int __request_module(bool wait, const char *fmt, ...)
 	if (ret >= MODULE_NAME_LEN)
 		return -ENAMETOOLONG;
 
-	// 调用变量security_ops中的对应函数，参见security_xxx()节
+	// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 	ret = security_kernel_module_request(module_name);
 	if (ret)
 		return ret;
@@ -66819,8 +66824,8 @@ struct module
 
 	/* Unique handle for this module */
 	/*
-	 * Module name，与宏THIS_MODULE有关，参见How to access symbols节
-	 * 和mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 * Module name，与宏THIS_MODULE有关，参见[13.4.2.4 How to access symbols]节
+	 * 和[13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联]节
 	 */
 	char				name[MODULE_NAME_LEN];
 
@@ -66832,7 +66837,7 @@ struct module
 	const char			*srcversion;
 	struct kobject			*holders_dir;
 
-	/* Exported symbols，参见13.4.2.4 How to access symbols节 */
+	/* Exported symbols，参见[13.4.2.4 How to access symbols]节 */
 	// Pointer to an array of exported symbols
 	const struct kernel_symbol	*syms;	
 	// Pointer to an array of CRC values for the exported symbols
@@ -67056,7 +67061,7 @@ extern struct module		__this_module;
 #endif
 ```
 
-每个模块加载到系统中后，都会生成一个对应的struct module类型的对象，而宏THIS_MODULE就指向该对象，参见13.4.2.4 How to access symbols节。
+每个模块加载到系统中后，都会生成一个对应的struct module类型的对象，而宏THIS_MODULE就指向该对象，参见[13.4.2.4 How to access symbols](#13-4-2-4-how-to-access-symbols)节。
 
 #### 13.4.1.2 struct load_info
 
@@ -67408,7 +67413,7 @@ extern struct module __this_module;
 #define THIS_MODULE (&__this_module)
 ```
 
-How?! It’s not defined in the kernel, what to link against while insmod then? Don’t panic. Have you noticed the temporary file hello.mod.c while compiling the module (see 3.4.3.4.2 make -f scripts/Makefile.modpost)? Here is the definition for ```__this_module```:
+How?! It’s not defined in the kernel, what to link against while insmod then? Don’t panic. Have you noticed the temporary file hello.mod.c while compiling the module (see [3.4.3.4.2 make -f scripts/Makefile.modpost])? Here is the definition for ```__this_module```:
 
 ```
 // 变量__this_module被链接到.gnu.linkonce.this_module段
@@ -67590,7 +67595,7 @@ typedef void (*exitcall_t)(void);
 /*
  * 在宏module_init()中将init_module()声明为函数initfn的别名，
  * 故调用init_module()就是调用initfn(),
- * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节;
+ * 参见[13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联]节;
  * 其中，函数alias()参见<<Using the GNU Compiler Collection (GCC)>>
  * 第5.24 Declaring Attributes of Functions章
  */
@@ -67603,7 +67608,7 @@ typedef void (*exitcall_t)(void);
 /*
  * 在宏module_exit()中将cleanup_module声明为函数exitfn的别名，
  * 故调用cleanup_module()就是调用exitfn()，
- * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节;
+ * 参见[13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联]节;
  * 其中，函数alias()参见<<Using the GNU Compiler Collection (GCC)>>
  * 第5.24 Declaring Attributes of Functions章
  */
@@ -67617,12 +67622,12 @@ typedef void (*exitcall_t)(void);
 ```
 
 宏```module_init()```所传递的参数是模块初始化函数，该函数被```do_one_initcall()```调用，而调用函数```do_one_initcall()```分为两种情况：
-* 当module被编译进内核时，其初始化函数需要在系统启动时被调用，参见module被编译进内核时的初始化过程节；
+* 当module被编译进内核时，其初始化函数需要在系统启动时被调用，参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节；
 * 当module被编译成单独的模块时，其初始化函数在insmod时被调用，参见insmod调用sys_init_module()节。
 
 宏```module_exit()```所传递的参数是模块卸载函数，该函数在delete_modules()中，或者在rmmod时调用，参见rmmod调用sys_delete_module()节。
 
-**NOTE1**: If a module is compiled into the static kernel image, the exit function would not be included, and it would never be invoked because if it were not a module, the code could never be removed from memory.
+**NOTE**: If a module is compiled into the static kernel image, the exit function would not be included, and it would never be invoked because if it were not a module, the code could never be removed from memory.
 
 #### 13.5.1.1 module被编译进内核时的初始化过程
 
@@ -67651,7 +67656,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 ```
 /*
  * 所有初始化函数被存放到一个数组空间中，如下三个变量表示特定的数组下标，
- * 参见__initcall_start[], __early_initcall_end[]节
+ * 参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]]节
  */
 extern initcall_t __initcall_start[], __initcall_end[], __early_initcall_end[];
 
@@ -67661,8 +67666,8 @@ static void __init do_initcalls(void)
 
 	/*
 	 * 依次执行__early_initcall_end与__initcall_end之间的初始化函数，
-	 * 参见__initcall_start[], __early_initcall_end[]节;
-	 * 其中，函数do_one_initcall()用于执行函数fn()，参见do_one_initcall()节
+	 * 参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]]节;
+	 * 其中，函数do_one_initcall()用于执行函数fn()，参见[13.5.1.1.1.2 do_one_initcall()]节
 	 */
 	for (fn = __early_initcall_end; fn < __initcall_end; fn++)
 		do_one_initcall(*fn);
@@ -67885,7 +67890,7 @@ static int __init_or_module do_one_initcall_debug(initcall_t fn)
 
 #### 13.5.1.2 insmod调用sys_init_module()
 
-当module被编译为独立的模块时，通过执行insmod命令将其加载到系统中，参见加载/卸载节。
+当module被编译为独立的模块时，通过执行insmod命令将其加载到系统中，参见[13.3 模块的加载/卸载](#13-3-)节。
 
 系统调用```sys_init_module()```定义于kernel/module.c:
 
@@ -67931,8 +67936,8 @@ SYSCALL_DEFINE3(init_module, void __user *, umod,
 	do_mod_ctors(mod);
 
 	/*
-	 * Start the module. 调用init_module()函数，参见do_one_initcall()节和
-	 * mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 * Start the module. 调用init_module()函数，参见[13.5.1.1.1.2 do_one_initcall()]节和
+	 * [13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联]节
 	 */
 	if (mod->init != NULL)
 		ret = do_one_initcall(mod->init);
@@ -68082,7 +68087,7 @@ static struct module *load_module(void __user *umod, unsigned long len,
 		goto ddebug;
 
 	module_bug_finalize(info.hdr, info.sechdrs, mod);
-	// 将该模块添加到链表modules中，参见13.3.2.1.1 modules链表节
+	// 将该模块添加到链表modules中，参见[13.3.2.1.1 modules链表]节
 	list_add_rcu(&mod->list, &modules);
 	mutex_unlock(&module_mutex);
 
@@ -68141,21 +68146,21 @@ static void find_module_sections(struct module *mod, struct load_info *info)
 
 	/*
 	 * 获取宏EXPORT_SYMBOL(sym)导出到段__ksymtab和__kcrctab中的符号，
-	 * 参见13.1.2.3 EXPORT_SYMBOL()节
+	 * 参见[13.1.2.3 EXPORT_SYMBOL()]节
 	 */
 	mod->syms = section_objs(info, "__ksymtab", sizeof(*mod->syms), &mod->num_syms);
 	mod->crcs = section_addr(info, "__kcrctab");
 
 	/*
 	 * 获取宏EXPORT_SYMBOL_GPL(sym)导出到段__ksymtab_gpl和__kcrctab_gpl中的符号，
-	 * 参见13.1.2.3 EXPORT_SYMBOL()节
+	 * 参见[13.1.2.3 EXPORT_SYMBOL()]节
 	 */
 	mod->gpl_syms = section_objs(info, "__ksymtab_gpl", sizeof(*mod->gpl_syms), &mod->num_gpl_syms);
 	mod->gpl_crcs = section_addr(info, "__kcrctab_gpl");
 
 	/*
 	 * 获取宏EXPORT_SYMBOL_GPL_FUTURE(sym)导出到段__ksymtab_gpl_future
-	 * 和__kcrctab_gpl_future中的符号，参见13.1.2.3 EXPORT_SYMBOL()节
+	 * 和__kcrctab_gpl_future中的符号，参见[13.1.2.3 EXPORT_SYMBOL()]节
 	 */
 	mod->gpl_future_syms = section_objs(info, "__ksymtab_gpl_future",
 					    sizeof(*mod->gpl_future_syms), &mod->num_gpl_future_syms);
@@ -68164,7 +68169,7 @@ static void find_module_sections(struct module *mod, struct load_info *info)
 #ifdef CONFIG_UNUSED_SYMBOLS
 	/*
 	 * 获取宏EXPORT_UNUSED_SYMBOL(sym)导出到段__ksymtab_unused
-	 * 和__kcrctab_unused中的符号，参见13.1.2.3 EXPORT_SYMBOL()节
+	 * 和__kcrctab_unused中的符号，参见[13.1.2.3 EXPORT_SYMBOL()]节
 	 */
 	mod->unused_syms = section_objs(info, "__ksymtab_unused",
 					sizeof(*mod->unused_syms), &mod->num_unused_syms);
@@ -68172,7 +68177,7 @@ static void find_module_sections(struct module *mod, struct load_info *info)
 
 	/*
 	 * 获取宏EXPORT_UNUSED_SYMBOL_GPL(sym)导出到段__ksymtab_unused_gpl
-	 * 和__kcrctab_unused_gpl中的符号，参见13.1.2.3 EXPORT_SYMBOL()节
+	 * 和__kcrctab_unused_gpl中的符号，参见[13.1.2.3 EXPORT_SYMBOL()]节
 	 */
 	mod->unused_gpl_syms = section_objs(info, "__ksymtab_unused_gpl",
 					    sizeof(*mod->unused_gpl_syms), &mod->num_unused_gpl_syms);
@@ -68231,7 +68236,7 @@ static void find_module_sections(struct module *mod, struct load_info *info)
 
 #### 13.5.1.3 rmmod调用sys_delete_module()
 
-当module被编译为独立的模块时，可以执行rmmod命令从系统中卸载该模块，参见加载/卸载节。
+当module被编译为独立的模块时，可以执行rmmod命令从系统中卸载该模块，参见[13.3 模块的加载/卸载](#13-3-)节。
 
 rmmod最终调用系统调用```sys_delete_module()```，其定义于kernel/module.c:
 
@@ -68285,7 +68290,7 @@ SYSCALL_DEFINE2(delete_module, const char __user *, name_user, unsigned int, fla
 	/*
 	 * If it has an init func, it must have an exit func to unload.
 	 * 检查初始化函数和清理函数，即mod->init和mod->exit，
-	 * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 * 参见[13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联]节
 	 */
 	if (mod->init && !mod->exit) {
 		// 与配置选项CONFIG_MODULE_FORCE_UNLOAD有关
@@ -68313,7 +68318,7 @@ SYSCALL_DEFINE2(delete_module, const char __user *, name_user, unsigned int, fla
 
 	/*
 	 * Final destruction now no one is using it. 调用清理函数cleanup_module()，
-	 * 参见mod->init/mod->exit与init_module()/cleanup_module()的关联节
+	 * 参见[13.5.1.4 mod->init/mod->exit与init_module()/cleanup_module()的关联]节
 	 */
 	if (mod->exit != NULL)
 		mod->exit();
@@ -68363,7 +68368,7 @@ static void add_header(struct buffer *b, struct module *mod)
 }
 ```
 
-参见\__modpost节，在执行scripts/mod/modpost时生成*.mod.c文件，该文件中包含了struct module类型的对象```__this_module```:
+参见[3.4.3.4.2.1 __modpost](#3-4-3-4-2-1-modpost)节，在执行scripts/mod/modpost时生成*.mod.c文件，该文件中包含了struct module类型的对象```__this_module```:
 
 ```
 #include <linux/module.h>		// 定义struct module
@@ -70526,9 +70531,9 @@ Special version of lists, where head of the list has a lock in the lowest bit. T
 
 For modification operations, the 0 bit of hlist_bl_head->first pointer must be set. With some small modifications, this can easily be adapted to store several arbitrary bits (not just a single lock bit), if the need arises to store some fast and compact auxiliary data.
 
-**NOTE1**: The "bl" in "struct hlist_bl_head" and "struct hlist_bl_node" stands for bit lock.
+**NOTE 1**: The "bl" in "struct hlist_bl_head" and "struct hlist_bl_node" stands for bit lock.
 
-**NOTE2**: hlist_bl_head->first是struct hlist_bl_node类型的指针，由于地址存在对齐的问题，因而其地址中的低几位为0，因而可将该若干比特位用于其他用途，此处用于加锁！
+**NOTE 2**: hlist_bl_head->first是struct hlist_bl_node类型的指针，由于地址存在对齐的问题，因而其地址中的低几位为0，因而可将该若干比特位用于其他用途，此处用于加锁！
 
 ### 15.3.1 哈希链表的定义与初始化
 
@@ -71443,7 +71448,7 @@ __kfifo_uint_must_check_helper(								\
 
 ## 15.5 Maps
 
-Linux Kernel中定义的Maps确定了整数UID至指针```void *ptr```的映射关系，参见struct idr/struct idr_layer节中的图。
+Linux Kernel中定义的Maps确定了整数UID至指针```void *ptr```的映射关系，参见[15.5.1.1 struct idr/struct idr_layer](#15-5-1-1-struct-idr-struct-idr-layer)节中的图。
 
 ### 15.5.1 与Maps有关的数据结构
 
@@ -71487,7 +71492,7 @@ struct idr_layer {
 #define IDA_BITMAP_BITS 	(IDA_BITMAP_LONGS * sizeof(long) * 8)	// 取值为992
 
 struct ida {
-	// 参见struct idr/struct idr_layer节
+	// 参见[15.5.1.1 struct idr/struct idr_layer]节
 	struct idr		idr;
 	struct ida_bitmap	*free_bitmap;
 };
@@ -71572,7 +71577,7 @@ int idr_pre_get(struct idr *idp, gfp_t gfp_mask)
 	 */
 	while (idp->id_free_cnt < IDR_FREE_MAX) {
 		struct idr_layer *new;
-		// 从idr_layer_cache缓存中分配空间，参见idr_init_cache()节
+		// 从idr_layer_cache缓存中分配空间，参见[15.5.6 idr_init_cache()]节
 		new = kmem_cache_zalloc(idr_layer_cache, gfp_mask);
 		if (new == NULL)
 			return (0);
@@ -73876,7 +73881,7 @@ per_cpu(x, 0);
  * we force a syntax error here if it isn't.
  */
 #define get_cpu_var(var) (*({		\
-	preempt_disable();		\	// 参见preempt_disable()节
+	preempt_disable();		\	// 参见[16.10.2 preempt_disable()]节
 	&__get_cpu_var(var); }))
 
 /*
@@ -74934,7 +74939,7 @@ static inline int __sched __down_common(struct semaphore *sem, long state, long 
 			goto timed_out;
 		__set_task_state(task, state);
 		raw_spin_unlock_irq(&sem->lock);
-		// 调度其他进程运行(参见schedule_timeout()节)，当前进程进入休眠状态
+		// 调度其他进程运行(参见[7.4.7 schedule_timeout()]节)，当前进程进入休眠状态
 		timeout = schedule_timeout(timeout);
 		raw_spin_lock_irq(&sem->lock);
 		// 若信号量可用，函数up()会唤醒本进程，参见释放信号量/up()节
@@ -75426,7 +75431,7 @@ struct completion定义于include/linux/completion.h:
 ```
 struct completion {
 	unsigned int		done;
-	// 参见等待队列/wait_queue_head_t/wait_queue_t节
+	// 参见[7.4.2.4 等待队列/wait_queue_head_t/wait_queue_t]节
 	wait_queue_head_t	wait;
 };
 ```
@@ -75540,7 +75545,7 @@ static inline long __sched do_wait_for_common(struct completion *x, long timeout
 			}
 			__set_current_state(state);
 			spin_unlock_irq(&x->wait.lock);
-			// 调度其他进程运行，参见schedule_timeout()节
+			// 调度其他进程运行，参见[7.4.7 schedule_timeout()]节
 			timeout = schedule_timeout(timeout);
 			spin_lock_irq(&x→wait.lock);
 
@@ -75740,7 +75745,7 @@ static void __wake_up_common(wait_queue_head_t *q, unsigned int mode, int nr_exc
 
 		/*
 		 * ->func()在如下函数(参见do_wait_for_common()节)中被设置
-		 * 为default_wake_function(). 参见default_wake_function()节：
+		 * 为default_wake_function(). 参见[7.4.10.2.2 default_wake_function()]节：
 		 * wait_for_complete_xxx()->wait_for_common()->
 		 * do_wait_for_complete()→DECLARE_WAITQUEUE()
 		 */
@@ -76541,10 +76546,10 @@ SMP的启动过程:
 start_kernel()
 -> smp_setup_processor_id()						// 空函数
 -> boot_cpu_init()							// 初始化主CPU
-   -> set_cpu_online(cpu, true);					// cpu_online_bits, see NOTE #1
-   -> set_cpu_active(cpu, true);					// cpu_active_bits, see NOTE #1
-   -> set_cpu_present(cpu, true);					// cpu_present_bits, see NOTE #1
-   -> set_cpu_possible(cpu, true);					// cpu_possible_bits, see NOTE #1
+   -> set_cpu_online(cpu, true);					// cpu_online_bits, see NOTE 1
+   -> set_cpu_active(cpu, true);					// cpu_active_bits, see NOTE 1
+   -> set_cpu_present(cpu, true);					// cpu_present_bits, see NOTE  1
+   -> set_cpu_possible(cpu, true);					// cpu_possible_bits, see NOTE  1
 -> setup_arch()
    -> find_smp_config()							// 查找MP Configuration Table
       // Refer to <<Intel MultiProcessor Specification v1.4>> Chapter 4: MP Configuration Table.
@@ -77593,9 +77598,9 @@ There are eight possible loglevel strings, defined in the header include/linux/k
 
 每种日志级别都有对应的宏来简化日志函数的使用，参见19.2.1.4.3 pr_debug()/pr_xxx()节。
 
-**NOTE1**: A printk statement with no specified priority defaults to ```DEFAULT_MESSAGE_LOGLEVEL```, specified in kernel/printk.c as an integer. In the 2.6.10 kernel, ```DEFAULT_MESSAGE_LOGLEVEL``` is ```KERN_WARNING```, but that has been known to change in the past.
+**NOTE 1**: A printk statement with no specified priority defaults to ```DEFAULT_MESSAGE_LOGLEVEL```, specified in kernel/printk.c as an integer. In the 2.6.10 kernel, ```DEFAULT_MESSAGE_LOGLEVEL``` is ```KERN_WARNING```, but that has been known to change in the past.
 
-**NOTE2**: 使用下列命令可以显示日志中的级别信息：
+**NOTE 2**: 使用下列命令可以显示日志中的级别信息：
 
 ```
 chenwx@chenwx ~/linux $ dmesg -r
@@ -78088,7 +78093,7 @@ Dynamic debug has even more useful features:
 
 编辑```/etc/modprobe.d/modname.conf```文件(若没有该文件就创建一个)，添加选项```dyndbg='plmft'```。然而，对于那些通过initramfs加载的驱动来说，该配置基本无效。对于这类驱动，需要修改grub配置文件，在kernel那行添加参数```module.dyndbg='plmft'```，这样你的驱动就可以开机启动动态调试功能了。要打印更详细的调试信息，使用选项```dynamic_debug.verbose=1```。
 
-NOTE: 系统启动时，需要先让initramfs挂载一个虚拟的文件系统，然后再挂载启动盘上的真实文件系统。这个虚拟文件系统里面的文件是initramfs自己提供的，即在真实文件系统下面配置了文件```/etc/modprobe.d/modname.conf```，而initramfs是不去理会的。在内核驱动的角度看，如果内核驱动在initramfs过程中被加载到内核，这个驱动读取到的```/etc/modprobe.d/modname.conf```是initramfs提供的，而不是你编辑的那个，所以会有上述"写了配置文件后重启依然无效"的结论。
+**NOTE**: 系统启动时，需要先让initramfs挂载一个虚拟的文件系统，然后再挂载启动盘上的真实文件系统。这个虚拟文件系统里面的文件是initramfs自己提供的，即在真实文件系统下面配置了文件```/etc/modprobe.d/modname.conf```，而initramfs是不去理会的。在内核驱动的角度看，如果内核驱动在initramfs过程中被加载到内核，这个驱动读取到的```/etc/modprobe.d/modname.conf```是initramfs提供的，而不是你编辑的那个，所以会有上述"写了配置文件后重启依然无效"的结论。
 
 ##### 19.2.1.4.2 Different print styles
 
@@ -78531,9 +78536,9 @@ out:
 
 文件```/proc/kmsg```成为一个I/O通道，它提供了从内核日志缓冲区读取日志消息的二进制接口。这个读取操作通常是由一个守护程序(klogd或rsyslogd)实现的，它会处理这些消息，然后将它们传递给rsyslog，以便(基于它的配置)转发到正确的日志文件中。参见11.3.4.4.1 /proc/kmsg节。
 
-**NOTE1**: 用户是不会用到/proc/kmsg文件的，因为守护进程用它来获取日志消息，并将其转发到/var目录内的日志文件中。
+**NOTE 1**: 用户是不会用到/proc/kmsg文件的，因为守护进程用它来获取日志消息，并将其转发到/var目录内的日志文件中。
 
-**NOTE2**: 在GUI mode下的linux，因为开发module的需要, 需要使用printk来debug，又不想用強大但复杂的GDB来开发，只好用printk慢慢看。可是printk却不显示在console, 很不即时，只会存在```/var/log/messages```里面，每次加载完module, 就要执行dmesg或者```cat /var/log/messages```来看结果，要不就是要修改```proc /sys/kernel/printk```的级别, 并且按下ctrl+F1切换到纯粹console mode才可以即时显示在console。
+**NOTE 2**: 在GUI mode下的linux，因为开发module的需要, 需要使用printk来debug，又不想用強大但复杂的GDB来开发，只好用printk慢慢看。可是printk却不显示在console, 很不即时，只会存在```/var/log/messages```里面，每次加载完module, 就要执行dmesg或者```cat /var/log/messages```来看结果，要不就是要修改```proc /sys/kernel/printk```的级别, 并且按下ctrl+F1切换到纯粹console mode才可以即时显示在console。
 
 解决办法：只要新开启一个终端并执行more /proc/kmsg，终端看起来当掉不会动，这是不管用它；在开启一个终端，安裝module并调试，这是printk信息就会出现在more /proc/kmsg的终端上了。
 
@@ -79316,7 +79321,7 @@ strace is a debugging utility for Linux and some other Unix-like systems to moni
 
 ltrace is a debugging utility in Linux, used to display the calls a userland application makes to shared libraries. It does this by hooking into the dynamic loading system, allowing it to insert shims which display the parameters which the applications uses when making the call, and the return value which the library call reports. ltrace can also trace Linux system calls. Because it uses the dynamic library hooking mechanism, ltrace cannot trace calls to libraries which are statically linked directly to the target binary.
 
-NOTE: ktrace is a utility included with certain versions of BSD Unix and Mac OS X that traces kernel interaction with a program and dumps it to disk for debugging and analysis. It is somewhat similar to Linux's strace, except much faster - with strace, every system call executed by the program being traced requires context switch to the tracing program and back, while with ktrace, tracing is actually performed by the kernel, so no additional context switches are required.
+**NOTE**: ktrace is a utility included with certain versions of BSD Unix and Mac OS X that traces kernel interaction with a program and dumps it to disk for debugging and analysis. It is somewhat similar to Linux's strace, except much faster - with strace, every system call executed by the program being traced requires context switch to the tracing program and back, while with ktrace, tracing is actually performed by the kernel, so no additional context switches are required.
 
 ## 19.6 OOPS
 

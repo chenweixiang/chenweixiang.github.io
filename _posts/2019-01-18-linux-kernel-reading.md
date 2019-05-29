@@ -76437,6 +76437,695 @@ static void __call_rcu(struct rcu_head *head, void (*func)(struct rcu_head *rcu)
 
 ![Synchronization_07](/assets/Synchronization_07.jpg)
 
+# 17 SMP
+
+SMP: Symmetric Multi-Processor，对称多处理器
+
+## 17.1 SMP简介
+
+The SMP need support from hardware, BIOS and operating system; refer to <<Intel MultiProcessor Specification v1.4>> chapter 2 System Overview:
+
+While all processors in a compliant system are functionally identical, this specification classifies them into two types: the bootstrap processor (BSP) and the application processors (AP). Which processor is the BSP is determined by the hardware or by the hardware in conjunction with the BIOS. This differentiation is for convenience and is in effectively during the initialization and shutdown processes. The BSP is responsible for initializing the system and for booting the operating system; APs are activated only after the operating system is up and running.
+
+Multiprocessor System Architecture – APIC Configuration
+
+![APIC_Configuration](/assets/APIC_Configuration.png)
+
+Also refer to <<Intel 64 and IA-32 Architectures Software Developer's Manual>> Part 3, Chapter 8: Multi-Processor Management.
+
+可通过下列命令查看CPU数目及类型：
+
+```
+[tcsh] cweixiax@dgsxvnc02:~> grep -c ^processor /proc/cpuinfo
+24
+
+[tcsh] cweixiax@dgsxvnc02:~> cat /proc/cpuinfo
+processor		: 0
+vendor_id		: GenuineIntel
+cpu family		: 6
+model			: 44
+model name		: Intel(R) Xeon(R) CPU X5670  @ 2.93GHz
+stepping		: 2
+cpu MHz			: 2933.527
+cache size		: 12288 KB
+physical id		: 0
+siblings		: 12
+core id			: 0
+cpu cores		: 6
+apicid			: 0
+fpu			: yes
+fpu_exception		: yes
+cpuid level		: 11
+wp			: yes
+flags			: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm syscall nx pdpe1gb rdtscp lm constant_tsc ida nonstop_tsc arat pni monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr sse4_1 sse4_2 popcnt lahf_lm
+bogomips		: 5867.05
+clflush size		: 64
+cache_alignment		: 64
+address sizes		: 40 bits physical, 48 bits virtual
+power management	: [8]
+
+...
+```
+
+## 17.2 SMP实现中的关键技术
+
+SMP系统的实现需要硬件和软件协同完成。作为硬件来说，组成SMP系统的CPU需要支持处理器间的通信，需要硬件提供机制来维护CPU之间Cache内容的一致性等；作为软件的操作系统来说，需要配合硬件来实现进程在各个CPU间的调度，处理各种外部中断等工作。
+
+### 17.2.1 处理器间的同步与互斥
+
+进程间的同步实际上可以归结为对临界资源的互斥操作。在单处理器结构中，只要能保证在对临界资源的操作中不会发生进程调度，并且不会发生中断，或者即使发生了中断也与操作的对象无关，就保证了操作的互斥性。即使在极端的情况下(例如不允许关中断)，只要对临界资源的操作能在单条指令中完成，也保证了操作的互斥性，因为中断只能发生于指令之间，而不会发生在执行一条指令的中途。
+
+一般而言，只要能保证对临界资源操作的“原子性”，互斥性就得以保证，单处理器系统正是基于这样的机理：在单处理器系统中，能够在单条指令中完成的操作被认为是“原子操作”。但在SMP结构中，由于系统中有多个处理器在独立运行，即使能在单条指令中完成的操作也可能受到干扰。与单处理器结构相比，SMP结构对互斥操作的“分辨率”更高，有些在单处理器结构中的“原子操作”在SMP结构中不再是原子的了。
+
+解决方案：单纯的读或写本来就是原子的，问题在于一些既要读又要写，需要两个或以上的微操作才能完成的指令，i386 CPU提供了在指令执行期间对总线加锁的手段。CPU芯片上有一条引线LOCK，如果汇编程序中在一条指令前加上前缀“LOCK”，汇编后的机器代码就会使CPU在执行这条指令时把引线LOCK的电位拉低，从而把总线锁住，同一总线上别的CPU就暂时不能通过总线访问内存了。特例：在执行指令xchg时CPU会自动将总线锁住，而不需要在程序中使用前缀“LOCK”。xchg指令将一个内存单元中的内容与一个寄存器的内容对换，常常用于对内核信号量(semaphore)的操作。
+
+### 17.2.2 Cache与内存间的一致性问题
+
+在SMP结构中，Cache的情况相对于单处理器系统更为复杂，因为一个CPU并不知道别的CPU会在何时改变内存的内容。Cache写操作有两种模式：
+
+* 穿透模式(Write-Through)：Cache对写操作好像不存在一样，每次写时都直接写到内存中，实际上只是对读操作使用Cache，因而效率相对较低；
+
+* 回写模式(Write-Back)：写的时候先写入Cache，然后由Cache硬件在周转时使用缓冲线自动写入内存，或由软件主动地“冲刷”有关的缓冲线。因此在改变了缓冲页面的内容，并启动DMA写操作将其写入磁盘前要先“冲刷”Cache中有关的缓冲线，因为改变了的内容可能还没有回写到内存缓冲区中。
+
+在Intel Pentium CPU中有个寄存器，称为“存储类型及范围寄存器”(Memory Type Range Register，MTRR)，通过这个寄存器可以将内存中的不同区间设置成使用或不使用Cache，以及对于写操作采用穿透模式或回写模式。
+
+Cache的运用有可能改变对内存操作的次序。假定有两个观察者，一个观察CPU内部Cache受到访问的次序，另一个观察内存受到访问的次序，则二者可能会有相当大的差异。前者就是程序中编排好的次序，称作“指令序”(program ordering)，后者则是实际出现在处理器外部，即系统总线上的次序，称作“处理器序”(process ordering)。不使用Cache时二者相同，如果使用Cache要看具体的情况和操作。如果保证“处理器序”与“指令序”相同，称作“强序”(strong ordering)；反之，如果“处理器序”有时候可能不同于“指令序”，称作“弱序”(weak ordering)。对于单处理器结构的系统，这二者的不同并不成什么问题，然而对SMP结构的系统却可能成为问题。
+
+单处理器系统中的DMA操作都是由设备驱动程序主动地启动的，所以设备驱动程序知道什么时候应该丢弃哪些缓冲线的内容，什么时候应该冲刷哪些缓冲线的内容。可在SMP结构中，每个CPU都可能改变内存中的内容，且异步改变，每个CPU都只知道自己何时会改变内存的内容，但不知道别的CPU什么时候改变内存的内容，也不知道本地Cache中的内容是否已经与内存中不一致，每个CPU也可能因为改变了内存的内容而使其他CPU的Cache变得不一致。
+
+解决方案：对于Cache中的内容，一般只有数据才有一致性的问题，因为对指令一般都是只读，不在运行的过程中动态地加以改变。Intel在Pentium CPU中为已经装入Cache的数据提供了一种自动与内存保持一致的机制，称为“窥探”(Snooping)。每个CPU内部有一部分专门的硬件，一旦启用了Cache后就时刻监视系统总线上对内存的操作。由于对内存的操作定要经过系统总线，没有一次实际访问内存的操作能够逃过监视。如果发现有来自其他CPU的写操作，而本CPU的Cache中又缓冲存储着该次写操作的目标，就会自动把相应的缓冲线废弃，使得在需要用到这些数据时重新将其装入Cache，达到二者一致。这样，SMP结构中Cache与内存的数据一致性问题对软件而言就透明了。
+
+### 17.2.3 中断处理
+
+在单处理器结构中，整个系统只有一个CPU，所有的中断请求都由这个CPU响应和处理，而SMP结构不能固定让其中的某一个CPU处理所有的中断请求，否则其他CPU连时钟中断不能处理，这样如果在那些CPU上运行的进程陷入了死循环，就永远没有机会进行系统调用，这些CPU将永远不会有进程调度。另外，如果是让所有的CPU轮流处理中断，或谁空闲谁处理，中断请求的分配将如何处理，这些都需要软件和硬件协同来完成。
+
+传统的i386处理器采用8259A中断控制器。一般而言，8259A的作用是提供多个外部中断源与单一CPU间的连接。如果在SMP结构中还是采用8259A中断控制器，就只能静态地把所有的外部中断源划分成若干组，分别把每一组都连接到一个8259A，而825A9则与CPU一对一连接，这样就达不到动态分配中断请求的目的。Intel为Pentium设计了一种更为通用的中断控制器，称为“高级可编程中断控制器”(Advanced Programmable Interrupt Controller，APIC)。考虑到“处理器间中断请求”的需要，每个CPU还要有Local APIC，因为CPU常常要有目标地向系统中的其他CPU发出中断请求。从Pentium开始，Intel在CPU芯片内部集成了Local APIC，但在SMP结构中还需要一个外部的、全局的APIC，即I/O APIC。
+
+Besides distributing interrupts among processors, the multi-APIC system allows CPUs to generate interprocessor interrupts.
+
+## 17.3 SMP的启动过程
+
+在同一时间，一个“上下文”只能由一个CPU处理。在系统引导和初始化阶段，只有一个“上下文”，只能由一个处理器来处理。BSP完成系统的引导和初始化，并创建起多进程，从而可以由多个处理器同时参与处理时，才启动所有的AP，让它们在完成自身的初始化后投入运行。
+
+在Linux中，SMP系统的引导是一个分阶段的过程，这中间需要主CPU和次CPU在几个地方进行同步，已取得相同的同步和协调，最终基本在同一时间进入SMP的进程调度。Linux中SMP系统在Intel的Pentium上的引导过程如下：
+
+![SMP_Start_Procedure](/assets/SMP_Start_Procedure.png)
+
+SMP的启动过程:
+
+![SMP_2](/assets/SMP_2.jpg)
+
+配置了SMP的Linux的启动过程如下：
+
+```
+start_kernel()
+-> smp_setup_processor_id()						// 空函数
+-> boot_cpu_init()							// 初始化主CPU
+   -> set_cpu_online(cpu, true);					// cpu_online_bits, see NOTE #1
+   -> set_cpu_active(cpu, true);					// cpu_active_bits, see NOTE #1
+   -> set_cpu_present(cpu, true);					// cpu_present_bits, see NOTE #1
+   -> set_cpu_possible(cpu, true);					// cpu_possible_bits, see NOTE #1
+-> setup_arch()
+   -> find_smp_config()							// 查找MP Configuration Table
+      // Refer to <<Intel MultiProcessor Specification v1.4>> Chapter 4: MP Configuration Table.
+      -> x86_init.mpparse.find_smp_config()				// 即调用default_find_smp_config()
+         -> default_find_smp_config()
+            -> get_bios_ebda()
+            -> smp_scan_config(address, 0x400)
+   -> early_acpi_boot_init()
+      -> early_acpi_process_madt()
+         -> smp_found_config = 1;
+   -> if (smp_found_config) {
+      -> get_smp_config()						// 根据MP Configuration Table获取具体的硬件信息
+         // Refer to <<Intel MultiProcessor Specification v1.4>> Chapter 4: MP Configuration Table.
+         -> x86_init.mpparse.get_smp_config(0);				// 即调用default_get_smp_config()
+            -> default_get_smp_config(0)
+               -> mpf = mpf_found;
+               -> if (mpf->feature1 != 0) {
+                  /*
+                   * If mpf->feature1 != 0, the system configuration conforms to one of the
+                   * default configurations. The default configurations may only be used to
+                   * describe systems that always have two processors installed.
+                   */
+                  -> construct_default_ISA_mptable(mpf->feature1)
+                     -> for (i = 0; i < 2; i++) {
+                        -> MP_processor_info(&processor)
+                        -> construct_ioapic_table()
+                     }
+                  } else if (mpf->physptr) {
+                  /* Check MP Configuration Table if not use default configuration */
+                  -> check_physptr(mpf, 0)
+                     -> mpc = early_ioremap(mpf->physptr, size);
+                     -> smp_read_mpc(mpc, 0)		// Read MP Configuration Table
+                        // Check every item in MP Configuration Table
+                        -> while (count < mpc->length) {
+                           -> case MP_PROCESSOR:
+                              -> MP_processor_info((struct mpc_cpu *)mpt);
+                                 -> apicid = x86_init.mpparse.mpc_apic_id(m);	// 调用default_mpc_apic_id()
+                                 -> if (m->cpuflag & CPU_BOOTPROCESSOR) {
+                                    -> bootup_cpu = " (Bootup-CPU)";
+                                    -> boot_cpu_physical_apicid = m->apicid;
+                                 }
+                                 -> printk(KERN_INFO "Processor #%d%s\n", m->apicid, bootup_cpu);
+                                 -> generic_processor_info(apicid, m->apicver);
+                                    -> num_processors++;
+                                    -> set_cpu_possible(cpu, true);	// cpu_possible_bits
+                                    -> set_cpu_present(cpu, true);	// cpu_present_bits
+                        }
+                  }
+      }
+   -> prefill_possible_map()
+      // 设置cpu_possible_bits和nr_cpu_ids，此后可使用for_each_possible_cpu(cpu)
+      -> for (i = 0; i < possible; i++)
+             set_cpu_possible(i, true);
+      -> for (; i < NR_CPUS; i++)
+             set_cpu_possible(i, false);
+      -> nr_cpu_ids = possible;
+   -> init_apic_mappings()						// Initialize APIC mappings
+-> setup_nr_cpu_ids()							// 通过检测cpu_possible_bits来设置nr_cpu_ids
+   -> nr_cpu_ids = find_last_bit(cpumask_bits(cpu_possible_mask),NR_CPUS) + 1;
+-> setup_per_cpu_areas()
+-> smp_prepare_boot_cpu()						// arch-specific boot-cpu hooks
+   -> smp_ops.smp_prepare_boot_cpu()					// 即调用native_smp_prepare_boot_cpu()
+      -> native_smp_prepare_boot_cpu()
+         -> per_cpu(cpu_state, me) = CPU_ONLINE;
+-> rest_init()
+   -> kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+      -> kernel_init()
+         -> smp_prepare_cpus(setup_max_cpus)
+            -> smp_ops.smp_prepare_cpus()				// 即调用native_smp_prepare_cpus()
+               -> native_smp_prepare_cpus()
+                  -> smp_sanity_check()					// 若未配置CONFIG_X86_BIGSMP，最多支持8个CPU
+         -> do_pre_smp_initcalls()
+            // 调用.initcallearly.init段的初始化函数，由宏early_initcall()设置，参见.initcall*.init节
+         -> smp_init()
+            -> for_each_present_cpu(cpu) {				// 轮询cpu_present_bits，调度每个CPU
+               -> cpu_up(cpu)						// loop every cpu
+                  -> _cpu_up(cpu, 0)
+                     -> __cpu_up(cpu)					// Arch-specific enabling code
+                        -> smp_ops.cpu_up(cpu) 				// 即调用native_cpu_up(cpu)
+                           -> per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
+                           -> do_boot_cpu(apicid, cpu)
+                              -> INIT_WORK_ONSTACK(&c_idle.work, do_fork_idle)
+                              -> c_idle.idle = get_idle_for_cpu(cpu)
+                              -> if (c_idle.idle) {
+                                 -> init_idle(c_idle.idle, cpu)
+                                 }
+                              -> schedule_work(&c_idle.work)		// 最终调用do_fork_idle()
+                                 -> do_fork_idle(work)
+                                    -> fork_idle(cpu)			// create idle progress for cpu
+                                    -> complete(&c_idle->done)
+                              -> wait_for_completion(&c_idle.done)
+                              -> set_idle_for_cpu(cpu, c_idle.idle)
+                              -> early_gdt_descr.address = (unsigned long)get_cpu_gdt_table(cpu);
+                              -> initial_code = (unsigned long)start_secondary;
+                                 // AP初始化完成后，开始执行函数start_secondary()
+                              -> stack_start  = c_idle.idle->thread.sp;
+                              -> start_ip = trampoline_address();
+                                 /*
+                                  * 该函数复制trampoline_data与trampoline_end之间的代码到
+                                  * 地址x86_trampoline_base处，其中:
+                                  * - x86_trampoline_base是之前在setup_arch()处申请的内存；
+                                  * - trampoline_data开始的代码
+                                  * 参见arch/x86/kernel/trampoline_32.S
+                                  * 参见trampoline_data与trampoline_end之间的代码节
+                                  *
+                                  * 该函数的返回值是x86_trampoline_base所对应的物理地址！
+                                  */
+                              -> printk(KERN_DEBUG "smpboot cpu %d: start_ip = %lx\n", cpu, start_ip);
+                              // 设置启动地址为start_ip
+                              -> smpboot_setup_warm_reset_vector(start_ip)
+                              -> wakeup_secondary_cpu_via_init(apicid, start_ip)
+                                 /*
+                                  * 通过操纵APIC_ICR寄存器，BSP向目标AP发送IPI消息，
+                                  * 触发目标AP以实模式从地址start_ip处开始运行，
+                                  * 参见trampoline_data与trampoline_end之间的代码节
+                                  */
+               }
+            -> printk(KERN_INFO "Brought up %ld CPUs\n", (long)num_online_cpus());
+            -> smp_cpus_done(setup_max_cpus)
+               -> smp_ops.smp_cpus_done(setup_max_cpus)			// 即调用native_smp_cpus_done()
+                  -> native_smp_cpus_done()
+                     -> pr_debug("Boot done.\n");
+                     -> impress_friends()
+                     -> setup_ioapic_dest()
+                     -> mtrr_aps_init()					// Delayed MTRR initialization for all AP's
+                        -> set_mtrr(~0U, 0, 0, 0)			// 参见set_mtrr()节
+                           // Update mtrrs (Memory Type Range Register) on all processors
+                           -> stop_machine(mtrr_rendezvous_handler, &data, cpu_online_mask)
+                              -> __stop_machine(mtrr_rendezvous_handler, &data, cpu_online_mask)
+```
+
+**NOTE:** Refer to Documentation/cputopology.txt:
+
+* **kernel_max**: the maximum CPU index allowed by the kernel configuration. [NR_CPUS-1]
+
+* **offline**: CPUs that are not online because they have been HOTPLUGGED off or exceed the limit of CPUs allowed by the kernel configuration (kernel_max above). [~cpu_online_mask + cpus >= NR_CPUS]
+
+* **present**: CPUs that have been identified as being present in the system. [cpu_present_mask]
+possible:	CPUs that have been allocated resources and can be brought online if they are present. [cpu_possible_mask]
+
+* **online**: CPUs that are online and being scheduled. [cpu_online_mask]
+
+### 17.3.1 trampoline_data与trampoline_end之间的代码
+
+该代码段定义于arch/x86/kernel/trampoline_32.S:
+
+```
+#ifdef CONFIG_SMP
+
+	.section ".x86_trampoline","a"
+	.balign PAGE_SIZE
+	.code16
+
+ENTRY(trampoline_data)
+r_base = .
+	wbinvd					# Needed for NUMA-Q should be harmless for others
+	mov	%cs, %ax			# Code and data in the same place
+	mov	%ax, %ds
+
+	cli					# We should be safe anyway
+
+	# 设置标识0xA5A5A5A5，以便BSP知道该AP已经运行到这段代码
+	# write marker for master knows we're running
+	movl	$0xA5A5A5A5, trampoline_status - r_base
+
+	/* GDT tables in non default location kernel can be beyond 16MB and
+	 * lgdt will not be able to load the address as in real mode default
+	 * operand size is 16bit. Use lgdtl instead to force operand size
+	 * to 32 bit.
+	 */
+
+	lidtl	boot_idt_descr - r_base		# load idt with 0, 0
+	lgdtl	boot_gdt_descr - r_base		# load gdt with whatever is appropriate
+
+	xor	%ax, %ax
+	inc	%ax				# protected mode (PE) bit
+	lmsw	%ax				# into protected mode
+	# 程序段startup_32_smp定义于arch/x86/kernel/head_32.S，参见startup_32_smp节
+	# flush prefetch and jump to startup_32_smp in arch/i386/kernel/head.S
+	ljmpl	$__BOOT_CS, $(startup_32_smp-__PAGE_OFFSET)
+
+	# These need to be in the same 64K segment as the above;
+	# hence we don't use the boot_gdt_descr defined in head.S
+boot_gdt_descr:
+	.word	__BOOT_DS + 7			# gdt limit
+	.long	boot_gdt - __PAGE_OFFSET	# gdt base
+
+boot_idt_descr:
+	.word	0				# idt limit = 0
+	.long	0				# idt base = 0L
+
+ENTRY(trampoline_status)
+	.long	0
+
+.globl trampoline_end
+trampoline_end:
+
+#endif /* CONFIG_SMP */
+```
+
+#### 17.3.1.1 startup_32_smp
+
+该程序段定义于arch/x86/kernel/head_32.S:
+
+```
+#ifdef CONFIG_SMP
+ENTRY(startup_32_smp)
+	cld
+	movl $(__BOOT_DS),%eax
+	movl %eax,%ds
+	movl %eax,%es
+	movl %eax,%fs
+	movl %eax,%gs
+	# 变量stack_start定义于do_boot_cpu()，参见SMP的启动过程节
+	movl pa(stack_start),%ecx
+	movl %eax,%ss
+	leal -__PAGE_OFFSET(%ecx),%esp
+#endif /* CONFIG_SMP */
+default_entry:
+
+/*
+ *	New page tables may be in 4Mbyte page mode and may
+ *	be using the global pages. 
+ *
+ *	NOTE! If we are on a 486 we may have no cr4 at all!
+ *	So we do not try to touch it unless we really have
+ *	some bits in it to set.  This won't work if the BSP
+ *	implements cr4 but this AP does not -- very unlikely
+ *	but be warned!  The same applies to the pse feature
+ *	if not equally supported. --macro
+ *
+ *	NOTE! We have to correct for the fact that we're
+ *	not yet offset PAGE_OFFSET..
+ */
+#define cr4_bits pa(mmu_cr4_features)
+	movl cr4_bits,%edx
+	andl %edx,%edx
+	jz 6f
+	movl %cr4,%eax				# Turn on paging options (PSE,PAE,..)
+	orl %edx,%eax
+	movl %eax,%cr4
+
+	testb $X86_CR4_PAE, %al			# check if PAE is enabled
+	jz 6f
+
+	/* Check if extended functions are implemented */
+	movl $0x80000000, %eax
+	cpuid
+	/* Value must be in the range 0x80000001 to 0x8000ffff */
+	subl $0x80000001, %eax
+	cmpl $(0x8000ffff-0x80000001), %eax
+	ja 6f
+
+	/* Clear bogus XD_DISABLE bits */
+	call verify_cpu
+
+	mov $0x80000001, %eax
+	cpuid
+	/* Execute Disable bit supported? */
+	btl $(X86_FEATURE_NX & 31), %edx
+	jnc 6f
+
+	/* Setup EFER (Extended Feature Enable Register) */
+	movl $MSR_EFER, %ecx
+	rdmsr
+
+	btsl $_EFER_NX, %eax
+	/* Make changes effective */
+	wrmsr
+
+6:
+
+/*
+ * Enable paging
+ */
+	movl $pa(initial_page_table), %eax
+	movl %eax,%cr3				/* set the page table pointer.. */
+	movl %cr0,%eax
+	orl  $X86_CR0_PG,%eax
+	movl %eax,%cr0				/* ..and set paging (PG) bit */
+	ljmp $__BOOT_CS,$1f			/* Clear prefetch and normalize %eip */
+1:
+	/* Shift the stack pointer to a virtual address */
+	addl $__PAGE_OFFSET, %esp
+
+/*
+ * Initialize eflags.  Some BIOS's leave bits like NT set.  This would
+ * confuse the debugger if this code is traced.
+ * XXX - best to initialize before switching to protected mode.
+ */
+	pushl $0
+	popfl
+
+#ifdef CONFIG_SMP
+	cmpb $0, ready
+	jnz checkCPUtype
+#endif /* CONFIG_SMP */
+
+/*
+ * start system 32-bit setup. We need to re-do some of the things done
+ * in 16-bit mode for the "real" operations.
+ */
+	call setup_idt
+
+checkCPUtype:
+
+	movl $-1,X86_CPUID			#  -1 for no CPUID initially
+
+/* check if it is 486 or 386. */
+/*
+ * XXX - this does a lot of unnecessary setup.  Alignment checks don't
+ * apply at our cpl of 0 and the stack ought to be aligned already, and
+ * we don't need to preserve eflags.
+ */
+
+	movb $3,X86				# at least 386
+	pushfl					# push EFLAGS
+	popl %eax				# get EFLAGS
+	movl %eax,%ecx				# save original EFLAGS
+	xorl $0x240000,%eax			# flip AC and ID bits in EFLAGS
+	pushl %eax				# copy to EFLAGS
+	popfl					# set EFLAGS
+	pushfl					# get new EFLAGS
+	popl %eax				# put it in eax
+	xorl %ecx,%eax				# change in flags
+	pushl %ecx				# restore original EFLAGS
+	popfl
+	testl $0x40000,%eax			# check if AC bit changed
+	je is386
+
+	movb $4,X86				# at least 486
+	testl $0x200000,%eax			# check if ID bit changed
+	je is486
+
+	/* get vendor info */
+	xorl %eax,%eax				# call CPUID with 0 -> return vendor ID
+	cpuid
+	movl %eax,X86_CPUID			# save CPUID level
+	movl %ebx,X86_VENDOR_ID			# lo 4 chars
+	movl %edx,X86_VENDOR_ID+4		# next 4 chars
+	movl %ecx,X86_VENDOR_ID+8		# last 4 chars
+
+	orl %eax,%eax				# do we have processor info as well?
+	je is486
+
+	movl $1,%eax				# Use the CPUID instruction to get CPU type
+	cpuid
+	movb %al,%cl				# save reg for future use
+	andb $0x0f,%ah				# mask processor family
+	movb %ah,X86
+	andb $0xf0,%al				# mask model
+	shrb $4,%al
+	movb %al,X86_MODEL
+	andb $0x0f,%cl				# mask mask revision
+	movb %cl,X86_MASK
+	movl %edx,X86_CAPABILITY
+
+is486:	movl $0x50022,%ecx			# set AM, WP, NE and MP
+	jmp 2f
+
+is386:	movl $2,%ecx				# set MP
+2:	movl %cr0,%eax
+	andl $0x80000011,%eax			# Save PG,PE,ET
+	orl %ecx,%eax
+	movl %eax,%cr0
+
+	call check_x87
+	lgdt early_gdt_descr
+	lidt idt_descr
+	ljmp $(__KERNEL_CS),$1f
+1:	movl $(__KERNEL_DS),%eax		# reload all the segment registers
+	movl %eax,%ss				# after changing gdt.
+
+	movl $(__USER_DS),%eax			# DS/ES contains default USER segment
+	movl %eax,%ds
+	movl %eax,%es
+
+	movl $(__KERNEL_PERCPU), %eax
+	movl %eax,%fs				# set this cpu's percpu
+
+#ifdef CONFIG_CC_STACKPROTECTOR
+	/*
+	 * The linker can't handle this by relocation.  Manually set
+	 * base address in stack canary segment descriptor.
+	 */
+	cmpb $0,ready
+	jne 1f
+	movl $gdt_page,%eax
+	movl $stack_canary,%ecx
+	movw %cx, 8 * GDT_ENTRY_STACK_CANARY + 2(%eax)
+	shrl $16, %ecx
+	movb %cl, 8 * GDT_ENTRY_STACK_CANARY + 4(%eax)
+	movb %ch, 8 * GDT_ENTRY_STACK_CANARY + 7(%eax)
+1:
+#endif
+	movl $(__KERNEL_STACK_CANARY),%eax
+	movl %eax,%gs
+
+	xorl %eax,%eax				# Clear LDT
+	lldt %ax
+
+	cld					# gcc2 wants the direction flag cleared at all times
+	pushl $0				# fake return address for unwinder
+	movb $1, ready
+	# 变量initial_code = start_secondary，其定义于do_boot_cpu()，
+	# 参见SMP的启动过程节和start_secondary()节
+	jmp *(initial_code)
+```
+
+##### 17.3.1.1.1 start_secondary()
+
+该函数定义于arch/x86/kernel/smpboot.c:
+
+```
+/*
+ * Activate a secondary processor.
+ */
+notrace static void __cpuinit start_secondary(void *unused)
+{
+	/*
+	 * Don't put *anything* before cpu_init(), SMP booting is too
+	 * fragile that we want to limit the things done here to the
+	 * most necessary things.
+	 */
+	cpu_init();
+	preempt_disable();
+	smp_callin();
+
+#ifdef CONFIG_X86_32
+	/* switch away from the initial page table */
+	load_cr3(swapper_pg_dir);
+	__flush_tlb_all();
+#endif
+
+	/* otherwise gcc will move up smp_processor_id before the cpu_init */
+	barrier();
+	/*
+	 * Check TSC synchronization with the BP:
+	 */
+	check_tsc_sync_target();
+
+	/*
+	 * We need to hold call_lock, so there is no inconsistency
+	 * between the time smp_call_function() determines number of
+	 * IPI recipients, and the time when the determination is made
+	 * for which cpus receive the IPI. Holding this
+	 * lock helps us to not include this cpu in a currently in progress
+	 * smp_call_function().
+	 *
+	 * We need to hold vector_lock so there the set of online cpus
+	 * does not change while we are assigning vectors to cpus.  Holding
+	 * this lock ensures we don't half assign or remove an irq from a cpu.
+	 */
+	ipi_call_lock();
+	lock_vector_lock();
+	set_cpu_online(smp_processor_id(), true);
+	unlock_vector_lock();
+	ipi_call_unlock();
+	per_cpu(cpu_state, smp_processor_id()) = CPU_ONLINE;
+	x86_platform.nmi_init();
+
+	/*
+	 * Wait until the cpu which brought this one up marked it
+	 * online before enabling interrupts. If we don't do that then
+	 * we can end up waking up the softirq thread before this cpu
+	 * reached the active state, which makes the scheduler unhappy
+	 * and schedule the softirq thread on the wrong cpu. This is
+	 * only observable with forced threaded interrupts, but in
+	 * theory it could also happen w/o them. It's just way harder
+	 * to achieve.
+	 */
+	while (!cpumask_test_cpu(smp_processor_id(), cpu_active_mask))
+		cpu_relax();
+
+	/* enable local interrupts */
+	local_irq_enable();
+
+	/* to prevent fake stack check failure in clock setup */
+	boot_init_stack_canary();
+
+	x86_cpuinit.setup_percpu_clockev();
+
+	wmb();
+	// 若该CPU启动了，则调用cpu_idle()进行任务调度，参见cpu_idle()节
+	cpu_idle();
+}
+```
+
+### 17.3.2 set_mtrr()
+
+该函数定义于arch/x86/kernel/cpu/mtrr/main.c:
+
+```
+/**
+ * set_mtrr - update mtrrs on all processors
+ * @reg:	mtrr in question
+ * @base:	mtrr base
+ * @size:	mtrr size
+ * @type:	mtrr type
+ *
+ * This is kinda tricky, but fortunately, Intel spelled it out for us cleanly:
+ *
+ * 1. Queue work to do the following on all processors:
+ * 2. Disable Interrupts
+ * 3. Wait for all procs to do so
+ * 4. Enter no-fill cache mode
+ * 5. Flush caches
+ * 6. Clear PGE bit
+ * 7. Flush all TLBs
+ * 8. Disable all range registers
+ * 9. Update the MTRRs
+ * 10. Enable all range registers
+ * 11. Flush all TLBs and caches again
+ * 12. Enter normal cache mode and reenable caching
+ * 13. Set PGE
+ * 14. Wait for buddies to catch up
+ * 15. Enable interrupts.
+ *
+ * What does that mean for us? Well, stop_machine() will ensure that
+ * the rendezvous handler is started on each CPU. And in lockstep they
+ * do the state transition of disabling interrupts, updating MTRR's
+ * (the CPU vendors may each do it differently, so we call mtrr_if->set()
+ * callback and let them take care of it.) and enabling interrupts.
+ *
+ * Note that the mechanism is the same for UP systems, too; all the SMP stuff
+ * becomes nops.
+ */
+static void set_mtrr(unsigned int reg, unsigned long base, unsigned long size, mtrr_type type)
+{
+	struct set_mtrr_data data = {
+		.smp_reg = reg,
+		.smp_base = base,
+		.smp_size = size,
+		.smp_type = type
+	};
+
+	stop_machine(mtrr_rendezvous_handler, &data, cpu_online_mask);
+}
+```
+
+## 17.4 与SMP有关的数据结构
+
+**setup_max_cpus**
+
+Setup configured maximum number of CPUs to activate. 可通过内核参数maxcpus设置，可通过内核参数nosmp复位，参见kernel/smp.c.
+
+**nr_cpu_ids**
+
+The number of CPUs. 可通过内核参数nr_cpus设置，参见kernel/smp.c.
+
+**cpu_all_bits / cpu_bit_bitmap**
+
+![SMP_1](/assets/SMP_1.jpg)
+
+**cpu_present_mask / cpu_present_mask**
+
+Refer to Documentation/cputopology.txt, CPUs that have been identified as being present in the system.
+
+**cpu_possible_bits / cpu_possible_mask**
+
+Refer to Documentation/cputopology.txt, CPUs that have been allocated resources and can be brought online if they are present.
+
+**cpu_online_bits / cpu_online_mask**
+
+Refer to Documentation/cputopology.txt, CPUs that are online and being scheduled.
+
+**cpu_active_bits / cpu_active_mask**
+
+表示目前处于可工作状态的处理器个数。
+
+**per-CPU Variables**
+
+参见Per-CPU Variables节
+
+## 17.5 与SMP有关的函数
+
+**smp_processor_id()**
+
+get the current CPU ID.
+
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

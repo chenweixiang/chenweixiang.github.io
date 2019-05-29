@@ -73722,6 +73722,1574 @@ static int dev_uevent(struct kset *kset, struct kobject *kobj,
 }
 ```
 
+# 16 Kernel Synchronization Methods
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第5. Kernel Synchronization章第Synchronization Primitives节：
+
+Various types of synchronization techniques used by the kernel
+
+| Technique | Description | Scope | Reference |
+| :-------- | :---------- | :---- | :-------- |
+| Per-CPU variables | Duplicate a data structure among the CPUs | All CPUs | Section Per-CPU Variables |
+| Atomic operation | Atomic read-modify-write instruction to a counter | All CPUs | Section Atomic Operations |
+| Spin lock | Lock with busy wait | All CPUs | Section Spin Locks/自旋锁, Reader-Writer Spin Locks |
+| Seqlocks | Lock based on an access counter | All CPUs | Section Sequential Locks |
+| Semaphore | Lock with blocking wait (sleep) | All CPUs | Section Semaphores/信号量, Reader-Writer Semaphore, Mutex/互斥 |
+| Local interrupt disabling | Forbid interrupt handling on a single CPU | Local CPU | Section Disable/Enable Interrupts |
+| Local softirq disabling | Forbid deferrable function handling on a single CPU | Local CPU | Section Preemption Disabling |
+| Memory barrier | Avoid instruction reordering | Local CPU or All CPUs | Section Ordering and Barriers |
+| Read-copy-update (RCU) | Lock-free access to shared data structures through pointers | All CPUs | |
+
+<p/>
+
+## 16.1 Per-CPU Variables
+
+Basically, a per-CPU variable is an array of data structures, one element per each CPU in the system.
+
+A CPU should not access the elements of the array corresponding to the other CPUs; on the other hand, it can freely read and modify its own element without fear of race conditions, because it is the only CPU entitled to do so.
+
+While per-CPU variables provide protection against concurrent accesses from several CPUs, they do not provide protection against accesses from asynchronous functions (interrupt handlers and deferrable functions). In these cases, additional synchronization primitives are required.
+
+Furthermore, per-CPU variables are prone to race conditions caused by kernel preemption, both in uniprocessor and multiprocessor systems. As a general rule, a kernel control path should access a per-CPU variable with kernel preemption disabled.
+
+Functions and macros for the per-CPU variables
+
+| Macro / Function Name | Description | Reference |
+| :-------------------- | :---------- | :-------- |
+| ```DECLARE_PER_CPU(type, name)``` | Declare a per-CPU array called name of type data structures | include/linux/percpu-defs.h |
+| ```DEFINE_PER_CPU(type, name)``` | Statically allocates a per-CPU array called name of type data structures | include/linux/percpu-defs.h |
+| ```per_cpu(name, cpu)``` | Selects the element for CPU cpu of the per-CPU array name | include/asm-generic/percpu.h |
+| ```__get_cpu_var(name)``` | Selects the local CPU’s element of the per-CPU array name | include/asm-generic/percpu.h |
+| ```get_cpu_var(name)``` | Disables kernel preemption, then selects the local CPU’s element of the per-CPU array name | include/linux/percpu.h |
+| ```put_cpu_var(name)``` | Enables kernel preemption (name is not used) | include/linux/percpu.h |
+| ```alloc_percpu(type)``` | Dynamically allocates a per-CPU array of type data structures and returns its address | include/linux/percpu.h |
+| ```free_percpu(pointer)``` | Releases a dynamically allocated per-CPU array at address pointer | include/linux/percpu.h<br>mm/percpu.c |
+| ```per_cpu_ptr(pointer, cpu)``` | Returns the address of the element for CPU cpu of the per-CPU array at address pointer | include/linux/percpu.h |
+
+<p/>
+
+### 16.1.1 Per-CPU Variables宏的扩展
+
+#### 16.1.1.1 DECLARE_PER_CPU(type, name)/DEFINE_PER_CPU(type, name)
+
+由include/linux/percpu-defs.h可知：
+
+代码：
+
+```
+DECLARE_PER_CPU(int, x);
+```
+
+被扩展为：
+
+```
+extern __percpu __attribute__(section(".data..percpu")) __typeof__(int) x;
+```
+
+代码：
+
+```
+DEFINE_PER_CPU(int, x);
+```
+
+被扩展为：
+
+```
+__percpu __attribute__(section(".data..percpu")) __typeof__(int) x;
+```
+
+#### 16.1.1.2 per_cpu(name, cpu)
+
+该宏定义于include/asm-generic/percpu.h:
+
+```
+#ifdef CONFIG_SMP
+
+/*
+ * per_cpu_offset() is the offset that has to be added to a
+ * percpu variable to get to the instance for a certain processor.
+ *
+ * Most arches use the __per_cpu_offset array for those offsets but
+ * some arches have their own ways of determining the offset (x86_64, s390).
+ */
+#ifndef __per_cpu_offset
+extern unsigned long __per_cpu_offset[NR_CPUS];
+#define per_cpu_offset(x)	(__per_cpu_offset[x])
+#endif
+
+/*
+ * Add a offset to a pointer but keep the pointer as is.
+ * Only S390 provides its own means of moving the pointer.
+ */
+#ifndef SHIFT_PERCPU_PTR
+/* Weird cast keeps both GCC and sparse happy. */
+#define SHIFT_PERCPU_PTR(__p, __offset)	({					\
+	__verify_pcpu_ptr((__p));						\
+	RELOC_HIDE((typeof(*(__p)) __kernel __force *)(__p), (__offset));	\
+})
+#endif
+
+/*
+ * A percpu variable may point to a discarded regions. The following are
+ * established ways to produce a usable pointer from the percpu variable
+ * offset.
+ */
+#define per_cpu(var, cpu) 	\
+	(*SHIFT_PERCPU_PTR(&(var), per_cpu_offset(cpu)))
+
+#else /* ! SMP */
+
+#define VERIFY_PERCPU_PTR(__p) ({			\
+	__verify_pcpu_ptr((__p));			\
+	(typeof(*(__p)) __kernel __force *)(__p);	\
+})
+
+#define per_cpu(var, cpu)	(*((void)(cpu), VERIFY_PERCPU_PTR(&(var))))
+
+#endif	/* SMP */
+```
+
+由此可知，代码：
+
+```
+per_cpu(x, 0);
+```
+
+被扩展为：
+
+```
+(*{ 
+	__verify_pcpu_ptr(&x);
+	unsigned long __ptr;
+	__asm__ ("" : "=r"(__ptr) : "0"((typeof(x) *)&x));
+	(typeof((typeof(x) *)&x)) (__ptr + __per_cpu_offset[0]);
+});
+```
+
+#### 16.1.1.3 get_cpu_var(name)/put_cpu_var(name)/__get_cpu_var(name)
+
+该宏定义于include/linux/percpu.h:
+
+```
+/*
+ * Must be an lvalue. Since @var must be a simple identifier,
+ * we force a syntax error here if it isn't.
+ */
+#define get_cpu_var(var) (*({		\
+	preempt_disable();		\	// 参见preempt_disable()节
+	&__get_cpu_var(var); }))
+
+/*
+ * The weird & is necessary because sparse considers (void)(var) to be
+ * a direct dereference of percpu variable (var).
+ */
+#define put_cpu_var(var) do {		\
+	(void)&(var);			\
+	preempt_enable();		\	// 参见preempt_enable()/preempt_enable_no_resched()节
+} while (0)
+```
+
+其中，```__get_cpu_var(var)```定义于include/asm-generic/percpu.h:
+
+```
+#ifdef CONFIG_SMP
+
+/*
+ * per_cpu_offset() is the offset that has to be added to a
+ * percpu variable to get to the instance for a certain processor.
+ *
+ * Most arches use the __per_cpu_offset array for those offsets but
+ * some arches have their own ways of determining the offset (x86_64, s390).
+ */
+#ifndef __per_cpu_offset
+extern unsigned long 		__per_cpu_offset[NR_CPUS];
+#define per_cpu_offset(x)	(__per_cpu_offset[x])
+#endif
+
+/*
+ * Determine the offset for the currently active processor.
+ * An arch may define __my_cpu_offset to provide a more effective
+ * means of obtaining the offset to the per cpu variables of the
+ * current processor.
+ */
+#ifndef __my_cpu_offset
+#define __my_cpu_offset		per_cpu_offset(raw_smp_processor_id())
+#endif
+
+#ifdef CONFIG_DEBUG_PREEMPT
+#define my_cpu_offset		per_cpu_offset(smp_processor_id())
+#else
+#define my_cpu_offset		__my_cpu_offset
+#endif
+
+#ifndef SHIFT_PERCPU_PTR
+/* Weird cast keeps both GCC and sparse happy. */
+#define SHIFT_PERCPU_PTR(__p, __offset)	({					\
+	__verify_pcpu_ptr((__p));						\
+	RELOC_HIDE((typeof(*(__p)) __kernel __force *)(__p), (__offset));	\
+})
+#endif
+
+#ifndef __this_cpu_ptr
+#define __this_cpu_ptr(ptr)	SHIFT_PERCPU_PTR(ptr, __my_cpu_offset)
+#endif
+
+#ifdef CONFIG_DEBUG_PREEMPT
+#define this_cpu_ptr(ptr)	SHIFT_PERCPU_PTR(ptr, my_cpu_offset)
+#else
+#define this_cpu_ptr(ptr)	__this_cpu_ptr(ptr)
+#endif
+
+#define __get_cpu_var(var)	(*this_cpu_ptr(&(var)))
+
+#else /* ! SMP */
+
+#define VERIFY_PERCPU_PTR(__p) ({			\
+	__verify_pcpu_ptr((__p));			\
+	(typeof(*(__p)) __kernel __force *)(__p);	\
+})
+
+#define __get_cpu_var(var)	(*VERIFY_PERCPU_PTR(&(var)))
+
+#endif
+```
+
+### 16.1.2 Per-CPU Variables的初始化
+
+由Per-CPU Variables宏的扩展节可知，Per-CPU Variables中的关键变量为```__per_cpu_offset[NR_CPUS]```，该变量在初始化过程中赋值。
+
+系统启动时，对Per-CPU Variables的初始化过程如下：
+
+```
+start_kernel()							// 参见start_kernel()节
+-> setup_per_cpu_areas()					// arch/x86/kernel/setup_percpu.c
+   -> pcpu_embed_first_chunk()					// mm/percpu.c
+      -> pcpu_setup_first_chunk()				// Init pcpu_base_addr and pcpu_unit_offsets
+   -> delta = (unsigned long)pcpu_base_addr - (unsigned long)__per_cpu_start;
+   -> for_each_possible_cpu(cpu) {
+          // 初始化per_cpu_offset(cpu)，即__per_cpu_offset[cpu]
+          per_cpu_offset(cpu) = delta + pcpu_unit_offsets[cpu];	
+          ...
+      }
+```
+
+函数```setup_per_cpu_areas()```定义于arch/x86/kernel/setup_percpu.c:
+
+```
+void __init setup_per_cpu_areas(void)
+{
+	unsigned int cpu;
+	unsigned long delta;
+	int rc;
+
+	pr_info("NR_CPUS:%d nr_cpumask_bits:%d nr_cpu_ids:%d nr_node_ids:%d\n",
+		NR_CPUS, nr_cpumask_bits, nr_cpu_ids, nr_node_ids);
+
+	/*
+	 * Allocate percpu area.  Embedding allocator is our favorite;
+	 * however, on NUMA configurations, it can result in very
+	 * sparse unit mapping and vmalloc area isn't spacious enough
+	 * on 32bit.  Use page in that case.
+	 */
+#ifdef CONFIG_X86_32
+	/*
+	 * pcpu_chosen_fc定义于mm/percpu.c:
+	 * enum pcpu_fc pcpu_chosen_fc __initdata = PCPU_FC_AUTO;
+	 */
+	if (pcpu_chosen_fc == PCPU_FC_AUTO && pcpu_need_numa())
+		pcpu_chosen_fc = PCPU_FC_PAGE;
+#endif
+	rc = -EINVAL;
+	if (pcpu_chosen_fc != PCPU_FC_PAGE) {
+		const size_t atom_size = cpu_has_pse ? PMD_SIZE : PAGE_SIZE;
+		const size_t dyn_size = PERCPU_MODULE_RESERVE + PERCPU_DYNAMIC_RESERVE - PERCPU_FIRST_CHUNK_RESERVE;
+
+		// 示例：pcpu_embed_first_chunk(0, 20480, 4096, pcpu_cpu_distance, pcpu_fc_alloc, pcpu_fc_free);
+		rc = pcpu_embed_first_chunk(PERCPU_FIRST_CHUNK_RESERVE, dyn_size, atom_size,
+					    pcpu_cpu_distance, pcpu_fc_alloc, pcpu_fc_free);
+		if (rc < 0)
+			pr_warning("%s allocator failed (%d), falling back to page size\n",
+				   pcpu_fc_names[pcpu_chosen_fc], rc);
+	}
+	if (rc < 0)
+		rc = pcpu_page_first_chunk(PERCPU_FIRST_CHUNK_RESERVE,
+					   pcpu_fc_alloc, pcpu_fc_free, pcpup_populate_pte);
+	if (rc < 0)
+		panic("cannot initialize percpu area (err=%d)", rc);
+
+	/* alrighty, percpu areas up and running */
+	/*
+	 * __per_cpu_start定义于生成的vmlinux.lds，
+	 * 参见Error: Reference source not found
+	 */
+	delta = (unsigned long)pcpu_base_addr - (unsigned long)__per_cpu_start;
+	for_each_possible_cpu(cpu) {
+		/*
+		 * per_cpu_offset(x)定义于include/asm-generic/percpu.h:
+		 * #define per_cpu_offset(x) 	(__per_cpu_offset[x])
+		 */
+		per_cpu_offset(cpu) = delta + pcpu_unit_offsets[cpu];
+		per_cpu(this_cpu_off, cpu) = per_cpu_offset(cpu);
+		per_cpu(cpu_number, cpu) = cpu;
+		setup_percpu_segment(cpu);
+		setup_stack_canary_segment(cpu);
+		/*
+		 * Copy data used in early init routines from the
+		 * initial arrays to the per cpu data areas.  These
+		 * arrays then become expendable and the *_early_ptr's
+		 * are zeroed indicating that the static arrays are
+		 * gone.
+		 */
+#ifdef CONFIG_X86_LOCAL_APIC
+		per_cpu(x86_cpu_to_apicid, cpu) = early_per_cpu_map(x86_cpu_to_apicid, cpu);
+		per_cpu(x86_bios_cpu_apicid, cpu) = early_per_cpu_map(x86_bios_cpu_apicid, cpu);
+#endif
+#ifdef CONFIG_X86_32
+		per_cpu(x86_cpu_to_logical_apicid, cpu) = early_per_cpu_map(x86_cpu_to_logical_apicid, cpu);
+#endif
+#ifdef CONFIG_X86_64
+		per_cpu(irq_stack_ptr, cpu) = per_cpu(irq_stack_union.irq_stack, cpu) + IRQ_STACK_SIZE - 64;
+#endif
+#ifdef CONFIG_NUMA
+		per_cpu(x86_cpu_to_node_map, cpu) = early_per_cpu_map(x86_cpu_to_node_map, cpu);
+		/*
+		 * Ensure that the boot cpu numa_node is correct when the boot
+		 * cpu is on a node that doesn't have memory installed.
+		 * Also cpu_up() will call cpu_to_node() for APs when
+		 * MEMORY_HOTPLUG is defined, before per_cpu(numa_node) is set
+		 * up later with c_init aka intel_init/amd_init.
+		 * So set them all (boot cpu and all APs).
+		 */
+		set_cpu_numa_node(cpu, early_cpu_to_node(cpu));
+#endif
+		/*
+		 * Up to this point, the boot CPU has been using .init.data
+		 * area.  Reload any changed state for the boot CPU.
+		 */
+		if (!cpu)
+			switch_to_new_gdt(cpu);
+	}
+
+	/* indicate the early static arrays will soon be gone */
+#ifdef CONFIG_X86_LOCAL_APIC
+	early_per_cpu_ptr(x86_cpu_to_apicid) = NULL;
+	early_per_cpu_ptr(x86_bios_cpu_apicid) = NULL;
+#endif
+#ifdef CONFIG_X86_32
+	early_per_cpu_ptr(x86_cpu_to_logical_apicid) = NULL;
+#endif
+#ifdef CONFIG_NUMA
+	early_per_cpu_ptr(x86_cpu_to_node_map) = NULL;
+#endif
+
+	/* Setup node to cpumask map */
+	setup_node_to_cpumask_map();
+
+	/* Setup cpu initialized, callin, callout masks */
+	setup_cpu_local_masks();
+}
+```
+
+#### 16.1.2.1 pcpu_embed_first_chunk()
+
+该函数定义于mm/percpu.c:
+
+```
+#if defined(BUILD_EMBED_FIRST_CHUNK)
+/**
+ * pcpu_embed_first_chunk - embed the first percpu chunk into bootmem
+ * @reserved_size: the size of reserved percpu area in bytes
+ * @dyn_size: minimum free size for dynamic allocation in bytes
+ * @atom_size: allocation atom size
+ * @cpu_distance_fn: callback to determine distance between cpus, optional
+ * @alloc_fn: function to allocate percpu page
+ * @free_fn: function to free percpu page
+ *
+ * This is a helper to ease setting up embedded first percpu chunk and
+ * can be called where pcpu_setup_first_chunk() is expected.
+ *
+ * If this function is used to setup the first chunk, it is allocated
+ * by calling @alloc_fn and used as-is without being mapped into
+ * vmalloc area.  Allocations are always whole multiples of @atom_size
+ * aligned to @atom_size.
+ *
+ * This enables the first chunk to piggy back on the linear physical
+ * mapping which often uses larger page size.  Please note that this
+ * can result in very sparse cpu->unit mapping on NUMA machines thus
+ * requiring large vmalloc address space.  Don't use this allocator if
+ * vmalloc space is not orders of magnitude larger than distances
+ * between node memory addresses (ie. 32bit NUMA machines).
+ *
+ * @dyn_size specifies the minimum dynamic area size.
+ *
+ * If the needed size is smaller than the minimum or specified unit
+ * size, the leftover is returned using @free_fn.
+ *
+ * RETURNS:
+ * 0 on success, -errno on failure.
+ */
+int __init pcpu_embed_first_chunk(size_t reserved_size, size_t dyn_size, size_t atom_size,
+				  pcpu_fc_cpu_distance_fn_t cpu_distance_fn,
+				  pcpu_fc_alloc_fn_t alloc_fn,
+				  pcpu_fc_free_fn_t free_fn)
+{
+	void *base = (void *)ULONG_MAX;
+	void **areas = NULL;
+	struct pcpu_alloc_info *ai;
+	size_t size_sum, areas_size, max_distance;
+	int group, i, rc;
+
+	ai = pcpu_build_alloc_info(reserved_size, dyn_size, atom_size, cpu_distance_fn);
+	if (IS_ERR(ai))
+		return PTR_ERR(ai);
+
+	size_sum = ai->static_size + ai->reserved_size + ai->dyn_size;
+	areas_size = PFN_ALIGN(ai->nr_groups * sizeof(void *));
+
+	areas = alloc_bootmem_nopanic(areas_size);
+	if (!areas) {
+		rc = -ENOMEM;
+		goto out_free;
+	}
+
+	/* allocate, copy and determine base address */
+	for (group = 0; group < ai->nr_groups; group++) {
+		struct pcpu_group_info *gi = &ai->groups[group];
+		unsigned int cpu = NR_CPUS;
+		void *ptr;
+
+		for (i = 0; i < gi->nr_units && cpu == NR_CPUS; i++)
+			cpu = gi->cpu_map[i];
+		BUG_ON(cpu == NR_CPUS);
+
+		/* allocate space for the whole group */
+		ptr = alloc_fn(cpu, gi->nr_units * ai->unit_size, atom_size);
+		if (!ptr) {
+			rc = -ENOMEM;
+			goto out_free_areas;
+		}
+		areas[group] = ptr;
+
+		base = min(ptr, base);
+
+		for (i = 0; i < gi->nr_units; i++, ptr += ai->unit_size) {
+			if (gi->cpu_map[i] == NR_CPUS) {
+				/* unused unit, free whole */
+				free_fn(ptr, ai->unit_size);
+				continue;
+			}
+			/* copy and return the unused part */
+			memcpy(ptr, __per_cpu_load, ai->static_size);
+			free_fn(ptr + size_sum, ai->unit_size - size_sum);
+		}
+	}
+
+	/* base address is now known, determine group base offsets */
+	max_distance = 0;
+	for (group = 0; group < ai->nr_groups; group++) {
+		ai->groups[group].base_offset = areas[group] - base;
+		max_distance = max_t(size_t, max_distance, ai->groups[group].base_offset);
+	}
+	max_distance += ai->unit_size;
+
+	/* warn if maximum distance is further than 75% of vmalloc space */
+	if (max_distance > (VMALLOC_END - VMALLOC_START) * 3 / 4) {
+		pr_warning("PERCPU: max_distance=0x%zx too large for vmalloc space 0x%lx\n",
+			   max_distance, (unsigned long)(VMALLOC_END - VMALLOC_START));
+#ifdef CONFIG_NEED_PER_CPU_PAGE_FIRST_CHUNK
+		/* and fail if we have fallback */
+		rc = -EINVAL;
+		goto out_free;
+#endif
+	}
+
+	pr_info("PERCPU: Embedded %zu pages/cpu @%p s%zu r%zu d%zu u%zu\n",
+		PFN_DOWN(size_sum), base, ai->static_size, ai->reserved_size,
+		ai->dyn_size, ai->unit_size);
+
+	rc = pcpu_setup_first_chunk(ai, base);
+	goto out_free;
+
+out_free_areas:
+	for (group = 0; group < ai->nr_groups; group++)
+		free_fn(areas[group], ai->groups[group].nr_units * ai->unit_size);
+out_free:
+	pcpu_free_alloc_info(ai);
+	if (areas)
+		free_bootmem(__pa(areas), areas_size);
+	return rc;
+}
+#endif /* BUILD_EMBED_FIRST_CHUNK */
+```
+
+## 16.2 Atomic Operations
+
+原子操作包括两部分：对整数的原子操作和对比特位的原子操作。
+
+### 16.2.1 Atomic Integer Operations
+
+An atomic_t holds an int value on all supported architectures. Because of the way this type works on some processors, however, the full integer range may not be available; thus, you should not count on an atomic_t holding more than 24 bits.
+
+在include/linux/types.h中，包含类型atomic_t用于对整数的原子操作：
+
+```
+typedef struct {
+	int counter;
+} atomic_t;
+
+#ifdef CONFIG_64BIT
+typedef struct {
+	long counter;
+} atomic64_t;
+#endif
+```
+
+原子操作的具体实现与体系架构有关，x86架构下的原子操作接口，参见arch/x86/include/asm/atomic.h:
+
+```
+// At declaration, initialize to i.
+#define ATOMIC_INIT(i)	{ (i) }
+
+// Atomically read the integer value of v.
+static inline int atomic_read(const atomic_t *v);
+// Atomically set v equal to i.
+static inline void atomic_set(atomic_t *v, int i);
+
+// Atomically add i to v.
+static inline void atomic_add(int i, atomic_t *v);
+// Atomically substract i from v.
+static inline void atomic_sub(int i, atomic_t *v);
+// Atomically add one to v.
+static inline void atomic_inc(atomic_t *v);
+// Atomically subtract one from v.
+static inline void atomic_dec(atomic_t *v);
+
+// Atomically add i to v and return the result.
+static inline int atomic_add_return(int i, atomic_t *v);
+// Atomically subtract i from v and return the result.
+static inline int atomic_sub_return(int i, atomic_t *v);
+// Atomically increment v by one and return the result.
+#define atomic_inc_return(v)  (atomic_add_return(1, v))
+// Atomically decrement v by one and return the result.
+#define atomic_dec_return(v)  (atomic_sub_return(1, v))
+
+// Atomically add i to v and return true if the result is negative; otherwise false.
+static inline int atomic_add_negative(int i, atomic_t *v);
+// Atomically subtract i from v and return true if the result is zero; otherwise false.
+static inline int atomic_sub_and_test(int i, atomic_t *v);
+// Atomically increment v by one and return true if the result is zero; false otherwise.
+static inline int atomic_inc_and_test(atomic_t *v);
+// Atomically decrement v by one and return true if zero; false otherwise.
+static inline int atomic_dec_and_test(atomic_t *v);
+
+...
+#ifdef CONFIG_X86_32
+# include "atomic64_32.h"
+#else
+# include "atomic64_64.h"
+#endif
+
+在arch/x86/include/asm/atomic64_64.h中，包含如下接口(与atomic.h类似，接口名字由atomic_xxx()改为atomic64_xxx())：
+#define ATOMIC64_INIT(i)	{ (i) }
+
+static inline long atomic64_read(const atomic64_t *v);
+static inline void atomic64_set(atomic64_t *v, long i);
+
+static inline void atomic64_add(long i, atomic64_t *v);
+static inline void atomic64_sub(long i, atomic64_t *v);
+static inline void atomic64_inc(atomic64_t *v);
+static inline void atomic64_dec(atomic64_t *v);
+
+static inline int atomic64_add_negative(long i, atomic64_t *v);
+static inline int atomic64_sub_and_test(long i, atomic64_t *v);
+static inline int atomic64_inc_and_test(atomic64_t *v);
+static inline int atomic64_dec_and_test(atomic64_t *v);
+
+static inline long atomic64_add_return(long i, atomic64_t *v)
+static inline long atomic64_sub_return(long i, atomic64_t *v)
+#define atomic64_inc_return(v)  (atomic64_add_return(1, (v)))
+#define atomic64_dec_return(v)  (atomic64_sub_return(1, (v)))
+```
+
+arch/x86/include/asm/atomic64_32.h中的接口与atomic64_64.h中的类似，只是类型atomic64_t的定义有变化，因而接口的入参或返回值有相应改变：
+
+```
+typedef struct {
+	u64 __aligned(8)	counter;
+} atomic64_t;
+```
+
+### 16.2.2 Atomic Bitwise Operations
+
+在arch/x86/include/asm/bitops.h中，包含如下有关比特位的原子操作接口：
+
+```
+// Atomically set the nr-th bit starting from addr.
+static void set_bit(unsigned int nr, volatile unsigned long *addr);
+static inline void __set_bit(int nr, volatile unsigned long *addr);
+
+// Atomically clear the nr-th bit starting from addr.
+static void clear_bit(int nr, volatile unsigned long *addr);
+static inline void __clear_bit(int nr, volatile unsigned long *addr);
+
+// Atomically flip the value of the nr-th bit starting from addr.
+static inline void change_bit(int nr, volatile unsigned long *addr);
+static inline void __change_bit(int nr, volatile unsigned long *addr);
+
+// Atomically set the nr-th bit starting from addr and return the previous value.
+static inline int test_and_set_bit(int nr, volatile unsigned long *addr);
+static inline int __test_and_set_bit(int nr, volatile unsigned long *addr);
+
+// Atomically clear the nr-th bit starting from addr and return the previous value.
+static inline int test_and_clear_bit(int nr, volatile unsigned long *addr);
+static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr);
+
+// Atomically flip the nr-th bit starting from addr and return the previous value.
+static inline int test_and_change_bit(int nr, volatile unsigned long *addr);
+static inline int __test_and_change_bit(int nr, volatile unsigned long *addr);
+
+// Atomically return the value of the nr-th bit starting from addr.
+#define test_bit(nr, addr)			\
+	(__builtin_constant_p((nr))		\
+	 ? constant_test_bit((nr), (addr))	\
+	 : variable_test_bit((nr), (addr)))
+
+// find first set bit in word x
+static inline int ffs(int x);
+static inline unsigned long __ffs(unsigned long word);
+
+// find last set bit in word x
+static inline int fls(int x);
+static inline unsigned long __fls(unsigned long word);
+
+// find first zero bit in word word
+static inline unsigned long ffz(unsigned long word);
+```
+
+Conveniently, nonatomic versions of all the bitwise functions are also provided. They behave identically to their atomic siblings, except they do not guarantee atomicity, and their names are prefixed with double underscores.
+
+## 16.3 Spin Locks/自旋锁
+
+### 16.3.1 Spin Lock的基本原理
+
+参见《Linux Device Drivers, 3rd edition》第Spinlocks章第Spinlocks节:
+
+Unlike semaphores, spinlocks may be used in code that cannot sleep, such as interrupt handlers. When properly used, spinlocks offer higher performance than semaphores in general.
+
+Spinlocks are simple in concept. A spinlock is a mutual exclusion device that can have only two values: "locked" and "unlocked". It is usually implemented as a single bit in an integer value. Code wishing to take out a particular lock tests the relevant bit. If the lock is available, the "locked" bit is set and the code continues into the critical section. If, instead, the lock has been taken by somebody else, the code goes intoa tight loop where it repeatedly checks the lock until it becomes available. This loop is the "spin" part of a spinlock. 
+
+Of course, the real implementation of a spinlock is a bit more complex than the description above. The "test and set" operation must be done in an atomic manner so that only one thread can obtain the lock, even if several are spinning at any given time. Care must also be taken to avoid deadlocks on hyperthreaded processors - chips that implement multiple, virtual CPUs sharing a single processor core and cache. So the actual spinlock implementation is different for every architecture that Linux supports. The core concept is the same on all systems, however, when there is contention for a spinlock, the processors that are waiting execute a tight loop and accomplish no useful work.
+
+参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第10. Kernel Synchronization Methods章第Spin Locks节:
+
+The most common lock in the Linux kernel is the spin lock. A spin lock is a lock that can be held by at most one thread of execution. If a thread of execution attempts to acquire a spin lock while it is already held, which is called contended (竞争), the thread busy loops - spins - waiting for the lock to become available. If the lock is not contended, the thread can immediately acquire the lock and continue. The spinning prevents more than one thread of execution from entering the critical region at any one time.
+
+The fact that a contended spin lock causes threads to spin (essentially wasting processor time) while waiting for the lock to become available is salient. This behavior is the point of the spin lock. It is not wise to hold a spin lock for a long time. This is the nature of the spin lock: a lightweight single-holder lock that should be held for short durations. An alternative behavior when the lock is contended is to put the current thread to sleep and wake it up when it becomes available. Then the processor can go off and execute other code. This incurs a bit of overhead - most notably the two context switches required to switch out of and back into the blocking thread, which is certainly a lot more code than the handful of lines used to implement a spin lock. Therefore, it is wise to hold spin locks for less than the duration of two context switches.
+
+参见<<Understanding the Linux Kernel, 3rd Edition>> 第1. Introduction章第Spin locks节：
+
+Spin locks are useless in a uniprocessor environment. When a kernel control path tries to access a locked data structure, it starts an endless loop. Therefore, the kernel control path that is updating the protected data structure would not have a chance to continue the execution and release the spin lock. The final result would be that the system hangs.
+
+### 16.3.2 Spin Lock的数据结构
+
+spinlock_t定义于include/linux/spinlock.h，其结构参见:
+
+![Synchronization_01](/assets/Synchronization_01.jpg)
+
+### 16.3.3 Spin Lock的初始化
+
+The initialization may be done at compile time as follows, refer to include/linux/spinlock.h:
+
+```
+spinlock_t my_lock = SPIN_LOCK_UNLOCKED;
+
+or at runtime with:
+// Dynamically initializes given spinlock_t
+#define spin_lock_init(_lock)			\
+do {						\
+	spinlock_check(_lock);			\
+	raw_spin_lock_init(&(_lock)->rlock);	\
+} while (0)
+```
+
+### 16.3.4 Spin Lock的用法
+
+在include/linux/spinlock.h中，包含如下函数定义：
+
+```
+DEFINE_SPINLOCK(mr_lock);
+
+spin_lock(&mr_lock); 
+/* critical region ... */ 
+spin_unlock(&mr_lock);
+```
+
+The semaphores provide a lock that makes the waiting thread sleep, rather than spin, when contended.
+
+Spin locks can be used in interrupt handlers, whereas semaphores cannot be used because they sleep. If a lock is used in an interrupt handler, you must also disable local interrupts (interrupt requests on the current processor) before obtaining the lock. Otherwise, it is possible for an interrupt handler to interrupt kernel code while the lock is held and attempt to reacquire the lock. The interrupt handler spins, waiting for the lock to become available. The lock holder, however, does not run until the interrupt handler completes. This is an example of the double-acquire deadlock. Note that you need to disable interrupts only on the current processor. If an interrupt occurs on a different processor, and it spins on the same lock, it does not prevent the lock holder (which is on a different processor) from eventually releasing the lock.
+
+在include/linux/spinlock.h中，包含如下函数定义：
+
+```
+DEFINE_SPINLOCK(mr_lock); 
+unsigned long flags;
+
+/*
+ * saves the current state of interrupts, disables
+ * them locally before taking the spinlock, and then
+ * obtains the given lock; the previous interrupt
+ * state is stored in flags.
+ */
+spin_lock_irqsave(&mr_lock, flags);
+
+/* critical region ... */
+
+/*
+ * unlocks the given lock and returns interrupts
+ * to their previous state
+ */
+spin_unlock_irqrestore(&mr_lock, flags);
+```
+
+Or, if you always know before the fact that interrupts are initially enabled, there is no need to restore their previous state:
+
+```
+DEFINE_SPINLOCK(mr_lock); 
+
+spin_lock_irq(&mr_lock);
+/* critical region ... */
+spin_unlock_irq(&mr_lock);
+```
+
+**NOTE**: As the kernel grows in size and complexity, it is increasingly hard to ensure that interrupts are always enabled in any given code path in the kernel. Use of ```spin_lock_irq()```, ```spin_unlock_irq()``` therefore is not recommended.
+
+Or, if you need to disable software interrupts before taking the lock, but leaves hardware interrupts enabled:
+
+```
+DEFINE_SPINLOCK(mr_lock); 
+
+/*
+ * disable software interrupts before taking the lock,
+ * but leaves hardware interrupts enabled
+ */
+spin_lock_bh(&mr_lock);
+
+/* critical region ... */
+
+spin_unlock_bh(&mr_lock);
+```
+
+There is also a set of nonblocking spinlock operations in include/linux/spinlock.h:
+
+```
+/*
+ * try to acquire given lock; if unavailable, returns nonzero
+ */
+static inline int spin_trylock(spinlock_t *lock);
+static inline int spin_trylock_bh(spinlock_t *lock);
+
+/*
+ * Return nonzero if the given lock is currently acquired,
+ * otherwise it returns zero
+ */
+static inline int spin_is_locked(spinlock_t *lock);
+```
+
+## 16.4 Reader-Writer Spin Locks
+
+Reader-writer spin locks provide separate reader and writer variants of the lock. One or more readers can concurrently hold the reader lock. The writer lock, conversely, can be held by at most one writer with no concurrent readers.
+
+### 16.4.1 Reader-Writer spin lock的初始化
+
+They can be declared and initialized in two ways:
+
+```
+rwlock_t my_rwlock = RW_LOCK_UNLOCKED;		/* Static way */
+
+rwlock_t my_rwlock; 
+rwlock_init(&my_rwlock); 			/* Dynamic way */
+```
+
+### 16.4.2 Reader-Writer spin lock的用法
+
+Usage is similar to spin locks, see include/linux/rwlock.h. In the reader code path:
+
+```
+DEFINE_RWLOCK(mr_rwlock);
+
+read_lock(&mr_rwlock); 
+/* critical section (read only) ... */ 
+read_unlock(&mr_rwlock);
+
+In the writer code path:
+DEFINE_RWLOCK(mr_rwlock);
+
+write_lock(&mr_rwlock); 
+/* critical section (read and write) ... */ 
+write_unlock(&mr_lock);
+```
+
+It is safe for multiple readers to obtain the same lock. In fact, it is safe for the same thread to recursively obtain the same read lock.
+
+There are some other reader-writer spin lock methods in include/linux/rwlock.h:
+
+```
+// Disables local interrupts and acquires given lock for reading
+read_lock_irq()
+// Releases given lock and enables local interrupts
+read_unlock_irq()
+
+/*
+ * Saves the current state of local interrupts, disables
+ * local interrupts, and acquires the given lock for reading
+ */
+read_lock_irqsave()
+/*
+ * Releases given lock and restores local interrupts to
+ * the given previous state
+ */
+read_unlock_irqrestore()
+
+read_lock_bh(rwlock_t *lock)
+read_unlock_bh(rwlock_t *lock)
+
+// Disables local interrupts and acquires the given lock for writing
+write_lock_irq()
+// Releases given lock and enables local interrupts
+write_unlock_irq()
+
+/*
+ * Saves current state of local interrupts, disables local interrupts,
+ * and acquires the given lock for writing
+ */
+write_lock_irqsave()
+// Releases given lock and restores local interrupts to given previous state
+write_unlock_irqrestore()
+
+write_lock_bh(rwlock_t *lock)
+write_unlock_bh(rwlock_t *lock)
+
+// Tries to acquire given lock for writing; if unavailable, returns nonzero
+write_trylock()
+```
+
+A final important consideration in using the Linux reader-writer spin locks is that they favor readers over writers. If the read lock is held and a writer is waiting for exclusive access, readers that attempt to acquire the lock continue to succeed. The spinning writer does not acquire the lock until all readers release the lock. Therefore, a sufficient number of readers can starve pending writers.
+
+## 16.5 Sequential Locks
+
+The sequential lock, generally shortened to seq lock, is a newer type of lock introduced in the 2.6 kernel. It provides a simple mechanism for reading and writing shared data.
+
+Seq locks are useful to provide a lightweight and scalable lock for use with many readers and a few writers. Seq locks, however, favor writers over readers. An acquisition of the write lock always succeeds as long as there are no other writers. Readers do not affect the write lock, as is the case with reader-writer spin locks and semaphores. Furthermore, pending writers continually cause the read loop to repeat, until there are no longer any writers holding the lock.
+
+Seq locks are ideal when your locking needs meet most or all these requirements:
+* Your data has a lot of readers.
+* Your data has few writers.
+* Although few in number, you want to favor writers over readers and never allow readers to starve writers.
+* Your data is simple, such as a simple structure or even a single integer that, for whatever reason, cannot be made atomic.
+
+A prominent user of the seq lock is jiffies, the variable that stores a Linux machine’s uptime.
+
+Notice that when a reader enters a critical region, it does not need to disable kernel preemption; on the other hand, the writer automatically disables kernel preemption when entering the critical region, because it acquires the spin lock.
+
+### 16.5.1 Seq Lock的数据结构
+
+seqlock_t定义于include/linux/seqlock.h:
+
+```
+typedef struct {
+	/*
+	 * Field sequence plays the role of a sequence counter. 
+	 * Each reader must read this sequence counter twice,
+	 * before and after reading the data, and check whether
+	 * the two values coincide. In the opposite case, a new
+	 * writer has become active and has increased the sequence
+	 * counter, thus implicitly telling the reader that the
+	 * data just read is not valid.
+	 */
+	unsigned	sequence;
+	spinlock_t	lock;		// 参见Spin Lock的数据结构节
+} seqlock_t;
+```
+
+### 16.5.2 Seq Lock的定义及初始化
+
+宏```DEFINE_SEQLOCK()```用于定义及初始化seq lock，其定义于include/linux/seqlock.h:
+
+```
+#define DEFINE_SEQLOCK(x)				\
+		seqlock_t x = __SEQLOCK_UNLOCKED(x)
+
+#define __SEQLOCK_UNLOCKED(lockname)			\
+		 { 0, __SPIN_LOCK_UNLOCKED(lockname) }
+```
+
+宏```seqlock_init()```用于初始化seq lock，其定义于include/linux/seqlock.h:
+
+```
+#define seqlock_init(x)					\
+	do {						\
+		(x)->sequence = 0;			\
+		spin_lock_init(&(x)->lock);		\
+	} while (0)
+```
+
+定义seq lock举例：
+
+```
+seqlock_t lock1 = SEQLOCK_UNLOCKED; 
+
+seqlock_t lock2; 
+seqlock_init(&lock2);
+```
+
+### 16.5.3 Read path of Seq Lock
+
+The reader code has a form like the following:
+
+```
+seqlock_t mr_seq_lock = DEFINE_SEQLOCK(mr_seq_lock);
+unsigned long seq;
+
+do {
+	seq = read_seqbegin(&mr_seq_lock);	// 参见read_seqbegin()节
+	/* read data here ... */
+} while (read_seqretry(&mr_seq_lock, seq));	// 参见read_seqretry()节
+```
+
+If your seqlock might be accessed from an interrupt handler, you should use the IRQ-safe versions instead:
+
+```
+seqlock_t mr_seq_lock = DEFINE_SEQLOCK(mr_seq_lock);
+unsigned long seq;
+unsigned long flags;
+
+do {
+	seq = read_seqbegin_irqsave(&mr_seq_lock, flags);
+	/* read data here ... */
+} while (read_seqretry_irqrestore(&mr_seq_lock, seq, flags));
+```
+
+#### 16.5.3.1 read_seqbegin()
+
+该函数定义于include/linux/seqlock.h:
+
+```
+/* Start of read calculation -- fetch last complete writer token */
+static __always_inline unsigned read_seqbegin(const seqlock_t *sl)
+{
+	unsigned ret;
+
+repeat:
+	ret = ACCESS_ONCE(sl->sequence);
+	// 若sl->sequence取值为奇数，则说明当前正在写被锁对象
+	if (unlikely(ret & 1)) {
+		cpu_relax();
+		goto repeat;
+	}
+	smp_rmb();
+
+	return ret;
+}
+```
+
+#### 16.5.3.2 read_seqretry()
+
+该函数定义于include/linux/seqlock.h:
+
+```
+/*
+ * Test if reader processed invalid data.
+ *
+ * If sequence value changed then writer changed data while in section.
+ */
+static __always_inline int read_seqretry(const seqlock_t *sl, unsigned start)
+{
+	smp_rmb();
+
+	return unlikely(sl->sequence != start);
+}
+```
+
+### 16.5.4 Write path of Seq Lock
+
+Writers must obtain an exclusive lock to enter the critical section protected by a seqlock. To do so, call:
+
+```
+seqlock_t mr_seq_lock = DEFINE_SEQLOCK(mr_seq_lock);
+
+write_seqlock(&mr_seq_lock);		// 参见write_seqlock()节
+/* write lock is obtained... */ 
+write_sequnlock(&mr_seq_lock);		// 参见write_sequnlock()节
+
+Since spinlocks are used to control write access, all of the usual variants are available:
+void write_seqlock_irqsave(seqlock_t *lock, unsigned long flags); 
+void write_sequnlock_irqrestore(seqlock_t *lock, unsigned long flags); 
+
+void write_seqlock_irq(seqlock_t *lock); 
+void write_sequnlock_irq(seqlock_t *lock); 
+
+void write_seqlock_bh(seqlock_t *lock); 
+void write_sequnlock_bh(seqlock_t *lock);
+```
+
+#### 16.5.4.1 write_seqlock()
+
+该函数定义于include/linux/seqlock.h:
+
+```
+static inline void write_seqlock(seqlock_t *sl)
+{
+	spin_lock(&sl->lock);
+	// ->sequence初值为0，加锁时该值由偶数变为奇数
+	++sl->sequence;
+	smp_wmb();
+}
+```
+
+#### 16.5.4.2 write_sequnlock()
+
+该函数定义于include/linux/seqlock.h:
+
+```
+static inline void write_sequnlock(seqlock_t *sl)
+{
+	smp_wmb();
+	// ->sequence初值为0，解锁时该值由奇数变为偶数
+	sl->sequence++;
+	spin_unlock(&sl->lock);
+}
+```
+
+## 16.6 Semaphores/信号量
+
+参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第10. Kernel Synchronization Methods章第Semaphores节:
+
+Semaphores in Linux are sleeping locks. When a task attempts to acquire a semaphore that is unavailable, the semaphore places the task onto a wait queue and puts the task to sleep. The processor is then free to execute other code. When the semaphore becomes available, one of the tasks on the wait queue is awakened so that it can then acquire the semaphore.
+
+This provides better processor utilization than spin locks because there is no time spent busy looping, but semaphores have much greater overhead than spin locks.
+
+You can draw some interesting conclusions from the sleeping behavior of semaphores:
+
+* Because the contending tasks sleep while waiting for the lock to become available, semaphores are well suited to locks that are held for a long time.
+
+* Conversely, semaphores are not optimal for locks that are held for short periods because the overhead of sleeping, maintaining the wait queue, and waking back up can easily outweigh the total lock hold time.
+
+* Because a thread of execution sleeps on lock contention, semaphores must be obtained only in process context because interrupt context is not schedulable.
+
+* You can (although you might not want to) sleep while holding a semaphore because you will not deadlock when another process acquires the same semaphore. (It will just go to sleep and eventually let you continue.)
+
+* You cannot hold a spin lock while you acquire a semaphore, because you might have to sleep while waiting for the semaphore, and you cannot sleep while holding a spin lock.
+
+In most uses of semaphores, there is little choice as to what lock to use. If your code needs to sleep, which is often the case when synchronizing with user-space, semaphores are the sole solution.
+
+When you do have a choice, the decision between semaphore and spin lock should be based on lock hold time. Ideally, all your locks should be held as briefly as possible. With semaphores, however, longer lock hold times are more acceptable.
+
+Additionally, unlike spin locks, semaphores do not disable kernel preemption and, consequently, code holding a semaphore can be preempted. This means semaphores do not adversely affect scheduling latency.
+
+A final useful feature of semaphores is that they can allow for an arbitrary number of simultaneous lock holders. Whereas spin locks permit at most one task to hold the lock at a time, the number of permissible simultaneous holders of semaphores can be set at declaration time.
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第5. Kernel Synchronization章第Semaphores节：
+
+Actually, Linux offers two kinds of semaphores:
+* Kernel semaphores, which are used by kernel control paths
+* System V IPC semaphores, which are used by User Mode processes
+
+### 16.6.1 Semaphore的数据结构
+
+struct semaphore定义于include/linux/semaphore.h:
+
+```
+/* Please don't access any members of this structure directly */
+struct semaphore {
+	/*
+	 * 用于本结构中count和wait_list的自旋锁，
+	 * 故对这两个元素的操作是原子的，参见Spin Lock的数据结构节
+	 */
+	raw_spinlock_t		lock;
+
+	/*
+	 * If count > 0, the resource is free — that’s,
+	 *	it is currently available.
+	 * If count == 0, the semaphore is busy but no
+	 *	other process is waiting for the protected
+	 * 	resource.
+	 * If count < 0, the resource is unavailable and
+	 *	at least one process is waiting for it.
+	 */
+	unsigned int		count;
+
+	/*
+	 * Stores the address of a wait queue list that
+	 * includes all sleeping processes that are currently
+	 * waiting for the resource. If count is greater
+	 * than or equal to 0, the wait queue is empty.
+	 * 指向struct semaphore_waiter结构中的list变量
+	 */
+	struct list_head	wait_list;
+};
+
+struct semaphore_waiter定义于kernel/semaphore.c:
+struct semaphore_waiter {
+	struct list_head	list;
+	struct task_struct	*task;
+	int up;
+};
+```
+
+其结构参见:
+
+![Synchronization_02](/assets/Synchronization_02.jpg)
+
+### 16.6.2 Semaphore的定义及初始化
+
+宏```DEFINE_SEMAPHORE()```用于定义并初始化一个信号量，其count取值为1，参见include/linux/semaphore.h:
+
+```
+#define DEFINE_SEMAPHORE(name)						\
+	struct semaphore name = __SEMAPHORE_INITIALIZER(name, 1)
+
+#define __SEMAPHORE_INITIALIZER(name, n)				\
+{									\
+	.lock		= __RAW_SPIN_LOCK_UNLOCKED((name).lock),	\
+	.count	= n,							\
+	.wait_list	= LIST_HEAD_INIT((name).wait_list),		\
+}
+```
+
+函数```sema_init()```用于初始化一个信号量，并可指定其count取值，参见include/linux/semaphore.h:
+
+```
+static inline void sema_init(struct semaphore *sem, int val)
+{
+	static struct lock_class_key __key;
+	*sem = (struct semaphore) __SEMAPHORE_INITIALIZER(*sem, val);
+	lockdep_init_map(&sem->lock.dep_map, "semaphore->lock", &__key, 0);
+}
+```
+
+举例如下：
+
+```
+struct semaphore name; 
+sema_init(&name, 5);
+```
+
+### 16.6.3 获取信号量/down_interruptible()
+
+```
+down_interruptible()
+down_killable()
+down()
+down_xxx()
+down_interruptible()
+```
+
+The function attempts to acquire the given semaphore. If the semaphore is unavailable, it places the calling process to sleep in the TASK_INTERRUPTIBLE state. This process state implies that a task can be awakened with a signal.
+
+该函数定义于kernel/semaphore.c:
+
+```
+int down_interruptible(struct semaphore *sem)
+{
+	unsigned long flags;
+	int result = 0;
+
+	raw_spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		result = __down_interruptible(sem);
+	raw_spin_unlock_irqrestore(&sem->lock, flags);
+
+	return result;
+}
+
+static noinline int __sched __down_interruptible(struct semaphore *sem)
+{
+	// 参见__down_common()节
+	return __down_common(sem, TASK_INTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
+}
+```
+
+#### 16.6.3.1 \__down_common()
+
+该函数定义于kernel/semaphore.c:
+
+```
+static inline int __sched __down_common(struct semaphore *sem, long state, long timeout)
+{
+	struct task_struct *task = current;
+	struct semaphore_waiter waiter;
+
+	// 将当前进程添加到等待队列末尾
+	list_add_tail(&waiter.list, &sem->wait_list);
+	waiter.task = task;
+	waiter.up = 0;
+
+	// 一直等待，直到 (1)当前进程接收到某信号；(2)超时；(3)信号量可用
+	for (;;) {
+		if (signal_pending_state(state, task))
+			goto interrupted;
+		if (timeout <= 0)
+			goto timed_out;
+		__set_task_state(task, state);
+		raw_spin_unlock_irq(&sem->lock);
+		// 调度其他进程运行(参见schedule_timeout()节)，当前进程进入休眠状态
+		timeout = schedule_timeout(timeout);
+		raw_spin_lock_irq(&sem->lock);
+		// 若信号量可用，函数up()会唤醒本进程，参见释放信号量/up()节
+		if (waiter.up)
+			return 0;
+	}
+
+timed_out:
+	list_del(&waiter.list);
+	return -ETIME;
+
+interrupted:
+	list_del(&waiter.list);
+	return -EINTR;
+}
+```
+
+#### 16.6.3.2 down_killable()
+
+该函数定义于kernel/semaphore.c:
+
+```
+/**
+ * down_killable - acquire the semaphore unless killed
+ * @sem: the semaphore to be acquired
+ *
+ * Attempts to acquire the semaphore.  If no more tasks are allowed to
+ * acquire the semaphore, calling this function will put the task to sleep.
+ * If the sleep is interrupted by a fatal signal, this function will return
+ * -EINTR.  If the semaphore is successfully acquired, this function returns
+ * 0.
+ */
+int down_killable(struct semaphore *sem)
+{
+	unsigned long flags;
+	int result = 0;
+
+	raw_spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		result = __down_killable(sem);
+	raw_spin_unlock_irqrestore(&sem->lock, flags);
+
+	return result;
+}
+
+static noinline int __sched __down_killable(struct semaphore *sem)
+{
+	// 参见__down_common()节
+	return __down_common(sem, TASK_KILLABLE, MAX_SCHEDULE_TIMEOUT);
+}
+```
+
+#### 16.6.3.3 down()
+
+The function places the task in the TASK_UNINTERRUPTIBLE state when it sleeps. You most likely do not want this because the process waiting for the semaphore does not respond to signals.
+
+该函数定义于kernel/semaphore.c:
+
+```
+/**
+ * down - acquire the semaphore
+ * @sem: the semaphore to be acquired
+ *
+ * Acquires the semaphore.  If no more tasks are allowed to acquire the
+ * semaphore, calling this function will put the task to sleep until the
+ * semaphore is released.
+ *
+ * Use of this function is deprecated, please use down_interruptible() or
+ * down_killable() instead.
+ */
+void down(struct semaphore *sem)
+{
+	unsigned long flags;
+
+	raw_spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		__down(sem);
+	raw_spin_unlock_irqrestore(&sem->lock, flags);
+}
+
+static noinline void __sched __down(struct semaphore *sem)
+{
+	// 参见__down_common()节
+	__down_common(sem, TASK_UNINTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
+}
+```
+
+#### 16.6.3.4 down_timeout()
+
+该函数与```down()```类似，区别仅在于它可以指定超时时间。其定义于kernel/semaphore.c:
+
+```
+/**
+ * down_timeout - acquire the semaphore within a specified time
+ * @sem: the semaphore to be acquired
+ * @jiffies: how long to wait before failing
+ *
+ * Attempts to acquire the semaphore.  If no more tasks are allowed to
+ * acquire the semaphore, calling this function will put the task to sleep.
+ * If the semaphore is not released within the specified number of jiffies,
+ * this function returns -ETIME.  It returns 0 if the semaphore was acquired.
+ */
+int down_timeout(struct semaphore *sem, long jiffies)
+{
+	unsigned long flags;
+	int result = 0;
+
+	raw_spin_lock_irqsave(&sem->lock, flags);
+	if (likely(sem->count > 0))
+		sem->count--;
+	else
+		result = __down_timeout(sem, jiffies);
+	raw_spin_unlock_irqrestore(&sem->lock, flags);
+
+	return result;
+}
+
+static noinline int __sched __down_timeout(struct semaphore *sem, long jiffies)
+{
+	return __down_common(sem, TASK_UNINTERRUPTIBLE, jiffies);
+}
+```
+
+#### 16.6.3.5 down_trylock()
+
+The function tries to acquire the given semaphore without blocking. If the semaphore is already held, the function immediately returns nonzero. Otherwise, it returns zero and you successfully hold the lock.
+
+该函数定义于kernel/semaphore.c:
+
+```
+/**
+ * down_trylock - try to acquire the semaphore, without waiting
+ * @sem: the semaphore to be acquired
+ *
+ * Try to acquire the semaphore atomically.  Returns 0 if the mutex has
+ * been acquired successfully or 1 if it it cannot be acquired.
+ *
+ * NOTE: This return value is inverted from both spin_trylock and
+ * mutex_trylock!  Be careful about this when converting code.
+ *
+ * Unlike mutex_trylock, this function can be used from interrupt context,
+ * and the semaphore can be released by any task or interrupt.
+ */
+int down_trylock(struct semaphore *sem)
+{
+	unsigned long flags;
+	int count;
+
+	raw_spin_lock_irqsave(&sem->lock, flags);
+	count = sem->count - 1;
+	if (likely(count >= 0))
+		sem->count = count;
+	raw_spin_unlock_irqrestore(&sem->lock, flags);
+
+	return (count < 0);
+}
+```
+
+### 16.6.4 释放信号量/up()
+
+该函数定义于kernel/semaphore.c:
+
+```
+/**
+ * up - release the semaphore
+ * @sem: the semaphore to release
+ *
+ * Release the semaphore.  Unlike mutexes, up() may be called from any
+ * context and even by tasks which have never called down().
+ */
+void up(struct semaphore *sem)
+{
+	unsigned long flags;
+
+	raw_spin_lock_irqsave(&sem->lock, flags);
+	if (likely(list_empty(&sem->wait_list)))
+		sem->count++;
+	else
+		__up(sem);
+	raw_spin_unlock_irqrestore(&sem->lock, flags);
+}
+
+static noinline void __sched __up(struct semaphore *sem)
+{
+	// 获取等待队列中的第一个等待进程
+	struct semaphore_waiter *waiter = list_first_entry(&sem->wait_list,
+					struct semaphore_waiter, list);
+	list_del(&waiter->list);
+	waiter->up = 1;
+	/*
+	 * 唤醒第一个等待进程，参见wake_up_process()节；
+	 * 唤醒后，该进程会跳出函数__down_common()中的for(;;)
+	 * 循环，参见__down_common()节
+	 */
+	wake_up_process(waiter->task);
+}
+```
+
+## 16.7 Reader-Writer Semaphore
+
+All reader-writer semaphores are mutexes - that is, their usage count is one - although they enforce mutual exclusion only for writers, not readers.
+
+An rwsem allows either one writer or an unlimited number of readers to hold the semaphore. Writers get priority; as soon as a writer tries to enter the critical section, no readers will be allowed in until all writers have completed their work. This implementation can lead to reader starvation - where readers are denied access for a long time - if you have a large number of writers contending for the semaphore. For this reason, rwsems are best used when write access is required only rarely, and writer access is held for short periods of time.
+
+### 16.7.1 Reader-Writer Semaphore的数据结构
+
+struct rw_semaphore定义于include/linux/rwsem.h:
+
+```
+#ifdef CONFIG_RWSEM_GENERIC_SPINLOCK
+
+#include <linux/rwsem-spinlock.h>  /* use a generic implementation */
+
+#else
+
+/* All arch specific implementations share the same struct */
+struct rw_semaphore {
+	long			count;
+	/*
+	 * A spin lock used to protect the wait queue
+	 * list and the rw_semaphore structure itself.
+	 */
+	raw_spinlock_t		wait_lock;
+	/*
+	 * Points to a list of waiting processes. Each
+	 * element in this list is a struct rwsem_waiter.
+	 */
+	struct list_head	wait_list;
+#ifdef CONFIG_DEBUG_LOCK_ALLOC
+	struct lockdep_map	dep_map;
+#endif
+};
+
+#endif
+```
+
+在include/linux/rwsem-spinlock.h中，包含如下定义：
+
+```
+/*
+ * the rw-semaphore definition
+ * - if activity is 0 then there are no active readers or writers
+ * - if activity is +ve then that is the number of active readers
+ * - if activity is -1 then there is one active writer
+ * - if wait_list is not empty, then there are processes waiting for the semaphore
+ */
+struct rw_semaphore {
+	__s32			activity;
+	raw_spinlock_t		wait_lock;
+	struct list_head	wait_list;
+#ifdef CONFIG_DEBUG_LOCK_ALLOC
+	struct lockdep_map	dep_map;
+#endif
+};
+```
+
+在kernel/rwsem.c和lib/rwsem-spinlock.c中，均包括struct rwsem_waiter的定义:
+
+```
+struct rwsem_waiter {
+	struct list_head	list;
+	struct task_struct 	*task;
+	/*
+	 * Reader or writer flags, use macros RWSEM_WAITING_FOR_READ
+	 * or RWSEM_WAITING_FOR_WRITE respectively.
+	 */
+	unsigned int		flags;
+#define RWSEM_WAITING_FOR_READ	0x00000001
+#define RWSEM_WAITING_FOR_WRITE	0x00000002
+};
+```
+
+其结构参见:
+
+![Synchronization_03](/assets/Synchronization_03.jpg)
+
+### 16.7.2 Reader-Writer Semaphore的定义及初始化
+
+宏```DECLARE_RWSEM()```用于定义并初始化一个信号量，参见include/linux/rwsem.h:
+
+```
+#define DECLARE_RWSEM(name) 	\
+	struct rw_semaphore name = __RWSEM_INITIALIZER(name)
+
+#define __RWSEM_INITIALIZER(name)			\
+	{ RWSEM_UNLOCKED_VALUE,				\	// 该宏取值为0
+	  __RAW_SPIN_LOCK_UNLOCKED(name.wait_lock),	\
+	  LIST_HEAD_INIT((name).wait_list)		\
+	  __RWSEM_DEP_MAP_INIT(name) }
+```
+
+宏```init_rwsem()```用于初始化一个信号量，参见include/linux/rwsem.h:
+
+```
+#define init_rwsem(sem)					\
+do {							\
+	static struct lock_class_key __key;		\
+							\
+	__init_rwsem((sem), #sem, &__key);		\	// 该函数定义于lib/rwsem.c或lib/rwsem-spinlock.c
+} while (0)
+```
+
+### 16.7.3 获取Reader-Writer信号量
+
+在include/linux/rwsem.h中声明的如下函数用于获取信号量：
+
+```
+/*
+ * Acquire the read/write semaphore for reading.
+ * NOTE: down_read() may put the calling process
+ *       into an uninterruptible sleep.
+ */
+extern void down_read(struct rw_semaphore *sem);
+/*
+ * Don’t block the process if the semaphore is busy
+ */
+extern int down_read_trylock(struct rw_semaphore *sem);
+
+/*
+ * Acquire the read/write semaphore for writing
+ */
+extern void down_write(struct rw_semaphore *sem);
+/*
+ * Don’t block the process if the semaphore is busy
+ */
+extern int down_write_trylock(struct rw_semaphore *sem);
+
+/*
+ * Downgrade write lock to read lock
+ */
+extern void downgrade_write(struct rw_semaphore *sem);	
+```
+
+### 16.7.4 释放Reader-Writer信号量
+
+include/linux/rwsem.h中声明的如下函数用于释放信号量：
+
+```
+/*
+ * Release a read/write semaphore previously acquired
+ * for reading. A rwsem obtained with down_read() must
+ * eventually be freed with up_read().
+ */
+extern void up_read(struct rw_semaphore *sem);
+/*
+ * Release a read/write semaphore previously acquired
+ * for writing.
+ */
+extern void up_write(struct rw_semaphore *sem);
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

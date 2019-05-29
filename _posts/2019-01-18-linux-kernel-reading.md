@@ -77262,6 +77262,2688 @@ x86_64
 
 参见Paging for 64-bit Architectures节。
 
+# 19 内核调试/Debug Kernel
+
+Make sense of kernel data:
+
+| System.map  | kernel function addresses |
+| /proc/kcore | image of system memory |
+| vmlinux     | the uncompressed kernel, can be disassembled using objdump |
+
+<p/>
+
+## 19.1 内核调试选项
+
+与内核调试有关的配置选项：
+
+```
+Kernel hacking  --->
+[*] Show timing information on printks				// CONFIG_PRINTK_TIME
+(4) Default message log level (1-7)				// CONFIG_DEFAULT_MESSAGE_LOGLEVEL
+[ ] Enable __deprecated logic					// CONFIG_ENABLE_WARN_DEPRECATED
+[ ] Enable __must_check logic					// CONFIG_ENABLE_MUST_CHECK
+(1024) Warn for stack frames larger than (needs gcc 4.4)	// CONFIG_FRAME_WARN
+-*- Magic SysRq key						// CONFIG_MAGIC_SYSRQ
+[ ] Strip assembler-generated symbols during link		// CONFIG_STRIP_ASM_SYMS
+[*] Enable unused/obsolete exported symbols			// CONFIG_UNUSED_SYMBOLS
+-*- Debug Filesystem						// CONFIG_DEBUG_FS
+[ ] Run 'make headers_check' when building vmlinux		// CONFIG_HEADERS_CHECK
+[ ] Enable full Section mismatch analysis			// CONFIG_DEBUG_SECTION_MISMATCH
+-*- Kernel debugging						// CONFIG_DEBUG_KERNEL
+[ ]   Debug shared IRQ handlers					// CONFIG_DEBUG_SHIRQ
+[*]   Detect Hard and Soft Lockups				// CONFIG_LOCKUP_DETECTOR
+[ ]     Panic (Reboot) On Hard Lockups				// CONFIG_BOOTPARAM_HARDLOCKUP_PANIC
+[ ]     Panic (Reboot) On Soft Lockups				// CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC
+[*] Detect Hung Tasks						// CONFIG_DETECT_HUNG_TASK
+(120) Default timeout for hung task detection (in seconds)	// CONFIG_DEFAULT_HUNG_TASK_TIMEOUT
+[ ]   Panic (Reboot) On Hung Tasks				// CONFIG_BOOTPARAM_HUNG_TASK_PANIC
+-*- Collect scheduler debugging info				// CONFIG_SCHED_DEBUG
+-*- Collect scheduler statistics				// CONFIG_SCHEDSTATS
+[*] Collect kernel timers statistics				// CONFIG_TIMER_STATS
+[ ] Debug object operations					// CONFIG_DEBUG_OBJECTS
+[ ] SLUB debugging on by default				// CONFIG_SLUB_DEBUG_ON
+[ ] Enable SLUB performance statistics				// CONFIG_SLUB_STATS
+[ ] Kernel memory leak detector					// CONFIG_DEBUG_KMEMLEAK
+[ ] RT Mutex debugging, deadlock detection			// CONFIG_DEBUG_RT_MUTEXES
+[ ] Built-in scriptable tester for rt-mutexes			// CONFIG_RT_MUTEX_TESTER
+[ ] Spinlock and rw-lock debugging: basic checks		// CONFIG_DEBUG_SPINLOCK
+[ ] Mutex debugging: basic checks				// CONFIG_DEBUG_MUTEXES
+[ ] Lock debugging: detect incorrect freeing of live locks	// CONFIG_DEBUG_LOCK_ALLOC
+[ ] Lock debugging: prove locking correctness			// CONFIG_PROVE_LOCKING
+[ ] Lock usage statistics					// CONFIG_LOCK_STAT
+[ ] Sleep inside atomic section checking			// CONFIG_DEBUG_ATOMIC_SLEEP
+[ ] Locking API boot-time self-tests				// CONFIG_DEBUG_LOCKING_API_SELFTESTS
+[ ] Stack utilization instrumentation				// CONFIG_DEBUG_STACK_USAGE
+[ ] kobject debugging						// CONFIG_DEBUG_KOBJECT
+[*] Verbose BUG() reporting (adds 70K)				// CONFIG_DEBUG_BUGVERBOSE
+[*] Compile the kernel with debug info				// CONFIG_DEBUG_INFO
+[ ]   Reduce debugging information				// CONFIG_DEBUG_INFO_REDUCED
+[ ] Debug VM							// CONFIG_DEBUG_VM
+[ ] Debug VM translations					// CONFIG_DEBUG_VIRTUAL
+[ ] Debug filesystem writers count				// CONFIG_DEBUG_WRITECOUNT
+[*] Debug memory initialisation					// CONFIG_DEBUG_MEMORY_INIT
+[ ] Debug linked list manipulation				// CONFIG_DEBUG_LIST
+[ ] Linked list sorting test					// CONFIG_TEST_LIST_SORT
+[ ] Debug SG table operations					// CONFIG_DEBUG_SG
+[ ] Debug notifier call chains					// CONFIG_DEBUG_NOTIFIERS
+[ ] Debug credential management					// CONFIG_DEBUG_CREDENTIALS
+-*- Compile the kernel with frame pointers			// CONFIG_FRAME_POINTER
+[*] Delay each boot printk message by N milliseconds		// CONFIG_BOOT_PRINTK_DELAY
+RCU Debugging  --->
+    < > torture tests for RCU					// CONFIG_SPARSE_RCU_POINTER
+    (60) RCU CPU stall timeout in seconds			// CONFIG_RCU_CPU_STALL_TIMEOUT
+[ ] Kprobes sanity tests					// CONFIG_KPROBES_SANITY_TEST
+< > Self test for the backtrace code				// CONFIG_BACKTRACE_SELF_TEST
+[ ] Force extended block device numbers and spread them		// CONFIG_DEBUG_BLOCK_EXT_DEVT
+[ ] Force weak per-cpu definitions				// CONFIG_DEBUG_FORCE_WEAK_PER_CPU
+[ ] Debug access to per_cpu maps				// CONFIG_DEBUG_PER_CPU_MAPS
+< > Linux Kernel Dump Test Tool Module				// CONFIG_LKDTM
+<*> Notifier error injection
+<M>     CPU notifier error injection module			// CONFIG_CPU_NOTIFIER_ERROR_INJECT
+[ ] Fault-injection framework					// CONFIG_FAULT_INJECTION
+[*] Latency measuring infrastructure				// CONFIG_LATENCYTOP
+[*] Tracers  --->
+    -*-   Kernel Function Tracer				// CONFIG_FUNCTION_TRACER
+    [*]     Kernel Function Graph Tracer			// CONFIG_FUNCTION_GRAPH_TRACER
+    [ ]   Interrupts-off Latency Tracer				// CONFIG_IRQSOFF_TRACER
+    [*]   Scheduling Latency Tracer				// CONFIG_SCHED_TRACER
+    [*]   Trace syscalls					// CONFIG_FTRACE_SYSCALLS
+          Branch Profiling (No branch profiling)  --->
+              (X) No branch profiling				// CONFIG_BRANCH_PROFILE_NONE
+              ( ) Trace likely/unlikely profiler		// CONFIG_PROFILE_ANNOTATED_BRANCHES
+              ( ) Profile all if conditionals			// CONFIG_PROFILE_ALL_BRANCHES
+    [*]   Trace max stack					// CONFIG_STACK_TRACER
+    [*]   Support for tracing block IO actions			// CONFIG_BLK_DEV_IO_TRACE
+    [*]   Enable kprobes-based dynamic events			// CONFIG_KPROBE_EVENT
+    [*]   enable/disable ftrace tracepoints dynamically		// CONFIG_DYNAMIC_FTRACE
+    [*]   Kernel function profiler				// CONFIG_FUNCTION_PROFILER
+    [ ]   Perform a startup test on ftrace			// CONFIG_FTRACE_STARTUP_TEST
+    [*]   Memory mapped IO tracing				// CONFIG_MMIOTRACE
+    < >     Test module for mmiotrace				// CONFIG_MMIOTRACE_TEST
+    < >   Ring buffer benchmark stress tester			// CONFIG_RING_BUFFER_BENCHMARK
+[ ] Remote debugging over FireWire early on boot		// CONFIG_PROVIDE_OHCI1394_DMA_INIT
+[ ] Remote debugging over FireWire with firewire-ohci		// CONFIG_FIREWIRE_OHCI_REMOTE_DMA
+[ ] Enable dynamic printk() support				// CONFIG_DYNAMIC_DEBUG
+[ ] Enable debugging of DMA-API usage				// CONFIG_DMA_API_DEBUG
+[ ] Perform an atomic64_t self-test at boot			// CONFIG_ATOMIC64_SELFTEST
+<M> Self test for hardware accelerated raid6 recovery		// CONFIG_ASYNC_RAID6_TEST
+[ ] Sample kernel code  --->
+[*] KGDB: kernel debugger  --->
+    <*>   KGDB: use kgdb over the serial console		// CONFIG_KGDB_SERIAL_CONSOLE
+    [ ]   KGDB: internal test suite				// CONFIG_KGDB_TESTS
+    [*]   KGDB: Allow debugging with traps in notifiers		// CONFIG_KGDB_LOW_LEVEL_TRAP
+    [*]   KGDB_KDB: include kdb frontend for kgdb		// CONFIG_KGDB_KDB
+    [*]     KGDB_KDB: keyboard as input device			// CONFIG_KDB_KEYBOARD
+[*] Filter access to /dev/mem					// CONFIG_STRICT_DEVMEM
+[ ] Enable verbose x86 bootup info messages			// CONFIG_X86_VERBOSE_BOOTUP
+[*] Early printk						// CONFIG_EARLY_PRINTK
+[*]   Early printk via EHCI debug port				// CONFIG_EARLY_PRINTK_DBGP
+[ ] Check for stack overflows					// CONFIG_DEBUG_STACKOVERFLOW
+[ ] Export kernel pagetable layout to userspace via debugfs	// CONFIG_X86_PTDUMP
+[*] Write protect kernel read-only data structures		// CONFIG_DEBUG_RODATA
+[ ]   Testcase for the DEBUG_RODATA feature			// CONFIG_DEBUG_RODATA_TEST
+[*] Set loadable kernel module data as NX and text as RO	// CONFIG_DEBUG_SET_MODULE_RONX
+< > Testcase for the NX non-executable stack feature		// CONFIG_DEBUG_NX_TEST
+[ ] Enable IOMMU stress-test mode				// CONFIG_IOMMU_STRESS
+[ ] x86 instruction decoder selftest				// CONFIG_X86_DECODER_SELFTEST
+[ ] Debug boot parameters					// CONFIG_DEBUG_BOOT_PARAMS
+[ ] CPA self-test code						// CONFIG_CPA_DEBUG
+[*] Allow gcc to uninline functions marked 'inline'		// CONFIG_OPTIMIZE_INLINING
+[ ] Strict copy size checks					// CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+```
+
+## 19.2 打印调试信息
+
+### 19.2.1 内核日志系统
+
+#### 19.2.1.0 内核日志系统架构
+
+内核日志系统层次结构，参见:
+
+![Kernel_printk_and_Log_System_Structure](/assets/Kernel_printk_and_Log_System_Structure.jpg)
+
+![Layers_of_Kernel_Log_System](/assets/Layers_of_Kernel_Log_System.gif)
+
+#### 19.2.1.1 Ring log buffer - log_buf
+
+环形缓冲区log_buf用于保存系统日志，通过如下变量访问该缓冲区，参见kernel/printk.c:
+
+```
+#ifdef CONFIG_PRINTK
+
+/*
+ * logbuf_lock protects log_buf, log_start, log_end, con_start and logged_chars.
+ * It is also used in interesting ways to provide interlocking in
+ * console_unlock();.
+ */
+static DEFINE_RAW_SPINLOCK(logbuf_lock);
+
+#define LOG_BUF_MASK	(log_buf_len-1)
+#define LOG_BUF(idx)	(log_buf[(idx) & LOG_BUF_MASK])
+
+/* 
+ * The indices into log_buf are not constrained to log_buf_len - they 
+ * must be masked before subscripting 
+ */ 
+static unsigned	log_start;	/* Index into log_buf: next char to be read by syslog() */ 
+static unsigned	con_start;	/* Index into log_buf: next char to be sent to consoles */ 
+static unsigned	log_end;	/* Index into log_buf: most-recently-written-char + 1 */
+
+#endif
+```
+
+##### 19.2.1.1.1 默认分配的log_buf
+
+The printk function writes messages into a circular buffer that is ```__LOG_BUF_LEN``` bytes long: a value from 4 KB to 1 MB chosen while configuring the kernel by CONFIG_LOG_BUF_SHIFT.
+
+The printk function then wakes any process that is waiting for messages, that is, any process that is sleeping in the syslog system call or that is reading ```/proc/kmsg```. These two interfaces to the logging engine are almost equivalent, but note that reading from /proc/kmsg consumes the data from the log buffer, whereas the syslog system call can optionally return log data while leaving it for other processes as well. In general, reading the ```/proc/kmsg``` file is easier and is the default behavior for klogd. The dmesg command can be used to look at the content of the buffer without flushing it; actually, the command returns to stdout the whole content of the buffer, whether or not it has already been read.
+
+默认情况下，环形缓冲区log_buf为数组```__log_buf[__LOG_BUF_LEN]```，其定义于kernel/printk.c:
+
+```
+#ifdef CONFIG_PRINTK
+
+/*
+* 环形缓冲区log_buf的长度为__LOG_BUF_LEN，
+ * 其由配置项CONFIG_LOG_BUF_SHIFT配置，
+* 默认取值为17，即环形缓冲区长度为128KB
+*/
+#define __LOG_BUF_LEN	(1 << CONFIG_LOG_BUF_SHIFT)
+static char __log_buf[__LOG_BUF_LEN];
+static char *log_buf = __log_buf;
+
+/*
+ * 环形缓冲区为log_buf，长度为log_buf_len，
+ * 通过宏LOG_BUF(idx)访问该缓冲区
+ */
+static int log_buf_len = __LOG_BUF_LEN;
+#define LOG_BUF_MASK (log_buf_len-1)
+#define LOG_BUF(idx) (log_buf[(idx) & LOG_BUF_MASK])
+
+#endif
+```
+
+##### 19.2.1.1.2 通过内核参数log_buf_len分配的log_buf
+
+若指定了内核参数log_buf_len，且其值大于当前缓冲区的长度log_buf_len，则重新分配缓冲区log_buf。内核参数log_buf_len定义于kernel/printk.c:
+
+```
+/* requested log_buf_len from kernel cmdline */
+static unsigned long __initdata new_log_buf_len;
+
+/* save requested log_buf_len since it's too early to process it */
+static int __init log_buf_len_setup(char *str)
+{
+	unsigned size = memparse(str, &str);
+
+	if (size)
+		size = roundup_pow_of_two(size);
+
+	/*
+	 * 若请求的缓冲区长度大于默认缓冲区的长度，即__log_buf[__LOG_BUF_LEN]，
+	 * 则重新分配缓冲区；否则，无需分配新的缓冲区。参见函数setup_log_buf()
+	 */
+	if (size > log_buf_len)
+		new_log_buf_len = size;
+
+	return 0;
+}
+early_param("log_buf_len", log_buf_len_setup);
+```
+
+而函数```setup_log_buf()```用于重新分配长度为new_log_buf_len的缓冲区log_buf，其调用关系如下：
+
+```
+start_kernel()			// 参见4.3.4.1.4.3 start_kernel()节
+-> setup_arch()
+   -> setup_log_buf(1)		// 由具体的体系架构决定是否调用setup_log_buf()；X86体系架构会调用该函数
+-> setup_log_buf(0)		// 若某体系架构不调用setup_log_buf()，则在此处调用该函数；否则，该函数直接返回
+```
+
+其定义于kernel/printk.c:
+
+```
+void __init setup_log_buf(int early)
+{
+	unsigned long flags;
+	unsigned start, dest_idx, offset;
+	char *new_log_buf;
+	int free;
+
+	if (!new_log_buf_len)		// (1) 本函数只被调用一次
+		return;
+
+	if (early) {
+		unsigned long mem;
+
+		mem = memblock_alloc(new_log_buf_len, PAGE_SIZE);
+		if (mem == MEMBLOCK_ERROR)
+			return;
+		new_log_buf = __va(mem);
+	} else {
+		new_log_buf = alloc_bootmem_nopanic(new_log_buf_len);
+	}
+
+	if (unlikely(!new_log_buf)) {
+		pr_err("log_buf_len: %ld bytes not available\n", new_log_buf_len);
+		return;
+	}
+
+	raw_spin_lock_irqsave(&logbuf_lock, flags);
+	log_buf_len = new_log_buf_len;
+	log_buf = new_log_buf;
+	new_log_buf_len = 0;		// (2) 本函数只被调用一次
+	free = __LOG_BUF_LEN - log_end;
+
+	offset = start = min(con_start, log_start);
+	dest_idx = 0;
+	while (start != log_end) {
+		unsigned log_idx_mask = start & (__LOG_BUF_LEN - 1);
+
+		log_buf[dest_idx] = __log_buf[log_idx_mask];
+		start++;
+		dest_idx++;
+	}
+	log_start -= offset;
+	con_start -= offset;
+	log_end -= offset;
+	raw_spin_unlock_irqrestore(&logbuf_lock, flags);
+
+	pr_info("log_buf_len: %d\n", log_buf_len);
+	pr_info("early log buf free: %d(%d%%)\n", free, (free * 100) / __LOG_BUF_LEN);
+}
+```
+
+#### 19.2.1.2 Log levels
+
+One of the differences between ```printf()``` and ```printk()``` is that printk lets you classify messages according to their severity by associating different loglevels, or priorities, with the messages. The loglevel macro expands to a string, which is concatenated to the message text at compile time; that’s why there is no comma between the priority and the format string in the following example:
+
+```
+printk(KERN_CRIT "Hello, world!\n");
+```
+
+There are eight possible loglevel strings, defined in the header include/linux/kernel.h:
+
+```
+/*
+ * dmesg -t: Print all messages, but don't print kernel's timestampts
+ * dmesg -t -k: Print kernel messages
+ * dmesg -t -l <level>: 打印不同级别的信息，如下表所示，<level>参见dmesg --help
+ */
+#define KERN_EMERG	"<0>"	/* system is unusable			*/	// dmesg -t -l emerg
+#define KERN_ALERT	"<1>"	/* action must be taken immediately	*/	// dmesg -t -l alert
+#define KERN_CRIT	"<2>"	/* critical conditions			*/	// dmesg -t -l crit
+#define KERN_ERR	"<3>"	/* error conditions			*/	// dmesg -t -l err
+#define KERN_WARNING	"<4>"	/* warning conditions			*/	// dmesg -t -l warn
+#define KERN_NOTICE	"<5>"	/* normal but significant condition	*/	// dmesg -t -l notice
+#define KERN_INFO	"<6>"	/* informational			*/	// dmesg -t -l info
+#define KERN_DEBUG	"<7>"	/* debug-level messages			*/	// dmesg -t -l debug
+
+/* Use the default kernel loglevel */
+#define KERN_DEFAULT	"<d>"
+
+/*
+ * Annotation for a "continued" line of log printout (only done after a
+ * line that had no enclosing \n). Only to be used by core/arch code
+ * during early bootup (a continued line is not SMP-safe otherwise).
+ * 日志行继续，以避免增加新的时间截
+ */
+#define KERN_CONT	"<c>"
+```
+
+每种日志级别都有对应的宏来简化日志函数的使用，参见19.2.1.4.3 pr_debug()/pr_xxx()节。
+
+**NOTE1**: A printk statement with no specified priority defaults to ```DEFAULT_MESSAGE_LOGLEVEL```, specified in kernel/printk.c as an integer. In the 2.6.10 kernel, ```DEFAULT_MESSAGE_LOGLEVEL``` is ```KERN_WARNING```, but that has been known to change in the past.
+
+**NOTE2**: 使用下列命令可以显示日志中的级别信息：
+
+```
+chenwx@chenwx ~/linux $ dmesg -r
+<7>[    7.817513] ieee80211 phy0: Selected rate control algorithm 'minstrel_ht' 
+<6>[    7.817975] ath5k: phy0: Atheros AR2425 chip found (MAC: 0xe2, PHY: 0x70) 
+<6>[    8.408874] IPv6: ADDRCONF(NETDEV_UP): eth0: link is not ready 
+<12>[    8.626111] init: plymouth-upstart-bridge main process ended, respawning 
+<6>[    9.572093] floppy0: no floppy controllers found 
+<6>[    9.681009] e1000e: eth0 NIC Link is Up 100 Mbps Full Duplex, Flow Control: Rx/Tx 
+<6>[    9.681128] e1000e 0000:00:19.0 eth0: 10/100 speed: disabling TSO 
+<6>[    9.681177] IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready 
+<12>[   11.492704] init: plymouth-stop pre-start process (1771) terminated with status 1 
+...
+```
+
+#### 19.2.1.3 console_loglevel
+
+Based on the loglevel, the kernel may print the message to the current console, be it a text-mode terminal, a serial port, or a parallel printer. If the priority is less than the integer variable console_loglevel, the message is delivered to the console one line at a time (nothing is sent unless a trailing newline is provided). That's, if variable console_loglevel is set to 1, only messages of level 0 (KERN_EMERG) reach the console; if it's set to 8, all messages, including debugging ones, are displayed.
+
+变量console_loglevel定义于include/linux/printk.h:
+
+```
+extern int console_printk[];
+
+#define console_loglevel		(console_printk[0])
+#define default_message_loglevel	(console_printk[1])
+#define minimum_console_loglevel	(console_printk[2])
+#define default_console_loglevel	(console_printk[3])
+```
+
+其中，数组```console_printk[]```定义于kernel/printk.c:
+
+```
+/*
+ * CONFIG_DEFAULT_MESSAGE_LOGLEVEL是由如下配置选项设置的，其默认值为4
+ * Kernel hacking  --->
+ * (4) Default message log level (1-7)
+ * /
+/* printk's without a loglevel use this.. */ 
+#define DEFAULT_MESSAGE_LOGLEVEL	CONFIG_DEFAULT_MESSAGE_LOGLEVEL 
+
+/* We show everything that is MORE important than this.. */ 
+#define MINIMUM_CONSOLE_LOGLEVEL	1	/* Minimum loglevel we let people use */ 
+#define DEFAULT_CONSOLE_LOGLEVEL	7	/* anything MORE serious than KERN_DEBUG */ 
+
+int console_printk[4] = { 
+	DEFAULT_CONSOLE_LOGLEVEL,		/* console_loglevel */ 
+	DEFAULT_MESSAGE_LOGLEVEL,		/* default_message_loglevel */ 
+	MINIMUM_CONSOLE_LOGLEVEL,		/* minimum_console_loglevel */ 
+	DEFAULT_CONSOLE_LOGLEVEL,		/* default_console_loglevel */ 
+};
+```
+
+The variable console_loglevel is initialized to ```DEFAULT_CONSOLE_LOGLEVEL``` and can be modified via following methods:
+
+##### 19.2.1.3.1 通过内核参数更改console_loglevel的取值
+
+可以通过内核参数debug，quiet和loglevel来更改console_loglevel的取值，参见init/main.c:
+
+```
+static int __init debug_kernel(char *str) 
+{
+	// 即将所有级别的日志信息都打印到console上
+	console_loglevel = 10; 
+	return 0; 
+} 
+
+static int __init quiet_kernel(char *str) 
+{
+	// 即将级别高于KERN_WARNING的日志信息打印到console上
+	console_loglevel = 4; 
+	return 0; 
+} 
+
+// 函数early_param()，参见4.3.4.1.4.3.3.2.1 early_param()/__setup()节
+early_param("debug", debug_kernel); 
+early_param("quiet", quiet_kernel);
+
+static int __init loglevel(char *str) 
+{ 
+	int newlevel; 
+
+	/* 
+	 * Only update loglevel value when a correct setting was passed, 
+	 * to prevent blind crashes (when loglevel being set to 0) that 
+	 * are quite hard to debug 
+	 */ 
+	if (get_option(&str, &newlevel)) { 
+		console_loglevel = newlevel; 
+		return 0; 
+	} 
+
+	return -EINVAL; 
+} 
+
+early_param("loglevel", loglevel);
+```
+
+##### 19.2.1.3.2 通过系统调用sys_syslog()更改console_loglevel的取值
+
+###### 19.2.1.3.2.1 dmesg -c <loglevel>
+
+可通过下列命令更改console_loglevel的取值：
+
+```
+# dmesg -c <new_loglevel>
+```
+
+Man page of dmesg:
+
+```
+SYNOPSIS
+       dmesg [-c] [-r] [-n level] [-s bufsize]
+
+DESCRIPTION
+       dmesg is used to examine or control the kernel ring buffer.
+
+       The program helps users to print out their bootup messages. Instead of copying the messages
+       by hand, the user need only:
+              dmesg > boot.messages
+       and mail the boot.messages file to whoever can debug their problem.
+
+OPTIONS
+       -c     Clear the ring buffer contents after printing.
+
+       -r     Print the raw message buffer, i.e., don't strip the log level prefixes.
+
+       -s bufsize
+              Use a buffer of size bufsize to query the kernel ring buffer.  This is 16392 by
+              default. (The default kernel syslog buffer size was 4096 at first, 8192 since
+              1.3.54, 16384 since 2.1.113.) If you have set the kernel buffer to be larger than
+              the default then this option can be used to view the entire buffer.
+
+       -n level
+              Set the level at which logging of messages is done to the console.  For example,
+              -n 1 prevents all messages, except panic messages, from appearing on the console.
+              All levels of messages are still written to /proc/kmsg, so syslogd(8) can still
+              be used to control exactly where kernel messages appear. When the -n option is
+              used, dmesg will not print or clear the kernel ring buffer.
+
+              When both options are used, only the last option on the command line will have an
+              effect.
+
+SEE ALSO
+       syslogd(8)
+
+AVAILABILITY
+       The dmesg command is part of the util-linux-ng package and is available from
+       ftp://ftp.kernel.org/pub/linux/utils/util-linux-ng/.
+```
+
+**NOTE**: 不管console loglevel的取值为多少，dmesg始终都是可以打印出所有级别的日志信息!
+
+dmesg通过调用系统调用```sys_syslog()```(参见19.2.1.5 系统调用sys_syslog()节)来更改console_loglevel的取值：
+
+```
+chenwx@chenwx-VirtualBox ~ $ strace dmesg
+execve("/bin/dmesg", ["dmesg"], [/* 34 vars */]) = 0
+brk(0)										= 0x91a1000
+access("/etc/ld.so.nohwcap", F_OK)	= -1 ENOENT (No such file or directory)
+mmap2(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb77b0000
+access("/etc/ld.so.preload", R_OK)	= -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY)	= 3
+fstat64(3, {st_mode=S_IFREG|0644, st_size=60459, ...}) = 0
+mmap2(NULL, 60459, PROT_READ, MAP_PRIVATE, 3, 0)	= 0xb77a1000
+close(3)									= 0
+access("/etc/ld.so.nohwcap", F_OK)	= -1 ENOENT (No such file or directory)
+open("/lib/libc.so.6", O_RDONLY)		= 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0\3\0\1\0\0\0@n\1\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=1421892, ...})	= 0
+mmap2(NULL, 1431976, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x28d000
+mprotect(0x3e4000, 4096, PROT_NONE)	= 0
+mmap2(0x3e5000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x157) = 0x3e5000
+mmap2(0x3e8000, 10664, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x3e8000
+close(3)									= 0
+mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb77a0000
+set_thread_area({entry_number:-1 -> 6, base_addr:0xb77a06c0, limit:1048575, seg_32bit:1, contents:0, read_exec_only:0, limit_in_pages:1, seg_not_present:0, useable:1}) = 0
+mprotect(0x3e5000, 8192, PROT_READ)	= 0
+mprotect(0x8049000, 4096, PROT_READ)	= 0
+mprotect(0xb72000, 4096, PROT_READ)	= 0
+munmap(0xb77a1000, 60459)				= 0
+brk(0)										= 0x91a1000
+brk(0x91c2000)							= 0x91c2000
+open("/usr/lib/locale/locale-archive", O_RDONLY|O_LARGEFILE) = 3
+fstat64(3, {st_mode=S_IFREG|0644, st_size=8576432, ...}) = 0
+mmap2(NULL, 2097152, PROT_READ, MAP_PRIVATE, 3, 0) = 0xb75a0000
+mmap2(NULL, 4096, PROT_READ, MAP_PRIVATE, 3, 0x2a1) = 0xb77af000
+close(3)									= 0
+syslog(0xa, 0, 0)						= 131072
+syslog(0x3, 0x91a1880, 0x20008)		= 0
+exit_group(0)								= ?
+```
+
+示例如下：
+
+```
+chenwx@chenwx ~ $ sudo dmesg -n 7 
+[sudo] password for chenwx: 
+chenwx@chenwx ~ $ cat /proc/sys/kernel/printk 
+7	4	1	7 
+chenwx@chenwx ~ $ sudo dmesg -n 3 
+chenwx@chenwx ~ $ cat /proc/sys/kernel/printk 
+3	4	1	7 
+```
+
+###### 19.2.1.3.2.2 klogd -c <loglevel>
+
+The variable ```console_loglevel``` can be modified by ```sys_syslog``` system call, for instance: 
+* 1) kill klogd
+* 2) run command "klogd -c <new-loglevel>" to restart klogd 
+
+klogd参见19.2.1.7.1 klogd+syslogd节。
+
+##### 19.2.1.3.3 通过文件/proc/sys/kernel/printk更改console_loglevel的取值
+
+It is also possible to read and modify the console loglevel using the text file ```/proc/sys/kernel/printk```， see 19.2.1.6.2 /proc/sys/kernel/printk.
+
+#### 19.2.1.4 printk()/early_printk()
+
+Another feature of the Linux approach to messaging is that printk can be invoked from anywhere, even from an interrupt handler, with no limit on how much data can be printed. The only disadvantage is the possibility of losing some data.
+
+函数```printk()```用于将日志消息写入内核日志缓冲区log_buf中，其定义于kernel/printk.c:
+
+```
+#ifdef CONFIG_PRINTK
+
+/**
+ * printk - print a kernel message
+ * @fmt: format string
+ *
+ * This is printk().  It can be called from any context.  We want it to work.
+ *
+ * We try to grab the console_lock.  If we succeed, it's easy - we log the output and
+ * call the console drivers.  If we fail to get the semaphore we place the output
+ * into the log buffer and return.  The current holder of the console_sem will
+ * notice the new output in console_unlock(); and will send it to the
+ * consoles before releasing the lock.
+ *
+ * One effect of this deferred printing is that code which calls printk() and
+ * then changes console_loglevel may break. This is because console_loglevel
+ * is inspected when the actual printing occurs.
+ *
+ * See also:
+ * printf(3)
+ *
+ * See the vsnprintf() documentation for format string extensions over C99.
+ */
+asmlinkage int printk(const char *fmt, ...)
+{
+	va_list args;
+	int r;
+
+#ifdef CONFIG_KGDB_KDB
+	if (unlikely(kdb_trap_printk)) {
+		va_start(args, fmt);
+		r = vkdb_printf(fmt, args);
+		va_end(args);
+		return r;
+	}
+#endif
+	va_start(args, fmt);
+	r = vprintk(fmt, args);
+	va_end(args);
+
+	return r;
+}
+#endif
+
+asmlinkage int vprintk(const char *fmt, va_list args) 
+{ 
+	int printed_len = 0; 
+	int current_log_level = default_message_loglevel; 
+	unsigned long flags; 
+	int this_cpu; 
+	char *p; 
+	size_t plen; 
+	char special; 
+
+	boot_delay_msec(); 
+	printk_delay(); 
+
+	preempt_disable(); 
+	/* This stops the holder of console_sem just where we want him */ 
+	raw_local_irq_save(flags); 
+	this_cpu = smp_processor_id(); 
+
+	/* 
+	 * Ouch, printk recursed into itself! 
+	 */ 
+	if (unlikely(printk_cpu == this_cpu)) { 
+		/* 
+		 * If a crash is occurring during printk() on this CPU, 
+		 * then try to get the crash message out but make sure 
+		 * we can't deadlock. Otherwise just return to avoid the 
+		 * recursion and return - but flag the recursion so that 
+		 * it can be printed at the next appropriate moment: 
+		 */ 
+		if (!oops_in_progress) { 
+			recursion_bug = 1; 
+			goto out_restore_irqs; 
+		} 
+		zap_locks(); 
+	} 
+
+	lockdep_off(); 
+	raw_spin_lock(&logbuf_lock); 
+	printk_cpu = this_cpu; 
+
+	if (recursion_bug) { 
+		recursion_bug = 0; 
+		strcpy(printk_buf, recursion_bug_msg); 
+		printed_len = strlen(recursion_bug_msg); 
+	} 
+	/* Emit the output into the temporary buffer */ 
+	printed_len += vscnprintf(printk_buf + printed_len, 
+				  sizeof(printk_buf) - printed_len, fmt, args); 
+
+	p = printk_buf; 
+
+	/* Read log level and handle special printk prefix */ 
+	plen = log_prefix(p, &current_log_level, &special); 
+	if (plen) { 
+		p += plen; 
+
+		switch (special) { 
+		case 'c': /* Strip <c> KERN_CONT, continue line */ 
+			plen = 0; 
+			break; 
+		case 'd': /* Strip <d> KERN_DEFAULT, start new line */ 
+			plen = 0; 
+		default: 
+			if (!new_text_line) { 
+				emit_log_char('\n'); 
+				new_text_line = 1; 
+			} 
+		} 
+	} 
+
+	/* 
+	 * Copy the output into log_buf. If the caller didn't provide 
+	 * the appropriate log prefix, we insert them here 
+	 */ 
+	for (; *p; p++) { 
+		if (new_text_line) { 
+			new_text_line = 0; 
+
+			if (plen) { 
+				/* Copy original log prefix */ 
+				int i; 
+
+				for (i = 0; i < plen; i++) 
+					emit_log_char(printk_buf[i]); 
+				printed_len += plen; 
+			} else { 
+				/* Add log prefix */ 
+				emit_log_char('<'); 
+				emit_log_char(current_log_level + '0'); 
+				emit_log_char('>'); 
+				printed_len += 3; 
+			} 
+
+			if (printk_time) { 
+				/* Add the current time stamp */ 
+				char tbuf[50], *tp; 
+				unsigned tlen; 
+				unsigned long long t; 
+				unsigned long nanosec_rem; 
+
+				t = cpu_clock(printk_cpu); 
+				nanosec_rem = do_div(t, 1000000000); 
+				tlen = sprintf(tbuf, "[%5lu.%06lu] ", 
+						(unsigned long) t, 
+						nanosec_rem / 1000); 
+
+				for (tp = tbuf; tp < tbuf + tlen; tp++) 
+					emit_log_char(*tp); 
+				printed_len += tlen; 
+			} 
+
+			if (!*p) 
+				break; 
+		} 
+
+		emit_log_char(*p); 
+		if (*p == '\n') 
+			new_text_line = 1; 
+	} 
+
+	/* 
+	 * Try to acquire and then immediately release the 
+	 * console semaphore. The release will do all the 
+	 * actual magic (print out buffers, wake up klogd, 
+	 * etc). 
+	 * 
+	 * The console_trylock_for_printk() function 
+	 * will release 'logbuf_lock' regardless of whether it 
+	 * actually gets the semaphore or not. 
+	 */ 
+	if (console_trylock_for_printk(this_cpu)) 
+		console_unlock(); 
+
+	lockdep_on(); 
+out_restore_irqs: 
+	raw_local_irq_restore(flags); 
+
+	preempt_enable(); 
+	return printed_len; 
+}
+
+#endif
+```
+
+注：在系统启动过程中，终端初始化之前的某些地方无法调用函数printk()。若需要调试系统启动过程最开始的地方，可用如下方法： 
+* 1) 使用串口调试，将调试信息输出到其他终端设备。
+* 2) 使用early_printk()，该函数在系统启动初期就有打印能力，但仅支持部分硬件体系。
+
+函数```early_printk()```定义于arch/x86/kernel/early_printk.c:
+
+```
+static struct console early_vga_console = {
+	.name	= "earlyvga",
+	.write	= early_vga_write,
+	.flags	= CON_PRINTBUFFER,
+	.index	= -1,
+};
+
+static struct console *early_console = &early_vga_console;
+
+asmlinkage void early_printk(const char *fmt, ...)
+{
+	char buf[512];
+	int n;
+	va_list ap;
+
+	va_start(ap, fmt);
+	n = vscnprintf(buf, sizeof(buf), fmt, ap);
+	early_console->write(early_console, buf, n);
+	va_end(ap);
+}
+```
+
+##### 19.2.1.4.0 DEBUG macro
+
+可在Makefile中定义宏DEBUG，例如：
+
+```
+obj-m := helloworld.o
+
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+ccflags-y += -DDEBUG
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
+```
+
+或者，在源文件中定义DEBUG宏，例如：
+
+```
+#define DEBUG 1
+#include <device.h>
+...
+	dev_dbg("%s %s\n", info1, info2);
+```
+
+##### 19.2.1.4.1 CONFIG_DYNAMIC_DEBUG macro
+
+See Documentation/dynamic-debug-howto.txt
+
+Dynamic debug is designed to allow you to dynamically enable/disable kernel code to obtain additional kernel information. Currently, if CONFIG_DYNAMIC_DEBUG is set, then all pr_debug()/dev_dbg() calls can be dynamically enabled per-callsite.
+
+Dynamic debug has even more useful features:
+
+* Simple query language allows turning on and off debugging statements by matching any combination of:
+	* source filename
+	* function name
+	* line number (including ranges of line numbers)
+	* module name
+	* format string
+* Provides a debugfs control file: ```<debugfs>/dynamic_debug/control``` which can be read to display the complete list of known debug statements, to help guide you. See section Debugfs.
+
+###### 19.2.1.4.1.1 在内核模块加载过程中打开动态调试功能
+
+使用```modprobe```命令加载模块时，加上选项```dyndbg='plmft'```。
+
+###### 19.2.1.4.1.2 让内核模块的动态调试功能在重启后依然有效
+
+编辑```/etc/modprobe.d/modname.conf```文件(若没有该文件就创建一个)，添加选项```dyndbg='plmft'```。然而，对于那些通过initramfs加载的驱动来说，该配置基本无效。对于这类驱动，需要修改grub配置文件，在kernel那行添加参数```module.dyndbg='plmft'```，这样你的驱动就可以开机启动动态调试功能了。要打印更详细的调试信息，使用选项```dynamic_debug.verbose=1```。
+
+NOTE: 系统启动时，需要先让initramfs挂载一个虚拟的文件系统，然后再挂载启动盘上的真实文件系统。这个虚拟文件系统里面的文件是initramfs自己提供的，即在真实文件系统下面配置了文件```/etc/modprobe.d/modname.conf```，而initramfs是不去理会的。在内核驱动的角度看，如果内核驱动在initramfs过程中被加载到内核，这个驱动读取到的```/etc/modprobe.d/modname.conf```是initramfs提供的，而不是你编辑的那个，所以会有上述"写了配置文件后重启依然无效"的结论。
+
+##### 19.2.1.4.2 Different print styles
+
+Each kernel subsystem usually has its own printk format. So when you are using network subsystem, you have to use netdev_dbg; when you are using V4L you have to use v4l_dbg. It standardizes the output format within the subsystem. Depending on what you are coding you should use a different print style:
+
+| ```printk()``` | never |
+| ```pr_debug()``` | always good |
+| ```dev_dbg()``` | prefered when you have a struct device object |
+| ```netdev_dbg()``` | prefered when you have a struct netdevice object |
+| ```[something]_dbg()``` | prefered when you have a that something object |
+
+<p/>
+
+##### 19.2.1.4.3 pr_debug()/pr_xxx()
+
+19.2.1.2 Log levels节中的每种日志级别都有对应的宏来简化日志函数的使用，其定义于include/linux/printk.h:
+
+```
+#ifndef pr_fmt
+#define pr_fmt(fmt) fmt
+#endif
+
+/*
+ * If you are writing a driver, please use dev_dbg instead.
+ * 参见19.2.1.4.4 dev_dbg()/dev_xxx()节
+ */
+#if defined(DEBUG)
+#define pr_debug(fmt, ...)		printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
+#elif defined(CONFIG_DYNAMIC_DEBUG)
+/* dynamic_pr_debug() uses pr_fmt() internally so we don't need it here */
+#define pr_debug(fmt, ...)		dynamic_pr_debug(fmt, ##__VA_ARGS__)
+#else
+#define pr_debug(fmt, ...)		no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
+#endif
+
+/*
+ * 下列为每种日志级别对应的宏
+ */
+#define pr_emerg(fmt, ...)		printk(KERN_EMERG pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_alert(fmt, ...)		printk(KERN_ALERT pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_crit(fmt, ...)		printk(KERN_CRIT pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_err(fmt, ...)		printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_warning(fmt, ...)		printk(KERN_WARNING pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_warn pr_warning
+#define pr_notice(fmt, ...)		printk(KERN_NOTICE pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_info(fmt, ...)		printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_cont(fmt, ...)		printk(KERN_CONT fmt, ##__VA_ARGS__)
+
+/* pr_devel() should produce zero code unless DEBUG is defined */
+#ifdef DEBUG
+#define pr_devel(fmt, ...)		printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
+#else
+#define pr_devel(fmt, ...)		no_printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
+#endif
+```
+
+##### 19.2.1.4.4 dev_dbg()/dev_xxx()
+
+宏```dev_dbg()```定义于include/linux/device.h:
+
+```
+#if defined(DEBUG)
+#define dev_dbg(dev, format, arg...)				\
+	dev_printk(KERN_DEBUG, dev, format, ##arg)
+#elif defined(CONFIG_DYNAMIC_DEBUG)
+#define dev_dbg(dev, format, ...)		     		\
+do {						     		\
+	dynamic_dev_dbg(dev, format, ##__VA_ARGS__);		\
+} while (0)
+#else
+#define dev_dbg(dev, format, arg...)				\
+({								\
+	if (0)							\
+		dev_printk(KERN_DEBUG, dev, format, ##arg);	\
+	0;							\
+})
+#endif
+```
+
+宏```dev_xxx()```用于打印设备有关的调试信息，其定义于include/linux/device.h:
+
+```
+#ifdef CONFIG_PRINTK
+
+extern __printf(3, 0) 
+int dev_vprintk_emit(int level, const struct device *dev, const char *fmt, va_list args);
+extern __printf(3, 4)
+int dev_printk_emit(int level, const struct device *dev, const char *fmt, ...);
+
+extern __printf(3, 4)
+int dev_printk(const char *level, const struct device *dev, const char *fmt, ...);
+extern __printf(2, 3)
+int dev_emerg(const struct device *dev, const char *fmt, ...);
+extern __printf(2, 3)
+int dev_alert(const struct device *dev, const char *fmt, ...);
+extern __printf(2, 3)
+int dev_crit(const struct device *dev, const char *fmt, ...);
+extern __printf(2, 3)
+int dev_err(const struct device *dev, const char *fmt, ...);
+extern __printf(2, 3)
+int dev_warn(const struct device *dev, const char *fmt, ...);
+extern __printf(2, 3)
+int dev_notice(const struct device *dev, const char *fmt, ...);
+
+extern __printf(2, 3)
+int _dev_info(const struct device *dev, const char *fmt, ...);
+
+#else
+...
+#endif
+
+#define dev_info(dev, fmt, arg...) _dev_info(dev, fmt, ##arg)
+```
+
+##### 19.2.1.4.5 print_hex_dump()/print_hex_dump_bytes()
+
+宏```print_hex_dump()```和```print_hex_dump_bytes()```声明于include/linux/printk.h:
+
+```
+#ifdef CONFIG_PRINTK
+extern void print_hex_dump(const char *level, const char *prefix_str,
+			   int prefix_type, int rowsize, int groupsize,
+			   const void *buf, size_t len, bool ascii);
+extern void print_hex_dump_bytes(const char *prefix_str, int prefix_type,
+				 const void *buf, size_t len);
+#else
+static inline void print_hex_dump(const char *level, const char *prefix_str,
+				  int prefix_type, int rowsize, int groupsize,
+				  const void *buf, size_t len, bool ascii)
+{
+}
+static inline void print_hex_dump_bytes(const char *prefix_str, int prefix_type,
+					const void *buf, size_t len)
+{
+}
+#endif
+```
+
+定义于lib/hexdump.c:
+
+```
+#ifdef CONFIG_PRINTK
+/**
+ * print_hex_dump - print a text hex dump to syslog for a binary blob of data
+ * @level: kernel log level (e.g. KERN_DEBUG)
+ * @prefix_str: string to prefix each line with;
+ *  caller supplies trailing spaces for alignment if desired
+ * @prefix_type: controls whether prefix of an offset, address, or none
+ *  is printed (%DUMP_PREFIX_OFFSET, %DUMP_PREFIX_ADDRESS, %DUMP_PREFIX_NONE)
+ * @rowsize: number of bytes to print per line; must be 16 or 32
+ * @groupsize: number of bytes to print at a time (1, 2, 4, 8; default = 1)
+ * @buf: data blob to dump
+ * @len: number of bytes in the @buf
+ * @ascii: include ASCII after the hex output
+ *
+ * Given a buffer of u8 data, print_hex_dump() prints a hex + ASCII dump
+ * to the kernel log at the specified kernel log level, with an optional
+ * leading prefix.
+ *
+ * print_hex_dump() works on one "line" of output at a time, i.e.,
+ * 16 or 32 bytes of input data converted to hex + ASCII output.
+ * print_hex_dump() iterates over the entire input @buf, breaking it into
+ * "line size" chunks to format and print.
+ *
+ * E.g.:
+ *   print_hex_dump(KERN_DEBUG, "raw data: ", DUMP_PREFIX_ADDRESS,
+ *		    16, 1, frame->data, frame->len, true);
+ *
+ * Example output using %DUMP_PREFIX_OFFSET and 1-byte mode:
+ * 0009ab42: 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f  @ABCDEFGHIJKLMNO
+ * Example output using %DUMP_PREFIX_ADDRESS and 4-byte mode:
+ * ffffffff88089af0: 73727170 77767574 7b7a7978 7f7e7d7c  pqrstuvwxyz{|}~.
+ */
+void print_hex_dump(const char *level, const char *prefix_str, int prefix_type,
+		    int rowsize, int groupsize,
+		    const void *buf, size_t len, bool ascii)
+{
+	const u8 *ptr = buf;
+	int i, linelen, remaining = len;
+	unsigned char linebuf[32 * 3 + 2 + 32 + 1];
+
+	if (rowsize != 16 && rowsize != 32)
+		rowsize = 16;
+
+	for (i = 0; i < len; i += rowsize) {
+		linelen = min(remaining, rowsize);
+		remaining -= rowsize;
+
+		hex_dump_to_buffer(ptr + i, linelen, rowsize, groupsize,
+				   linebuf, sizeof(linebuf), ascii);
+
+		switch (prefix_type) {
+		case DUMP_PREFIX_ADDRESS:
+			printk("%s%s%p: %s\n", level, prefix_str, ptr + i, linebuf);
+			break;
+		case DUMP_PREFIX_OFFSET:
+			printk("%s%s%.8x: %s\n", level, prefix_str, i, linebuf);
+			break;
+		default:
+			printk("%s%s%s\n", level, prefix_str, linebuf);
+			break;
+		}
+	}
+}
+EXPORT_SYMBOL(print_hex_dump);
+
+/**
+ * print_hex_dump_bytes - shorthand form of print_hex_dump() with default params
+ * @prefix_str: string to prefix each line with;
+ *  caller supplies trailing spaces for alignment if desired
+ * @prefix_type: controls whether prefix of an offset, address, or none
+ *  is printed (%DUMP_PREFIX_OFFSET, %DUMP_PREFIX_ADDRESS, %DUMP_PREFIX_NONE)
+ * @buf: data blob to dump
+ * @len: number of bytes in the @buf
+ *
+ * Calls print_hex_dump(), with log level of KERN_DEBUG,
+ * rowsize of 16, groupsize of 1, and ASCII output included.
+ */
+void print_hex_dump_bytes(const char *prefix_str, int prefix_type,
+			  const void *buf, size_t len)
+{
+	print_hex_dump(KERN_DEBUG, prefix_str, prefix_type, 16, 1, buf, len, true);
+}
+EXPORT_SYMBOL(print_hex_dump_bytes);
+#endif
+```
+
+#### 19.2.1.5 系统调用sys_syslog()
+
+系统调用```sys_syslog()```用于操纵日志缓冲区log_buf，其定义于kernel/printk.c:
+
+```
+SYSCALL_DEFINE3(syslog, int, type, char __user *, buf, int, len)
+{
+	return do_syslog(type, buf, len, SYSLOG_FROM_CALL);
+}
+```
+
+##### 19.2.1.5.1 do_syslog()
+
+该函数定义于kernel/printk.c:
+
+```
+static unsigned log_start;	/* Index into log_buf: next char to be read by syslog() */
+static unsigned con_start;	/* Index into log_buf: next char to be sent to consoles */
+static unsigned log_end;	/* Index into log_buf: most-recently-written-char + 1 */
+
+DECLARE_WAIT_QUEUE_HEAD(log_wait);
+
+/*
+ * 文件/proc/kmsg所对应的文件操作函数均调用do_syslog()，
+ * 参见11.3.4.4.1 /proc/kmsg节
+ */
+int do_syslog(int type, char __user *buf, int len, bool from_file)
+{
+	unsigned i, j, limit, count;
+	int do_clear = 0;
+	char c;
+	int error;
+
+	error = check_syslog_permissions(type, from_file);
+	if (error)
+		goto out;
+
+	error = security_syslog(type);
+	if (error)
+		return error;
+
+	switch (type) {
+	case SYSLOG_ACTION_CLOSE:	/* Close log */
+		break;
+	case SYSLOG_ACTION_OPEN:	/* Open log */
+		break;
+	case SYSLOG_ACTION_READ:	/* Read from log */
+		error = -EINVAL;
+		if (!buf || len < 0)
+			goto out;
+		error = 0;
+		if (!len)
+			goto out;
+		if (!access_ok(VERIFY_WRITE, buf, len)) {
+			error = -EFAULT;
+			goto out;
+		}
+		error = wait_event_interruptible(log_wait, (log_start - log_end));
+		if (error)
+			goto out;
+		i = 0;
+		raw_spin_lock_irq(&logbuf_lock);
+		while (!error && (log_start != log_end) && i < len) {
+			c = LOG_BUF(log_start);
+			log_start++;
+			raw_spin_unlock_irq(&logbuf_lock);
+			error = __put_user(c,buf);
+			buf++;
+			i++;
+			cond_resched();
+			raw_spin_lock_irq(&logbuf_lock);
+		}
+		raw_spin_unlock_irq(&logbuf_lock);
+		if (!error)
+			error = i;
+		break;
+	/* Read/clear last kernel messages */
+	case SYSLOG_ACTION_READ_CLEAR:
+		do_clear = 1;
+		/* FALL THRU */
+	/* Read last kernel messages */
+	case SYSLOG_ACTION_READ_ALL:
+		error = -EINVAL;
+		if (!buf || len < 0)
+			goto out;
+		error = 0;
+		if (!len)
+			goto out;
+		if (!access_ok(VERIFY_WRITE, buf, len)) {
+			error = -EFAULT;
+			goto out;
+		}
+		count = len;
+		if (count > log_buf_len)
+			count = log_buf_len;
+		raw_spin_lock_irq(&logbuf_lock);
+		if (count > logged_chars)
+			count = logged_chars;
+		if (do_clear)
+			logged_chars = 0;
+		limit = log_end;
+		/*
+		 * __put_user() could sleep, and while we sleep
+		 * printk() could overwrite the messages
+		 * we try to copy to user space. Therefore
+		 * the messages are copied in reverse. <manfreds>
+		 */
+		for (i = 0; i < count && !error; i++) {
+			j = limit-1-i;
+			if (j + log_buf_len < log_end)
+				break;
+			c = LOG_BUF(j);	// log_buf[j & LOG_BUF_MASK]
+			raw_spin_unlock_irq(&logbuf_lock);
+			error = __put_user(c,&buf[count-1-i]);
+			cond_resched();
+			raw_spin_lock_irq(&logbuf_lock);
+		}
+		raw_spin_unlock_irq(&logbuf_lock);
+		if (error)
+			break;
+		error = i;
+		if (i != count) {
+			int offset = count-error;
+			/* buffer overflow during copy, correct user buffer. */
+			for (i = 0; i < error; i++) {
+				if (__get_user(c,&buf[i+offset]) || __put_user(c,&buf[i])) {
+					error = -EFAULT;
+					break;
+				}
+				cond_resched();
+			}
+		}
+		break;
+	/* Clear ring buffer */
+	case SYSLOG_ACTION_CLEAR:
+		logged_chars = 0;
+		break;
+	/* Disable logging to console */
+	case SYSLOG_ACTION_CONSOLE_OFF:
+		if (saved_console_loglevel == -1)
+			saved_console_loglevel = console_loglevel;
+		console_loglevel = minimum_console_loglevel;
+		break;
+	/* Enable logging to console */
+	case SYSLOG_ACTION_CONSOLE_ON:
+		if (saved_console_loglevel != -1) {
+			console_loglevel = saved_console_loglevel;
+			saved_console_loglevel = -1;
+		}
+		break;
+	/* Set level of messages printed to console */
+	case SYSLOG_ACTION_CONSOLE_LEVEL:
+		error = -EINVAL;
+		if (len < 1 || len > 8)
+			goto out;
+		if (len < minimum_console_loglevel)
+			len = minimum_console_loglevel;
+		console_loglevel = len;
+		/* Implicitly re-enable logging to console */
+		saved_console_loglevel = -1;
+		error = 0;
+		break;
+	/* Number of chars in the log buffer */
+	case SYSLOG_ACTION_SIZE_UNREAD:
+		error = log_end - log_start;
+		break;
+	/* Size of the log buffer */
+	case SYSLOG_ACTION_SIZE_BUFFER:
+		error = log_buf_len;
+		break;
+	default:
+		error = -EINVAL;
+		break;
+	}
+out:
+	return error;
+}
+```
+
+其中，type定义于include/linux/syslog.h:
+
+```
+/* Close the log. Currently a NOP. */
+#define SYSLOG_ACTION_CLOSE		0
+/* Open the log. Currently a NOP. */
+#define SYSLOG_ACTION_OPEN		1
+
+/* Read from the log. */
+#define SYSLOG_ACTION_READ		2
+/* Read all messages remaining in the ring buffer. */
+#define SYSLOG_ACTION_READ_ALL		3
+/* Read and clear all messages remaining in the ring buffer */
+#define SYSLOG_ACTION_READ_CLEAR	4
+/* Clear ring buffer. */
+#define SYSLOG_ACTION_CLEAR		5
+
+/* Disable printk's to console */
+#define SYSLOG_ACTION_CONSOLE_OFF	6
+/* Enable printk's to console */
+#define SYSLOG_ACTION_CONSOLE_ON		7
+/* Set level of messages printed to console */
+#define SYSLOG_ACTION_CONSOLE_LEVEL	8
+
+/* Return number of unread characters in the log buffer */
+#define SYSLOG_ACTION_SIZE_UNREAD	9
+/* Return size of the log buffer */
+#define SYSLOG_ACTION_SIZE_BUFFER	10
+```
+
+#### 19.2.1.6 /proc文件系统中有关内核日志系统的配置
+
+##### 19.2.1.6.1 /proc/kmsg
+
+文件```/proc/kmsg```成为一个I/O通道，它提供了从内核日志缓冲区读取日志消息的二进制接口。这个读取操作通常是由一个守护程序(klogd或rsyslogd)实现的，它会处理这些消息，然后将它们传递给rsyslog，以便(基于它的配置)转发到正确的日志文件中。参见11.3.4.4.1 /proc/kmsg节。
+
+**NOTE1**: 用户是不会用到/proc/kmsg文件的，因为守护进程用它来获取日志消息，并将其转发到/var目录内的日志文件中。
+
+**NOTE2**: 在GUI mode下的linux，因为开发module的需要, 需要使用printk来debug，又不想用強大但复杂的GDB来开发，只好用printk慢慢看。可是printk却不显示在console, 很不即时，只会存在```/var/log/messages```里面，每次加载完module, 就要执行dmesg或者```cat /var/log/messages```来看结果，要不就是要修改```proc /sys/kernel/printk```的级别, 并且按下ctrl+F1切换到纯粹console mode才可以即时显示在console。
+
+解决办法：只要新开启一个终端并执行more /proc/kmsg，终端看起来当掉不会动，这是不管用它；在开启一个终端，安裝module并调试，这是printk信息就会出现在more /proc/kmsg的终端上了。
+
+##### 19.2.1.6.2 /proc/sys/kernel/printk
+
+The variable console_loglevel can also be modified by changing file ```/proc/sys/kernel/printk```.
+
+```
+chenwx@chenwx ~ $ cat /proc/sys/kernel/printk
+4	4	1	7
+```
+
+The file hosts four integer values: 
+* the current console loglevel,
+* the default console loglevel for messages that lack an explicit loglevel,
+* the minimum allowed console loglevel,
+* the boot-time default console loglevel
+
+Writing a single value to this file changes the current loglevel to that value; thus, for example, you can cause all kernel messages to appear at the console by simply entering:
+
+```
+chenwx@chenwx ~ $ su
+Password: 
+chenwx ~ # cat /proc/sys/kernel/printk 
+4	4	1	7 
+chenwx ~ # echo 8 > /proc/sys/kernel/printk
+chenwx ~ # cat /proc/sys/kernel/printk 
+8	4	1	7 
+```
+
+##### 19.2.1.6.3 /proc/sys/kernel/printk_delay
+
+文件```/proc/sys/kernel/printk_delay```表示函数```printk()```打印消息之间的延迟毫秒数，用于提高某些场景的可读性。
+
+```
+chenwx@chenwx ~ $ ll /proc/sys/kernel/printk_delay
+-rw-r--r-- 1 root root 0 Jul 31 06:20 /proc/sys/kernel/printk_delay
+chenwx@chenwx ~ $ cat /proc/sys/kernel/printk_delay
+0
+```
+
+##### 19.2.1.6.4 /proc/sys/kernel/printk_ratelimit, printk_ratelimit_burst
+
+If you are not careful, you can find yourself generating thousands of messages with printk, overwhelming the console and, possibly, overflowing the system log file. When using a slow console device (e.g., a serial port), an excessive message rate can also slow down the system or just make it unresponsive. It can be very hard to get a handle on what is wrong with a system when the console is spewing out data non-stop. Therefore, you should be very careful about what you print, especially in production versions of drivers and especially once initialization is complete. In general, production code should never print anything during normal operation; printed output should be an indication of an exceptional situation requiring attention.
+
+The function ```printk_ratelimit()``` should be called before you consider printing a message that could be repeated often. If the function returns a nonzero value, go ahead and print your message, otherwise skip it. Thus, typical calls look like this: 
+
+```
+if (printk_ratelimit()) 
+	printk(KERN_NOTICE "The printer is still on fire\n"); 
+```
+
+The ```printk_ratelimit()``` works by tracking how many messages are sent to the console. When the level of output exceeds a threshold, printk_ratelimit starts returning 0 and causing messages to be dropped. 
+
+The behavior of printk_ratelimit can be customized by modifying ```/proc/sys/kernel/ printk_ratelimit``` (the number of seconds to wait before re-enabling messages) and are ```/proc/sys/kernel/printk_ratelimit_burst``` (the number of messages accepted before ratelimiting):
+
+```
+chenwx@chenwx ~ $ ll /proc/sys/kernel/printk_ratelimit* 
+-rw-r--r-- 1 root root 0 Jul 31 06:20 /proc/sys/kernel/printk_ratelimit 
+-rw-r--r-- 1 root root 0 Jul 31 06:20 /proc/sys/kernel/printk_ratelimit_burst 
+chenwx@chenwx ~ $ cat /proc/sys/kernel/printk_ratelimit
+5
+chenwx@chenwx ~ $ cat /proc/sys/kernel/printk_ratelimit_burst
+10
+```
+
+**NOTE**：速度限制是由调用者控制的，而不是在printk()中实现。若printk()调用者要求进行速度限制，那么它需要调用函数```printk_ratelimit()```。
+
+#### 19.2.1.7 日志守护进程
+
+所有日志应用程序都是基于一个标准化日志框架syslog，主流操作系统(包括Linux和Berkeley Software Distribution [BSD])都实现了这个框架。syslog使用自身的协议实现在不同传输协议的事件通知消息传输(将组件分成发起者、中继者和收集者)。在许多情况中，所有这三种组件都在一个主机上实现。除了syslog的许多有意思的特性，它还规定了日志信息是如何收集、过滤和存储的。syslog已经经过了许多的变化和发展，包括syslog, klog, sysklogd。最新版本的Ubuntu使用名为rsyslog (基于原先的 syslog)的新版本syslog，它指的是可靠的和扩展的syslogd。 
+
+![Kernel_printk_and_Log_System_Structure](/assets/Kernel_printk_and_Log_System_Structure.jpg)
+
+##### 19.2.1.7.1 klogd+syslogd
+
+The package [syslogd](http://www.infodrom.org/projects/sysklogd/) implements two system log daemons: **syslogd** and **klogd**.
+
+The **syslogd** daemon is an enhanced version of the standard Berkeley utility program. This daemon is responsible for providing logging of messages received from programs and facilities on the local host as well as from remote hosts. 
+
+The **klogd** daemon listens to kernel message sources and is responsible for prioritizing and processing operating system messages. The klogd daemon can run as a client of syslogd or optionally as a standalone program. Klogd can now be used to decode EIP addresses if it can determine a System.map file.
+
+* [sysklogd from busybox](http://www.busybox.net)
+
+用户空间的守护进程klogd从日志缓冲区中读取内核日志消息，再通过守护进程syslogd把这些消息保存到系统日志文件中：
+
+```
+chenwx@chenwx ~ $ ps -ef | grep logd 
+root      1241     1  0 Jul23 ?        00:00:00 /sbin/syslogd -C128 
+root      1269     1  0 Jul23 ?        00:00:00 /sbin/klogd 
+```
+
+守护进程klogd既可以从```/proc/kmsg```文件读取消息(参见/proc/kmsg节和19.2.1.6 /proc文件系统中有关内核日志系统的配置节)，也可以通过系统调用```sys_syslog()```读取消息(参见19.2.1.5 系统调用sys_syslog()节)。
+
+默认情况下，守护进程klogd通过读取/proc/kmsg方式实现。在消息缓冲区有新的消息之前，守护进程klogd一直处于阻塞状态，一旦有新内核消息，守护进程klogd被唤醒，读出内核消息并进行处理。守护进程klogd把读取的内核消息传给守护进程syslogd。守护进程syslogd把收到的内核消息写入/var/log/messages文件中，输出文件可通过配置文件来更改，参见syslogd的帮助信息：
+
+```
+chenwx@chenwx ~/linux $ syslogd --help 
+BusyBox v1.21.1 (Ubuntu 1:1.21.0-1ubuntu1) multi-call binary. 
+
+Usage: syslogd [OPTIONS] 
+
+System logging utility 
+(this version of syslogd ignores /etc/syslog.conf) 
+
+	-n		Run in foreground 
+	-O FILE		Log to FILE (default:/var/log/messages) 
+	-l N		Log only messages more urgent than prio N (1-8) 
+	-S		Smaller output 
+	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP) 
+	-L		Log locally and via network (default is network only if -R) 
+	-C[size_kb]	Log to shared mem buffer (use logread to read it) 
+```
+
+##### 19.2.1.7.2 rsyslogd
+
+[Rsyslog](http://www.rsyslog.com/) is a rocket-fast system for log processing.
+
+It offers high-performance, great security features and a modular design. While it started as a regular syslogd, rsyslog has evolved into a kind of swiss army knife of logging, being able to accept inputs from a wide variety of sources, transform them, and output to the results to diverse destinations. 
+
+Rsyslog can deliver over one million messages per second to local destinations when limited processing is applied (based on v7, December 2013). Even with remote destinations and more elaborate processing the performance is usually considered "stunning".
+
+Rsyslog's configure files:
+* /etc/init/rsyslog.conf
+* /etc/rsyslog.conf
+
+rsyslogd守护程序通过它的配置文件```/etc/rsyslog.conf```来理解```/proc/kmsg```接口，并使用这些接口获取内核日志消息。注意：在内部，所有日志级别都是通过```/proc/kmsg```写入的，这样所传输的日志级别就不是由内核决定的，而是由rsyslog本身决定的。然后这些内核日志消息会存储在```/var/log/kern.log``` (及其他配置的文件)。在```/var/log```中有许多的日志文件，包括一般消息和系统相调用(```/var/log/messages```)、系统启动日志(```/var/log/boot.log```)、认证日志(```/var/log/auth.log```)等。
+
+```
+// 查看rsyslogd的启动脚本
+chenwx@chenwx ~ $ less /etc/init/rsyslog.conf 
+
+// 查看rsyslogd是否已经启动
+chenwx@chenwx ~ $ initctl list | grep rsyslog 
+rsyslog start/running 
+
+// 查看rsyslogd的配置文件
+chenwx@chenwx ~ $ less /etc/rsyslog.conf
+chenwx@chenwx ~ $ ll /etc/rsyslog.d/ 
+-rw-r--r-- 1 root root  311 Mar 17  2012 20-ufw.conf 
+-rw-r--r-- 1 root root 1.7K Jul 29 21:02 50-default.conf
+```
+
+##### 19.2.1.7.3 syslogd-ng
+
+[Syslogd-ng](http://www.balabit.com/network-security/syslog-ng/)
+
+#### 19.2.1.8 Log files
+
+Log files from the system and various programs/services, especially login (```/var/log/wtmp```, which logs all logins and logouts into the system) and syslog (```/var/log/messages```, where all kernel and system program message are usually stored). Files in ```/var/log``` can often grow indefinitely, and may require cleaning at regular intervals. Something that is now normally managed via log rotation utilities such as 'logrotate'. This utility also allows for the automatic rotation compression, removal and mailing of log files. Logrotate can be set to handle a log file daily, weekly, monthly or when the log file gets to a certain size. Normally, logrotate runs as a daily cron job. This is a good place to start troubleshooting general technical problems. 
+
+**/var/log/messages**
+
+Contains global system messages, including the messages that are logged during system startup. There are several things that are logged in ```/var/log/messages``` including mail, cron, daemon, kern, auth, etc. 
+
+**/var/log/dmesg**
+
+Contains kernel ring buffer information. When the system boots up, it prints number of messages on the screen that displays information about the hardware devices that the kernel detects during boot process. These messages are available in kernel ring buffer and whenever the new message comes the old message gets overwritten. You can also view the content of this file using the dmesg command. 
+
+**/var/log/auth.log**
+
+Contains system authorization information, including user logins and authentication machinsm that were used. 
+
+**/var/log/boot.log**
+
+Contains information that are logged when the system boots.
+
+**/var/log/daemon.log**
+
+Contains information logged by the various background daemons that runs on the system.
+
+**/var/log/dpkg.log**
+
+Contains information that are logged when a package is installed or removed using dpkg command.
+
+**/var/log/kern.log**
+
+Contains information logged by the kernel. Helpful for you to troubleshoot a custom-built kernel. 
+
+**/var/log/lastlog**
+
+Displays the recent login information for all the users. This is not an ascii file. You should use lastlog command to view the content of this file. 
+
+**/var/log/maillog**, **/var/log/mail.log**
+
+Contains the log information from the mail server that is running on the system. For example, sendmail logs information about all the sent items to this file.
+
+**/var/log/user.log**
+
+Contains information about all user level logs.
+
+**/var/log/Xorg.x.log**
+
+Log messages from the X.
+
+**/var/log/alternatives.log**
+
+Information by the update-alternatives are logged into this log file. On Ubuntu, update-alternatives maintains symbolic links determining default commands.
+
+**/var/log/btmp**
+
+This file contains information about failed login attemps. Use the last command to view the btmp file. For example, ```last -f /var/log/btmp | more```.
+
+**/var/log/cups**
+
+All printer and printing related log messages.
+
+**/var/log/anaconda.log**
+
+When you install Linux, all installation related messages are stored in this log file.
+
+**/var/log/yum.log**
+
+Contains information that are logged when a package is installed using yum.
+
+**/var/log/cron**
+
+Whenever cron daemon (or anacron) starts a cron job, it logs the information about the cron job in this file.
+
+**/var/log/secure**
+
+Contains information related to authentication and authorization privileges. For example, sshd logs all the messages here, including unsuccessful login.
+
+**/var/log/wtmp** or **/var/log/utmp**
+
+Contains login records. Using wtmp you can find out who is logged into the system. who command uses this file to display the information.
+
+**/var/log/faillog**
+
+Contains user failed login attemps. Use faillog command to display the content of this file. Apart from the above log files, /var/log directory may also contain the following sub-directories depending on the application that is running on your system.
+
+**/var/log/httpd/**, or **/var/log/apache2**
+
+Contains the apache web server access_log and error_log.
+
+**/var/log/lighttpd/**
+
+Contains light HTTPD access_log and error_log.
+
+**/var/log/conman/**
+
+Log files for ConMan client. conman connects remote consoles that are managed by conmand daemon. 
+
+**/var/log/mail/**
+
+This subdirectory contains additional logs from your mail server. For example, sendmail stores the collected mail statistics in ```/var/log/mail/statistics``` file.
+
+**/var/log/prelink/**
+
+prelink program modifies shared libraries and linked binaries to speed up the startup process. ```/var/log/prelink/prelink.log``` contains the information about the .so file that was modified by the prelink. 
+
+**/var/log/audit/**
+
+Contains logs information stored by the Linux audit daemon (auditd). 
+
+**/var/log/setroubleshoot/**
+
+SELinux uses setroubleshootd (SE Trouble Shoot Daemon) to notify about issues in the security context of files, and logs those information in this log file. 
+
+**/var/log/samba/**
+
+Contains log information stored by samba, which is used to connect Windows to Linux. 
+
+**/var/log/sa/**
+
+Contains the daily sar files that are collected by the sysstat package. 
+
+**/var/log/sssd/**
+
+Use by system security services daemon that manage access to remote.
+
+### 19.2.2 BUG()/BUG_ON()
+
+当调用宏```BUG()```和```BUG_ON()```时，引发OOPS(参见OOPS节)，导致栈的回溯和错误消息的打印，因而可以把这两个宏当作断言使用。
+
+该宏定义于include/asm-generic/bug.h:
+
+```
+#ifdef CONFIG_BUG
+/*
+ * Don't use BUG() or BUG_ON() unless there's really no way out; one
+ * example might be detecting data structure corruption in the middle
+ * of an operation that can't be backed out of.  If the (sub)system
+ * can somehow continue operating, perhaps with reduced functionality,
+ * it's probably not BUG-worthy.
+ *
+ * If you're tempted to BUG(), think again:  is completely giving up
+ * really the *only* solution?  There are usually better options, where
+ * users don't need to reboot ASAP and can mostly shut down cleanly.
+ */
+#ifndef HAVE_ARCH_BUG
+#define BUG() do {								\
+	// 打印文件名、行数、函数名，参见19.2.1.4 printk()/early_printk()节
+	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__);	\
+	// Halt the system. This function never returns. 参见panic()节
+	panic("BUG!");								\
+} while (0)
+#endif
+
+#ifndef HAVE_ARCH_BUG_ON
+#define BUG_ON(condition)	do { if (unlikely(condition)) BUG(); } while(0)
+#endif
+
+#else /* !CONFIG_BUG */
+
+#ifndef HAVE_ARCH_BUG
+#define BUG()			do {} while(0)
+#endif
+
+#ifndef HAVE_ARCH_BUG_ON
+#define BUG_ON(condition)	do { if (condition) ; } while(0)
+#endif
+
+#endif
+```
+
+#### 19.2.2.1 panic()
+
+该函数定义于kernel/panic.c:
+
+```
+/**
+ *	panic - halt the system
+ *	@fmt: The text string to print
+ *
+ *	Display a message, then perform cleanups.
+ *
+ *	This function never returns.
+ */
+NORET_TYPE void panic(const char * fmt, ...)
+{
+	static char buf[1024];
+	va_list args;
+	long i, i_next = 0;
+	int state = 0;
+
+	/*
+	 * It's possible to come here directly from a panic-assertion and
+	 * not have preempt disabled. Some functions called from here want
+	 * preempt to be disabled. No point enabling it later though...
+	 */
+	preempt_disable();
+
+	console_verbose();
+	bust_spinlocks(1);
+	va_start(args, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, args);
+	va_end(args);
+	printk(KERN_EMERG "Kernel panic - not syncing: %s\n",buf);
+#ifdef CONFIG_DEBUG_BUGVERBOSE
+	dump_stack();				// 参见dump_stack()节
+#endif
+
+	/*
+	 * If we have crashed and we have a crash kernel loaded let it handle
+	 * everything else.
+	 * Do we want to call this before we try to display a message?
+	 */
+	crash_kexec(NULL);			// 参见触发kdump以完成内核转储节
+
+	// dump kernel log to kernel message dumpers (dump_list).
+	kmsg_dump(KMSG_DUMP_PANIC);
+
+	/*
+	 * Note smp_send_stop is the usual smp shutdown function, which
+	 * unfortunately means it may not be hardened to work in a panic
+	 * situation.
+	 */
+	smp_send_stop();
+
+	atomic_notifier_call_chain(&panic_notifier_list, 0, buf);
+
+	bust_spinlocks(0);
+
+	if (!panic_blink)
+		panic_blink = no_blink;		// 函数no_blink()直接返回0
+
+	/*
+	 * 若panic_timeout != 0，则等待指定时间后重启系统
+	 */
+	if (panic_timeout > 0) {
+		/*
+		 * Delay timeout seconds before rebooting the machine.
+		 * We can't use the "normal" timers since we just panicked.
+		 */
+		printk(KERN_EMERG "Rebooting in %d seconds..", panic_timeout);
+
+		// 变量panic_timeout的单位是秒，PANIC_TIMER_STEP = 100，即每次循环100ms
+		for (i = 0; i < panic_timeout * 1000; i += PANIC_TIMER_STEP) {
+			touch_nmi_watchdog();
+			if (i >= i_next) {
+				i += panic_blink(state ^= 1);
+				i_next = i + 3600 / PANIC_BLINK_SPD;
+			}
+			mdelay(PANIC_TIMER_STEP);
+		}
+	}
+	if (panic_timeout != 0) {
+		/*
+		 * This will not be a clean reboot, with everything
+		 * shutting down.  But if there is a chance of
+		 * rebooting the system it will be rebooted.
+		 */
+		emergency_restart();
+	}
+#ifdef __sparc__
+	{
+		extern int stop_a_enabled;
+		/* Make sure the user can actually press Stop-A (L1-A) */
+		stop_a_enabled = 1;
+		printk(KERN_EMERG "Press Stop-A (L1-A) to return to the boot prom\n");
+	}
+#endif
+#if defined(CONFIG_S390)
+	{
+		unsigned long caller;
+
+		caller = (unsigned long)__builtin_return_address(0);
+		disabled_wait(caller);
+	}
+#endif
+	local_irq_enable();
+
+	/*
+	 * 否则，若panic_timeout == 0，则系统挂起，不再返回
+	 */
+	for (i = 0; ; i += PANIC_TIMER_STEP) {
+		touch_softlockup_watchdog();
+		if (i >= i_next) {
+			i += panic_blink(state ^= 1);
+			i_next = i + 3600 / PANIC_BLINK_SPD;
+		}
+		mdelay(PANIC_TIMER_STEP);
+	}
+}
+```
+
+##### 19.2.2.1.1 dump_stack()
+
+该函数只在终端上打印栈的回溯信息。其定义于arch/x86/kernel/dumpstack.c:
+
+```
+/*
+ * The architecture-independent dump_stack generator
+ */
+void dump_stack(void)
+{
+	unsigned long bp;
+	unsigned long stack;
+
+	bp = stack_frame(current, NULL);
+	printk("Pid: %d, comm: %.20s %s %s %.*s\n",
+		current->pid, current->comm, print_tainted(),
+		init_utsname()->release,
+		(int)strcspn(init_utsname()->version, " "),
+		init_utsname()->version);
+	show_trace(NULL, NULL, &stack, bp);
+}
+```
+
+其中，函数print_tainted()输入如下信息：
+
+```
+/**
+ *	print_tainted - return a string to represent the kernel taint state.
+ *
+ *  'P' - Proprietary module has been loaded.
+ *  'F' - Module has been forcibly loaded.
+ *  'S' - SMP with CPUs not designed for SMP.
+ *  'R' - User forced a module unload.
+ *  'M' - System experienced a machine check exception.
+ *  'B' - System has hit bad_page.
+ *  'U' - Userspace-defined naughtiness.
+ *  'D' - Kernel has oopsed before
+ *  'A' - ACPI table overridden.
+ *  'W' - Taint on warning.
+ *  'C' - modules from drivers/staging are loaded.
+ *  'I' - Working around severe firmware bug.
+ *  'O' - Out-of-tree module has been loaded.
+ *
+ *	The string is overwritten by the next call to print_tainted().
+ */
+```
+
+### 19.2.3 Printing Device Numbers
+
+Occasionally, when printing a message from a driver, you will want to print the device number associated with the hardware of interest. It is not particularly hard to print the major and minor numbers, but, in the interest of consistency, the kernel provides a couple of utility macros (defined in ```<linux/kdev_t.h>```) for this purpose: 
+
+```
+int print_dev_t(char *buffer, dev_t dev); 
+char *format_dev_t(char *buffer, dev_t dev); 
+```
+
+Both macros encode the device number into the given buffer; the only difference is that print_dev_t returns the number of characters printed, while format_dev_t returns buffer; therefore, it can be used as a parameter to a printk call directly, although one must remember that printk doesn't flush until a trailing newline is provided. The buffer should be large enough to hold a device number; given that 64-bit device numbers are a distinct possibility in future kernel releases, the buffer should probably be at least 20 bytes long.
+
+## 19.3 代码静态分析工具
+
+### 19.3.0 CHECK & C in Makefile
+
+在顶层Makefile中，包含如下代码:
+
+```
+# Call a source code checker (by default, "sparse") as part of the
+# C compilation.
+#
+# Use 'make C=1' to enable checking of only re-compiled files.
+# Use 'make C=2' to enable checking of *all* source files, regardless
+# of whether they are re-compiled or not.
+#
+# See the file "Documentation/sparse.txt" for more details, including
+# where to get the "sparse" utility.
+
+ifeq ("$(origin C)", "command line")
+  KBUILD_CHECKSRC = $(C)
+endif
+ifndef KBUILD_CHECKSRC
+  KBUILD_CHECKSRC = 0
+endif
+
+export KBUILD_CHECKSRC
+
+...
+CHECK		 = sparse
+CHECKFLAGS	:= -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
+		   -Wbitwise -Wno-return-void $(CF)
+export CHECK CHECKFLAGS
+```
+
+在scripts/Makefile.build中，包含如下代码:
+
+```
+# Linus' kernel sanity checking tool
+ifneq ($(KBUILD_CHECKSRC),0)	#  KBUILD_CHECKSRC != 0
+  ifeq ($(KBUILD_CHECKSRC),2)	#  KBUILD_CHECKSRC = 2
+    quiet_cmd_force_checksrc	= CHECK   $<
+           cmd_force_checksrc	= $(CHECK) $(CHECKFLAGS) $(c_flags) $< ;
+  else						#  KBUILD_CHECKSRC = 1
+    quiet_cmd_checksrc		= CHECK   $<
+           cmd_checksrc		= $(CHECK) $(CHECKFLAGS) $(c_flags) $< ;
+  endif
+endif
+
+...
+define rule_cc_o_c
+	$(call echo-cmd,checksrc) $(cmd_checksrc)				\
+	$(call echo-cmd,cc_o_c) $(cmd_cc_o_c);					\
+	$(cmd_modversions)							\
+	$(call echo-cmd,record_mcount)						\
+	$(cmd_record_mcount)							\
+	scripts/basic/fixdep $(depfile) $@ '$(call make-cmd,cc_o_c)' >		\
+	                                    $(dot-target).tmp;			\
+	rm -f $(depfile);							\
+	mv -f $(dot-target).tmp $(dot-target).cmd
+endef
+
+# Built-in and composite module parts
+$(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE
+	$(call cmd,force_checksrc)
+	$(call if_changed_rule,cc_o_c)
+
+# Single-part modules are special since we need to mark them in $(MODVERDIR)
+$(single-used-m): $(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE
+	$(call cmd,force_checksrc)
+	$(call if_changed_rule,cc_o_c)
+	@{ echo $(@:.o=.ko); echo $@; } > $(MODVERDIR)/$(@F:.o=.mod)
+```
+
+### 19.3.1 Sparse
+
+Refer to:
+* Documentation/sparse.txt
+* http://codemonkey.org.uk/projects/git-snapshots/sparse/
+
+Download sparse source code from git repository to ~/sparse:
+
+```
+chenwx@chenwx ~ $ git clone git://git.kernel.org/pub/scm/devel/sparse/sparse.git
+```
+
+Build and install sparse:
+
+```
+chenwx@chenwx ~ $ cd sparse/
+chenwx@chenwx ~/sparse $ make
+chenwx@chenwx ~/sparse $ ll sparse
+-rwxr-xr-x 1 chenwx chenwx 1479179 Sep 19 16:13 sparse
+chenwx@chenwx ~/sparse $ sudo make install PREFIX=/usr 
+[sudo] password for chenwx: 
+     INSTALL  ‘sparse’ -> ‘/usr/bin/sparse’
+     INSTALL  ‘cgcc’ -> ‘/usr/bin/cgcc’
+     INSTALL  ‘c2xml’ -> ‘/usr/bin/c2xml’
+     INSTALL  ‘test-inspect’ -> ‘/usr/bin/test-inspect’
+     INSTALL  ‘sparse-llvm’ -> ‘/usr/bin/sparse-llvm’
+     INSTALL  ‘sparsec’ -> ‘/usr/bin/sparsec’
+     INSTALL  ‘sparse.1’ -> ‘/usr/share/man/man1/sparse.1’
+     INSTALL  ‘cgcc.1’ -> ‘/usr/share/man/man1/cgcc.1’
+     INSTALL  ‘libsparse.a’ -> ‘/usr/lib/libsparse.a’
+     INSTALL  ‘token.h’ -> ‘/usr/include/sparse/token.h’
+     INSTALL  ‘parse.h’ -> ‘/usr/include/sparse/parse.h’
+     INSTALL  ‘lib.h’ -> ‘/usr/include/sparse/lib.h’
+     INSTALL  ‘symbol.h’ -> ‘/usr/include/sparse/symbol.h’
+     INSTALL  ‘scope.h’ -> ‘/usr/include/sparse/scope.h’
+     INSTALL  ‘expression.h’ -> ‘/usr/include/sparse/expression.h’
+     INSTALL  ‘target.h’ -> ‘/usr/include/sparse/target.h’
+     INSTALL  ‘linearize.h’ -> ‘/usr/include/sparse/linearize.h’
+     INSTALL  ‘bitmap.h’ -> ‘/usr/include/sparse/bitmap.h’
+     INSTALL  ‘ident-list.h’ -> ‘/usr/include/sparse/ident-list.h’
+     INSTALL  ‘compat.h’ -> ‘/usr/include/sparse/compat.h’
+     INSTALL  ‘flow.h’ -> ‘/usr/include/sparse/flow.h’
+     INSTALL  ‘allocate.h’ -> ‘/usr/include/sparse/allocate.h’
+     INSTALL  ‘storage.h’ -> ‘/usr/include/sparse/storage.h’
+     INSTALL  ‘ptrlist.h’ -> ‘/usr/include/sparse/ptrlist.h’
+     INSTALL  ‘dissect.h’ -> ‘/usr/include/sparse/dissect.h’
+     INSTALL  ‘sparse.pc’ -> ‘/usr/lib/pkgconfig/sparse.pc’
+chenwx@chenwx ~/sparse $ which sparse
+/usr/bin/sparse
+```
+
+Build kernel with sparse:
+
+```
+chenwx@chenwx ~ $ cd linux/
+chenwx@chenwx ~/linux $ make help
+  ...
+  make C=1   [targets] Check all c source with $CHECK (sparse by default)
+  make C=2   [targets] Force check of all c source with $CHECK
+  ...
+
+# 为内核所有需要重新编译的C文件执行sparse语义检查
+chenwx@chenwx ~/linux $ make allmodconfig
+chenwx@chenwx ~/linux $ make C=1
+
+# 为内核所有C文件(即使不需要重新编译)执行sparse语义检查
+chenwx@chenwx ~/linux $ make allmodconfig
+chenwx@chenwx ~/linux $ make C=2
+
+# 为内核中某些模块的C文件执行sparse语义检查
+chenwx@chenwx ~/linux $ make C=1 M=drivers/staging/
+chenwx@chenwx ~/linux $ make C=2 M=drivers/staging/
+```
+
+### 19.3.2 Smatch
+
+Refer to http://smatch.sourceforge.net
+
+Download smatch source code from git repository to ~/smatch:
+
+```
+chenwx@chenwx ~ $ git clone git://repo.or.cz/smatch.git
+```
+
+Compile smatch:
+
+```
+# Checkout latest version of smatch
+chenwx@chenwx ~ $ cd smatch/
+chenwx@chenwx ~/smatch $ git tag -l
+...
+1.59 
+1.60 
+chenwx@chenwx ~/smatch $ git checkout 1.60
+chenwx@chenwx ~/smatch $ make clean
+
+# Build smatch failed because some packages are not installed
+chenwx@chenwx ~/smatch $ make
+/bin/sh: 1: llvm-config: not found
+Makefile:89: Your system does not have libxml, disabling c2xml
+Makefile:101: Your system does not have libgtk2, disabling test-inspect
+Makefile:105: Your system does not have llvm, disabling sparse-llvm
+     CC       test-lexing.o
+     ...
+     AR       libsparse.a
+     LINK     test-lexing
+/usr/bin/ld: cannot find -lsqlite3
+collect2: error: ld returned 1 exit status
+make: *** [test-lexing] Error 1
+
+# Install needed packages
+chenwx@chenwx ~/smatch $ sudo apt-get install llvm llvm-dev
+chenwx@chenwx ~/smatch $ sudo apt-get install libxml2-dev libgtk2.0-dev
+chenwx@chenwx ~/smatch $ sudo apt-get install sqlite3 libsqlite3-dev
+
+# Build smatch successfully
+chenwx@chenwx ~/smatch $ make
+chenwx@chenwx ~/smatch $ ll ./smatch
+-rwxr-xr-x 1 chenwx chenwx 3985744 Sep 18 19:28 ./smatch
+
+# Help information of smatch
+chenwx@chenwx ~/smatch $ ./smatch --help 
+Usage:  smatch [smatch arguments][sparse arguments] file.c 
+--project=<name> or -p=<name>: project specific tests 
+--spammy:  print superfluous crap. 
+--info:  print info used to fill smatch_data/. 
+--debug:  print lots of debug output. 
+--param-mapper:  enable param_mapper output. 
+--no-data:  do not use the /smatch_data/ directory. 
+--data=<dir>: overwrite path to default smatch data directory. 
+--full-path:  print the full pathname. 
+--debug-implied:  print debug output about implications. 
+--no-implied:  ignore implications. 
+--assume-loops:  assume loops always go through at least once. 
+--known-conditions:  don't branch for known conditions. 
+--two-passes:  use a two pass system for each function. 
+--file-output:  instead of printing stdout, print to "file.c.smatch_out". 
+--help:  print this helpful message. 
+```
+
+Use smatch against the kernel:
+
+```
+# Goes to directory of linux kernel source code
+chenwx@chenwx ~/smatch $ cd ~/linux/
+
+# Build bzImage and modules with C=1:
+# make C=1   [targets] Check all c source with $CHECK (sparse by default)
+chenwx@chenwx ~/linux $ make CHECK="~/smatch/smatch -p=kernel" C=1 bzImage modules | tee warns.txt
+
+# Build kernel with C=2:
+# make C=2   [targets] Force check of all c source with $CHECK
+chenwx@chenwx ~/linux $ make CHECK="~/smatch/smatch -p=kernel" C=2 | tee warns.txt
+```
+
+**NOTE**: Linux kernel v2.3.37 and after: Please set ```CONFIG_DYNAMIC_DEBUG=n```. That feature uses declared label things that mess up Smatch's flow analysis.
+
+If you are using smatch on a different project then the most important thing is to build the list of functions which don't return. Do the first build using the --info parameter and use smatch_scripts/gen_no_return_funcs.sh to create this list. Save the resulting file under smatch_data/(your project).no_return_funcs and use -p=(your project) for the next smatch run. 
+
+If you are using smatch to test wine then use ```-p=wine``` to turn on the wine specific checks.
+
+### 19.3.3 Coccinelle
+
+Refer to http://coccinelle.lip6.fr
+
+## 19.4 内存调试工具
+
+### 19.4.1 Kmemleak
+
+参见Documentation/kmemleak.txt
+
+kmemleak通过类似于垃圾收集器的功能来检测内核是否有内存泄漏问题。而kmemleak与垃圾收集器的不同之处在于前者不会释放孤儿目标(LCTT：不会再被使用的、应该被释放而没被释放的内存区域)，而是将它们打印到/sys/kernel/debug/kmemleak文件中。用户态的Valgrind也有一个类似的功能，使用--leak-check选项可以检测并报错内存泄漏问题，但并不释放这个孤儿内存。
+
+编译内核时开启```CONFIG_DEBUG_KMEMLEAK```选项打开kmemcleak调试功能:
+
+```
+Kernel hacking  --->
+[ ] Kernel memory leak detector
+```
+
+### 19.4.2 Kmemcheck
+
+参见Documentation/kmemcheck.txt
+
+kmemcheck是动态检查工具，可以检测出一些未被初始化的内存(内核态使用这些内存可能会造成系统崩溃)并发出警告。它的功能与Valgrind类似，只是Valgrind运行在用户态，而kmemchecke运行在内核态。
+
+编译内核时开启CONFIG_KMEMCHECK选项打开kmemcheck调试功能:
+
+```
+Kernel hacking  --->
+  Memory Debugging  --->
+```
+
+* [Linux 内核内存检测工具 Kmemcheck](http://www.ibm.com/developerworks/cn/linux/l-cn-kmemcheck/)
+
+### 19.4.3 Memwatch
+
+[Memwatch](http://www.linkdata.se/sourcecode/memwatch) is a free programming tool for memory leak detection in C, released under the GNU General Public License.
+
+It is designed to compile and run on any system which has an ANSI C compiler. While it is primarily intended to detect and diagnose memory leaks, it can also be used to analyze a program's memory usage from its provided logging facilities. Memwatch differs from most debugging software because it is compiled directly into the program which will be debugged, instead of being compiled separately and loaded into the program at runtime.
+
+### 19.4.4 YAMD
+
+[YAMD](http://www.cs.hmc.edu/~nate/yamd) is Yet Another Malloc Debugger. It's a package for finding dynamic allocation related bugs in C and C++. It currently runs on Linux/x86 and DJGPP.
+
+### 19.4.5 Electric Fence
+
+[Electric Fence (efence)](http://directory.fsf.org/wiki/Electric_Fence) stops your program on the exact instruction that overruns (or underruns) a malloc() memory buffer. GDB will then display the source-code line that causes the bug. It works by using the virtual-memory hardware to create a red-zone at the border of each buffer - touch that, and your program stops. Catch all of those formerly impossible-to-catch overrun bugs that have been bothering you for years.
+
+## 19.5 strace/ltrace/ktrace
+
+strace is a debugging utility for Linux and some other Unix-like systems to monitor the system calls used by a program and all the signals it receives, similar to "truss" utility in other Unix systems. This is made possible by a kernel feature known as ptrace.
+
+ltrace is a debugging utility in Linux, used to display the calls a userland application makes to shared libraries. It does this by hooking into the dynamic loading system, allowing it to insert shims which display the parameters which the applications uses when making the call, and the return value which the library call reports. ltrace can also trace Linux system calls. Because it uses the dynamic library hooking mechanism, ltrace cannot trace calls to libraries which are statically linked directly to the target binary.
+
+NOTE: ktrace is a utility included with certain versions of BSD Unix and Mac OS X that traces kernel interaction with a program and dumps it to disk for debugging and analysis. It is somewhat similar to Linux's strace, except much faster - with strace, every system call executed by the program being traced requires context switch to the tracing program and back, while with ktrace, tracing is actually performed by the kernel, so no additional context switches are required.
+
+## 19.6 OOPS
+
+参见Documentation/oops-tracing.txt
+
+OOPS(也称Panic，参见panic()节)消息包含系统错误的细节，如CPU寄存器的内容等，是内核告知用户有异常发生的最常用的方式。内核只能发布OOPS，这个过程包括向终端输出错误消息，输出寄存器保存的信息，并输出可供跟踪的回溯线索。通常，发送完OOPS之后，内核会处于一种不稳定的状态。 OOPS的产生有很多可能原因，其中包括内存访问越界或非法的指令等。
+
+* 作为内核的开发者，必定将会经常处理OOPS。
+* OOPS中包含的重要信息，对所有体系结构都是完全相同的：寄存器上下文和回溯线索(回溯线索显示了导致错误发生的函数调用链)。
+
+### 19.6.1 ksymoops
+
+在Linux中，调试系统崩溃的传统方法是分析在发生崩溃时发送到系统控制台的Oops消息。一旦您掌握了细节，就可以将消息发送到ksymoops实用程序，它将试图将代码转换为指令并将堆栈值映射到内核符号。 
+
+ksymoops需要几项内容：Oops消息输出、来自正在运行的内核的System.map文件，还有/proc/ksyms、vmlinux和/proc/modules。
+
+### 19.6.2 kallsyms
+
+Linux Kernel v2.5引入了kallsyms特性，需启用配置选项CONFIG_KALLSYMS。该选项可以载入内核镜像所对应的内存地址的符号名称(即函数名)，所以内核可以打印解码之后的跟踪线索。相应地，解码OOPS也不再需要System.map和ksymoops工具(参见ksymoops节)了。不过，这会导致内核变大，因为地址所对应的符号名称必须始终驻留在内核所在的内存上。
+
+参见Kernel Symbol Table节。
+
+### 19.6.3 kdump
+
+* 参见Documentation/kdump/kdump.txt
+* [kexec-tools](https://www.kernel.org/pub/linux/utils/kernel/kexec/)
+* [深入探索 Kdump 1](https://www.ibm.com/developerworks/cn/linux/l-cn-kdump1/)
+* [深入探索 Kdump 2](http://lse.sourceforge.net/kdump/)
+
+#### 19.6.3.1 kdump的初始化
+
+系统启动过程中，如下函数调用初始化kdump:
+
+```
+start_kernel()
+-> setup_arch()
+   -> reserve_crashkernel()
+```
+
+函数```reserve_crashkernel()```定义于arch/x86/kernel/setup.c:
+
+```
+#ifdef CONFIG_KEXEC
+
+static inline unsigned long long get_total_mem(void)
+{
+	unsigned long long total;
+	total = max_pfn - min_low_pfn;
+	return total << PAGE_SHIFT;
+}
+
+/*
+ * Keep the crash kernel below this limit.  On 32 bits earlier kernels
+ * would limit the kernel to the low 512 MiB due to mapping restrictions.
+ * On 64 bits, kexec-tools currently limits us to 896 MiB; increase this
+ * limit once kexec-tools are fixed.
+ */
+#ifdef CONFIG_X86_32
+# define CRASH_KERNEL_ADDR_MAX	(512 << 20)
+#else
+# define CRASH_KERNEL_ADDR_MAX	(896 << 20)
+#endif
+
+static void __init reserve_crashkernel(void)
+{
+	unsigned long long total_mem;
+	unsigned long long crash_size, crash_base;
+	int ret;
+
+	total_mem = get_total_mem();
+
+	// 检查命令行参数"crashkernel="，并为捕获内核保留一段内存空间
+	ret = parse_crashkernel(boot_command_line, total_mem, &crash_size, &crash_base);
+	if (ret != 0 || crash_size <= 0)
+		return;
+
+	/* 0 means: find the address automatically */
+	if (crash_base <= 0) {
+		const unsigned long long alignment = 16<<20;	/* 16M */
+
+		/*
+		 *  kexec want bzImage is below CRASH_KERNEL_ADDR_MAX
+		 */
+		crash_base = memblock_find_in_range(alignment,
+			       CRASH_KERNEL_ADDR_MAX, crash_size, alignment);
+
+		if (crash_base == MEMBLOCK_ERROR) {
+			pr_info("crashkernel reservation failed - No suitable area found.\n");
+			return;
+		}
+	} else {
+		unsigned long long start;
+
+		start = memblock_find_in_range(crash_base,
+				 crash_base + crash_size, crash_size, 1<<20);
+		if (start != crash_base) {
+			pr_info("crashkernel reservation failed - memory is in use.\n");
+			return;
+		}
+	}
+	memblock_x86_reserve_range(crash_base, crash_base + crash_size, "CRASH KERNEL");
+
+	printk(KERN_INFO "Reserving %ldMB of memory at %ldMB "
+			"for crashkernel (System RAM: %ldMB)\n",
+			(unsigned long)(crash_size >> 20),
+			(unsigned long)(crash_base >> 20),
+			(unsigned long)(total_mem >> 20));
+
+	crashk_res.start = crash_base;
+	crashk_res.end   = crash_base + crash_size - 1;
+	insert_resource(&iomem_resource, &crashk_res);
+}
+#else
+static void __init reserve_crashkernel(void)
+{
+}
+#endif
+```
+
+#### 19.6.3.2 设置捕获内核/sys_kexec_load()
+
+系统调用```sys_kexec_load()```用于加载捕获内核和传递一些相关信息。工具kexec-tools中的实用程序kexec会调用系统调用```sys_kexec_load()```加载捕获内核。
+
+可通过查看```/sys/kernel/kexec_crash_loaded```的取值来判断捕获内核是否已加载：
+* 1 – 捕获内核已加载；
+* 0 – 捕获内核未加载。
+
+该系统调用定义于kernel/kexec.c:
+
+```
+/*
+ * Exec Kernel system call: for obvious reasons only root may call it.
+ *
+ * This call breaks up into three pieces.
+ * - A generic part which loads the new kernel from the current
+ *   address space, and very carefully places the data in the
+ *   allocated pages.
+ *
+ * - A generic part that interacts with the kernel and tells all of
+ *   the devices to shut down.  Preventing on-going dmas, and placing
+ *   the devices in a consistent state so a later kernel can
+ *   reinitialize them.
+ *
+ * - A machine specific part that includes the syscall number
+ *   and the copies the image to it's final destination.  And
+ *   jumps into the image at entry.
+ *
+ * kexec does not sync, or unmount filesystems so if you need
+ * that to happen you need to do that yourself.
+ */
+struct kimage *kexec_image;
+struct kimage *kexec_crash_image;
+
+static DEFINE_MUTEX(kexec_mutex);
+
+SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+		struct kexec_segment __user *, segments, unsigned long, flags)
+{
+	struct kimage **dest_image, *image;
+	int result;
+
+	/* We only trust the superuser with rebooting the system. */
+	if (!capable(CAP_SYS_BOOT))
+		return -EPERM;
+
+	/*
+	 * Verify we have a legal set of flags
+	 * This leaves us room for future extensions.
+	 */
+	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
+		return -EINVAL;
+
+	/* Verify we are on the appropriate architecture */
+	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
+		 ((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+		return -EINVAL;
+
+	/*
+	 * Put an artificial cap on the number of segments passed to kexec_load.
+	 */
+	if (nr_segments > KEXEC_SEGMENT_MAX)
+		return -EINVAL;
+
+	image = NULL;
+	result = 0;
+
+	/* Because we write directly to the reserved memory
+	 * region when loading crash kernels we need a mutex here to
+	 * prevent multiple crash  kernels from attempting to load
+	 * simultaneously, and to prevent a crash kernel from loading
+	 * over the top of a in use crash kernel.
+	 *
+	 * KISS: always take the mutex.
+	 */
+	if (!mutex_trylock(&kexec_mutex))
+		return -EBUSY;
+
+	dest_image = &kexec_image;
+	if (flags & KEXEC_ON_CRASH)
+		dest_image = &kexec_crash_image;
+	if (nr_segments > 0) {
+		unsigned long i;
+
+		/* Loading another kernel to reboot into */
+		if ((flags & KEXEC_ON_CRASH) == 0)
+			result = kimage_normal_alloc(&image, entry, nr_segments, segments);
+		/* Loading another kernel to switch to if this one crashes */
+		else if (flags & KEXEC_ON_CRASH) {
+			/*
+			 * Free any current crash dump kernel before we corrupt it.
+			 */
+			kimage_free(xchg(&kexec_crash_image, NULL));
+			result = kimage_crash_alloc(&image, entry, nr_segments, segments);
+			crash_map_reserved_pages();		// 空函数
+		}
+		if (result)
+			goto out;
+
+		if (flags & KEXEC_PRESERVE_CONTEXT)
+			image->preserve_context = 1;
+		result = machine_kexec_prepare(image);
+		if (result)
+			goto out;
+
+		for (i = 0; i < nr_segments; i++) {
+			result = kimage_load_segment(image, &image->segment[i]);
+			if (result)
+				goto out;
+		}
+		kimage_terminate(image);
+		if (flags & KEXEC_ON_CRASH)
+			crash_unmap_reserved_pages();	// 空函数
+	}
+	/* Install the new kernel, and  Uninstall the old */
+	image = xchg(dest_image, image);
+
+out:
+	mutex_unlock(&kexec_mutex);
+	kimage_free(image);
+
+	return result;
+}
+```
+
+#### 19.6.3.3 触发kdump以完成内核转储/crash_kexec()
+
+如下函数调用触发kdump以完成内核转储:
+
+```
+panic()
+-> crash_kexec()
+```
+
+函数```crash_kexec()```定义于kernel/kexec.c:
+
+```
+struct machine_ops machine_ops = {
+	.power_off		= native_machine_power_off,
+	.shutdown		= native_machine_shutdown,
+	.emergency_restart	= native_machine_emergency_restart,
+	.restart		= native_machine_restart,
+	.halt			= native_machine_halt,
+#ifdef CONFIG_KEXEC
+	.crash_shutdown		= native_machine_crash_shutdown,
+#endif
+};
+
+void crash_kexec(struct pt_regs *regs)
+{
+	/* Take the kexec_mutex here to prevent sys_kexec_load
+	 * running on one cpu from replacing the crash kernel
+	 * we are using after a panic on a different cpu.
+	 *
+	 * If the crash kernel was not located in a fixed area
+	 * of memory the xchg(&kexec_crash_image) would be
+	 * sufficient.  But since I reuse the memory...
+	 */
+	if (mutex_trylock(&kexec_mutex)) {
+		if (kexec_crash_image) {
+			struct pt_regs fixed_regs;
+
+			/*
+			 * Dump kernel log to kernel message dumpers.
+			 * Iterate through each of the dump devices
+			 * and call the oops/panic callbacks with the
+			 * log buffer.
+			 */
+			kmsg_dump(KMSG_DUMP_KEXEC);
+
+			// capture register states to fixed_regs
+			crash_setup_regs(&fixed_regs, regs);
+			crash_save_vmcoreinfo();
+			/*
+			 * 调用machine_ops.crash_shutdown()，
+			 * 即调用native_machine_crash_shutdown()
+			 */
+			machine_crash_shutdown(&fixed_regs);
+			/*
+			 * 引导捕获内核启动，以完成内核转储。其定义于：
+			 * arch/x86/kernel/machine_kexec_32.c, or
+			 * arch/x86/kernel/machine_kexec_64.c
+			 */
+			machine_kexec(kexec_crash_image);
+		}
+		mutex_unlock(&kexec_mutex);
+	}
+}
+```
+
+RHEL6.2中kdump的执行流程:
+
+![kdump_in_RHEL6.2](/assets/kdump_in_RHEL6.2.jpg)
+
+### 19.6.4 LKCD
+
+[LKCD (Linux Kernel Crash Dump)](http://lkcd.sourceforge.net/)
+
+## 19.7 Magic SysRq
+
+SysRq is a *magical* key combo you can hit which the kernel will respond to regardless of whatever else it is doing, unless it is completely locked up. The SysRq key is also known as the "Print Screen" key on the top-right corner of keyboard.
+
+参见Documentation/sysrq.txt
+
+### 19.7.1 配置SysRq
+
+#### 19.7.1.1 内核配置项CONFIG_MAGIC_SYSRQ
+
+要使用SysRq键，需要启用内核配置项:
+
+```
+Kernel hacking  --->
+[*] Magic SysRq key		// CONFIG_MAGIC_SYSRQ
+```
+
+```
+chenwx@chenwx ~/linux $ grep CONFIG_MAGIC_SYSRQ /boot/config-4.4.0-15-generic
+CONFIG_MAGIC_SYSRQ=y
+CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE=0x1
+```
+
+#### 19.7.1.2 内核启动参数sysrq_always_enabled
+
+若内核启动参数中包含参数```sysrq_always_enabled```(该参数在Linux kernel 2.6.20以后的版本中可用)，则无论```/proc/sys/kernel/sysrq```的设置为何，SysRq键都会被启用。
+
+可通过下列命令检查内核启动参数:
+
+```
+chenwx@chenwx ~/linux $ cat /proc/cmdline 
+BOOT_IMAGE=/boot/vmlinuz-4.4.0-15-generic root=UUID=51ce0b57-1d7f-4da3-b46f-d6a0ea64c81d ro quiet splash vt.handoff=7
+
+chenwx@chenwx ~/linux $ cat /proc/cmdline | grep sysrq_always_enabled
+chenwx@chenwx ~/linux $
+```
+
+#### 19.7.1.3 /proc/sys/kernel/sysrq
+
+When running a kernel with SysRq compiled in and the parameter sysrq_always_enabled is not set, the ```/proc/sys/kernel/sysrq``` controls the functions allowed to be invoked via the SysRq key. By default the file contains 1 which means that every possible SysRq request is allowed (in older versions SysRq was disabled by default, and you were required to specifically enable it at run-time but this is not the case any more). Here is the list of possible values in ```/proc/sys/kernel/sysrq```: 
+
+```
+   0 - disable sysrq completely 
+   1 - enable all functions of sysrq 
+  >1 - bitmask of allowed sysrq functions as below description (括号内为命令键):
+          2 - enable control of console logging level (0-9)
+          4 - enable control of keyboard (kr)
+          8 - enable debugging dumps of processes etc. (lptwmcz)
+         16 - enable sync command (s)
+         32 - enable remount read-only (u)
+         64 - enable signalling of processes, such as term, kill and oom-kill (ei)
+        128 - allow reboot/poweroff (b)
+        256 - allow nicing of all RT tasks (q)
+```
+
+You can set the value in the file by the following command: 
+
+```
+echo "number" >/proc/sys/kernel/sysrq
+```
+
+In the following example, the enabled commands are 176 (= 16 + 32 + 128):
+
+```
+chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sysrq
+176
+```
+
+Note that the value of ```/proc/sys/kernel/sysrq``` influences only the invocation via a keyboard. Invocation of any operation via ```/proc/sysrq-trigger``` is always allowed (by a user with admin privileges). See 19.7.2 SysRq键的使用方法.
+
+### 19.7.2 SysRq键的使用方法
+
+#### 19.7.2.1 从键盘输入SysRq键
+
+从键盘输入SysRq键时，需要同时输入```Alt + SysRq + <command>```。其中，```<command>```参见19.7.2.2 /proc/sysrq-trigger节。
+
+#### 19.7.2.2 /proc/sysrq-trigger
+
+On all platform, write a character to /proc/sysrq-trigger to invocate of specific operation by a user with admin privileges:
+
+```
+# echo <command> > /proc/sysrq-trigger
+```
+
+| <command> | mean |
+| :-------: | :--- |
+| 0 ~ 9     | Sets the console log level, controlling which kernel messages will be printed to your console. ('0', for example would make it so that only emergency messages like PANICs or OOPSes would make it to your console.) |
+| b         | Will immediately reboot the system without syncing or unmounting your disks. |
+| c         | Will perform a system crash by a NULL pointer dereference. A crashdump will be taken if configured. |
+| d         | Shows all locks that are held. |
+| e         | Send a SIGTERM to all processes, except for init. |
+| f         | Will call oom_kill to kill a memory hog process. |
+| g         | Used by kgdb (kernel debugger) |
+| h         | Will display help (actually any other key than those listed here will display help. but 'h' is easy to remember |
+| i         | Send a SIGKILL to all processes, except for init. |
+| j         | Forcibly "Just thaw it" - filesystems frozen by the FIFREEZE ioctl. |
+| k         | Secure Access Key (SAK) Kills all programs on the current virtual console. NOTE: See important comments below in SAK section. |
+| l         | Shows a stack backtrace for all active CPUs. |
+| m         | Will dump current memory info to your console. |
+| n         | Used to make RT tasks nice-able |
+| o         | Will shut your system off (if configured and supported). |
+| p         | Will dump the current registers and flags to your console. |
+| q         | Will dump per CPU lists of all armed hrtimers (but NOT regular timer_list timers) and detailed information about all clockevent devices. |
+| r         | Turns off keyboard raw mode and sets it to XLATE. |
+| s         | Will attempt to sync all mounted filesystems. |
+| t         | Will dump a list of current tasks and their information to your console. |
+| u         | Will attempt to remount all mounted filesystems read-only. |
+| v         | Forcefully restores framebuffer console. |
+| w         | Dumps tasks that are in uninterruptable (blocked) state. |
+| x         | Used by xmon interface on ppc/powerpc platforms. Show global PMU Registers on sparc64. |
+| y         | Show global CPU Registers [SPARC-64 specific] |
+| z         | Dump the ftrace buffer |
+
+<p/>
+
+For instance:
+
+```
+chenwx@chenwx ~/linux $ su
+Password: 
+chenwx linux # echo m > /proc/sysrq-trigger
+chenwx linux # dmesg
+...
+[ 7681.400436] sysrq: SysRq : Show Memory
+[ 7681.400448] Mem-Info:
+[ 7681.400463] active_anon:334211 inactive_anon:31758 isolated_anon:0
+                active_file:278253 inactive_file:251496 isolated_file:0
+                unevictable:8 dirty:876 writeback:0 unstable:0
+                slab_reclaimable:42548 slab_unreclaimable:7331
+                mapped:90263 shmem:32110 pagetables:7278 bounce:0
+                free:29945 free_pcp:550 free_cma:0
+[ 7681.400475] Node 0 DMA free:14536kB min:28kB low:32kB high:40kB active_anon:0kB inactive_anon:1044kB active_file:232kB inactive_file:12kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:15984kB managed:15900kB mlocked:0kB dirty:0kB writeback:0kB mapped:136kB shmem:1044kB slab_reclaimable:4kB slab_unreclaimable:64kB kernel_stack:0kB pagetables:8kB unstable:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[ 7681.400493] lowmem_reserve[]: 0 2966 3861 3861 3861
+[ 7681.400506] Node 0 DMA32 free:52072kB min:6016kB low:7520kB high:9024kB active_anon:972000kB inactive_anon:120228kB active_file:886604kB inactive_file:796180kB unevictable:0kB isolated(anon):0kB isolated(file):0kB present:3119808kB managed:3039540kB mlocked:0kB dirty:2908kB writeback:0kB mapped:278044kB shmem:121276kB slab_reclaimable:147928kB slab_unreclaimable:20056kB kernel_stack:5840kB pagetables:21276kB unstable:0kB bounce:0kB free_pcp:876kB local_pcp:204kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[ 7681.400524] lowmem_reserve[]: 0 0 894 894 894
+[ 7681.400536] Node 0 Normal free:53172kB min:1812kB low:2264kB high:2716kB active_anon:364844kB inactive_anon:5760kB active_file:226176kB inactive_file:209792kB unevictable:32kB isolated(anon):0kB isolated(file):0kB present:983040kB managed:916472kB mlocked:32kB dirty:596kB writeback:0kB mapped:82872kB shmem:6120kB slab_reclaimable:22260kB slab_unreclaimable:9204kB kernel_stack:2848kB pagetables:7828kB unstable:0kB bounce:0kB free_pcp:1324kB local_pcp:652kB free_cma:0kB writeback_tmp:0kB pages_scanned:0 all_unreclaimable? no
+[ 7681.400552] lowmem_reserve[]: 0 0 0 0 0
+[ 7681.400562] Node 0 DMA: 10*4kB (UME) 8*8kB (UME) 6*16kB (UME) 8*32kB (UME) 8*64kB (UME) 2*128kB (ME) 2*256kB (E) 1*512kB (M) 2*1024kB (UM) 1*2048kB (E) 2*4096kB (M) = 14536kB
+[ 7681.400607] Node 0 DMA32: 493*4kB (UME) 348*8kB (UME) 418*16kB (UME) 171*32kB (UME) 74*64kB (ME) 70*128kB (UME) 28*256kB (UME) 16*512kB (UM) 6*1024kB (UM) 0*2048kB 0*4096kB = 52116kB
+[ 7681.400646] Node 0 Normal: 717*4kB (UME) 648*8kB (UME) 454*16kB (UME) 272*32kB (UME) 120*64kB (UME) 42*128kB (UME) 19*256kB (UME) 12*512kB (UME) 5*1024kB (M) 0*2048kB 0*4096kB = 53204kB
+[ 7681.400686] Node 0 hugepages_total=0 hugepages_free=0 hugepages_surp=0 hugepages_size=2048kB
+[ 7681.400691] 561858 total pagecache pages
+[ 7681.400698] 0 pages in swap cache
+[ 7681.400703] Swap cache stats: add 0, delete 0, find 0/0
+[ 7681.400707] Free swap  = 0kB
+[ 7681.400710] Total swap = 0kB
+[ 7681.400714] 1029708 pages RAM
+[ 7681.400717] 0 pages HighMem/MovableOnly
+[ 7681.400720] 36730 pages reserved
+[ 7681.400724] 0 pages cma reserved
+[ 7681.400727] 0 pages hwpoisoned
+```
+
+### 19.7.3 SysRq在内核中的实现
+
+SysRq实现于drivers/tty/sysrq.c:
+
+```
+static int __init sysrq_init(void)
+{
+	/*
+	 * 创建文件/proc/sysrq-trigger，
+	 * 参见19.7.3.1 sysrq_init_procfs()节
+	 * 其用法参见19.7.2 SysRq键的使用方法节
+	 */
+	sysrq_init_procfs();
+
+	if (sysrq_on())
+		sysrq_register_handler();
+
+	return 0;
+}
+module_init(sysrq_init);
+```
+
+#### 19.7.3.1 sysrq_init_procfs()
+
+该函数用于创建文件```/proc/sysrq-trigger```，并定义其处理函数，其定义于drivers/tty/sysrq.c:
+
+```
+static const struct file_operations proc_sysrq_trigger_operations = {
+	.write	= write_sysrq_trigger,
+	.llseek	= noop_llseek,
+};
+
+static void sysrq_init_procfs(void)
+{
+	if (!proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations))
+		pr_err("Failed to register proc interface\n");
+}
+```
+
+其中，函数```write_sysrq_trigger()```用于处理写入文件```/proc/sysrq-trigger```中的命令，参见19.7.2 SysRq键的使用方法节，其定义于drivers/tty/sysrq.c:
+
+```
+/*
+ * writing 'C' to /proc/sysrq-trigger is like sysrq-C
+ */
+static ssize_t write_sysrq_trigger(struct file *file, const char __user *buf,
+				   size_t count, loff_t *ppos)
+{
+	if (count) {
+		char c;
+
+		if (get_user(c, buf))
+			return -EFAULT;
+		__handle_sysrq(c, false);
+	}
+
+	return count;
+}
+
+void __handle_sysrq(int key, bool check_mask)
+{
+	struct sysrq_key_op *op_p;
+	int orig_log_level;
+	int i;
+	unsigned long flags;
+
+	spin_lock_irqsave(&sysrq_key_table_lock, flags);
+	/*
+	 * Raise the apparent loglevel to maximum so that the sysrq header
+	 * is shown to provide the user with positive feedback.  We do not
+	 * simply emit this at KERN_EMERG as that would change message
+	 * routing in the consumers of /proc/kmsg.
+	 */
+	orig_log_level = console_loglevel;
+	console_loglevel = 7;
+	printk(KERN_INFO "SysRq : ");
+
+	op_p = __sysrq_get_key_op(key);
+	if (op_p) {
+		/*
+		 * Should we check for enabled operations (/proc/sysrq-trigger
+		 * should not) and is the invoked operation enabled?
+		 */
+		if (!check_mask || sysrq_on_mask(op_p->enable_mask)) {
+			printk("%s\n", op_p->action_msg);
+			console_loglevel = orig_log_level;
+			op_p->handler(key);
+		} else {
+			printk("This sysrq operation is disabled.\n");
+		}
+	} else {
+		printk("HELP : ");
+		/* Only print the help msg once per handler */
+		for (i = 0; i < ARRAY_SIZE(sysrq_key_table); i++) {
+			if (sysrq_key_table[i]) {
+				int j;
+
+				for (j = 0; sysrq_key_table[i] != sysrq_key_table[j]; j++)
+					;
+				if (j != i)
+					continue;
+				printk("%s ", sysrq_key_table[i]->help_msg);
+			}
+		}
+		printk("\n");
+		console_loglevel = orig_log_level;
+	}
+	spin_unlock_irqrestore(&sysrq_key_table_lock, flags);
+}
+```
+
+## 19.8 KGDB & KDB
+
+The kernel has two different debugger front ends (kdb and kgdb) which interface to the debug core. It is possible to use either of the debugger front ends and dynamically transition between them if you configure the kernel properly at compile and runtime. 
+
+Kdb is simplistic shell-style interface which you can use on a system console with a keyboard or serial console. You can use it to inspect memory, registers, process lists, dmesg, and even set breakpoints to stop in a certain location. Kdb is not a source level debugger, although you can set breakpoints and execute some basic kernel run control. Kdb is mainly aimed at doing some analysis to aid in development or diagnosing kernel problems. You can access some symbols by name in kernel built-ins or in kernel modules if the code was built with CONFIG_KALLSYMS. 
+
+Kgdb is intended to be used as a source level debugger for the Linux kernel. It is used along with gdb to debug a Linux kernel. The expectation is that gdb can be used to "break in" to the kernel to inspect memory, variables and look through call stack information similar to the way an application developer would use gdb to debug an application. It is possible to place breakpoints in kernel code and perform some limited execution stepping. 
+
+Two machines are required for using kgdb. One of these machines is a development machine and the other is the target machine. The kernel to be debugged runs on the target machine. The development machine runs an instance of gdb against the vmlinux file which contains the symbols (not boot image such as bzImage, zImage, uImage...). In gdb the developer specifies the connection parameters and connects to kgdb. The type of connection a developer makes with gdb depends on the availability of kgdb I/O modules compiled as built-ins or loadable kernel modules in the test machine's kernel. 
+
+与KGDB和KDB有关的内核配置选项(added in kernel v3.8):
+
+```
+Kernel hacking  --->
+[*] Compile the kernel with debug info
+[*] KGDB: kernel debugger  --->					// CONFIG_KGDB
+    <*>   KGDB: use kgdb over the serial console		// CONFIG_KGDB_SERIAL_CONSOLE
+    [ ]   KGDB: internal test suite				// CONFIG_KGDB_TESTS
+    [*]   KGDB: Allow debugging with traps in notifiers		// CONFIG_KGDB_LOW_LEVEL_TRAP
+    [*]   KGDB_KDB: include kdb frontend for kgdb		// CONFIG_KGDB_KDB
+    [*]     KGDB_KDB: keyboard as input device			// CONFIG_KDB_KEYBOARD
+    (0)     KDB: continue after catastrophic errors		// CONFIG_KDB_CONTINUE_CATASTROPHIC
+```
+
+* [KGDB git repository](http://git.kernel.org/cgit/linux/kernel/git/jwessel/kgdb.git)
+* [KGDB Documentation](https://www.kernel.org/pub/linux/kernel/people/jwessel/kgdb/)
+* [Using kgdb, kdb and the kernel debugger internals](https://www.kernel.org/pub/linux/kernel/people/jwessel/kdb/)
+* [Linux系统内核的调试](http://www.ibm.com/developerworks/cn/linux/l-kdb/index.html)
+* [Linux内核调试器内幕](http://www.ibm.com/developerworks/cn/linux/l-kdbug/index.html)
+* [KDB website](http://oss.sgi.com/projects/kdb/)
+* [KDB Patch FTP site](ftp://oss.sgi.com/projects/kdb/download/v4.4/)
+
+## 19.9 Kprobes
+
+* 参见Documentation/kprobes.txt
+* [使用Kprobes调试内核](http://www.ibm.com/developerworks/cn/linux/l-kprobes.html)
+
+与kprobes有关的配置选项：
+
+```
+General setup  --->
+[*] Kprobes			// CONFIG_KPROBES
+Kernel hacking  --->
+[*] Magic SysRq key		// CONFIG_MAGIC_SYSRQ，参见19.7 Magic SysRq节
+```
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

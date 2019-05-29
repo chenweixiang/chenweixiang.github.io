@@ -75290,6 +75290,1153 @@ extern void up_read(struct rw_semaphore *sem);
 extern void up_write(struct rw_semaphore *sem);
 ```
 
+## 16.8 Mutex/互斥
+
+The mutex is represented by struct mutex. It behaves similar to a semaphore with a count of one, but it has a simpler interface, more efficient performance, and additional constraints on its use.
+
+* Only one task can hold the mutex at a time. That is, the usage count on a mutex is always one.
+
+* Whoever locked a mutex must unlock it. That is, you cannot lock a mutex in one context and then unlock it in another. This means that the mutex isn’t suitable for more complicated synchronizations between kernel and user-space. Most use cases, however, cleanly lock and unlock from the same context.
+
+* Recursive locks and unlocks are not allowed. That is, you cannot recursively acquire the same mutex, and you cannot unlock an unlocked mutex.
+
+* A process cannot exit while holding a mutex.
+
+* A mutex cannot be acquired by an interrupt handler or bottom half, even with ```mutex_trylock()```.
+
+* A mutex can be managed only via the official API: It must be initialized via the methods ```DEFINE_MUTEX()```, ```mutex_init()``` and cannot be copied, hand initialized, or reinitialized.
+
+Mutexes and semaphores are similar. Having both in the kernel is confusing. Thankfully, the formula dictating which to use is quite simple: Unless one of mutex’s additional constraints prevent you from using them, prefer the new mutex type to semaphores.
+
+![SpinLocks_Semaphores](/assets/SpinLocks_Semaphores.png)
+
+### 16.8.1 Mutex的数据结构
+
+struct mutex定义于include/linux/mutex.h:
+
+```
+struct mutex {
+	/* 1: unlocked, 0: locked, negative: locked, possible waiters */
+	atomic_t		count;
+	spinlock_t		wait_lock;
+	// 进程的等待队列，指向struct mutex_waiter结构中的list变量
+	struct list_head	wait_list;
+#if defined(CONFIG_DEBUG_MUTEXES) || defined(CONFIG_SMP)
+	struct task_struct	*owner;
+#endif
+#ifdef CONFIG_DEBUG_MUTEXES
+	const char 		*name;
+	void			*magic;
+#endif
+#ifdef CONFIG_DEBUG_LOCK_ALLOC
+	struct lockdep_map	dep_map;
+#endif
+};
+```
+
+struct mutex_waiter定义于include/linux/mutex.h:
+
+```
+struct mutex_waiter {
+	struct list_head	list;
+	struct task_struct	*task;
+#ifdef CONFIG_DEBUG_MUTEXES
+	void			*magic;
+#endif
+};
+```
+
+其结构参见:
+
+![Synchronization_04](/assets/Synchronization_04.jpg)
+
+### 16.8.2 Mutex的定义及初始化
+
+宏```DECLARE_MUTEX()```用于定义并初始化一个Mutex，参见include/linux/mutex.h:
+
+```
+#define DEFINE_MUTEX(mutexname)							\
+	struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
+
+#define __MUTEX_INITIALIZER(lockname)						\
+		{ .count = ATOMIC_INIT(1)					\
+		, .wait_lock = __SPIN_LOCK_UNLOCKED(lockname.wait_lock)		\
+		, .wait_list = LIST_HEAD_INIT(lockname.wait_list)		\
+		__DEBUG_MUTEX_INITIALIZER(lockname)				\
+		__DEP_MAP_MUTEX_INITIALIZER(lockname) }
+```
+
+宏```mutex_init()```用于初始化一个Mutex，参见include/linux/mutex.h:
+
+```
+#define mutex_init(mutex)				\
+do {							\
+	static struct lock_class_key __key;		\
+	__mutex_init((mutex), #mutex, &__key);		\
+} while (0)
+```
+
+其中，```__mutex_init()```定义于kernel/mutex.c:
+
+```
+void __mutex_init(struct mutex *lock, const char *name, struct lock_class_key *key)
+{
+	atomic_set(&lock->count, 1);
+	spin_lock_init(&lock->wait_lock);
+	INIT_LIST_HEAD(&lock->wait_list);
+	mutex_clear_owner(lock);
+
+	debug_mutex_init(lock, name, key);
+}
+```
+
+### 16.8.3 获取和释放Mutex
+
+Locking and unlocking the mutex is easy, see definination in include/linux/mutex.h:
+
+```
+mutex_lock(&mutex); 
+/* critical region ... */ 
+mutex_unlock(&mutex);
+```
+
+此外，该文件还包含如下函数：
+
+```
+int mutex_trylock(struct mutex *lock);
+static inline int mutex_is_locked(struct mutex *lock);
+```
+
+## 16.9 Completion Varibles/完成变量
+
+Using completion variables is an easy way to synchronize between two tasks in the kernel when one task needs to signal to the other that an event has occurred. One task waits on the completion variable while another task performs some work. When the other task has completed the work, it uses the completion variable to wake up any waiting tasks.
+
+参见<<Understanding the Linux Kernel, 3rd Edition>>第5. Kernel Synchronization章第Completions节：
+
+The real difference between completions and semaphores is how the spin lock included in the wait queue is used. 
+
+* In completions, the spin lock is used to ensure that ```complete()``` and ```wait_for_completion()``` cannot execute concurrently.
+
+* In semaphores, the spin lock is used to avoid letting concurrent ```down()```'s functions mess up the semaphore data structure.
+
+### 16.9.1 Completion的数据结构
+
+struct completion定义于include/linux/completion.h:
+
+```
+struct completion {
+	unsigned int		done;
+	// 参见等待队列/wait_queue_head_t/wait_queue_t节
+	wait_queue_head_t	wait;
+};
+```
+
+其结构参见:
+
+![Synchronization_05](/assets/Synchronization_05.jpg)
+
+### 16.9.2 Completion的定义及初始化
+
+宏```DECLARE_COMPLETION()```用于定义并初始化一个完成量，其定义于include/linux/completion.h:
+
+```
+#define DECLARE_COMPLETION(work)	\
+	struct completion work = COMPLETION_INITIALIZER(work)
+
+// 参见定义/初始化等待队列头/wait_queue_head_t节
+#define COMPLETION_INITIALIZER(work)	\
+	{ 0, __WAIT_QUEUE_HEAD_INITIALIZER((work).wait) }
+```
+
+函数```init_completion()```用于初始化一个完成量，其定义于include/linux/completion.h:
+
+```
+static inline void init_completion(struct completion *x)
+{
+	x->done = 0;
+	// 参见定义/初始化等待队列头/wait_queue_head_t节
+	init_waitqueue_head(&x->wait);
+}
+```
+
+此外，宏```INIT_COMPLETION()```用于重新初始化完成量中的done，其定义于include/linux/completion.h:
+
+```
+#define INIT_COMPLETION(x)	((x).done = 0)
+```
+
+### 16.9.3 wait_for_completion()/wait_for_completion_xxx()
+
+#### 16.9.3.1 wait_for_completion()
+
+该函数定义于kernel/sched.c:
+
+```
+/**
+ * wait_for_completion: - waits for completion of a task
+ * @x:  holds the state of this particular completion
+ *
+ * This waits to be signaled for completion of a specific task. It is NOT
+ * interruptible and there is no timeout.
+ *
+ * See also similar routines (i.e. wait_for_completion_timeout()) with timeout
+ * and interrupt capability. Also see complete().
+ */
+void __sched wait_for_completion(struct completion *x)
+{
+	wait_for_common(x, MAX_SCHEDULE_TIMEOUT, TASK_UNINTERRUPTIBLE);
+}
+```
+
+##### 16.9.3.1.1 wait_for_common()
+
+该函数定义于kernel/sched.c:
+
+```
+static long __sched wait_for_common(struct completion *x, long timeout, int state)
+{
+	might_sleep();
+
+	spin_lock_irq(&x->wait.lock);
+	timeout = do_wait_for_common(x, timeout, state);
+	spin_unlock_irq(&x->wait.lock);
+
+	return timeout;
+}
+```
+
+###### 16.9.3.1.1.1 do_wait_for_common()
+
+该函数定义于kernel/sched.c:
+
+```
+static inline long __sched do_wait_for_common(struct completion *x, long timeout, int state)
+{
+	if (!x->done) {
+		/*
+		 * 定义等待队列元素，并设置wait->func = default_wake_function，
+		 * 参见定义/初始化等待队列/wait_queue_t节；
+		 * 该函数在complete_xxx()->__wake_up_common()中被调用，
+		 * 参见__wake_up_common()节
+		 */
+		DECLARE_WAITQUEUE(wait, current);
+
+		/*
+		 * 设置wait->flags |= WQ_FLAG_EXCLUSIVE，
+		 * 并将wait加入到链表x->wait的末尾
+		 */
+		__add_wait_queue_tail_exclusive(&x->wait, &wait);
+		do {
+			/*
+			 * 若state = TASK_INTERRUPTIBLE或TASK_WAKEKILL，
+			 * 则signal_pending_state()返回：
+			 * 	True  – 表示存在待处理的信号；
+			 *	False – 表示不存在待处理的信号。
+			 * 若state取其他值，则signal_pending_state()返回0;
+			 */
+			if (signal_pending_state(state, current)) {
+				timeout = -ERESTARTSYS;
+				break;
+			}
+			__set_current_state(state);
+			spin_unlock_irq(&x->wait.lock);
+			// 调度其他进程运行，参见schedule_timeout()节
+			timeout = schedule_timeout(timeout);
+			spin_lock_irq(&x→wait.lock);
+
+		/*
+		 * 满足如下条件之一就结束循环：
+		 * (1) 信号量已完成; (2) 指定的等待时间已到达
+		 */
+		} while (!x->done && timeout);
+
+		// 将当前进程移除等待队列
+		__remove_wait_queue(&x->wait, &wait);
+		/*
+		 * 若因为 "条件(2) 指定的等待时间已到达"
+		 * 而退出循环，则返回剩余的等待时间
+		 */
+		if (!x->done)
+			return timeout;
+	}
+	x->done--;
+	return timeout ?: 1;
+}
+```
+
+#### 16.9.3.2 wait_for_completion_interruptible()
+
+该函数定义于kernel/sched.c:
+
+```
+/**
+ * wait_for_completion_interruptible: - waits for completion of a task (w/intr)
+ * @x:  holds the state of this particular completion
+ *
+ * This waits for completion of a specific task to be signaled. It is
+ * interruptible.
+ *
+ * The return value is -ERESTARTSYS if interrupted, 0 if completed.
+ */
+int __sched wait_for_completion_interruptible(struct completion *x)
+{
+	/*
+	 * 参见wait_for_completion()节。由于进程被设置为
+	 * TASK_INTERRUPTIBLE状态，因而中途可能会被信号打断
+	 */
+	long t = wait_for_common(x, MAX_SCHEDULE_TIMEOUT, TASK_INTERRUPTIBLE);
+	if (t == -ERESTARTSYS)
+		return t;
+	return 0;
+}
+```
+
+#### 16.9.3.3 wait_for_completion_killable()
+
+该函数定义于kernel/sched.c:
+
+```
+/**
+ * wait_for_completion_killable: - waits for completion of a task (killable)
+ * @x:  holds the state of this particular completion
+ *
+ * This waits to be signaled for completion of a specific task. It can be
+ * interrupted by a kill signal.
+ *
+ * The return value is -ERESTARTSYS if interrupted, 0 if completed.
+ */
+int __sched wait_for_completion_killable(struct completion *x)
+{
+	/*
+	 * 参见wait_for_completion()节。
+	 * TASK_KILLABLE = TASK_WAKEKILL | TASK_UNINTERRUPTIBLE
+	 */
+	long t = wait_for_common(x, MAX_SCHEDULE_TIMEOUT, TASK_KILLABLE);
+	if (t == -ERESTARTSYS)
+		return t;
+	return 0;
+}
+```
+
+#### 16.9.3.4 wait_for_completion_timeout()
+
+该函数定义于kernel/sched.c:
+
+```
+/**
+ * wait_for_completion_timeout: - waits for completion of a task (w/timeout)
+ * @x:  holds the state of this particular completion
+ * @timeout:  timeout value in jiffies
+ *
+ * This waits for either a completion of a specific task to be signaled
+ * or for a specified timeout to expire. The timeout is in jiffies.
+ * It is not interruptible.
+ *
+ * The return value is 0 if timed out, and positive (at least 1, or number of
+ * jiffies left till timeout) if completed.
+ */
+unsigned long __sched wait_for_completion_timeout(struct completion *x, unsigned long timeout)
+{
+	return wait_for_common(x, timeout, TASK_UNINTERRUPTIBLE);
+}
+```
+
+#### 16.9.3.5 wait_for_completion_interruptible_timeout()
+
+该函数定义于kernel/sched.c:
+
+```
+/**
+ * wait_for_completion_interruptible_timeout: - waits for completion (w/(to,intr))
+ * @x:  holds the state of this particular completion
+ * @timeout:  timeout value in jiffies
+ *
+ * This waits for either a completion of a specific task to be signaled or for a
+ * specified timeout to expire. It is interruptible. The timeout is in jiffies.
+ *
+ * The return value is -ERESTARTSYS if interrupted, 0 if timed out,
+ * positive (at least 1, or number of jiffies left till timeout) if completed.
+ */
+long __sched wait_for_completion_interruptible_timeout(struct completion *x, unsigned long timeout)
+{
+	return wait_for_common(x, timeout, TASK_INTERRUPTIBLE);
+}
+```
+
+#### 16.9.3.6 wait_for_completion_killable_timeout()
+
+该函数定义于kernel/sched.c:
+
+```
+/**
+ * wait_for_completion_killable_timeout: - waits for completion of a task (w/(to,killable))
+ * @x:  holds the state of this particular completion
+ * @timeout:  timeout value in jiffies
+ *
+ * This waits for either a completion of a specific task to be
+ * signaled or for a specified timeout to expire. It can be
+ * interrupted by a kill signal. The timeout is in jiffies.
+ *
+ * The return value is -ERESTARTSYS if interrupted, 0 if timed out,
+ * positive (at least 1, or number of jiffies left till timeout) if completed.
+ */
+long __sched wait_for_completion_killable_timeout(struct completion *x, unsigned long timeout)
+{
+	return wait_for_common(x, timeout, TASK_KILLABLE);
+}
+```
+
+### 16.9.4 complete()/complete_xxx()
+
+#### 16.9.4.1 complete()
+
+该函数定义与kernel/sched.c:
+
+```
+/**
+ * complete: - signals a single thread waiting on this completion
+ * @x:  holds the state of this particular completion
+ *
+ * This will wake up a single thread waiting on this completion. Threads will be
+ * awakened in the same order in which they were queued.
+ *
+ * See also complete_all(), wait_for_completion() and related routines.
+ *
+ * It may be assumed that this function implies a write memory barrier before
+ * changing the task state if and only if any tasks are woken up.
+ */
+void complete(struct completion *x)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&x->wait.lock, flags);
+	x->done++;
+	// 唤醒等待队列中的第1个等待进程，参见__wake_up_common()节
+	__wake_up_common(&x->wait, TASK_NORMAL, 1, 0, NULL);
+	spin_unlock_irqrestore(&x->wait.lock, flags);
+}
+```
+
+##### 16.9.4.1.1 __wake_up_common()
+
+该函数定义与kernel/sched.c:
+
+```
+/*
+ * The core wakeup function. Non-exclusive wakeups (nr_exclusive == 0) just
+ * wake everything up. If it's an exclusive wakeup (nr_exclusive == small +ve
+ * number) then we wake all the non-exclusive tasks and one exclusive task.
+ *
+ * There are circumstances in which we can try to wake a task which has already
+ * started to run but is not in state TASK_RUNNING. try_to_wake_up() returns
+ * zero in this (rare) case, and we handle it by continuing to scan the queue.
+ */
+static void __wake_up_common(wait_queue_head_t *q, unsigned int mode, int nr_exclusive, int wake_flags, void *key)
+{
+	wait_queue_t *curr, *next;
+
+	list_for_each_entry_safe(curr, next, &q->task_list, task_list) {
+		unsigned flags = curr->flags;
+
+		/*
+		 * ->func()在如下函数(参见do_wait_for_common()节)中被设置
+		 * 为default_wake_function(). 参见default_wake_function()节：
+		 * wait_for_complete_xxx()->wait_for_common()->
+		 * do_wait_for_complete()→DECLARE_WAITQUEUE()
+		 */
+		if (curr->func(curr, mode, wake_flags, key) && (flags & WQ_FLAG_EXCLUSIVE) && !--nr_exclusive)
+			break;
+	}
+}
+```
+
+#### 16.9.4.2 complete_all()
+
+**NOTE**: The two functions ```complete()``` and ```complete_all()``` behave differently if more than one thread is waiting for the same completion event. ```complete()``` wakes up only one of the waiting threads while ```complete_all()``` allows all of them to proceed. In most cases, there is only one waiter, and the two functions will produce an identical result.
+
+该函数定义与kernel/sched.c:
+
+```
+/**
+ * complete_all: - signals all threads waiting on this completion
+ * @x:  holds the state of this particular completion
+ *
+ * This will wake up all threads waiting on this particular completion event.
+ *
+ * It may be assumed that this function implies a write memory barrier before
+ * changing the task state if and only if any tasks are woken up.
+ */
+void complete_all(struct completion *x)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&x->wait.lock, flags);
+	x->done += UINT_MAX/2;
+	// 唤醒等待队列中的所有等待进程，参见__wake_up_common()节
+	__wake_up_common(&x->wait, TASK_NORMAL, 0, 0, NULL);
+	spin_unlock_irqrestore(&x->wait.lock, flags);
+}
+```
+
+#### 16.9.4.3 complete_done()
+
+该函数定义与kernel/sched.c:
+
+```
+/**
+ *	completion_done - Test to see if a completion has any waiters
+ *	@x:	completion structure
+ *
+ *	Returns: 0 if there are waiters (wait_for_completion() in progress)
+ *		 1 if there are no waiters.
+ *
+ */
+bool completion_done(struct completion *x)
+{
+	unsigned long flags;
+	int ret = 1;
+
+	spin_lock_irqsave(&x->wait.lock, flags);
+	if (!x->done)
+		ret = 0;
+	spin_unlock_irqrestore(&x->wait.lock, flags);
+	return ret;
+}
+```
+
+## 16.10 Preemption Disabling
+
+Because the kernel is preemptive, a process in the kernel can stop running at any instant to enable a process of higher priority to run. This means a task can begin running in the same critical region as a task that was preempted. To prevent this, the kernel preemption code uses spin locks as markers of nonpreemptive regions. If a spin lock is held, the kernel is not preemptive.
+
+To solve this, kernel preemption can be disabled via ```preempt_disable()```. The call is nestable; you can call it any number of times. For each call, a corresponding call to ```preempt_enable()``` is required. The final corresponding call to ```preempt_enable()``` reenables preemption. For example:
+
+```
+preempt_disable(); 
+/* preemption is disabled ... */ 
+preempt_enable();
+```
+
+### 16.10.1 preempt_count()
+
+The preemption count stores the number of held locks and ```preempt_disable()``` calls. If the number is zero, the kernel is preemptive. If the value is one or greater, the kernel is not preemptive.
+
+该宏定义于include/linux/preempt.h:
+
+```
+#define preempt_count()		(current_thread_info()->preempt_count)
+```
+
+其中，preempt_count中各比特位的含义参见struct thread_info->preempt_count节。
+
+函数```current_thread_info()```定义于arch/x86/include/asm/thread_info.h:
+
+```
+DECLARE_PER_CPU(unsigned long, kernel_stack);
+
+static inline struct thread_info *current_thread_info(void)
+{
+	struct thread_info *ti;
+	// 返回当前进程的栈信息，参见Error: Reference source not found
+	ti = (void *)(percpu_read_stable(kernel_stack) + KERNEL_STACK_OFFSET - THREAD_SIZE);
+	return ti;
+}
+```
+
+### 16.10.2 preempt_disable()
+
+该函数定义于include/linux/preempt.h:
+
+```
+#if defined(CONFIG_DEBUG_PREEMPT) || defined(CONFIG_PREEMPT_TRACER)
+  extern void add_preempt_count(int val);	// 定义于kernel/sched.c
+#else
+# define add_preempt_count(val)		do { preempt_count() += (val); } while (0)
+#endif
+
+// 参见struct thread_info->preempt_count节
+#define inc_preempt_count()		add_preempt_count(1)
+
+#ifdef CONFIG_PREEMPT_COUNT
+#define preempt_disable()		\
+do {					\
+	inc_preempt_count();		\
+	barrier();			\	// 参见barrier()节
+} while (0)
+#else	/* !CONFIG_PREEMPT_COUNT */
+#define preempt_disable()		do { } while (0)
+#endif	/* CONFIG_PREEMPT_COUNT */
+```
+
+### 16.10.3 preempt_enable()/preempt_enable_no_resched()
+
+该函数定义于include/linux/preempt.h:
+
+```
+#if defined(CONFIG_DEBUG_PREEMPT) || defined(CONFIG_PREEMPT_TRACER)
+  extern void sub_preempt_count(int val);
+#else
+# define sub_preempt_count(val)		do { preempt_count() -= (val); } while (0)
+#endif
+
+// 参见struct thread_info->preempt_count节
+#define dec_preempt_count()		sub_preempt_count(1)
+
+#ifdef CONFIG_PREEMPT
+#define preempt_check_resched()					\
+do {								\
+	if (unlikely(test_thread_flag(TIF_NEED_RESCHED)))	\
+		preempt_schedule();				\	// 参见preempt_schedule()节
+} while (0)
+#else /* !CONFIG_PREEMPT */
+#define preempt_check_resched()		do { } while (0)
+#endif /* CONFIG_PREEMPT */
+
+#ifdef CONFIG_PREEMPT_COUNT
+#define preempt_enable()		\
+do {					\
+	preempt_enable_no_resched();	\
+	barrier();			\
+	preempt_check_resched();	\
+} while (0)
+
+#define preempt_enable_no_resched()	\
+do {					\
+	barrier();			\	// 参见barrier()节
+	dec_preempt_count();		\
+} while (0)
+#else	/* !CONFIG_PREEMPT_COUNT */
+#define preempt_enable()		do { } while (0)
+#endif	/* CONFIG_PREEMPT_COUNT */
+```
+
+#### 16.10.3.1 preempt_schedule()
+
+该函数定义于kernel/sched.c:
+
+```
+#ifdef CONFIG_PREEMPT
+/*
+ * this is the entry point to schedule() from in-kernel preemption
+ * off of preempt_enable. Kernel preemptions off return from interrupt
+ * occur there and call schedule directly.
+ */
+asmlinkage void __sched notrace preempt_schedule(void)
+{
+	struct thread_info *ti = current_thread_info();
+
+	/*
+	 * If there is a non-zero preempt_count or interrupts are disabled,
+	 * we do not want to preempt the current task. Just return..
+	 */
+	if (likely(ti->preempt_count || irqs_disabled()))
+		return;
+
+	do {
+		add_preempt_count_notrace(PREEMPT_ACTIVE);
+		__schedule();		// 参见__schedule()节
+		sub_preempt_count_notrace(PREEMPT_ACTIVE);
+
+		/*
+		 * Check again in case we missed a preemption opportunity
+		 * between schedule and now.
+		 */
+		barrier();
+	} while (need_resched());
+}
+#endif
+```
+
+## 16.11 Ordering and Barriers
+
+When dealing with synchronization between multiple processors or with hardware devices, it is sometimes a requirement that memory-reads (loads) and memory-writes (stores) issue in the order specified in your program code.
+
+The ```rmb()``` method provides a read memory barrier. It ensures that no loads are reordered across the ```rmb()``` call. That is, no loads prior to the call will be reordered to after the call, and no loads after the call will be reordered to before the call.
+
+The ```wmb()``` method provides a write barrier. It functions in the same manner as ```rmb()```, but with respect to stores instead of loads — it ensures no stores are reordered across the barrier.
+
+The ```mb()``` call provides both a read barrier and a write barrier. No loads or stores will be reordered across a call to ```mb()```. It is provided because a single instruction (often the same instruction used by ```rmb()```) can provide both the load and store barrier.
+
+A variant of ```rmb()```, ```read_barrier_depends()```, provides a read barrier but only for loads on which subsequent loads depend. All reads prior to the barrier are guaranteed to complete before any reads after the barrier that depend on the reads prior to the barrier.
+
+This sort of reordering occurs because modern processors dispatch and commit instructions out of order, to optimize use of their pipelines.
+
+The macros ```smp_rmb()```, ```smp_wmb()```, ```smp_mb()```, and ```smp_read_barrier_depends()``` provide a useful optimization. On SMP kernels they are defined as the usual memory barriers, whereas on UP kernels they are defined only as a compiler barrier. You can use these SMP variants when the ordering constraints are specific to SMP systems. 
+
+The ```barrier()``` method prevents the compiler from optimizing loads or stores across the call.
+
+Note that the actual effects of the barriers vary for each architecture.
+
+### 16.11.1 barrier()
+
+该宏定义于include/linux/compiler.h:
+
+```
+#ifdef __GNUC__
+#include <linux/compiler-gcc.h>
+#endif
+
+/* Intel compiler defines __GNUC__. So we will overwrite implementations
+ * coming from above header files here.
+ */
+#ifdef __INTEL_COMPILER
+# include <linux/compiler-intel.h>
+#endif
+
+/* Optimization barrier */
+#ifndef barrier
+# define barrier()	__memory_barrier()
+#endif
+```
+
+使用GCC编译内核时，宏```__GNUC__```会被定义，因而包含include/linux/compiler-gcc.h。其中包含```barrier()```的定义：
+
+```
+/* Optimization barrier */
+/* The "volatile" is due to gcc bugs */
+#define barrier()	__asm__ __volatile__("": : :"memory")
+```
+
+where:
+
+* The asm instruction tells the compiler to insert an assembly language fragment (empty, in this case).
+
+* The volatile keyword forbids the compiler to reshuffle the asm instruction with the other instructions of the program.
+
+* The memory keyword forces the compiler to assume that all memory locations in RAM have been changed by the assembly language instruction; therefore, the compiler cannot optimize the code by using the values of memory locations stored in CPU registers before the asm instruction.
+
+Notice that the optimization barrier does not ensure that the executions of the assembly language instructions are not mixed by the CPU — this is a job for a memory barrier. A memory barrier primitive ensures that the operations placed before the primitive are finished before starting the operations placed after the primitive. See section mb()/rmb()/wmb()/read_barrier_depends() and smp_mb()/smp_rmb()/smp_wmb()/smp_read_barrier_depends().
+
+### 16.11.2 mb()/rmb()/wmb()/read_barrier_depends()
+
+In the 80×86 processors, the following kinds of assembly language instructions are said to be "serializing" because they act as memory barriers:
+
+* All instructions that operate on I/O ports
+
+* All instructions prefixed by the lock byte
+
+* All instructions that write into control registers, system registers, or debug registers (for instance, cli and sti, which change the status of the IF flag in the eflags register)
+
+* The lfence, sfence, and mfence assembly language instructions, which have been introduced in the Pentium 4 microprocessor to efficiently implement read memory barriers, write memory barriers, and read-write memory barriers, respectively.
+
+* A few special assembly language instructions; among them, the iret instruction that terminates an interrupt or exception handler
+
+以x86体系架构为例，其定义于arch/x86/include/asm/system.h:
+
+```
+#ifdef CONFIG_X86_32
+#define mb()	alternative("lock; addl $0,0(%%esp)", "mfence", X86_FEATURE_XMM2)
+#define rmb()	alternative("lock; addl $0,0(%%esp)", "lfence", X86_FEATURE_XMM2)
+#define wmb()	alternative("lock; addl $0,0(%%esp)", "sfence", X86_FEATURE_XMM)
+#else
+#define mb()	asm volatile("mfence":::"memory")
+#define rmb()	asm volatile("lfence":::"memory")
+#define wmb()	asm volatile("sfence":::"memory")
+#endif
+
+#define read_barrier_depends()		do { } while (0)
+```
+
+| Macro | Description |
+| :---- | :---------- |
+| ```mb()``` | Memory barrier for multiprocessor and uniprocessor systems |
+| ```rmb()``` | Read memory barrier for multiprocessor and uniprocessor systems |
+| ```wmb()``` | Write memory barrier for multiprocessor and uniprocessor systems |
+
+<p/>
+
+### 16.11.3 smp_mb()/smp_rmb()/smp_wmb()/smp_read_barrier_depends()
+
+以x86体系架构为例，其定义于arch/x86/include/asm/system.h:
+
+```
+#ifdef CONFIG_SMP
+
+#define smp_mb()			mb()
+
+#ifdef CONFIG_X86_PPRO_FENCE
+# define smp_rmb()			rmb()
+#else
+# define smp_rmb()			barrier()
+#endif
+
+#ifdef CONFIG_X86_OOSTORE
+# define smp_wmb()			wmb()
+#else
+# define smp_wmb()			barrier()
+#endif
+
+#define smp_read_barrier_depends()	read_barrier_depends()
+
+#else
+
+#define smp_mb()			barrier()
+#define smp_rmb()			barrier()
+#define smp_wmb()			barrier()
+#define smp_read_barrier_depends()	do { } while (0)
+
+#endif
+```
+
+| Macro | Description |
+| :---- | :---------- |
+| ```smp_mb()``` | Memory barrier for multiprocessor system only |
+| ```smp_rmb()``` | Read memory barrier for multiprocessor system only |
+| ```smp_wmb()``` | Write memory barrier for multiprocessor system only |
+
+<p/>
+
+## 16.12 Read-Copy-Update (RCU)
+
+Read-copy-update (RCU) is another synchronization technique designed to protect data structures that are mostly accessed for reading by several CPUs. RCU allows many readers and many writers to proceed concurrently (an improvement over seqlocks, which allow only one writer to proceed). Moreover, RCU is lock-free, that is, it uses no lock or counter shared by all CPUs; this is a great advantage over read/write spin locks and seqlocks, which have a high overhead due to cache line-snooping and invalidation.
+
+How does RCU obtain the surprising result of synchronizing several CPUs without shared data structures? The key idea consists of limiting the scope of RCU as follows:
+
+1) Only data structures that are dynamically allocated and referenced by means of pointers can be protected by RCU.
+
+2) No kernel control path can sleep inside a critical region protected by RCU.
+
+RCU is a new addition in Linux 2.6; it is used in the networking layer and in the Virtual Filesystem.
+
+### 16.12.1 Read an RCU-protected data structure
+
+Use below code to read an RCU-protected data structure:
+
+```
+rcu_read_lock();		// equivalent to preempt_disable()
+...
+/*
+ * The reader dereferences the pointer to the data structure and starts reading it.
+ * And the reader cannot sleep until it finishes reading the data structure.
+ */
+rcu_dereference()
+
+...
+rcu_read_unlock();		// equivalent to preempt_enable()
+```
+
+#### 16.12.1.1 rcu_dereference()
+
+该宏定义于include/linux/rcupdate.h:
+
+```
+/**
+ * rcu_dereference() - fetch RCU-protected pointer for dereferencing
+ * @p: The pointer to read, prior to dereferencing
+ *
+ * This is a simple wrapper around rcu_dereference_check().
+ */
+#define rcu_dereference(p) rcu_dereference_check(p, 0)
+
+/**
+ * rcu_dereference_check() - rcu_dereference with debug checking
+ * @p: The pointer to read, prior to dereferencing
+ * @c: The conditions under which the dereference will take place
+ *
+ * Do an rcu_dereference(), but check that the conditions under which the
+ * dereference will take place are correct.  Typically the conditions
+ * indicate the various locking conditions that should be held at that
+ * point.  The check should return true if the conditions are satisfied.
+ * An implicit check for being in an RCU read-side critical section
+ * (rcu_read_lock()) is included.
+ *
+ * For example:
+ *
+ *	bar = rcu_dereference_check(foo->bar, lockdep_is_held(&foo->lock));
+ *
+ * could be used to indicate to lockdep that foo->bar may only be dereferenced
+ * if either rcu_read_lock() is held, or that the lock required to replace
+ * the bar struct at foo->bar is held.
+ *
+ * Note that the list of conditions may also include indications of when a lock
+ * need not be held, for example during initialisation or destruction of the
+ * target struct:
+ *
+ *	bar = rcu_dereference_check(foo->bar, lockdep_is_held(&foo->lock) ||
+ *					      atomic_read(&foo->usage) == 0);
+ *
+ * Inserts memory barriers on architectures that require them
+ * (currently only the Alpha), prevents the compiler from refetching
+ * (and from merging fetches), and, more importantly, documents exactly
+ * which pointers are protected by RCU and checks that the pointer is
+ * annotated as __rcu.
+ */
+#define rcu_dereference_check(p, c) \
+	__rcu_dereference_check((p), rcu_read_lock_held() || (c), __rcu)
+```
+
+### 16.12.2 Write an RCU-proctected data structure
+
+When a writer wants to update the data structure, it dereferences the pointer and makes a copy of the whole data structure. Next, the writer modifies the copy. Once finished, the writer changes the pointer to the data structure so as to make it point to the updated copy. Because changing the value of the pointer is an atomic operation, each reader or writer sees either the old copy or the new one: no corruption in the data structure may occur. However, a memory barrier is required to ensure that the updated pointer is seen by the other CPUs only after the data structure has been modified. Such a memory barrier is implicitly introduced if a spin lock is coupled with RCU to forbid the concurrent execution of writers.
+
+The real problem with the RCU technique, however, is that the old copy of the data structure cannot be freed right away when the writer updates the pointer. In fact, the readers that were accessing the data structure when the writer started its update could still be reading the old copy. The old copy can be freed only after all (potential) readers on the CPUs have executed the rcu_read_unlock() macro. The kernel requires every potential reader to execute that macro before:
+
+* The CPU performs a process switch (see restriction 2 earlier).
+* The CPU starts executing in User Mode.
+* The CPU executes the idle loop.
+
+In each of these cases, we say that the CPU has gone through aquiescent state.
+
+The ```call_rcu()``` function is invoked by the writer to get rid of the old copy of the data structure.
+
+#### 16.12.2.1 rcu_assign_pointer()
+
+该宏定义于include/linux/rcupdate.h:
+
+```
+/**
+ * rcu_assign_pointer() - assign to RCU-protected pointer
+ * @p: pointer to assign to
+ * @v: value to assign (publish)
+ *
+ * Assigns the specified value to the specified RCU-protected
+ * pointer, ensuring that any concurrent RCU readers will see
+ * any prior initialization.  Returns the value assigned.
+ *
+ * Inserts memory barriers on architectures that require them
+ * (which is most of them), and also prevents the compiler from
+ * reordering the code that initializes the structure after the pointer
+ * assignment.  More importantly, this call documents which pointers
+ * will be dereferenced by RCU read-side code.
+ *
+ * In some special cases, you may use RCU_INIT_POINTER() instead
+ * of rcu_assign_pointer().  RCU_INIT_POINTER() is a bit faster due
+ * to the fact that it does not constrain either the CPU or the compiler.
+ * That said, using RCU_INIT_POINTER() when you should have used
+ * rcu_assign_pointer() is a very bad thing that results in
+ * impossible-to-diagnose memory corruption.  So please be careful.
+ * See the RCU_INIT_POINTER() comment header for details.
+ */
+#define rcu_assign_pointer(p, v)  __rcu_assign_pointer((p), (v), __rcu)
+```
+
+### 16.12.3 RCU的初始化
+
+命令```make alldefconfig```生成的配置文件包含如下选项：
+
+```
+#
+# RCU Subsystem
+#
+CONFIG_TINY_RCU=y
+# CONFIG_PREEMPT_RCU is not set
+# CONFIG_RCU_STALL_COMMON is not set
+# CONFIG_TREE_RCU_TRACE is not set
+# CONFIG_IKCONFIG is not set
+```
+
+在系统启动时，调用RCU初始化函数```rcu_init()```，其定义于rcutiny_plugin.h:
+
+```
+#ifdef CONFIG_RCU_BOOST
+...
+#else /* CONFIG_RCU_BOOST */
+
+void rcu_init(void)
+{
+	/*
+	 * 设置软中断RCU_SOFTIRQ的服务程序为rcu_process_callbacks()，
+	 * 参见struct softirq_节；
+	 * 该服务程序被__do_softirq()调用，参见__do_softirq()节
+	 */
+	open_softirq(RCU_SOFTIRQ, rcu_process_callbacks);
+}
+
+#endif /* CONFIG_RCU_BOOST */
+```
+
+函数```rcu_init()```的调用关系如下：
+
+```
+start_kernel()
+-> rcu_init()
+```
+
+#### 16.12.3.1 rcu_process_callbacks()
+
+该函数定义于kernel/rcutiny.c:
+
+```
+static void rcu_process_callbacks(struct softirq_action *unused)
+{
+	__rcu_process_callbacks(&rcu_sched_ctrlblk);
+	__rcu_process_callbacks(&rcu_bh_ctrlblk);
+	rcu_preempt_process_callbacks();
+}
+```
+
+其中，变量```rcu_sched_ctrlblk```和```rcu_bh_ctrlblk```定义于kernel/rcutiny_plugin.h:
+
+```
+static struct rcu_ctrlblk rcu_sched_ctrlblk = {
+	.donetail	= &rcu_sched_ctrlblk.rcucblist,
+	.curtail	= &rcu_sched_ctrlblk.rcucblist,
+	RCU_TRACE(.name = "rcu_sched")
+};
+
+static struct rcu_ctrlblk rcu_bh_ctrlblk = {
+	.donetail	= &rcu_bh_ctrlblk.rcucblist,
+	.curtail	= &rcu_bh_ctrlblk.rcucblist,
+	RCU_TRACE(.name = "rcu_bh")
+};
+```
+
+函数```rcu_preempt_process_callbacks()```定义于kernel/rcutiny_plugin.h:
+
+```
+static struct rcu_preempt_ctrlblk rcu_preempt_ctrlblk = {
+	.rcb.donetail	= &rcu_preempt_ctrlblk.rcb.rcucblist,
+	.rcb.curtail	= &rcu_preempt_ctrlblk.rcb.rcucblist,
+	.nexttail	= &rcu_preempt_ctrlblk.rcb.rcucblist,
+	.blkd_tasks	= LIST_HEAD_INIT(rcu_preempt_ctrlblk.blkd_tasks),
+	RCU_TRACE(.rcb.name = "rcu_preempt")
+};
+
+static void rcu_preempt_process_callbacks(void)
+{
+	// 参见__rcu_process_callbacks()节
+	__rcu_process_callbacks(&rcu_preempt_ctrlblk.rcb);
+}
+```
+
+变量```rcu_sched_ctrlblk```的结构，参见:
+
+![Synchronization_07](/assets/Synchronization_07.jpg)
+
+函数```__rcu_process_callbacks()```，参见__rcu_process_callbacks()节。
+
+##### 16.12.3.1.1 __rcu_process_callbacks()
+
+该函数定义于kernel/rcutiny.c:
+
+```
+/*
+ * Invoke the RCU callbacks on the specified rcu_ctrlkblk structure
+ * whose grace period has elapsed.
+ */
+static void __rcu_process_callbacks(struct rcu_ctrlblk *rcp)
+{
+	char *rn = NULL;
+	struct rcu_head *next, *list;
+	unsigned long flags;
+	RCU_TRACE(int cb_count = 0);
+
+	/* If no RCU callbacks ready to invoke, just return. */
+	if (&rcp->rcucblist == rcp->donetail) {
+		RCU_TRACE(trace_rcu_batch_start(rcp->name, 0, -1));
+		RCU_TRACE(trace_rcu_batch_end(rcp->name, 0));
+		return;
+	}
+
+	/* Move the ready-to-invoke callbacks to a local list. */
+	local_irq_save(flags);
+	RCU_TRACE(trace_rcu_batch_start(rcp->name, 0, -1));
+	list = rcp->rcucblist;
+	rcp->rcucblist = *rcp->donetail;
+	*rcp->donetail = NULL;
+	if (rcp->curtail == rcp->donetail)
+		rcp->curtail = &rcp->rcucblist;
+	rcu_preempt_remove_callbacks(rcp);
+	rcp->donetail = &rcp->rcucblist;
+	local_irq_restore(flags);
+
+	/* Invoke the callbacks on the local list. */
+	RCU_TRACE(rn = rcp->name);
+	while (list) {
+		next = list->next;
+		prefetch(next);
+		debug_rcu_head_unqueue(list);
+		local_bh_disable();
+		/*
+		 * 执行RCU的处理函数，即list->func(list);
+		 * Once executed, the callback function usually
+		 * frees the old copy of the data structure.
+		 */
+		__rcu_reclaim(rn, list);
+		local_bh_enable();
+		list = next;
+		RCU_TRACE(cb_count++);
+	}
+	RCU_TRACE(rcu_trace_sub_qlen(rcp, cb_count));
+	RCU_TRACE(trace_rcu_batch_end(rcp->name, cb_count));
+}
+```
+
+执行该函数前，参见:
+
+![Synchronization_06](/assets/Synchronization_06.jpg)
+
+执行该函数后，参见:
+
+![Synchronization_08](/assets/Synchronization_08.jpg)
+
+![Synchronization_09](/assets/Synchronization_09.jpg)
+
+**Q: 如何向后移动donetail指针的指向？**
+
+#### 16.12.3.2 call_rcu()
+
+该函数定义于include/linux/rcupdate.h:
+
+```
+#ifdef CONFIG_PREEMPT_RCU
+
+/**
+ * call_rcu() - Queue an RCU callback for invocation after a grace period.
+ * @head: structure to be used for queueing the RCU updates.
+ * @func: actual callback function to be invoked after the grace period
+ *
+ * The callback function will be invoked some time after a full grace
+ * period elapses, in other words after all pre-existing RCU read-side
+ * critical sections have completed.  However, the callback function
+ * might well execute concurrently with RCU read-side critical sections
+ * that started after call_rcu() was invoked.  RCU read-side critical
+ * sections are delimited by rcu_read_lock() and rcu_read_unlock(),
+ * and may be nested.
+ */
+extern void call_rcu(struct rcu_head *head, void (*func)(struct rcu_head *head));
+
+#else /* CONFIG_PREEMPT_RCU */
+
+/* In classic RCU, call_rcu() is just call_rcu_sched(). */
+#define call_rcu		call_rcu_sched
+
+#endif /* CONFIG_PREEMPT_RCU */
+```
+
+其中，```call_rcu_shed()```定义于kernel/rcutiny.c:
+
+```
+/*
+ * Post an RCU callback to be invoked after the end of an RCU-sched grace
+ * period.  But since we have but one CPU, that would be after any
+ * quiescent state.
+ */
+void call_rcu_sched(struct rcu_head *head, void (*func)(struct rcu_head *rcu))
+{
+	__call_rcu(head, func, &rcu_sched_ctrlblk);
+}
+
+static void __call_rcu(struct rcu_head *head, void (*func)(struct rcu_head *rcu),
+			struct rcu_ctrlblk *rcp)
+{
+	unsigned long flags;
+
+	debug_rcu_head_queue(head);
+	head->func = func;
+	head->next = NULL;
+
+	local_irq_save(flags);
+	*rcp->curtail = head;
+	rcp->curtail = &head->next;
+	RCU_TRACE(rcp->qlen++);
+	local_irq_restore(flags);
+}
+```
+
+执行函数```call_rcu(myHead1, myFunc1)```和```call_rcu(myHead2, myFunc2)```后，其结构参见:
+
+![Synchronization_07](/assets/Synchronization_07.jpg)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

@@ -79944,6 +79944,109 @@ Kernel hacking  --->
 [*] Magic SysRq key		// CONFIG_MAGIC_SYSRQ，参见19.7 Magic SysRq节
 ```
 
+# 20 内核测试/Test Kernel
+
+* [Linux Kernel Tester's Guide](http://kernelnewbies.org/Linux_Kernel_Tester%27s_Guide)
+* [Linux Test Tools](http://ltp.sourceforge.net/tooltable.php)
+
+## 20.1 内核测试工具
+
+内核源代码目录tools/testing/中包含如下测试工具：
+
+### 20.1.1 ktest
+
+参见http://elinux.org/Ktest
+
+### 20.1.2 selftests
+
+内核源码的多个子系统都有自己的自测工具，到目前为止，断点、cpu热插拔、efivarfs、IPC、KCMP、内存热插拔、mqueue、网络、powerpc、ptrace、rcutorture、定时器和虚拟机子系统都有自测工具。另外，用户态内存的自测工具可以利用 testusercopy 模块来测试用户态内存到内核态的拷贝过程。
+
+1) 编译并运行tools/testing/selftests/目录下所有测试工具:
+
+```
+chenwx@chenwx ~/linux $ sudo make -C tools/testing/selftests
+chenwx@chenwx ~/linux $ sudo make -C tools/testing/selftests run_tests
+```
+
+2) 编译并运行tools/testing/selftests/目录下某个测试工具:
+
+```
+chenwx@chenwx ~/linux $ ll tools/testing/selftests/
+-rw-r--r-- 1 chenwx chenwx  866 Sep  1 08:50 Makefile
+-rw-r--r-- 1 chenwx chenwx 1765 Sep  1 08:50 README.txt
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 19:29 breakpoints
+drwxr-xr-x 2 chenwx chenwx 4096 Sep  1 08:50 cpu-hotplug
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 19:26 efivarfs
+drwxr-xr-x 2 chenwx chenwx 4096 Sep  1 08:50 firmware
+drwxr-xr-x 2 chenwx chenwx 4096 Sep  3 21:55 ipc
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 08:59 kcmp
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 09:01 memfd
+drwxr-xr-x 2 chenwx chenwx 4096 Sep  1 08:50 memory-hotplug
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 19:26 mount
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 08:59 mqueue
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 07:56 net
+drwxr-xr-x 6 chenwx chenwx 4096 Sep  1 08:50 powerpc
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 19:26 ptrace
+drwxr-xr-x 5 chenwx chenwx 4096 Sep  1 08:50 rcutorture
+drwxr-xr-x 2 chenwx chenwx 4096 Sep  1 08:50 sysctl
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 19:26 timers
+drwxr-xr-x 2 chenwx chenwx 4096 Sep  1 08:50 user
+drwxr-xr-x 2 chenwx chenwx 4096 Sep 16 19:28 vm
+
+chenwx@chenwx ~/linux $ sudo make -C tools/testing/selftests TARGETS=breakpoints run_tests
+```
+
+#### 20.1.2.1 ptrace
+
+参见tools/testing/selftests/ptrace/
+
+#### 20.1.2.2 timers
+
+### 20.1.3 fault-injection
+
+参见Documentation/fault-injection/fault-injection.txt
+
+## 20.2 自动测试工具
+
+### 20.2.1 AutoTest
+
+[Autotest](http://autotest.github.io) is a framework for fully automated testing. It is designed primarily to test the Linux kernel, though it is useful for many other functions such as qualifying new hardware. It's an open-source project under the GPL and is used and developed by a number of organizations, including Google, IBM, Red Hat, and many others.
+
+* [AutoTest Repo on GitHub](https://github.com/autotest/autotest)
+
+### 20.2.2 Linux Test Project
+
+[Linux Test Project (LTP)](http://ltp.sourceforge.net/) is a joint project started by SGI, OSDL and Bull developed and maintained by IBM, Cisco, Fujitsu, SUSE, Red Hat, Oracle and others. The project goal is to deliver tests to the open source community that validate the reliability, robustness, and stability of Linux.
+
+The LTP testsuite contains a collection of tools for testing the Linux kernel and related features. Our goal is to improve the Linux kernel and system libraries by bringing test automation to the testing effort.
+
+* [Linux Test Project (LTP) HowTo](http://ltp.sourceforge.net/documentation/how-to/ltp.php)
+* [Linux Test Project (LTP) Repo on GitHub](https://github.com/linux-test-project/ltp)
+
+### 20.2.3 LTP-DDT
+
+* [LTP-DDT](http://processors.wiki.ti.com/index.php/LTP-DDT)
+
+### 20.2.4 Linaro Automated Validation Architecture
+
+LAVA: Linaro Automated Validation Architecture
+
+## 20.3 Linux Driver Verification
+
+* [Linux Driver Verification](http://linuxtesting.org/project/ldv)
+
+## 20.4 MMTests
+
+* [MMTests](https://github.com/gormanm/mmtests)
+
+## 20.5 Trinity
+
+* [Trinity](http://codemonkey.org.uk/projects/trinity/)
+
+## 20.6 CrackerJack - Kernel Regression Tests
+
+* [CrackerJack - Kernel Regression Tests](http://sourceforge.net/projects/crackerjack/)
+
 # Appendixes
 
 ## Appendix A: make -f scripts/Makefile.build obj=列表

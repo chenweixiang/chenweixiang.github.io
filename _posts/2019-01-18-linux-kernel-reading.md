@@ -8964,7 +8964,7 @@ asmlinkage void __init start_kernel(void)
 	page_address_init();
 	printk(KERN_NOTICE "%s", linux_banner);
 	/*
-	 * 该函数与体系架构有关。内核启动命令行参见内核启动命令行节，
+	 * 该函数与体系架构有关。内核启动命令行参见[4.3.4.1.4.3.3.1 内核启动命令行]节，
 	 * 内存初始化参见[6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved]节
 	 */
 	setup_arch(&command_line);
@@ -8982,7 +8982,7 @@ asmlinkage void __init start_kernel(void)
 	printk(KERN_NOTICE "Kernel command line: %s\n", boot_command_line);
 	parse_early_param();
 	parse_args("Booting kernel", static_command_line, __start___param,
-				 __stop___param - __start___param, &unknown_bootoption);
+		   __stop___param - __start___param, &unknown_bootoption);
 
 	jump_label_init();
 
@@ -9032,20 +9032,20 @@ asmlinkage void __init start_kernel(void)
 	rcu_init();			// 参见[16.12.3 RCU的初始化]节
 	radix_tree_init();
 	/* init some links before init_ISA_irqs() */
-	early_irq_init();		// 参见[4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节
-	init_IRQ();			// 参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节
+	early_irq_init();		// 参见[4.3.4.1.4.3.8 early_irq_init()]节
+	init_IRQ();			// 参见[4.3.4.1.4.3.9 init_IRQ()]节
 	prio_tree_init();
-	init_timers();			// 参见定时器模块的编译及初始化节
-	hrtimers_init();		// 参见hrtimer的编译及初始化节
-	softirq_init();			// 初始化软中断的TASKLET_SOFTIRQ和HI_SOFTIRQ，参见softirq_init()节
+	init_timers();			// 参见[7.7.3 定时器模块的编译及初始化]节
+	hrtimers_init();		// 参见[7.8.4 hrtimer的编译及初始化]节
+	softirq_init();			// 初始化软中断的TASKLET_SOFTIRQ和HI_SOFTIRQ，参见[4.3.4.1.4.3.10 softirq_init()]节
 	timekeeping_init();
-	// 初始化系统日期和时间，参见Architecture-dependent routine / tick_handle_periodic()节
+	// 初始化系统日期和时间，参见[7.6.4.2.1.1 Architecture-dependent routine / tick_handle_periodic()]节
 	time_init();
 	profile_init();			// 与配置项CONFIG_PROFILING的取值有关
 	call_function_init();
 	if (!irqs_disabled())
 		printk(KERN_CRIT "start_kernel(): bug: interrupts were "
-				 "enabled early\n");
+			"enabled early\n");
 	early_boot_irqs_disabled = false;
 	local_irq_enable();		// 打开可屏蔽中断，与上文中的local_irq_disable()对应
 
@@ -9094,7 +9094,7 @@ asmlinkage void __init start_kernel(void)
 	kmemleak_init();
 	setup_per_cpu_pageset();
 	numa_policy_init();
-	if (late_time_init)			// 参见Architecture-dependent routine / tick_handle_periodic()节
+	if (late_time_init)			// 参见[7.6.4.2.1.1 Architecture-dependent routine / tick_handle_periodic()]节
 		late_time_init();
 	sched_clock_init();
 	calibrate_delay();			// 确定CPU时钟的速度
@@ -9110,15 +9110,15 @@ asmlinkage void __init start_kernel(void)
 	proc_caches_init();
 	buffer_init();				// 初始化页高速缓存
 	key_init();
-	security_init();				// 初始化LSM，参见LSM的初始化节
+	security_init();			// 初始化LSM，参见[14.4 LSM的初始化]节
 	dbg_late_init();
-	// 用于初始化VFS数据结构的slab缓存，参见vfs_caches_init()节
+	// 用于初始化VFS数据结构的slab缓存，参见[4.3.4.1.4.3.11 vfs_caches_init()]节
 	vfs_caches_init(totalram_pages);
-	signals_init();				// 建立数据结构sigqueue的slab缓存，参见信号的初始化节
+	signals_init();				// 建立数据结构sigqueue的slab缓存，参见[8.3.5 信号的初始化]节
 	/* rootfs populating might need page-writeback */
 	page_writeback_init();
 #ifdef CONFIG_PROC_FS
-	proc_root_init();			// 初始化proc文件系统，参见proc_root_init()节
+	proc_root_init();			// 初始化proc文件系统，参见[4.3.4.1.4.3.12 proc_root_init()]节
 #endif
 	cgroup_init();
 	cpuset_init();
@@ -9134,7 +9134,7 @@ asmlinkage void __init start_kernel(void)
 	ftrace_init();				// 与配置项CONFIG_FTRACE_MCOUNT_RECORD的取值有关
 
 	/* Do the rest non-__init'ed, we're now alive */
-	rest_init();				// 参见rest_init()节
+	rest_init();				// 参见[4.3.4.1.4.3.13 rest_init()]节
 }
 ```
 
@@ -9238,7 +9238,7 @@ start_kernel()
 
 上文中的变量boot_command_line可以由如下两种方式配置：
 
-1) 通过LILO或GRUB等引导加载程序进行配置(参见[配置引导加载程序GRUB(或LILO](#)节)。例如/boot/grub/grub.cfg中包含如下内容：
+1) 通过LILO或GRUB等引导加载程序进行配置，参见[3.5.6 配置引导加载程序GRUB(或LILO)](#3-5-6-grub-lilo-)节。例如/boot/grub/grub.cfg中包含如下内容：
 
 ```
 ...
@@ -9280,41 +9280,41 @@ menuentry 'Linux Mint 14 MATE 32-bit, 3.5.0-17-generic (/dev/sda1) -- recovery m
 
 ```
 Processor type and features
-[*] Built-in kernel command line							=> CONFIG_CMDLINE_BOOL
-()    Built-in kernel command string						=> CONFIG_CMDLINE
-[ ]   Built-in command line overrides boot loader arguments		=> CONFIG_CMDLINE_OVERRIDE
+[*] Built-in kernel command line				=> CONFIG_CMDLINE_BOOL
+()    Built-in kernel command string				=> CONFIG_CMDLINE
+[ ]   Built-in command line overrides boot loader arguments	=> CONFIG_CMDLINE_OVERRIDE
 ```
 
 ###### 4.3.4.1.4.3.3.2 注册内核参数的处理函数
 
-内核参数的处理函数被放置到.init.setup段或__param段，分别由宏early_param()/\_\_setup()和\_\_module_param_call()来完成。参见如下文档：
+内核参数的处理函数被放置到.init.setup段或__param段，分别由宏```early_param()```, ```__setup()```和```__module_param_call()```来完成。参见如下文档：
 
 * Documentation/kernel-parameters.txt
 * Documentation/sysctl/kernel.txt
 
 ###### 4.3.4.1.4.3.3.2.1 early_param()/\_\_setup()
 
-宏early_param()和__setup()用于注册内核参数的处理函数，这些处理函数被放置到.init.setup段，参见include/linux/init.h:
+宏```early_param()```和```__setup()```用于注册内核参数的处理函数，这些处理函数被放置到.init.setup段，参见include/linux/init.h:
 
 ```
 struct obs_kernel_param {
-	const char *str;				// 内核参数名
+	const char *str;			// 内核参数名
 	int (*setup_func)(char *);		// 内核参数的处理函数
-	int early;					// 是否为宏early_param注册的
+	int early;				// 是否为宏early_param注册的
 };
 
-#define __setup(str, fn)								\
+#define __setup(str, fn)						\
 	__setup_param(str, fn, fn, 0)
 
-#define early_param(str, fn)							\
+#define early_param(str, fn)						\
 	__setup_param(str, fn, fn, 1)
 
-#define __setup_param(str, unique_id, fn, early)				\
-	static const char __setup_str_##unique_id[] __initconst	\
-		__aligned(1) = str; 							\
+#define __setup_param(str, unique_id, fn, early)			\
+	static const char __setup_str_##unique_id[] __initconst		\
+		__aligned(1) = str; 					\
 	static struct obs_kernel_param __setup_##unique_id		\
-		__used __section(.init.setup)					\
-		__attribute__((aligned((sizeof(long)))))			\
+		__used __section(.init.setup)				\
+		__attribute__((aligned((sizeof(long)))))		\
 		= { __setup_str_##unique_id, fn, early }
 ```
 
@@ -9324,9 +9324,9 @@ struct obs_kernel_param {
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
 ```
 
-因而，可通过__setup_start和__setup_end查询内核参数并调用其处理函数。
+因而，可通过```__setup_start```和```__setup_end```查询内核参数并调用其处理函数。
 
-注：early_param()与__setup()的不同之处在于，early_param()注册的内核参数必须在其他内核参数之前被处理。以参数foo及处理函数foo_func()为例，这两个宏的扩展结果如下：
+注：```early_param()```与```__setup()```的不同之处在于，```early_param()```注册的内核参数必须在其他内核参数之前被处理。以参数foo及处理函数```foo_func()```为例，这两个宏的扩展结果如下：
 
 * early_param("foo", foo_func)
 
@@ -9337,7 +9337,7 @@ static struct obs_kernel_param __setup_foo_func
 	= { __setup_str_foo_func, foo_func, 1 }
 ```
 
-* \_\_setup("foo", foo_func)
+* \__setup("foo", foo_func)
 
 ```
 static const char __setup_str_foo_func[] __initconst __aligned(1) = "foo";
@@ -9396,11 +9396,11 @@ __param : AT(ADDR(__param) - 0xC0000000) { __start___param = .; *(__param) __sto
 
 因而可以通过__start___param和__stop___param查询内核参数并调用其处理函数。
 
-使用__module_param_call()的宏，参见[13.1.3.1 与模块参数有关的宏](#)节。
+使用__module_param_call()的宏，参见[13.1.3.1 与模块参数有关的宏](#13-1-3-1-)节。
 
 ###### 4.3.4.1.4.3.3.3 内核参数处理函数的调用过程
 
-函数start_kernel()调用parse_early_param()和parse_args()来分别处理early_param()和__setup()注册的内核参数处理函数：
+函数```start_kernel()```调用```parse_early_param()```和```parse_args()```来分别处理```early_param()```和```__setup()```注册的内核参数处理函数：
 
 ```
 asmlinkage void __init start_kernel(void)
@@ -9409,15 +9409,15 @@ asmlinkage void __init start_kernel(void)
 	printk(KERN_NOTICE "Kernel command line: %s\n", boot_command_line);
 	/*
 	 * 解析命令行boot_command_line中的内核参数，并在.init.setup段
-	 * 查找其处理函数，参见parse_early_param()节
+	 * 查找其处理函数，参见[4.3.4.1.4.3.3.3.1 parse_early_param()]节
 	 */
 	parse_early_param();
 	/*
 	 * 解析命令行static_command_line中的内核参数，并在__param段或
-	 * .init.setup段查找其处理函数，参见parse_args()节
+	 * .init.setup段查找其处理函数，参见[4.3.4.1.4.3.3.3.2 parse_args()]节
 	 */
 	parse_args("Booting kernel", static_command_line, __start___param,
-			__stop___param - __start___param, &unknown_bootoption);
+		   __stop___param - __start___param, &unknown_bootoption);
 	...
 }
 ```
@@ -9469,7 +9469,7 @@ int parse_args(const char *name, char *args,
 		int ret;
 		int irq_was_disabled;
 
-		args = next_arg(args, &param, &val);				// 获取下一个参数param及其取值val
+		args = next_arg(args, &param, &val);			// 获取下一个参数param及其取值val
 		irq_was_disabled = irqs_disabled();
 		ret = parse_one(param, val, params, num, unknown);	// 解析这个参数
 		if (irq_was_disabled && !irqs_disabled()) {
@@ -9510,7 +9510,7 @@ static int parse_one(char *param, char *val,
 	 * start_kernel() -> parse_early_param() -> parse_early_options() -> parse_args(...) 不进入此循环；而
 	 * start_kernel() -> parse_args("Booting kernel", ..., &unknown_bootoption) 要进入此循环，
 	 * 其中，params为__start___param，num_params为__stop___param - __start___param，即__param段的内容，
-	 * 参见__module_param_call()节
+	 * 参见[4.3.4.1.4.3.3.2.2 __module_param_call()]节
 	 */
 	/* Find parameter */
 	for (i = 0; i < num_params; i++) {
@@ -9530,7 +9530,7 @@ static int parse_one(char *param, char *val,
 	 * start_kernel() -> parse_early_param() -> parse_early_options() -> parse_args() 要进入此分支，
 	 * 此时，handle_unknown取值为do_early_param，即调用do_early_param()，参见下文；
 	 * start_kernel() -> parse_args("Booting kernel", ..., &unknown_bootoption) 可能会进入此分支，
-	 * 此时，handle_unknown取值为unknown_bootoption，即调用unknown_bootoption()，参见parse_args()节
+	 * 此时，handle_unknown取值为unknown_bootoption，即调用unknown_bootoption()，参见[4.3.4.1.4.3.3.3.2 parse_args()]节
 	 */
 	if (handle_unknown) {
 		DEBUGP("Unknown argument: calling %p\n", handle_unknown);
@@ -9542,7 +9542,7 @@ static int parse_one(char *param, char *val,
 }
 ```
 
-函数do_early_param()定义于init/main.c:
+函数```do_early_param()```定义于init/main.c:
 
 ```
 /* Check for early params. */
@@ -9552,7 +9552,7 @@ static int __init do_early_param(char *param, char *val)
 
 	/*
 	 * 查找指定内核参数的处理函数，并调用之；
-	 * 变量__setup_start和__setup_end参见early_param()/__setup()节
+	 * 变量__setup_start和__setup_end参见[4.3.4.1.4.3.3.2.1 early_param()/__setup()]节
 	 */
 	for (p = __setup_start; p < __setup_end; p++) {
 		if ((p->early && parameq(param, p->str)) ||
@@ -9568,14 +9568,14 @@ static int __init do_early_param(char *param, char *val)
 
 ###### 4.3.4.1.4.3.3.3.2 parse_args()
 
-当start_kernel()调用完parse_early_param()后，将调用如下函数解析命令行static_command_line中的内核参数：
+当```start_kernel()```调用完```parse_early_param()```后，将调用如下函数解析命令行static_command_line中的内核参数：
 
 ```
 parse_args("Booting kernel", static_command_line, __start___param,
-		__stop___param - __start___param, &unknown_bootoption);
+	   __stop___param - __start___param, &unknown_bootoption);
 ```
 
-其执行过程与[parse_early_param()](#)节类似，不同之处在于，函数parse_one()调用handle_unknown()时，实际调用的是函数unknown_bootoption()而不是do_early_param()。
+其执行过程与[4.3.4.1.4.3.3.3.1 parse_early_param()](#4-3-4-1-4-3-3-3-1-parse-early-param-)节类似，不同之处在于，函数parse_one()调用handle_unknown()时，实际调用的是函数unknown_bootoption()而不是do_early_param()。
 
 函数unknown_bootoption()定义于init/main.c:
 
@@ -9644,7 +9644,7 @@ static int __init obsolete_checksetup(char *line)
 
 	/*
 	 * 查找指定内核参数的处理函数，并调用之；
-	 * 其处理过程与函数do_early_param()类似，参见parse_early_param()节
+	 * 其处理过程与函数do_early_param()类似，参见[4.3.4.1.4.3.3.3.1 parse_early_param()]节
 	 */
 	p = __setup_start;
 	do {
@@ -9677,8 +9677,8 @@ static int __init obsolete_checksetup(char *line)
 ```
 void __init vfs_caches_init_early(void)
 {
-	dcache_init_early();		// 参见dcache_init_early()节
-	inode_init_early();		// 参见inode_init_early()节
+	dcache_init_early();		// 参见[4.3.4.1.4.3.4.1 dcache_init_early()]节
+	inode_init_early();		// 参见[4.3.4.1.4.3.4.2 inode_init_early()]节
 }
 ```
 
@@ -9697,7 +9697,7 @@ static void __init dcache_init_early(void)
 {
 	int loop;
 
-	// 如果本函数没有创建目录项哈希表，则在dcache_init()中创建，参见dcache_init()节
+	// 如果本函数没有创建目录项哈希表，则在dcache_init()中创建，参见[4.3.4.1.4.3.11.1 dcache_init()]节
 	/* If hashes are distributed across NUMA nodes, defer
 	 * hash allocation until vmalloc space is available.
 	 */
@@ -9777,7 +9777,7 @@ void __init inode_init_early(void)
 
 ###### 4.3.4.1.4.3.5 trap_init()
 
-该函数用于设置中断描述符表中前19个陷阱门所对应的处理程序(这些中断向量都是CPU保留用于异常处理的，参见[中断处理简介](#)节)，其定义于arch/x86/kernel/trap.c:
+该函数用于设置中断描述符表中前19个陷阱门所对应的处理程序(这些中断向量都是CPU保留用于异常处理的，参见[9.1 中断处理简介](#9-1-)节)，其定义于arch/x86/kernel/trap.c:
 
 ```
 void __init trap_init(void)
@@ -9796,26 +9796,26 @@ void __init trap_init(void)
 	 * 数组idt_table[]定义于arch/x86/kernel/traps.c，其中，NR_VECTORS=256
 	 *    gate_desc idt_table[NR_VECTORS];
 	 */
-	set_intr_gate(0, &divide_error); 					// 填充idt_table[0]
+	set_intr_gate(0, &divide_error); 				// 填充idt_table[0]
 	set_intr_gate_ist(2, &nmi, NMI_STACK); 				// 填充idt_table[2]
 	/* int4 can be called from all */
-	set_system_intr_gate(4, &overflow); 					// 填充idt_table[4]
-	set_intr_gate(5, &bounds); 							// 填充idt_table[5]
-	set_intr_gate(6, &invalid_op); 						// 填充idt_table[6]
-	set_intr_gate(7, &device_not_available); 				// 填充idt_table[7]
+	set_system_intr_gate(4, &overflow); 				// 填充idt_table[4]
+	set_intr_gate(5, &bounds); 					// 填充idt_table[5]
+	set_intr_gate(6, &invalid_op); 					// 填充idt_table[6]
+	set_intr_gate(7, &device_not_available); 			// 填充idt_table[7]
 #ifdef CONFIG_X86_32
 	set_task_gate(8, GDT_ENTRY_DOUBLEFAULT_TSS); 			// 填充idt_table[8]
 #else
 	set_intr_gate_ist(8, &double_fault, DOUBLEFAULT_STACK);
 #endif
-	set_intr_gate(9, &coprocessor_segment_overrun); 			// 填充idt_table[9]
-	set_intr_gate(10, &invalid_TSS); 					// 填充idt_table[10]
-	set_intr_gate(11, &segment_not_present);				// 填充idt_table[11]
+	set_intr_gate(9, &coprocessor_segment_overrun); 		// 填充idt_table[9]
+	set_intr_gate(10, &invalid_TSS); 				// 填充idt_table[10]
+	set_intr_gate(11, &segment_not_present);			// 填充idt_table[11]
 	set_intr_gate_ist(12, &stack_segment, STACKFAULT_STACK); 	// 填充idt_table[12]
-	set_intr_gate(13, &general_protection); 				// 填充idt_table[13]
+	set_intr_gate(13, &general_protection); 			// 填充idt_table[13]
 	set_intr_gate(15, &spurious_interrupt_bug); 			// 填充idt_table[15]
 	set_intr_gate(16, &coprocessor_error); 				// 填充idt_table[16]
-	set_intr_gate(17, &alignment_check); 					// 填充idt_table[17]
+	set_intr_gate(17, &alignment_check); 				// 填充idt_table[17]
 #ifdef CONFIG_X86_MCE
 	set_intr_gate_ist(18, &machine_check, MCE_STACK); 		// 填充idt_table[18]
 #endif
@@ -9839,7 +9839,7 @@ void __init trap_init(void)
 #ifdef CONFIG_X86_32
 	/*
 	 * SYSCALL_VECTOR定义于arch/x86/include/asm/irq_vectors.h，其取值为0x80
-	 * system_call为系统调用总控程序，定义于arch/x86/kernel/entry_32.S，参见系统调用节
+	 * system_call为系统调用总控程序，定义于arch/x86/kernel/entry_32.S，参见[5.5 系统调用]节
 	 * 系统调用使用int 0x80中断，system_call根据系统调用号(保存于eax)查询sys_call_table，
 	 * 找到对应的处理程序并执行
 	 */
@@ -9862,7 +9862,9 @@ void __init trap_init(void)
 }
 ```
 
-idt_table[]示意图，参见Subjects/Chapter04_Boot/Figures/idt_table[].jpg
+idt_table[]示意图:
+
+![idt_table](/assets/idt_table.jpg)
 
 ###### 4.3.4.1.4.3.5.1 设置idt_table表项
 
@@ -9919,25 +9921,25 @@ static inline void set_system_trap_gate(unsigned int n, void *addr)
 
 ```
 static inline void _set_gate(int gate, unsigned type, void *addr, unsigned dpl,
-									unsigned ist, unsigned seg)
+			     unsigned ist, unsigned seg)
 {
 	gate_desc s;
 
-	// 参见pack_gate()节
+	// 参见[4.3.4.1.4.3.5.1.1 pack_gate()]节
 	pack_gate(&s, type, (unsigned long)addr, dpl, ist, seg);
 
 	/*
 	 * does not need to be atomic because it is only done once at
 	 * setup time
 	 */
-	// 将描述符s拷贝到idt_table[gate]项中，参见write_idt_entry()节
+	// 将描述符s拷贝到idt_table[gate]项中，参见[4.3.4.1.4.3.5.1.2 write_idt_entry()]节
 	write_idt_entry(idt_table, gate, &s);
 }
 ```
 
 ###### 4.3.4.1.4.3.5.1.1 pack_gate()
 
-pack_gate()定义于arch/x86/include/asm/desc.h：
+函数```pack_gate()```定义于arch/x86/include/asm/desc.h：
 
 ```
 #ifdef CONFIG_X86_64
@@ -9960,11 +9962,11 @@ static inline void pack_gate(gate_desc *gate, unsigned type, unsigned long func,
 #else
 
 /*
- * 给指定的描述符赋值，参见段描述符节
+ * 给指定的描述符赋值，参见[6.1.1.1 段描述符/Segment Descriptor]节
  * 注意：没有定义宏CONFIG_X86_64的情况下，入参flags是无效的
  */
 static inline void pack_gate(gate_desc *gate, unsigned char type, unsigned long base,
-					  unsigned dpl, unsigned flags, unsigned short seg)
+			     unsigned dpl, unsigned flags, unsigned short seg)
 {
 	gate->a = (seg << 16) | (base & 0xffff);
 	gate->b = (base & 0xffff0000) | (((0x80 | type | (dpl << 5)) & 0xff) << 8);
@@ -10002,16 +10004,19 @@ static void __init mm_init(void)
 	 * and it's bigger than MAX_ORDER unless SPARSEMEM.
 	 */
 	page_cgroup_init_flatmem();
-	mem_init();				// 参见mem_init()节
-	kmem_cache_init();			// 参见 General Cache/kmem_cache_init()节
+	mem_init();				// 参见[4.3.4.1.4.3.6.1 mem_init()]节
+	kmem_cache_init();			// 参见[6.5.1.1.1 Initialize General Cache/kmem_cache_init()]节
 	percpu_init_late();
 	pgtable_cache_init();
 	vmalloc_init();
 }
+```
 
-4.3.4.1.4.3.6.1 mem_init()
+###### 4.3.4.1.4.3.6.1 mem_init()
 
 该函数定义于arch/x86/mm/init_32.c:
+
+```
 void __init mem_init(void)
 {
 	int codesize, reservedpages, datasize, initsize;
@@ -10023,7 +10028,7 @@ void __init mem_init(void)
 	BUG_ON(!mem_map);
 #endif
 	/* this will put all low memory onto the freelists */
-	// 参见free_all_bootmem()/free_all_bootmem_core()节
+	// 参见[4.3.4.1.4.3.6.1.1 free_all_bootmem()/free_all_bootmem_core()]节
 	totalram_pages += free_all_bootmem();
 
 	reservedpages = 0;
@@ -10038,7 +10043,7 @@ void __init mem_init(void)
 		if (page_is_ram(tmp) && PageReserved(pfn_to_page(tmp)))
 			reservedpages++;
 
-	// 将高端内存转入Buddy Allocator System中管理，参见set_highmem_pages_init()节
+	// 将高端内存转入Buddy Allocator System中管理，参见[4.3.4.1.4.3.6.1.2 set_highmem_pages_init()]节
 	set_highmem_pages_init();
 
 	// 各变量的含义参见错误：引用源未找到
@@ -10046,14 +10051,14 @@ void __init mem_init(void)
 	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
 	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
 
-	// 打印输出参见early_node_map[]=>node_data[]->node_zones[]节NOTE 13
+	// 打印输出参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节NOTE 13
 	printk(KERN_INFO "Memory: %luk/%luk available "
 		"(%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
 		nr_free_pages() << (PAGE_SHIFT-10), num_physpages << (PAGE_SHIFT-10),
 		codesize >> 10, reservedpages << (PAGE_SHIFT-10),
 		datasize >> 10, initsize >> 10, totalhigh_pages << (PAGE_SHIFT-10));
 
-	// 打印输出参见early_node_map[]=>node_data[]->node_zones[]节NOTE 13
+	// 打印输出参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节NOTE 13
 	printk(KERN_INFO "virtual kernel memory layout:\n"
 		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
 #ifdef CONFIG_HIGHMEM
@@ -10116,7 +10121,7 @@ void __init mem_init(void)
 
 ###### 4.3.4.1.4.3.6.1.1 free_all_bootmem()/free_all_bootmem_core()
 
-Once free_all_bootmem() returns, all the pages in ZONE_NORMAL have been given to the buddy allocator. See section early_node_map[]=>node_data[]->node_zones[].
+Once free_all_bootmem() returns, all the pages in ZONE_NORMAL have been given to the buddy allocator. See section [6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-).
 
 函数free_all_bootmem()定义于mm/bootmem.c:
 
@@ -10133,8 +10138,8 @@ unsigned long __init free_all_bootmem(void)
 	bootmem_data_t *bdata;
 
 	/*
-	 * 类型bootmem_data_t参见Boot Memory Allocator/bootmem_data_t节，
-	 * 变量bdata_list参见链表，函数free_all_bootmem_core()参见下文
+	 * 类型bootmem_data_t参见[6.2.9 Boot Memory Allocator/bootmem_data_t]节，
+	 * 变量bdata_list参见[6.2.9.1 变量bdata_list]，函数free_all_bootmem_core()参见下文
 	 */
 	list_for_each_entry(bdata, &bdata_list, list)
 		total_pages += free_all_bootmem_core(bdata);
@@ -10206,7 +10211,7 @@ static unsigned long __init free_all_bootmem_core(bootmem_data_t *bdata)
 	pages = bootmem_bootmap_pages(pages);
 	count += pages;
 	while (pages--)
-		__free_pages_bootmem(page++, 0);					// 参见下文
+		__free_pages_bootmem(page++, 0);				// 参见下文
 
 	bdebug("nid=%td released=%lx\n", bdata - bootmem_node_data, count);
 
@@ -10223,8 +10228,8 @@ void __meminit __free_pages_bootmem(struct page *page, unsigned int order)
 		__ClearPageReserved(page);		// 复位page->flags中的标志位PG_reserved
 		set_page_count(page, 0);		// page->_count = 0
 		set_page_refcounted(page);		// page->_count = 1
-		__free_page(page);			// 参见__free_page()/free_page()节
-	} else {						// 释放2order个页面
+		__free_page(page);			// 参见[6.4.2.4 __free_page()/free_page()]节
+	} else {					// 释放2order个页面
 		int loop;
 
 		prefetchw(page);
@@ -10238,7 +10243,7 @@ void __meminit __free_pages_bootmem(struct page *page, unsigned int order)
 		}
 
 		set_page_refcounted(page);		// page->_count = 1
-		__free_pages(page, order);		// 参见free_pages()/__free_pages()节
+		__free_pages(page, order);		// 参见[6.4.2.4 __free_page()/free_page()]节
 	}
 }
 ```
@@ -10294,8 +10299,8 @@ void __init add_highpages_with_active_regions(int nid, unsigned long start_pfn, 
 			page = pfn_to_page(node_pfn);
 			/*
 			 * 调用__free_page()将该页加入到Buddy Allocator System中
-			 * 参见early_node_map[]=>node_data[]->node_zones[]节
-			 * 和__free_page()/free_page()节
+			 * 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)节
+			 * 和[6.4.2.4 __free_page()/free_page()]节
 			 */
 			add_one_highpage_init(page);
 		}
@@ -10320,7 +10325,7 @@ void __init sched_init(void)
 	 */
 	/*
 	 * 将当前进程作为idle进程，放置到当然CPU运行队列的rq->idle域，
-	 * 参见运行队列结构/struct rq节
+	 * 参见[7.4.2.1 运行队列结构/struct rq]节
 	 */
 	init_idle(current, smp_processor_id());
 
@@ -10338,7 +10343,7 @@ void __init sched_init(void)
 
 ###### 4.3.4.1.4.3.8 early_irq_init()
 
-该函数用于初始化数组irq_desc[](参见[struct irq_desc](#)节)，其定义于kernel/irq/irqdesc.c:
+该函数用于初始化数组irq_desc[]，参见[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节，其定义于kernel/irq/irqdesc.c:
 
 ```
 #ifdef CONFIG_SPARSE_IRQ
@@ -10418,17 +10423,17 @@ void __init init_IRQ(void)
 	 * irq's migrate etc.
 	 */
 	/*
-	 * legacy_pic参见legacy_pic / x86_init节，其中legacy_pic->nr_legacy_irqs
-	 * 取值为NR_IRQS_LEGACY，即16。因而，此处设置IRQ 0x30..0x3F，参见vector_irq节
-	 * IRQ0_VECTOR定义于arch/x86/include/asm/irq_vectors.h，取值为48，参见中断处理简介节
+	 * legacy_pic参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节，其中legacy_pic->nr_legacy_irqs
+	 * 取值为NR_IRQS_LEGACY，即16。因而，此处设置IRQ 0x30..0x3F，参见[9.3.1.1 vector_irq[]]节
+	 * IRQ0_VECTOR定义于arch/x86/include/asm/irq_vectors.h，取值为48，参见[9.1 中断处理简介]节
 	 */
 	for (i = 0; i < legacy_pic->nr_legacy_irqs; i++)
 		per_cpu(vector_irq, 0)[IRQ0_VECTOR + i] = i;
 
 	/*
-	 * x86_init参见legacy_pic / x86_init节，其中x86_init.irqs.intr_init
+	 * x86_init参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节，其中x86_init.irqs.intr_init
 	 * 取值为native_init_IRQ。因而，如下语句调用函数native_init_IRQ()，
-	 * 参见native_init_IRQ()节
+	 * 参见[4.3.4.1.4.3.9.2 native_init_IRQ()]节
 	 */
 	x86_init.irqs.intr_init();
 }
@@ -10440,8 +10445,8 @@ void __init init_IRQ(void)
 
 ```
 struct irq_chip i8259A_chip = {
-	.name			= "XT-PIC",
-	.irq_mask		= disable_8259A_irq,
+	.name		= "XT-PIC",
+	.irq_mask	= disable_8259A_irq,
 	.irq_disable	= disable_8259A_irq,
 	.irq_unmask	= enable_8259A_irq,
 	.irq_mask_ack	= mask_and_ack_8259A,
@@ -10453,11 +10458,11 @@ struct legacy_pic default_legacy_pic = {
 	.chip  		= &i8259A_chip,
 	.mask 		= mask_8259A_irq,
 	.unmask		= unmask_8259A_irq,
-	.mask_all 		= mask_8259A,
+	.mask_all 	= mask_8259A,
 	.restore_mask 	= unmask_8259A,
 	.init 		= init_8259A,
 	.irq_pending 	= i8259A_irq_pending,
-	.make_irq 		= make_8259A_irq,
+	.make_irq 	= make_8259A_irq,
 };
 
 struct legacy_pic *legacy_pic = &default_legacy_pic;
@@ -10537,13 +10542,13 @@ void __init native_init_IRQ(void)
 	int i;
 
 	/*
-	 * x86_init参见legacy_pic / x86_init节，其中x86_init.irqs.pre_vector_init
-	 * 取值为init_ISA_irqs，因而如下语句调用函数init_ISA_irqs()，参见init_ISA_irqs()节
+	 * x86_init参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节，其中x86_init.irqs.pre_vector_init
+	 * 取值为init_ISA_irqs，因而如下语句调用函数init_ISA_irqs()，参见[4.3.4.1.4.3.9.2.1 init_ISA_irqs()]节
 	 */
 	/* Execute any quirks before the call gates are initialised: */
 	x86_init.irqs.pre_vector_init();
 
-	// 参见apic_intr_init()节
+	// 参见[4.3.4.1.4.3.9.2.2 apic_intr_init()]节
 	apic_intr_init();
 
 	/*
@@ -10556,10 +10561,10 @@ void __init native_init_IRQ(void)
 		 * IA32_SYSCALL_VECTOR could be used in trap_init already.
 		 * used_vectors定义于arch/x86/kernel/traps.c
 		 * used_vectors is BITMAP for irq which is not managed by percpu vector_irq
-		 * used_vectors中的前32个比特位在trap_init()中被赋值，参见trap_init()节
+		 * used_vectors中的前32个比特位在trap_init()中被赋值，参见[4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节
 		 */
 		if (!test_bit(i, used_vectors))
-			// 数组interrupt[]参见interrupt[]节
+			// 数组interrupt[]参见[4.3.4.1.4.3.9.2.3 interrupt[]](#4-3-4-1-4-3-9-2-3-interrupt-)节
 			set_intr_gate(i, interrupt[i-FIRST_EXTERNAL_VECTOR]);
 	}
 
@@ -10582,12 +10587,12 @@ void __init native_init_IRQ(void)
 
 ###### 4.3.4.1.4.3.9.2.1 init_ISA_irqs()
 
-该函数用于设置ISA中断(IRQ 0x30-0x3F，参见中断处理简介节)所对应的中断处理程序，其定义于arch/x86/kernel/irqinit.c:
+该函数用于设置ISA中断(IRQ 0x30-0x3F，参见[9.1 中断处理简介](#9-1-)节)所对应的中断处理程序，其定义于arch/x86/kernel/irqinit.c:
 
 ```
 void __init init_ISA_irqs(void)
 {
-	// 外部可屏蔽中断采用8259A中断控制器，参见legacy_pic / x86_init节和节
+	// 外部可屏蔽中断采用8259A中断控制器，参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节和节
 	struct irq_chip *chip = legacy_pic->chip;
 	const char *name = chip->name;
 	int i;
@@ -10595,7 +10600,7 @@ void __init init_ISA_irqs(void)
 #if defined(CONFIG_X86_64) || defined(CONFIG_X86_LOCAL_APIC)
 	init_bsp_APIC();
 #endif
-	// 调用init_8259A()初始化8259A中断控制器，参见legacy_pic / x86_init节
+	// 调用init_8259A()初始化8259A中断控制器，参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节
 	legacy_pic->init(0);
 
 	// 依次设置8259A控制的16个中断向量对应的中断处理函数，即handle_level_irq()
@@ -10663,7 +10668,7 @@ void __irq_set_handler(unsigned int irq, irq_flow_handler_t handle, int is_chain
 		irq_state_set_disabled(desc);
 		desc->depth = 1;
 	}
-	// 设置中断处理函数为handle_level_irq()，参见desc->handle_irq()/handle_level_irq()节
+	// 设置中断处理函数为handle_level_irq()，参见[9.3.1.2.1 desc->handle_irq()/handle_level_irq()]节
 	desc->handle_irq = handle;
 	desc->name = name;
 
@@ -10688,7 +10693,7 @@ static void __init apic_intr_init(void)
 	smp_intr_init();
 
 #ifdef CONFIG_X86_THERMAL_VECTOR
-	alloc_intr_gate(THERMAL_APIC_VECTOR, thermal_interrupt); 		// IRQ 0xFA
+	alloc_intr_gate(THERMAL_APIC_VECTOR, thermal_interrupt); 	// IRQ 0xFA
 #endif
 #ifdef CONFIG_X86_MCE_THRESHOLD
 	alloc_intr_gate(THRESHOLD_APIC_VECTOR, threshold_interrupt); 	// IRQ 0xF9
@@ -10696,18 +10701,18 @@ static void __init apic_intr_init(void)
 
 #if defined(CONFIG_X86_64) || defined(CONFIG_X86_LOCAL_APIC)
 	/* self generated IPI for local APIC timer */
-	alloc_intr_gate(LOCAL_TIMER_VECTOR, apic_timer_interrupt); 		// IRQ 0xEF
+	alloc_intr_gate(LOCAL_TIMER_VECTOR, apic_timer_interrupt); 	// IRQ 0xEF
 
 	/* IPI for X86 platform specific use */
 	alloc_intr_gate(X86_PLATFORM_IPI_VECTOR, x86_platform_ipi); 	// IRQ 0xF7
 
 	/* IPI vectors for APIC spurious and error interrupts */
-	alloc_intr_gate(SPURIOUS_APIC_VECTOR, spurious_interrupt); 		// IRQ 0xFF
-	alloc_intr_gate(ERROR_APIC_VECTOR, error_interrupt); 			// IRQ 0xFE
+	alloc_intr_gate(SPURIOUS_APIC_VECTOR, spurious_interrupt); 	// IRQ 0xFF
+	alloc_intr_gate(ERROR_APIC_VECTOR, error_interrupt); 		// IRQ 0xFE
 
 	/* IRQ work interrupts: */
 # ifdef CONFIG_IRQ_WORK
-	alloc_intr_gate(IRQ_WORK_VECTOR, irq_work_interrupt); 			// IRQ 0xF6
+	alloc_intr_gate(IRQ_WORK_VECTOR, irq_work_interrupt); 		// IRQ 0xF6
 # endif
 
 #endif
@@ -10767,8 +10772,8 @@ common_interrupt:
 	SAVE_ALL		// 保存中断处理程序可能用到的寄存器
 	TRACE_IRQS_OFF
 	movl %esp,%eax		// 把栈顶指针传给eax寄存器，该寄存器的内容将作为do_IRQ()函数的入参
-	call do_IRQ		// 调用do_IRQ()处理中断，参见do_IRQ()节
-	jmp ret_from_intr	// 参见ret_from_intr节
+	call do_IRQ		// 调用do_IRQ()处理中断，参见[9.3.1 do_IRQ()]节
+	jmp ret_from_intr	// 参见[9.3.2 ret_from_intr]节
 ENDPROC(common_interrupt)
 	CFI_ENDPROC
 ```
@@ -10803,9 +10808,9 @@ void __init softirq_init(void)
 	for_each_possible_cpu(cpu) {
 		int i;
 
-		// 参见struct tasklet_节
+		// 参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节
 		per_cpu(tasklet_vec, cpu).tail = &per_cpu(tasklet_vec, cpu).head;
-		// 参见struct tasklet_节
+		// 参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节
 		per_cpu(tasklet_hi_vec, cpu).tail = &per_cpu(tasklet_hi_vec, cpu).head;
 		for (i = 0; i < NR_SOFTIRQS; i++)
 			INIT_LIST_HEAD(&per_cpu(softirq_work_list[i], cpu));	// 参见softirq_work_list[]节
@@ -10839,7 +10844,7 @@ static void tasklet_action(struct softirq_action *a)
 {
 	struct tasklet_struct *list;
 
-	// 从tasklet_vec中获取列表，参见struct tasklet_节
+	// 从tasklet_vec中获取列表，参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节
 	local_irq_disable();
 	list = __this_cpu_read(tasklet_vec.head);
 	__this_cpu_write(tasklet_vec.head, NULL);
@@ -10930,16 +10935,16 @@ void __init vfs_caches_init(unsigned long mempages)
 	reserve = min((mempages - nr_free_pages()) * 3/2, mempages - 1);
 	mempages -= reserve;
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	names_cachep = kmem_cache_create("names_cache", PATH_MAX, 0,
-			SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
+					 SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
 
-	dcache_init();			// 参见dcache_init()节
-	inode_init();			// 参见inode_init()节
-	files_init(mempages); 	// 参见files_init()节
-	mnt_init();			// 参见mnt_init()节
-	bdev_cache_init();		// 参见bdev_cache_init()节
-	chrdev_init();			// 参见chrdev_init()节
+	dcache_init();			// 参见[4.3.4.1.4.3.11.1 dcache_init()]节
+	inode_init();			// 参见[4.3.4.1.4.3.11.2 inode_init()]节
+	files_init(mempages);		// 参见[4.3.4.1.4.3.11.3 files_init()]节
+	mnt_init();			// 参见[4.3.4.1.4.3.11.4 mnt_init()]节
+	bdev_cache_init();		// 参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节
+	chrdev_init();			// 参见[4.3.4.1.4.3.11.6 chrdev_init()]节
 }
 ```
 
@@ -10965,7 +10970,7 @@ static void __init dcache_init(void)
 	 */
 	dentry_cache = KMEM_CACHE(dentry, SLAB_RECLAIM_ACCOUNT|SLAB_PANIC|SLAB_MEM_SPREAD);
 
-	// 参见dcache_init_early()节
+	// 参见[4.3.4.1.4.3.4.1 dcache_init_early()]节
 	/* Hash may have been set up in dcache_init_early */
 	if (!hashdist)
 		return;
@@ -11000,7 +11005,7 @@ void __init inode_init(void)
 	int loop;
 
 	/* inode slab cache */
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	inode_cachep = kmem_cache_create("inode_cache",
 					 sizeof(struct inode),
 					 0,
@@ -11008,7 +11013,7 @@ void __init inode_init(void)
 					 SLAB_MEM_SPREAD),
 					 init_once);
 
-	// 参见inode_init_early()节
+	// 参见[4.3.4.1.4.3.4.2 inode_init_early()]节
 	/* Hash may have been set up in inode_init_early */
 	if (!hashdist)
 		return;
@@ -11046,7 +11051,7 @@ void __init files_init(unsigned long mempages)
 {
 	unsigned long n;
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	filp_cachep = kmem_cache_create("filp", sizeof(struct file), 0,
 			SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL);
 
@@ -11060,8 +11065,8 @@ void __init files_init(unsigned long mempages)
 	 * max_t()取n和NR_FILE中的最大值
 	 */
 	files_stat.max_files = max_t(unsigned long, n, NR_FILE);
-	files_defer_init();				// 参见files_defer_init()节
-	lg_lock_init(files_lglock);			// 实际调用函数files_lglock_lock_init()
+	files_defer_init();			// 参见[4.3.4.1.4.3.11.3.1 files_defer_init()]节
+	lg_lock_init(files_lglock);		// 实际调用函数files_lglock_lock_init()
 	percpu_counter_init(&nr_files, 0);	// 将nr_files.count设置为0
 }
 ```
@@ -11103,7 +11108,9 @@ static void __devinit fdtable_defer_list_init(int cpu)
 }
 ```
 
-变量fdtable_defer_list的结构，参见Subjects/Chapter04_Boot/Figures/fdtable_defer_list.jpg
+变量fdtable_defer_list的结构:
+
+![fdtable_defer_list](/assets/fdtable_defer_list.jpg)
 
 ###### 4.3.4.1.4.3.11.4 mnt_init()
 
@@ -11126,9 +11133,9 @@ void __init mnt_init(void)
 
 	init_rwsem(&namespace_sem);
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	mnt_cache = kmem_cache_create("mnt_cache", sizeof(struct vfsmount),
-						   0, SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL);
+				      0, SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL);
 
 	mount_hashtable = (struct list_head *)__get_free_page(GFP_ATOMIC);
 
@@ -11143,7 +11150,7 @@ void __init mnt_init(void)
 	br_lock_init(vfsmount_lock);
 
 	/*
-	 * 注册并安装sysfs文件系统，参见sysfs_init()节:
+	 * 注册并安装sysfs文件系统，参见[4.3.4.1.4.3.11.4.1 sysfs_init()]节:
 	 * - 注册sysfs文件系统后，file_systems链表中添加了一个新元素sysfs_fs_type；
 	 * - 安装sysfs文件系统后，生成了sysfs_mnt。通常，sysfs文件系统被安装在/sys下，
 	 *   可通过 # mount 命令查看
@@ -11152,15 +11159,15 @@ void __init mnt_init(void)
 	if (err)
 		printk(KERN_WARNING "%s: sysfs_init error: %d\n", __func__, err);
 
-	// 创建sysfs文件系统的fs子目录，参见kobject_create_and_add()节
+	// 创建sysfs文件系统的fs子目录，参见[15.7.1.2 kobject_create_and_add()]节
 	fs_kobj = kobject_create_and_add("fs", NULL);
 	if (!fs_kobj)
 		printk(KERN_WARNING "%s: kobj create error\n", __func__);
 
-	// 注册rootfs文件系统，参见init_rootfs()节
+	// 注册rootfs文件系统，参见[4.3.4.1.4.3.11.4.2 init_rootfs()]节
 	init_rootfs();
 
-	// 安装rootfs文件系统，生成系统根目录/，参见init_mount_tree()节和[NOTE]
+	// 安装rootfs文件系统，生成系统根目录/，参见[4.3.4.1.4.3.11.4.3 init_mount_tree()]节和[NOTE]
 	init_mount_tree();
 }
 ```
@@ -11173,11 +11180,11 @@ void __init mnt_init(void)
 start_kernel()
 -> vfs_caches_init()
    -> mnt_init()
-      -> init_mount_tree()			// 设置根文件系统
+      -> init_mount_tree()		// 设置根文件系统
 -> rest_init()
    -> kernel_init()
       -> do_pre_smp_initcalls()		// 加载设备驱动
-      -> do_basic_setup()			// 加载设备驱动
+      -> do_basic_setup()		// 加载设备驱动
 ```
 
 ###### 4.3.4.1.4.3.11.4.1 sysfs_init()
@@ -11192,7 +11199,7 @@ int __init sysfs_init(void)
 {
 	int err = -ENOMEM;
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	sysfs_dir_cachep = kmem_cache_create("sysfs_dir_cache", sizeof(struct sysfs_dirent), 0, 0, NULL);
 	if (!sysfs_dir_cachep)
 		goto out;
@@ -11202,16 +11209,16 @@ int __init sysfs_init(void)
 	if (err)
 		goto out_err;
 
-	// 将sysfs文件系统注册到file_systems中，参见注册/注销文件系统节和11.3.5.2 Sysfs的编译及初始化节
+	// 将sysfs文件系统注册到file_systems中，参见[11.2.2.1 注册/注销文件系统]节和[11.3.5.2 Sysfs的编译及初始化]节
 	err = register_filesystem(&sysfs_fs_type);
 	if (!err) {
-		// 安装sysfs文件系统，参见安装文件系统节
+		// 安装sysfs文件系统，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 		sysfs_mnt = kern_mount(&sysfs_fs_type);
 		if (IS_ERR(sysfs_mnt)) {
 			printk(KERN_ERR "sysfs: could not mount!\n");
 			err = PTR_ERR(sysfs_mnt);
 			sysfs_mnt = NULL;
-			// 若出错，则从file_systems中注销文件系统sysfs_fs_type，参见注册/注销文件系统节
+			// 若出错，则从file_systems中注销文件系统sysfs_fs_type，参见[11.2.2.1 注册/注销文件系统]节
 			unregister_filesystem(&sysfs_fs_type);
 			goto out_err;
 		}
@@ -11252,7 +11259,7 @@ int __init init_rootfs(void)
 
 	/*
 	 * 将rootfs文件系统注册到file_systems中，
-	 * 参见注册/注销文件系统节和11.3.2.2 Rootfs编译与初始化及安装过程节
+	 * 参见[11.2.2.1 注册/注销文件系统]节和[11.3.2.2 Rootfs编译与初始化及安装过程]节
 	 */
 	err = register_filesystem(&rootfs_fs_type);
 	if (err)
@@ -11274,8 +11281,8 @@ static void __init init_mount_tree(void)
 	struct path root;
 
 	/*
-	 * 文件系统rootfs的注册，参见do_kern_mount()节；
-	 * 此过程中调用了rootfs_mount()，参见rootfs_mount()节
+	 * 文件系统rootfs的注册，参见[11.2.2.4.1.2.1 do_kern_mount()]节；
+	 * 此过程中调用了rootfs_mount()，参见[11.2.2.2.1.2.2 rootfs_mount()]节
 	 */
 	mnt = do_kern_mount("rootfs", 0, "rootfs", NULL);
 	if (IS_ERR(mnt))
@@ -11287,7 +11294,7 @@ static void __init init_mount_tree(void)
 		panic("Can't allocate initial namespace");
 
 	init_task.nsproxy->mnt_ns = ns;		// 设置INIT进程的根目录
-	get_mnt_ns(ns);					// 增加ns->count计数
+	get_mnt_ns(ns);				// 增加ns->count计数
 
 	root.mnt = ns->root;
 	root.dentry = ns->root->mnt_root;
@@ -11300,7 +11307,9 @@ static void __init init_mount_tree(void)
 }
 ```
 
-函数init_mount_tree()执行后的数据结构，参见Subjects/Chapter04_Boot/Figures/init_mount_tree().jpg
+函数init_mount_tree()执行后的数据结构:
+
+![init_mount_tree](/assets/init_mount_tree.jpg)
 
 此后，由init_task进程fork出来的子进程也继承了init_task->nsproxy->mnt_ns信息，参见copy_process()节中的:
 
@@ -11313,7 +11322,7 @@ retval = copy_fs(clone_flags, p);
 ###### 4.3.4.1.4.3.11.5 bdev_cache_init()
 
 * 字符设备初始化函数之一：bdev_cache_init()，参见本节
-* 字符设备初始化函数之二：genhd_device_init()，参见【[10.4.2 块设备的初始化/genhd_device_init()](#)节
+* 字符设备初始化函数之二：genhd_device_init()，参见[10.4.2 块设备的初始化/genhd_device_init()](#10-4-2-genhd-device-init-)节
 
 该函数定义于fs/block_dev.c:
 
@@ -11339,16 +11348,16 @@ void __init bdev_cache_init(void)
 	int err;
 	struct vfsmount *bd_mnt;
 
-	// 创建块设备缓存，参见Create a Specific Cache/kmem_cache_create()节
+	// 创建块设备缓存，参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	bdev_cachep = kmem_cache_create("bdev_cache", sizeof(struct bdev_inode), 0,
  			 (SLAB_HWCACHE_ALIGN|SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_PANIC), init_once);
 
-	// 注册bdev文件系统到file_systems，参见注册/注销文件系统节
+	// 注册bdev文件系统到file_systems，参见[11.2.2.1 注册/注销文件系统]节
 	err = register_filesystem(&bd_type);
 	if (err)
 		panic("Cannot register bdev pseudo-fs");
 
-	// 安装bdev文件系统，参见安装文件系统节
+	// 安装bdev文件系统，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 	bd_mnt = kern_mount(&bd_type);
 	if (IS_ERR(bd_mnt))
 		panic("Cannot create bdev pseudo-fs");
@@ -11364,7 +11373,7 @@ void __init bdev_cache_init(void)
 ###### 4.3.4.1.4.3.11.6 chrdev_init()
 
 * 字符设备初始化函数之一：chrdev_init()，参见本节
-* 字符设备初始化函数之二：chr_dev_init()，参见[10.3.2 字符设备的初始化/chr_dev_init()](#)节
+* 字符设备初始化函数之二：chr_dev_init()，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节
 
 该函数定义于fs/char_dev.c:
 
@@ -11390,8 +11399,8 @@ void __init chrdev_init(void)
 {
 	/*
 	 * 变量cdev_map在如下函数中被访问：
-	 * - cdev_map(), 参见10.3.3.3.3.1 cdev_add()节
-	 * - kobj_lookup(), 参见10.3.3.3.4.1 kobj_lookup()节
+	 * - cdev_map(), 参见[10.3.3.3.3.1 cdev_add()]节
+	 * - kobj_lookup(), 参见[10.3.3.3.4.1 kobj_lookup()]节
 	 */
 	cdev_map = kobj_map_init(base_probe, &chrdevs_lock);
 	bdi_init(&directly_mappable_cdev_bdi);
@@ -11400,9 +11409,9 @@ void __init chrdev_init(void)
 
 初始化完成后的数据结构:
 
-Subjects/Chapt er10_Device_Driver/01_Char_Device/Figures/chrdevs[]\_2.jpg
+![chrdevs_2](/assets/chrdevs_2.jpg)
 
-图中struct probe的域data指向struct cdev类型的对象，由函数cdev_add()设置，参见[10.3.3.3.3.1 cdev_add()](#)节。
+图中struct probe的域data指向struct cdev类型的对象，由函数cdev_add()设置，参见[10.3.3.3.3.1 cdev_add()](#10-3-3-3-3-1-cdev-add-)节。
 
 ###### 4.3.4.1.4.3.12 proc_root_init()
 
@@ -11411,7 +11420,7 @@ Subjects/Chapt er10_Device_Driver/01_Char_Device/Figures/chrdevs[]\_2.jpg
 ```
 static struct file_system_type proc_fs_type = {
 	.name		= "proc",
-	.mount	= proc_mount,	// 参见proc_mount()节
+	.mount		= proc_mount,	// 参见[11.2.2.2.1.2.4 proc_mount()]节
 	.kill_sb	= proc_kill_sb,
 };
 
@@ -11423,9 +11432,9 @@ struct pid_namespace init_pid_ns = {
 		[ 0 ... PIDMAP_ENTRIES-1] = { ATOMIC_INIT(BITS_PER_PAGE), NULL }
 	},
 	.last_pid		= 0,
-	.level		= 0,
-	// 初始化进程描述符，参见进程0/swapper, swapper/0, swapper/1, ...节
-	.child_reaper	= &init_task,
+	.level			= 0,
+	// 初始化进程描述符，参见[7.2.4.1 进程0/swapper, swapper/0, swapper/1, ...]节
+	.child_reaper		= &init_task,
 };
 
 void __init proc_root_init(void)
@@ -11434,13 +11443,13 @@ void __init proc_root_init(void)
 
 	// 分配缓存空间proc_inode_cachep
 	proc_init_inodecache();
-	// 注册proc文件系统，参见注册/注销文件系统节
+	// 注册proc文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	err = register_filesystem(&proc_fs_type);
 	if (err)
 		return;
 	/*
 	 * 通过调用kern_mount_data()来安装proc文件系统，
-	 * 参见安装文件系统(1)/kern_mount()节和proc_mount()节
+	 * 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节和[11.2.2.2.1.2.4 proc_mount()]节
 	 */
 	err = pid_ns_prepare_proc(&init_pid_ns);
 	if (err) {
@@ -11450,7 +11459,7 @@ void __init proc_root_init(void)
 
 	/*
 	 * 创建/proc/mounts到/proc/self/mounts的链接，即/proc/mounts -> /proc/self/mounts
-	 * 通过命令 # cat /proc/mounts，可以查看当前系统中安装的文件系统，参见具体的文件系统节
+	 * 通过命令 # cat /proc/mounts，可以查看当前系统中安装的文件系统，参见[11.3 具体的文件系统]节
 	 */
 	proc_symlink("mounts", NULL, "self/mounts");
 
@@ -11458,15 +11467,15 @@ void __init proc_root_init(void)
 	proc_net_init();
 
 #ifdef CONFIG_SYSVIPC
-	proc_mkdir("sysvipc", NULL);	// 创建/proc/sysvipc目录
+	proc_mkdir("sysvipc", NULL);		// 创建/proc/sysvipc目录
 #endif
-	proc_mkdir("fs", NULL);		// 创建/proc/fs目录
+	proc_mkdir("fs", NULL);			// 创建/proc/fs目录
 	proc_mkdir("driver", NULL);		// 创建/proc/drivers目录
 	// 创建/proc/fs/nfsd目录
-	proc_mkdir("fs/nfsd", NULL);	/* somewhere for the nfsd filesystem to be mounted */
+	proc_mkdir("fs/nfsd", NULL);		/* somewhere for the nfsd filesystem to be mounted */
 #if defined(CONFIG_SUN_OPENPROMFS) || defined(CONFIG_SUN_OPENPROMFS_MODULE)
 	/* just give it a mountpoint */
-	proc_mkdir("openprom", NULL);	// 创建/proc/openprom目录
+	proc_mkdir("openprom", NULL);		// 创建/proc/openprom目录
 #endif
 	/*
 	 * 创建目录: /proc/tty, /proc/tty/ldisc, /proc/tty/driver,
@@ -11477,16 +11486,17 @@ void __init proc_root_init(void)
 	proc_device_tree_init();		// 创建/proc/device-tree目录
 #endif
 	proc_mkdir("bus", NULL);		// 创建/proc/bus目录
-	proc_sys_init();				// 创建/proc/sys目录
+	proc_sys_init();			// 创建/proc/sys目录
 }
 ```
 
 ###### 4.3.4.1.4.3.13 rest_init()
 
-在start_kernel()函数的最后，调用rest_init()函数进行后续的初始化。在init/main.c中，包含如下有关rest_init()的代码：
+在函数```start_kernel()```的最后，调用函数```rest_init()```进行后续的初始化。在init/main.c中，包含如下有关```rest_init()```的代码：
 
 ```
-static __initdata DECLARE_COMPLETION(kthreadd_done);     // 定义并初始化变量kthreadd_done
+// 定义并初始化变量kthreadd_done
+static __initdata DECLARE_COMPLETION(kthreadd_done);
 
 ...
 static noinline void __init_refok rest_init(void)
@@ -11500,14 +11510,14 @@ static noinline void __init_refok rest_init(void)
 	 * we schedule it before we create kthreadd, will OOPS.
 	 */
 	/*
-	 * 调用kernel_thread()创建pid=1的内核线程，即init线程，参见kernel_thread()节。
-	 * 该线程将执行kernel_init()函数，参见kernel_init()节
+	 * 调用kernel_thread()创建pid=1的内核线程，即init线程，参见[7.2.1.4 kernel_thread()]节。
+	 * 该线程将执行kernel_init()函数，参见[4.3.4.1.4.3.13.1 kernel_init()]节
 	 */
 	kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
 	numa_default_policy();
 	/*
-	 * 调用kernel_thread()创建pid=2的内核线程，即kthreadd线程，参见kernel_thread()节。
-	 * 该线程执行kthreadd()函数，参见kthreadd()节。
+	 * 调用kernel_thread()创建pid=2的内核线程，即kthreadd线程，参见[7.2.1.4 kernel_thread()]节。
+	 * 该线程执行kthreadd()函数，参见[4.3.4.1.4.3.13.2 kthreadd()]节。
 	 * 对于全局链表kthread_create_list中的每一项，执行函数kthread()
 	 */
 	pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
@@ -11515,7 +11525,7 @@ static noinline void __init_refok rest_init(void)
 	// kthreadd_task的定义参见kernel/kthread.c: struct task_struct *kthreadd_task;
 	kthreadd_task = find_task_by_pid_ns(pid, &init_pid_ns);
 	rcu_read_unlock();
-	// 通知kernel_init进程，kthreadd已经完成，参见kernel_init()节
+	// 通知kernel_init进程，kthreadd已经完成，参见[4.3.4.1.4.3.13.1 kernel_init()]节
 	complete(&kthreadd_done);
 
 	/*
@@ -11524,11 +11534,11 @@ static noinline void __init_refok rest_init(void)
 	 */
 	init_idle_bootup_task(current);
 	preempt_enable_no_resched();	// 与配置CONFIG_PREEMPT_COUNT有关，参见include/linux/preempt.h
-	schedule();				// 如果存在一个准备好的进程，则运行它；否则，调用下面的cpu_init()函数
+	schedule();			// 如果存在一个准备好的进程，则运行它；否则，调用下面的cpu_init()函数
 
 	/* Call into cpu_idle with preempt disabled */
-	preempt_disable();			// 与配置CONFIG_PREEMPT_COUNT有关，参见[16.10.2 preempt_disable()]节
-	cpu_idle();				// 参见cpu_idle()节
+	preempt_disable();		// 与配置CONFIG_PREEMPT_COUNT有关，参见[16.10.2 preempt_disable()]节
+	cpu_idle();			// 参见[4.3.4.1.4.3.13.3 cpu_idle()]节
 }
 ```
 
@@ -11542,7 +11552,7 @@ static int __init kernel_init(void * unused)
 	/*
 	 * Wait until kthreadd is all set-up.
 	 */
-	// 等待kthreadd完成，参见rest_init()节中的语句rest_init() -> complete(&kthreadd_done)
+	// 等待kthreadd完成，参见[4.3.4.1.4.3.13 rest_init()]节中的语句rest_init() -> complete(&kthreadd_done)
 	wait_for_completion(&kthreadd_done);
 	/*
 	 * init can allocate pages on any node
@@ -11557,13 +11567,13 @@ static int __init kernel_init(void * unused)
 
 	smp_prepare_cpus(setup_max_cpus);
 
-	do_pre_smp_initcalls();		// 参见do_pre_smp_initcalls()节
+	do_pre_smp_initcalls();		// 参见[4.3.4.1.4.3.13.1.1 do_pre_smp_initcalls()]节
 	lockup_detector_init();
 
 	smp_init();
 	sched_init_smp();
 
-	do_basic_setup();			// 参见do_basic_setup()节
+	do_basic_setup();		// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
 
 	/* Open the /dev/console on the rootfs, this should never fail */
 	if (sys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
@@ -11580,7 +11590,7 @@ static int __init kernel_init(void * unused)
 	 * 内核参数"rdinit="用于设置ramdisk_execute_command，
 	 * 参见init/main.c:rdinit_setup();
 	 * 若无内核参数"rdinit="，则设置ramdisk_execute_command="/init"，
-	 * 即initrd.img中的init，参见init_post()节
+	 * 即initrd.img中的init，参见[4.3.4.1.4.3.13.1.4 init_post()]节
 	 */
 	if (!ramdisk_execute_command)
 		ramdisk_execute_command = "/init";
@@ -11588,11 +11598,11 @@ static int __init kernel_init(void * unused)
 	/*
 	 * 若ramdisk_execute_command指定的初始化程序不存在，
 	 * 则复位ramdisk_execute_command = NULL;
-	 * 以避免init_post()执行该初始化程序，参见init_post()节
+	 * 以避免init_post()执行该初始化程序，参见[4.3.4.1.4.3.13.1.4 init_post()]节
 	 */
 	if (sys_access((const char __user *) ramdisk_execute_command, 0) != 0) {
 		ramdisk_execute_command = NULL;
-		prepare_namespace();		// 参见prepare_namespace()节
+		prepare_namespace();	// 参见[4.3.4.1.4.3.13.1.3 prepare_namespace()]节
 	}
 
 	/*
@@ -11600,7 +11610,7 @@ static int __init kernel_init(void * unused)
 	 * we're essentially up and running. Get rid of the
 	 * initmem segments and start the user-mode stuff..
 	 */
-	init_post();				// 参见init_post()节
+	init_post();			// 参见[4.3.4.1.4.3.13.1.4 init_post()]节
 	return 0;
 }
 ```
@@ -11617,7 +11627,7 @@ static void __init do_pre_smp_initcalls(void)
 	initcall_t *fn;
 
 	for (fn = __initcall_start; fn < __early_initcall_end; fn++)
-		do_one_initcall(*fn);		// 参见[13.5.1.1.1.2 do_one_initcall()]节
+		do_one_initcall(*fn);	// 参见[13.5.1.1.1.2 do_one_initcall()]节
 }
 ```
 
@@ -11629,9 +11639,9 @@ static void __init do_pre_smp_initcalls(void)
 static void __init do_basic_setup(void)
 {
 	cpuset_init_smp();
-	usermodehelper_init();	// 参见13.3.2.2.1 khelper_wq节
+	usermodehelper_init();		// 参见[13.3.2.2.1 khelper_wq]节
 	shmem_init();
-	driver_init();			// 参见10.2.1 设备驱动程序的初始化/driver_init()节
+	driver_init();			// 参见[10.2.1 设备驱动程序的初始化/driver_init()]节
 	init_irq_proc();
 	do_ctors();
 	usermodehelper_enable();
@@ -11711,11 +11721,11 @@ void __init prepare_namespace(void)
 
 	/*
 	 * Try #3: 若内核参数"root="代表的字符串以"UUID=<uuid>"开头，
-	 * 则需要加载initrd.image，并由其中的init程序(参见kernel_init()节)
+	 * 则需要加载initrd.image，并由其中的init程序(参见[4.3.4.1.4.3.13.1 kernel_init()]节)
 	 * 负责解析"root="字符串"UUID=<uuid>"，并挂在相应的设备。
 	 *
 	 * 函数initrd_load()用于加载映像/boot/initrd.img-3.11.0-12-generic，
-	 * 参见CONFIG_BLK_DEV_INITRD=y节
+	 * 参见[11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y]节
 	 *
 	 * 可通过下列命令解压initrd.img映像：
 	 *   $ mv initrd.img-3.11.0-12-generic initrd.img.gz
@@ -11748,15 +11758,15 @@ void __init prepare_namespace(void)
 	// 根据ROOT_DEV挂载根文件系统，参见下文；
 	mount_root();
 out:
-	// 挂载devtmpfs文件系统，参见Devtmpfs的安装节
+	// 挂载devtmpfs文件系统，参见[11.3.10.3 Devtmpfs的安装]节
 	devtmpfs_mount("dev");
 	/*
 	 * Moves the mount point of the mounted filesystem on the root
 	 * directory of the rootfs filesystem.
 	 * Notice that the rootfs special filesystem cannot be unmounted,
 	 * it's only hidden under the disk-based root filesystem.
-	 * 系统调用sys_mount()参见安装文件系统(2)/sys_mount()节，
-	 * 文件系统rootfs参见虚拟文件系统(VFS)的初始化节
+	 * 系统调用sys_mount()参见[11.2.2.4 安装文件系统(2)/sys_mount()]节，
+	 * 文件系统rootfs参见[11.2.3 虚拟文件系统(VFS)的初始化]节
 	 */
 	sys_mount(".", "/", NULL, MS_MOVE, NULL);
 	sys_chroot((const char __user __force *)".");
@@ -11808,7 +11818,7 @@ static noinline int init_post(void)
 {
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
-	free_initmem();		// 参见early_node_map[]=>node_data[]->node_zones[]节
+	free_initmem();		// 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节
 	mark_rodata_ro();
 	system_state = SYSTEM_RUNNING;
 	numa_default_policy();
@@ -11817,10 +11827,10 @@ static noinline int init_post(void)
 
 	/*
 	 * Try #1: 启动ramdisk_execute_command指定的初始化程序，
-	 *         其取值参见kernel_init()节的kernel_init():
+	 *         其取值参见[4.3.4.1.4.3.13.1 kernel_init()]节的kernel_init():
 	 *         a) 由内核参数"rdinit="指定，或者
 	 *         b) /init(此初始化程序由initrd.img加载而来，
-	 *            参见prepare_namespace()节的Try #3)
+	 *            参见[4.3.4.1.4.3.13.1.3 prepare_namespace()]节的Try #3)
 	 * 若该进程成功，则转到用户空间；否则，继续尝试
 	 */
 	if (ramdisk_execute_command) {
@@ -11842,7 +11852,7 @@ static noinline int init_post(void)
 	}
 	/*
 	 * 依次尝试启动如下初始化程序。若其中之一启动成功，
-	 * 则转到用户空间；否则，继续尝试。参见init节
+	 * 则转到用户空间；否则，继续尝试。参见[4.3.5 init]节
 	 */
 	run_init_process("/sbin/init");	// Try #3: /sbin/init
 	run_init_process("/etc/init");	// Try #4: /etc/init
@@ -11860,7 +11870,7 @@ static noinline int init_post(void)
 
 ###### 4.3.4.1.4.3.13.2 kthreadd()
 
-在kernel/kthread.c中，包含如下有关kthreadd()的代码(另参见[kthreadd进程](#)节)：
+在kernel/kthread.c中，包含如下有关kthreadd()的代码(另参见[7.2.4.3 kthreadd进程](#7-2-4-3-kthreadd-)节)：
 
 ```
 static LIST_HEAD(kthread_create_list);
@@ -11870,15 +11880,15 @@ int kthreadd(void *unused)
 	struct task_struct *tsk = current;
 
 	/* Setup a clean context for our children to inherit. */
-	set_task_comm(tsk, "kthreadd");				// 设置程序名称为kthreadd，参见程序名称节
-	ignore_signals(tsk); 						// 忽略所有信号
+	set_task_comm(tsk, "kthreadd");				// 设置程序名称为kthreadd，参见[7.1.1.25 程序名称]节
+	ignore_signals(tsk); 					// 忽略所有信号
 	set_cpus_allowed_ptr(tsk, cpu_all_mask);
 	set_mems_allowed(node_states[N_HIGH_MEMORY]);
 
 	current->flags |= PF_NOFREEZE | PF_FREEZER_NOSIG;
 
 	for (;;) {
-		set_current_state(TASK_INTERRUPTIBLE); 	// 设置当前进程为可中断睡眠状态
+		set_current_state(TASK_INTERRUPTIBLE); 		// 设置当前进程为可中断睡眠状态
 		// 如果链表kthread_create_list为空，则当前进程进入睡眠状态
 		if (list_empty(&kthread_create_list))
 			schedule();
@@ -11894,7 +11904,7 @@ int kthreadd(void *unused)
 			list_del_init(&create->list);
 			spin_unlock(&kthread_create_lock);
 
-			// 创建指定的内核线程，该线程执行函数kthread()，参见kthread_run()节
+			// 创建指定的内核线程，该线程执行函数kthread()，参见[7.2.4.4.1 kthread_run()]节
 			create_kthread(create);
 
 			spin_lock(&kthread_create_lock);
@@ -11908,7 +11918,7 @@ int kthreadd(void *unused)
 
 ###### 4.3.4.1.4.3.13.3 cpu_idle()
 
-在arch/x86/kernel/process_32.c中，包含如下有关cpu_idle()的代码：
+在arch/x86/kernel/process_32.c中，包含如下有关```cpu_idle()```的代码：
 
 ```
 /*
@@ -11952,11 +11962,11 @@ void cpu_idle(void)
 			start_critical_timings();
 		}
 		tick_nohz_restart_sched_tick();
-		// 与rest_init()中调用schedule()函数的方式类似，参见rest_init()节
+		// 与rest_init()中调用schedule()函数的方式类似，参见[4.3.4.1.4.3.13 rest_init()]节
 		preempt_enable_no_resched();
 		// 如果存在一个准备好的进程，则运行它
 		schedule();
-		// 与rest_init()中调用schedule()函数的方式类似，参见rest_init()节
+		// 与rest_init()中调用schedule()函数的方式类似，参见[4.3.4.1.4.3.13 rest_init()]节
 		preempt_disable();
 	}
 }
@@ -11966,7 +11976,7 @@ void cpu_idle(void)
 
 当内核被引导并进行初始化之后，内核就可以启动第一个用户级进程：init进程，其进程号为1。这是系统第一个调用的、使用标准C库编译的程序。此前，还没有执行任何标准的C应用程序。
 
-init进程的启动过程参见[init_post()](#)节。若无法启动init进程，则打印错误信息：```No init found```. 参见Documentation/init.txt。
+init进程的启动过程参见[4.3.4.1.4.3.13.1.4 init_post()](#4-3-4-1-4-3-13-1-4-init-post-)节。若无法启动init进程，则打印错误信息：```No init found```. 参见Documentation/init.txt。
 
 调用函数run_init_process()来启动init进程，其定义于init/main.c:
 
@@ -11974,7 +11984,7 @@ init进程的启动过程参见[init_post()](#)节。若无法启动init进程�
 static const char * argv_init[MAX_INIT_ARGS+2] = { "init", NULL, };
 const char * envp_init[MAX_INIT_ENVS+2] = { "HOME=/", "TERM=linux", NULL, };
 
-// 由init_post()节可知，入参init_filename依次为"/sbin/init", "/etc/init", "/bin/init"
+// 由[4.3.4.1.4.3.13.1.4 init_post()]节可知，入参init_filename依次为"/sbin/init", "/etc/init", "/bin/init"
 static void run_init_process(const char *init_filename)
 {
 	argv_init[0] = init_filename;
@@ -12001,7 +12011,7 @@ int kernel_execve(const char *filename,
 }
 ```
 
-函数kernel_execve()调用系统调用sys_execve()，参见[sys_execve()/exec()](#)节；另参见<<Linux Device Drivers, 2nd Edition>>第16章:
+函数kernel_execve()调用系统调用sys_execve()，参见[7.2.1.5 sys_execve()/exec()](#7-2-1-5-sys-execve-exec-)节；另参见<<Linux Device Drivers, 2nd Edition>>第16章:
 
 > The final call to execve finalizes the transition to user space. There is no magic involved in this transition. As with any execve call in Unix, this one replaces the memory maps of the current process with new memory maps defined by the binary file being executed. It doesn’t matter that, in this case, the calling process is running in kernel space. That’s transparent to the implementation of execve, which just finds that there are no previous memory maps to release before activating the new ones.
 >
@@ -12324,8 +12334,8 @@ Linux system architecture:
 对系统调用的初始化，也就是对INT 0x80软中断的初始化。在系统启动时，下列函数将0x80软中断的处理程序设置为system_call:
 
 ```
-start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
--> trap_init()							// 参见4.3.4.1.4.3.5 trap_init()节
+start_kernel()							// 参见[4.3.4.1.4.3 start_kernel()]节
+-> trap_init()							// 参见[4.3.4.1.4.3.5 trap_init()]节
    -> set_system_trap_gate(SYSCALL_VECTOR, &system_call)	// 设置0x80软中断的处理程序为system_call
 ```
 
@@ -12344,7 +12354,7 @@ start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
  */
 	.pushsection .kprobes.text, "ax"
 	# system call handler stub
-// 系统调用处理程序，由trap_init()设置，参见5.3 系统调用的初始化节
+// 系统调用处理程序，由trap_init()设置，参见[5.3 系统调用的初始化]节
 ENTRY(system_call)
 	RING0_INT_FRAME					# can't unwind into user space anyway
 	pushl_cfi %eax					# save orig_eax
@@ -12356,7 +12366,7 @@ ENTRY(system_call)
 	jae syscall_badsys
 syscall_call:
 	/*
-	 * 根据eax寄存器中的系统调用号(参见5.5.2 系统调用号/__NR_xxx节)，
+	 * 根据eax寄存器中的系统调用号(参见[5.5.2 系统调用号/__NR_xxx]节)，
 	 * 调用sys_call_table中对应的系统调用，其等价于： call near [eax*4+sys_call_table]
 	 * 参见Subjects/Chapter05_System_Call_Interface/Figures/系统调用过程.jpg中的①
 	 */
@@ -12393,7 +12403,7 @@ END(syscall_exit_work)
  * arch/x86/kernel/syscall_table_32.S定义了sys_call_table，
  * 其中包含系统调用号与系统调用函数的对应关系；
  * 而系统调用函数的声明包含在include/linux/syscalls.h，
- * 参见5.5.1 系统调用的声明与定义节
+ * 参见[5.5.1 系统调用的声明与定义]节
  */
 #include "syscall_table_32.S"
 
@@ -12647,7 +12657,7 @@ const sys_call_ptr_t sys_call_table[__NR_syscall_max+1] = {
 	 */
 	[0 ... __NR_syscall_max] = &sys_ni_syscall,
 
-// 参见5.5.2 系统调用号/__NR_xxx节
+// 参见[5.5.2 系统调用号/__NR_xxx]节
 #include <asm/unistd_64.h>
 };
 ```
@@ -12722,7 +12732,7 @@ arch/x86/include/asm/uaccess_32.h:
 ```
 static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
 {
-	// 获取to指向内存区的大小，参见5.5.4.3.1.1 __compiletime_object_size()节
+	// 获取to指向内存区的大小，参见[5.5.4.3.1.1 __compiletime_object_size()]节
 	int sz = __compiletime_object_size(to);
 
 	if (likely(sz == -1 || sz >= n))
@@ -12885,7 +12895,7 @@ ssize_t simple_write_to_buffer(void *to, size_t available, loff_t *ppos,
 		return 0;
 	if (count > available - pos)
 		count = available – pos;
-	// 参见5.5.4.3.2 copy_from_user()节，该函数返回未成功拷贝的字节数
+	// 参见[5.5.4.3.2 copy_from_user()]节，该函数返回未成功拷贝的字节数
 	res = copy_from_user(to + pos, from, count);
 	if (res == count)
 		return -EFAULT;
@@ -12934,7 +12944,7 @@ ssize_t simple_read_from_buffer(void __user *to, size_t count, loff_t *ppos,
 		return 0;
 	if (count > available - pos)
 		count = available – pos;
-	// 参见5.5.4.3.2 copy_to_user()节，该函数返回未成功拷贝的字节数
+	// 参见[5.5.4.3.2 copy_to_user()]节，该函数返回未成功拷贝的字节数
 	ret = copy_to_user(to, from + pos, count);
 	if (ret == count)
 		return -EFAULT;
@@ -13236,7 +13246,7 @@ Linux系统中存在许多内核函数，有些是内核文件中自己使用的
 
 Linux used to implement system calls on all x86 platforms using software interrupts. To execute a system call, user process will copy desired system call number to %eax and will execute 'int 0x80'. This will generate interrupt 0x80 and an interrupt service routine will be called (which results in execution of the system_call function).
 
-系统调用的入口点参见[系统调用](#)节。
+系统调用的入口点参见[5.5 系统调用](#5-5-)节。
 
 ### 5.10.2 IA-32处理器/sysenter和sysexit指令方式
 
@@ -13282,7 +13292,7 @@ VDSO32_rt_sigreturn	= __kernel_rt_sigreturn;
 
 #### 5.10.2.1 vsyscall page
 
-内核中有一个永久固定映射页面(位于0xFFFFE000-0xFFFFEFFF)，名为vsyscall page。这个区域存放了系统调用入口__kernel_vsyscall的代码，以及信号处理程序的返回代码__kernel_sigreturn。当系统初始化时，调用sysenter_setup()函数分配一个空页面，根据系统是否支持syscall、sysenter指令，将vdso32_sysenter_start/ vdso32_sysenter_end，vdso32_sysenter_start/vdso32_sysenter_end，或者vdso32_int80_start/ vdso32_int80_end的代码拷贝过去。页的权限是用户级、只读、可执行，所以用户进程可以直接访问该页代码。
+内核中有一个永久固定映射页面(位于0xFFFFE000-0xFFFFEFFF)，名为vsyscall page。这个区域存放了系统调用入口```__kernel_vsyscall```的代码，以及信号处理程序的返回代码```__kernel_sigreturn```。当系统初始化时，调用sysenter_setup()函数分配一个空页面，根据系统是否支持syscall、sysenter指令，将vdso32_sysenter_start/ vdso32_sysenter_end，vdso32_sysenter_start/vdso32_sysenter_end，或者vdso32_int80_start/ vdso32_int80_end的代码拷贝过去。页的权限是用户级、只读、可执行，所以用户进程可以直接访问该页代码。
 
 ##### 5.10.2.1.1 vsyscall page的创建
 
@@ -13395,7 +13405,7 @@ __FINIT
 
 ![Virtual_Address_to_Real_Address](/assets/Virtual_Address_to_Real_Address.png)
 
-段机制参见[6.1.1 段机制](#6-1-1-)节，分页机制参见[分页机制](#)节。
+段机制参见[6.1.1 段机制](#6-1-1-)节，分页机制参见[6.1.2 分页机制](#6-1-2-)节。
 
 ### 6.1.1 段机制
 
@@ -13492,14 +13502,14 @@ enum {
 
 ##### 6.1.1.2.1 全局描述符表GDT
 
-除了任务门描述符、中断门描述符和陷阱门描述符(这些描述符保存于中断描述符表，参见6.1.1.3 中断描述符表IDT/中断描述符表寄存器IDTR节)外，全局描述符表GDT包含系统中所有任务都可用的那些描述符。
+除了任务门描述符、中断门描述符和陷阱门描述符(这些描述符保存于中断描述符表，参见[6.1.1.3 中断描述符表IDT/中断描述符表寄存器IDTR](#6-1-1-3-idt-idtr)节)外，全局描述符表GDT包含系统中所有任务都可用的那些描述符。
 
 全局描述符表结构struct pdt_page定义于arch/x86/include/asm/desc.h:
 
 ```
 struct gdt_page {
 	/*
-	 * struct desc_struct参见段描述符节；
+	 * struct desc_struct参见[6.1.1.1 段描述符/Segment Descriptor]节；
 	 * 常量GDT_ENTRIES定义于arch/x86/include/asm/segment.h，取值为32或16
 	 */
 	struct desc_struct gdt[GDT_ENTRIES];
@@ -13586,7 +13596,7 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 
 其中，宏DEFINE_PER_CPU_PAGE_ALIGNED()定义于include/linux/percpu-defs.h，其他宏定义于arch/x86/include/asm/segment.h。
 
-由段描述符节中GDT_ENTRY_INIT的定义可知，全局描述符表中各表项的基地址(BASE)为0，界限(LIMIT)为0xfffff，故段长为4GB空间(G位为1，故颗粒度为4K字节)。根据段机制，基地址＋偏移量＝线性地址，可知，0+偏移量=线性地址，即虚拟地址直接映射到了线性地址，也就是说**虚拟地址和线性地址是相同的**。
+由[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节中GDT_ENTRY_INIT的定义可知，全局描述符表中各表项的基地址(BASE)为0，界限(LIMIT)为0xfffff，故段长为4GB空间(G位为1，故颗粒度为4K字节)。根据段机制，基地址＋偏移量＝线性地址，可知，0+偏移量=线性地址，即虚拟地址直接映射到了线性地址，也就是说**虚拟地址和线性地址是相同的**。
 
 由于IA32段机制规定：
 * 必须为代码段和数据段创建不同的段；
@@ -13602,8 +13612,8 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 #ifdef CONFIG_X86_32
 #define GDT_ENTRY_KERNEL_BASE		(12)
 
-#define GDT_ENTRY_KERNEL_CS			(GDT_ENTRY_KERNEL_BASE+0)
-#define GDT_ENTRY_KERNEL_DS			(GDT_ENTRY_KERNEL_BASE+1)
+#define GDT_ENTRY_KERNEL_CS		(GDT_ENTRY_KERNEL_BASE+0)
+#define GDT_ENTRY_KERNEL_DS		(GDT_ENTRY_KERNEL_BASE+1)
 
 #define GDT_ENTRY_DEFAULT_USER_CS	14
 #define GDT_ENTRY_DEFAULT_USER_DS	15
@@ -13619,10 +13629,10 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 这四个段对应的Segment Selector定义于arch/x86/include/asm/segment.h:
 
 ```
-#define __KERNEL_CS		(GDT_ENTRY_KERNEL_CS*8)		// 96, or 16
-#define __KERNEL_DS		(GDT_ENTRY_KERNEL_DS*8)		// 104, or 24
-#define __USER_CS		(GDT_ENTRY_DEFAULT_USER_CS*8+3)	// 115, or 51
-#define __USER_DS		(GDT_ENTRY_DEFAULT_USER_DS*8+3)	// 123, or 43
+#define __KERNEL_CS			(GDT_ENTRY_KERNEL_CS*8)		// 96, or 16
+#define __KERNEL_DS			(GDT_ENTRY_KERNEL_DS*8)		// 104, or 24
+#define __USER_CS			(GDT_ENTRY_DEFAULT_USER_CS*8+3)	// 115, or 51
+#define __USER_DS			(GDT_ENTRY_DEFAULT_USER_DS*8+3)	// 123, or 43
 ```
 
 综上，各段的字段取值：
@@ -13646,7 +13656,7 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 
 ##### 6.1.1.3.1 中断描述符表IDT
 
-中断描述符结构gate_desc定义于arch/x86/include/asm/desc_defs.h，参见段描述符节。
+中断描述符结构gate_desc定义于arch/x86/include/asm/desc_defs.h，参见[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节。
 
 中断描述符表idt_table定义于arch/x86/kernel/traps.c中，如下：
 
@@ -13654,7 +13664,7 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 gate_desc idt_table[NR_VECTORS] __page_aligned_data = { { { { 0, 0 } } }, };
 ```
 
-其中，NR_VECTORS取值为256，即中断描述符表可包含256个描述符，参见中断处理简介节。
+其中，NR_VECTORS取值为256，即中断描述符表可包含256个描述符，参见[9.1 中断处理简介](#9-1-)节。
 
 中断描述符表只能包含任务门描述符、中断门描述符和陷阱门描述符：
 
@@ -13664,7 +13674,7 @@ gate_desc idt_table[NR_VECTORS] __page_aligned_data = { { { { 0, 0 } } }, };
 
 <p/>
 
-参见下图，bit 40-43代表中断描述符类型，分别用常量GATE_TASK,GATE_INTERRUPT,GATE_TRAP表示，参见段描述符/Segment Descriptor节：
+参见下图，bit 40-43代表中断描述符类型，分别用常量GATE_TASK,GATE_INTERRUPT,GATE_TRAP表示，参见[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节：
 
 ![Gate_Descriptor](/assets/Gate_Descriptor.jpg)
 
@@ -13766,12 +13776,12 @@ int_msg:
 ###### 6.1.1.3.1.2 中断描述符表的最终初始化
 
 中断描述符表的最终初始化分为两部分：
-* 异常：由函数trap_init()实现，被系统初始化入口函数start_kernel()调用，参见trap_init()节；
+* 异常：由函数trap_init()实现，被系统初始化入口函数start_kernel()调用，参见[4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节；
 * 中断：由函数init_IRQ()实现，被系统初始化入口函数start_kernel()调用，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
 ##### 6.1.1.3.2 中断描述符表寄存器IDTR
 
-中断描述符表寄存器(IDTR)与全局描述符表寄存器(GDTR)类似，参见全局描述符表寄存器GDTR节。
+中断描述符表寄存器(IDTR)与全局描述符表寄存器(GDTR)类似，参见[6.1.1.2.2 全局描述符表寄存器GDTR](#6-1-1-2-2-gdtr)节。
 
 #### 6.1.1.4 局部描述符表LDT/局部描述符表寄存器LDTR
 
@@ -13779,7 +13789,7 @@ int_msg:
 
 局部描述符表包含与特定任务有关的描述符，每个任务都有一个各自的局部描述符表LDT。每个任务的局部描述符表也用一个描述符来表示，称为LDT描述符，它包含了局部描述符表的信息，在全局描述符表GDT中(参见错误：引用源未找到，当S=0, TYPE=2时，该项即为LDT描述符)。
 
-局部描述符结构ldt_desc定义于arch/x86/include/asm/desc_defs.h，参见段描述符节。
+局部描述符结构ldt_desc定义于arch/x86/include/asm/desc_defs.h，参见[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节。
 
 ##### 6.1.1.4.2 局部描述符表寄存器LDTR
 
@@ -13793,7 +13803,7 @@ int_msg:
 
 ##### 6.1.1.5.1 段选择器(Segment Selector)
 
-在实模式下，段寄存器存储的是真实的段地址；在保护模式下，16位的段寄存器无法存储32位的段地址，故它被称为段选择器，即段寄存器的作用是用来选择段描述符，这样就把段描述符中的32位段地址(参见段描述符节表格中的BASE域)作为实际的段地址。
+在实模式下，段寄存器存储的是真实的段地址；在保护模式下，16位的段寄存器无法存储32位的段地址，故它被称为段选择器，即段寄存器的作用是用来选择段描述符，这样就把段描述符中的32位段地址(参见[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节表格中的BASE域)作为实际的段地址。
 
 段选择器结构及各字段含义如下：
 
@@ -13803,7 +13813,7 @@ int_msg:
 | :---- | :--- |
 | Index | Identifies the Segment Descriptor entry contained in the GDT or in the LDT. 占13 bit，取值范围[0, 8191] |
 | TI    | Table Indicator: specifies whether the Segment Descriptor is included in the GDT (TI = 0) or in the LDT (TI = 1). |
-| RPL   | Requestor Privilege Level: specifies the Current Privilege Level of the CPU (see section 段描述符) when the corresponding Segment Selector is loaded into the cs register; it also may be used to selectively weaken the processor privilege level when accessing data segments (see Intel documentation for details). |
+| RPL   | Requestor Privilege Level: specifies the Current Privilege Level of the CPU (see section [6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)) when the corresponding Segment Selector is loaded into the cs register; it also may be used to selectively weaken the processor privilege level when accessing data segments (see Intel documentation for details). |
 
 <p/>
 
@@ -14000,7 +14010,7 @@ The Page Global Directory includes the addresses of several Page Upper Directori
 **For 32-bit architectures with the Physical Address Extension enabled**, three paging levels are used. The Linux’s Page Global Directory corresponds to the 80×86’s Page Directory Pointer Table (PDPT), the Page Upper Directory is eliminated, the Page Middle Directory corresponds to the 80×86’s Page Directory, and the Linux’s Page Table
 corresponds to the 80×86’s Page Table.
 
-Finally, **for 64-bit architectures** three or four levels of paging are used depending on the linear address bit splitting performed by the hardware, see section Paging for 64-bit Architectures Table 2-4. For x86-64, four levels of paging are used.
+Finally, **for 64-bit architectures** three or four levels of paging are used depending on the linear address bit splitting performed by the hardware, see section [6.1.2.4 Paging for 64-bit Architectures](#6-1-2-4-paging-for-64-bit-architectures) Table 2-4. For x86-64, four levels of paging are used.
 
 Each process has its own Page Global Directory (**mm_struct->pgd**) and its own set of Page Tables. When a process switch occurs (see section context_switch()), Linux saves the **cr3** control register in the descriptor of the process previously in execution and then loads **cr3** with the value stored in the descriptor of the process to be executed next. Thus, when the new process resumes its execution on the CPU, the paging unit refers to the correct set of Page Tables.
 
@@ -14188,8 +14198,8 @@ typedef unsigned long   pgdval_t;
  * traditional i386 two-level paging structure:
  */
 // 线性地址的最高10位用来产生页目录项索引，
-// 参见Linear Address转换到Physical Address节
-#define PGDIR_SHIFT   	22
+// 参见[6.1.2.2 Linear Address转换到Physical Address]节
+#define PGDIR_SHIFT   		22
 #define PTRS_PER_PGD		1024		// 页目录中包含1024个页目录项
 ```
 
@@ -14201,7 +14211,7 @@ typedef u64   pgdval_t;
 /*
  * PGDIR_SHIFT determines what a top-level page table entry can map
  */
-// 线性地址的最高2位用来产生PDPT，参见Paging Mechanism of PAE节
+// 线性地址的最高2位用来产生PDPT，参见[6.1.2.3.1 Paging Mechanism of PAE]节
 #define PGDIR_SHIFT		30
 #define PTRS_PER_PGD		4		// PDPT中包含4个项
 ```
@@ -14215,7 +14225,7 @@ typedef unsigned long   pgdval_t;
  * PGDIR_SHIFT determines what a top-level page table entry can map
  */
 // 线性地址中的9位(A47-A39)用来产生页目录项，
-// 参见Paging for 64-bit Architectures节
+// 参见[6.1.2.4 Paging for 64-bit Architectures]节
 #define PGDIR_SHIFT	39
 
 // 页目录中包含512个页目录项
@@ -14239,8 +14249,8 @@ typedef unsigned long   pgdval_t;
  * pgd_offset() returns a (pgd_t *)
  * pgd_index() is used get the offset into the pgd page's array of pgd_t's;
  */
-// 用于获取进程虚拟地址address的一级页目录项指针，其中mm为mm_struct类型，参见struct mm_struct节
-#define pgd_offset(mm, address)	((mm)->pgd + pgd_index((address)))
+// 用于获取进程虚拟地址address的一级页目录项指针，其中mm为mm_struct类型，参见[6.2.6 struct mm_struct]节
+#define pgd_offset(mm, address)		((mm)->pgd + pgd_index((address)))
 
 /*
  * a shortcut which implies the use of the kernel's pgd, instead of a process's
@@ -14255,7 +14265,7 @@ typedef unsigned long   pgdval_t;
 宏pgd_val()用于获取页目录表项的值，其定义于arch/x86/include/asm/pgtable.h:
 
 ```
-#define pgd_val(x)		native_pgd_val(x)
+#define pgd_val(x)			native_pgd_val(x)
 
 static inline pgdval_t	native_pgd_val(pgd_t pgd)
 {
@@ -14281,7 +14291,7 @@ static inline pgd_t native_make_pgd(pgdval_t val)
 
 static inline pgdval_t pgd_flags(pgd_t pgd)
 {
-	// 函数native_pgd_val()参见pgd_val()/native_pgd_val()/native_make_pgd()节
+	// 函数native_pgd_val()参见[6.1.2.6.2.3 pgd_val()/native_pgd_val()/native_make_pgd()]节
 	return native_pgd_val(pgd) & PTE_FLAGS_MASK;
 }
 ```
@@ -14292,14 +14302,14 @@ static inline pgdval_t pgd_flags(pgd_t pgd)
 /* PAGE_SHIFT determines the page size */
 #define PAGE_SHIFT		12
 #define PAGE_SIZE		(_AC(1,UL) << PAGE_SHIFT)
-#define PAGE_MASK		(~(PAGE_SIZE-1))				// A11-A0置0，其他位置1
+#define PAGE_MASK		(~(PAGE_SIZE-1))					// A11-A0置0，其他位置1
 
-#define __PHYSICAL_MASK	((phys_addr_t)((1ULL << __PHYSICAL_MASK_SHIFT) - 1))	// A31-A0置1，高位置0
+#define __PHYSICAL_MASK		((phys_addr_t)((1ULL << __PHYSICAL_MASK_SHIFT) - 1))	// A31-A0置1，高位置0
 
 /* Cast PAGE_MASK to a signed type so that it is sign-extended if
    virtual addresses are 32-bits but physical addresses are larger
    (ie, 32-bit PAE). */
-#define PHYSICAL_PAGE_MASK	(((signed long)PAGE_MASK) & __PHYSICAL_MASK)	// A31-A12置1，其他位置0
+#define PHYSICAL_PAGE_MASK	(((signed long)PAGE_MASK) & __PHYSICAL_MASK)		// A31-A12置1，其他位置0
 ```
 
 ###### 6.1.2.6.2.4.1 PDG Flags
@@ -14440,7 +14450,7 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 
 ###### 6.1.2.6.3.1 pud_t结构
 
-该结构的定义参见页表结构节。
+该结构的定义参见[6.1.2.1 两级页表结构](#6-1-2-1-)节。
 
 ###### 6.1.2.6.3.2 pud_offset()
 
@@ -14526,7 +14536,7 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
 
 ###### 6.1.2.6.4.1 pmd_t结构
 
-该结构的定义参见页表结构节。
+该结构的定义参见[6.1.2.1 两级页表结构](#6-1-2-1-)节。
 
 ###### 6.1.2.6.4.2 pmd_offset()
 
@@ -14616,7 +14626,7 @@ static inline unsigned long pmd_pfn(pmd_t pmd)
 
 ###### 6.1.2.6.5.1 pte_t结构
 
-该结构的定义参见页表结构节。
+该结构的定义参见[6.1.2.1 两级页表结构](#6-1-2-1-)节。
 
 ###### 6.1.2.6.5.2 pte_offset_kernel()
 
@@ -14726,7 +14736,7 @@ The **pfn_to_page(pfn)** yields the address of the page descriptor associated wi
 ```
 #if defined(CONFIG_FLATMEM)
 
-// 变量mem_map参见mem_map节
+// 变量mem_map参见[6.2.2.1 mem_map]节
 #define __pfn_to_page(pfn)	(mem_map + ((pfn) - ARCH_PFN_OFFSET))
 #define __page_to_pfn(page)	((unsigned long)((page) - mem_map) + ARCH_PFN_OFFSET)
 
@@ -14735,7 +14745,7 @@ The **pfn_to_page(pfn)** yields the address of the page descriptor associated wi
 #define __pfn_to_page(pfn)								\
 ({	unsigned long __pfn = (pfn);							\
 	unsigned long __nid = arch_pfn_to_nid(__pfn);  					\
-	NODE_DATA(__nid)->node_mem_map + arch_local_page_offset(__pfn, __nid);	\
+	NODE_DATA(__nid)->node_mem_map + arch_local_page_offset(__pfn, __nid);		\
 })
 
 #define __page_to_pfn(pg) 								\
@@ -14873,7 +14883,7 @@ struct page {
 		// Available to the kernel component that is using the page.
 		// For instance, it’s a buffer head pointer in case of buffer page.
 		// If the page is free, this field is used by the buddy allocator system:
-		// 用于保存其order值，参见__rmqueue_smallest()节:
+		// 用于保存其order值，参见[6.4.1.1.2.1.1.1.1 __rmqueue_smallest()]节:
 		// * 在__rmqueue_smallest()->rmv_page_order()复位为0；
 		// * 在__rmqueue_smallest()->expand()置为特定的order值。
 		unsigned long			private;
@@ -14882,7 +14892,7 @@ struct page {
 #endif
 		struct kmem_cache		*slab;		/* SLUB: Pointer to slab */
 		// 通过buffered_rmqueue()->prep_new_page()
-		// ->prep_compound_page()设置，参见prep_new_page()节
+		// ->prep_compound_page()设置，参见[6.4.1.1.2.1.2 prep_new_page()]节
 		struct page			*first_page;	/* Compound tail pages */
 	};
 
@@ -15047,7 +15057,7 @@ Page descriptor与其所描述的Page之间的关系:
 
 ![Page_Descriptor_and_Page](/assets/Page_Descriptor_and_Page.jpg)
 
-变量mem_map用于计算page descriptor与物理页面之间的映射关系，即宏__pfn_to_page(pfn)和__page_to_pfn(page)，参见pte_page()/pte_pfn()节。
+变量mem_map用于计算page descriptor与物理页面之间的映射关系，即宏```__pfn_to_page(pfn)```和```__page_to_pfn(page)```，参见[6.1.2.6.5.5 pte_page()/pte_pfn()](#6-1-2-6-5-5-pte-page-pte-pfn-)节。
 
 ### 6.2.3 struct zone
 
@@ -15165,7 +15175,7 @@ typedef struct pglist_data {
 
 #ifndef CONFIG_NO_BOOTMEM
 	// Pointer to Boot Memory Allocatoer, which is used in the kernel initialization phase.
-	// 参见free_all_bootmem()/free_all_bootmem_core()节和Initialise the Boot Memory Allocator节
+	// 参见[4.3.4.1.4.3.6.1.1 free_all_bootmem()/free_all_bootmem_core()]节和[6.2.9.2 Initialise the Boot Memory Allocator]节
 	struct bootmem_data	*bdata;
 #endif
 
@@ -15190,7 +15200,7 @@ typedef struct pglist_data {
 	int			node_id;
 	// Wait queue for the kswapd pageout daemon
 	wait_queue_head_t	kswapd_wait;
-	// Pointer to the process descriptor of the kswapd kernel thread. 参见kswapd节
+	// Pointer to the process descriptor of the kswapd kernel thread. 参见[6.4.1.1.3.1.1 kswapd]节
 	struct task_struct	*kswapd;
 	// Logarithmic size of free blocks to be created by kswapd
 	int			kswapd_max_order;
@@ -15234,7 +15244,7 @@ The kernel represents a process’s address space with a data structure called *
 
 ```
 struct mm_struct {
-	// Pointer to the head of the list of memory region objects. 参见struct vm_area_struct节
+	// Pointer to the head of the list of memory region objects. 参见[6.2.7 struct vm_area_struct]节
 	struct vm_area_struct		*mmap;		/* list of VMAs */
 	// Pointer to the root of the red-black tree of memory region objects
 	struct rb_root 			mm_rb;
@@ -15258,7 +15268,7 @@ struct mm_struct {
 	unsigned long 			free_area_cache;	/* first hole of size cached_hole_size or larger */
 	/*
 	 * Pointer to the Page Global Directory, which is a physical page frame.
-	 * 参见Linear Address转换到Physical Address节
+	 * 参见[6.1.2.2 Linear Address转换到Physical Address]节
 	 * On the x86, the process page table is loaded by copying mm_struct->pgd
 	 * into the cr3 register which has the side effect of flushing the TLB.
 	 * In fact this is how the function __flush_tlb() is implemented in the
@@ -15410,16 +15420,16 @@ Memory regions owned by a process never overlap, and the kernel tries to merge r
 
 ```
 struct vm_area_struct {
-	// 参见struct mm_struct节
+	// 参见[6.2.6 struct mm_struct]节
 	struct mm_struct		*vm_mm;		/* The address space we belong to. */
-	unsigned long			vm_start;		/* Our start address within vm_mm. */
+	unsigned long			vm_start;	/* Our start address within vm_mm. */
 	unsigned long			vm_end;		/* The first byte after our end address within vm_mm. */
 
 	/* linked list of VM areas per task, sorted by address */
 	struct vm_area_struct		*vm_next, *vm_prev;
 
 	pgprot_t			vm_page_prot;	/* Access permissions of this VMA. */
-	unsigned long			vm_flags;		/* Flags, see mm.h. */
+	unsigned long			vm_flags;	/* Flags, see mm.h. */
 
 	struct rb_node			vm_rb;
 
@@ -15431,12 +15441,12 @@ struct vm_area_struct {
 	 */
 	union {
 		struct {
-			struct list_head		list;
-			void				*parent;	/* aligns with prio_tree_node parent */
-			struct vm_area_struct		*head;
+			struct list_head	list;
+			void			*parent;	/* aligns with prio_tree_node parent */
+			struct vm_area_struct	*head;
 		} vm_set;
 
-		struct raw_prio_tree_node		prio_tree_node;
+		struct raw_prio_tree_node	prio_tree_node;
 	} shared;
 
 	/*
@@ -15445,11 +15455,11 @@ struct vm_area_struct {
 	 * can only be in the i_mmap tree.  An anonymous MAP_PRIVATE, stack
 	 * or brk vma (with NULL file) can only be in an anon_vma list.
 	 */
-	struct list_head			anon_vma_chain;	/* Serialized by mmap_sem & page_table_lock */
+	struct list_head			anon_vma_chain;		/* Serialized by mmap_sem & page_table_lock */
 	struct anon_vma				*anon_vma;		/* Serialized by page_table_lock */
 
 	/* Function pointers to deal with this struct. */
-	// 参见struct vm_operations_struct节
+	// 参见[6.2.7.1 struct vm_operations_struct]节
 	const struct vm_operations_struct	*vm_ops;
 
 	/* Information about our backing store: */
@@ -15457,13 +15467,13 @@ struct vm_area_struct {
 	unsigned long				vm_pgoff;
 	// Pointer to the file being mapped, see 错误：引用源未找到
 	struct file				*vm_file;		/* File we map to (can be NULL). */
-	void				*vm_private_data;	/* was vm_pte (shared mem) */
+	void					*vm_private_data;	/* was vm_pte (shared mem) */
 
 #ifndef CONFIG_MMU
-	struct vm_region		*vm_region;	/* NOMMU mapping region */
+	struct vm_region			*vm_region;		/* NOMMU mapping region */
 #endif
 #ifdef CONFIG_NUMA
-	struct mempolicy		*vm_policy;	/* NUMA policy for the VMA */
+	struct mempolicy			*vm_policy;		/* NUMA policy for the VMA */
 #endif
 };
 ```
@@ -15677,22 +15687,22 @@ page_not_uptodate:
 ```
 struct address_space {
 	struct inode			*host;			/* owner: inode, block_device */
-	struct radix_tree_root		page_tree;			/* radix tree of all pages */
-	spinlock_t			tree_lock;			/* and lock protecting it */
-	unsigned int			i_mmap_writable;		/* count VM_SHARED mappings */
+	struct radix_tree_root		page_tree;		/* radix tree of all pages */
+	spinlock_t			tree_lock;		/* and lock protecting it */
+	unsigned int			i_mmap_writable;	/* count VM_SHARED mappings */
 	struct prio_tree_root		i_mmap;			/* tree of private and shared mappings */
 	struct list_head		i_mmap_nonlinear;	/*list VM_NONLINEAR mappings */
 	struct mutex			i_mmap_mutex;		/* protect tree, count, list */
 	/* Protected by tree_lock together with the radix tree */
-	unsigned long			nrpages;			/* number of total pages */
-	pgoff_t				writeback_index;		/* writeback starts here */
-	// 参见struct address_space_operations节
-	const struct address_space_operations *a_ops;	/* methods */
+	unsigned long			nrpages;		/* number of total pages */
+	pgoff_t				writeback_index;	/* writeback starts here */
+	// 参见[6.2.8.1 struct address_space_operations]节
+	const struct address_space_operations *a_ops;		/* methods */
 	unsigned long			flags;			/* error bits/gfp mask */
 	struct backing_dev_info		*backing_dev_info;	/* device readahead, etc */
-	spinlock_t				private_lock;		/* for use by the address_space */
-	struct list_head			private_list;		/* ditto */
-	struct address_space			*assoc_mapping;		/* ditto */
+	spinlock_t			private_lock;		/* for use by the address_space */
+	struct list_head		private_list;		/* ditto */
+	struct address_space		*assoc_mapping;		/* ditto */
 } __attribute__((aligned(sizeof(long))));
 ```
 
@@ -15777,7 +15787,7 @@ typedef struct bootmem_data {
 
 #### 6.2.9.1 变量bdata_list
 
-所有类型为bootmem_data_t的变量链接到双向循环链表bdata_list中，其赋值过程参见Initialise the Boot Memory Allocator节。该变量定义于mm/bootmem.c:
+所有类型为bootmem_data_t的变量链接到双向循环链表bdata_list中，其赋值过程参见[6.2.9.2 Initialise the Boot Memory Allocator](#6-2-9-2-initialise-the-boot-memory-allocator)节。该变量定义于mm/bootmem.c:
 
 ```
 static struct list_head bdata_list __initdata = LIST_HEAD_INIT(bdata_list);
@@ -15860,7 +15870,7 @@ static void __init link_bootmem(bootmem_data_t *bdata)
 {
 	struct list_head *iter;
 
-	// 变量bdata_list参见变量bdata_list节
+	// 变量bdata_list参见[6.2.9.1 变量bdata_list]节
 	list_for_each(iter, &bdata_list) {
 		bootmem_data_t *ent;
 
@@ -15965,9 +15975,9 @@ struct vm_struct {
 
 内存管理的初始化分为如下步骤：
 * 检测内存段及其大小，参见[6.3.1 检测内存段及其大小/boot_params.e820_map](#6-3-1-boot-params-e820-map)节；
-* 映射内存页面映射至分区，参见映射内存页面页至分区节。
+* 映射内存页面映射至分区，参见[6.3.2 映射内存页面页至分区/node_data[]->node_zones[]](#6-3-2-node-data-gt-node-zones-)节。
 
-内存管理的初始化参见mm_init()节。
+内存管理的初始化参见[4.3.4.1.4.3.6 mm_init()]节。
 
 ### 6.3.1 检测内存段及其大小/boot_params.e820_map
 
@@ -15991,10 +16001,10 @@ boot_params.e820_map:
 
 ```
 boot_params.e820_map[]
--> e820 / e820_saved					// 参见boot_params.e820_map[]=>e820节
-   -> memblock.memory					// 参见e820=>memblock.memory节
-      -> early_node_map[]				// 参见memblock.memory=>early_node_map[]节
-         -> node_data[]->node_zones[]			// 参见early_node_map[]=>node_data[]节
+-> e820 / e820_saved			// 参见boot_params.e820_map[]=>e820节
+   -> memblock.memory			// 参见e820=>memblock.memory节
+      -> early_node_map[]		// 参见memblock.memory=>early_node_map[]节
+         -> node_data[]->node_zones[]	// 参见early_node_map[]=>node_data[]节
 ```
 
 #### 6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved
@@ -16230,23 +16240,23 @@ start_kernel()
    // native_pagetable_setup_done()
    -> x86_init.paging.pagetable_setup_done(swapper_pg_dir)
 -> build_all_zonelists()					// 示例参见NOTE 12
--> mm_init()							// 参见mm_init()节
+-> mm_init()							// 参见[4.3.4.1.4.3.6 mm_init()]节
    -> mem_init()						// 参见mem_init()节，示例参见NOTE 13
       /*
        * 将低端内存转入Buddy Allocator System中管理，
-       * 参见free_all_bootmem()/free_all_bootmem_core()节
+       * 参见[4.3.4.1.4.3.6.1.1 free_all_bootmem()/free_all_bootmem_core()]节
        */
       -> free_all_bootmem()
-         // 参见free_all_bootmem()/free_all_bootmem_core()节
+         // 参见[4.3.4.1.4.3.6.1.1 free_all_bootmem()/free_all_bootmem_core()]节
          -> free_all_bootmem_core()
             -> __free_pages_bootmem()
-               -> __free_page()					// 参见__free_page()/free_page()节
-      // 将高端内存转入Buddy Allocator System中管理，参见set_highmem_pages_init()节
+               -> __free_page()					// 参见[6.4.2.4 __free_page()/free_page()]节
+      // 将高端内存转入Buddy Allocator System中管理，参见[4.3.4.1.4.3.6.1.2 set_highmem_pages_init()]节
       -> set_highmem_pages_init()
          -> add_highpages_with_active_regions()
             -> __get_free_all_memory_range()
             -> add_one_highpage_init()
-               -> __free_page()					// 参见__free_page()/free_page()节
+               -> __free_page()					// 参见[6.4.2.4 __free_page()/free_page()]节
 -> rest_init()
    -> kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
       -> kernel_init()
@@ -16806,7 +16816,7 @@ again:
 	local_irq_restore(flags);
 
 	VM_BUG_ON(bad_range(zone, page));
-	if (prep_new_page(page, order, gfp_flags))		// 参见prep_new_page()节
+	if (prep_new_page(page, order, gfp_flags))		// 参见[6.4.1.1.2.1.2 prep_new_page()]节
 		goto again;
 	return page;
 
@@ -16879,7 +16889,7 @@ static struct page *__rmqueue(struct zone *zone, unsigned int order, int migrate
 	struct page *page;
 
 retry_reserve:
-	page = __rmqueue_smallest(zone, order, migratetype);		// 参见__rmqueue_smallest()节
+	page = __rmqueue_smallest(zone, order, migratetype);		// 参见[6.4.1.1.2.1.1.1.1 __rmqueue_smallest()]节
 
 	if (unlikely(!page) && migratetype != MIGRATE_RESERVE) {
 		page = __rmqueue_fallback(zone, order, migratetype);	// 参见__rmqueue_fallback()节
@@ -17009,7 +17019,7 @@ static inline struct page *__rmqueue_fallback(struct zone *zone, int order, int 
 	int migratetype, i;
 
 	/*
-	 * 与__rmqueue_smallest()不同(参见__rmqueue_smallest()节)：
+	 * 与__rmqueue_smallest()不同(参见[6.4.1.1.2.1.1.1.1 __rmqueue_smallest()]节)：
 	 * 此处按order由大到小的顺序分配，且查找所有的migratetype类型
 	 */
 	/* Find the largest possible block of pages in the other list */
@@ -17055,7 +17065,7 @@ static inline struct page *__rmqueue_fallback(struct zone *zone, int order, int 
 			if (current_order >= pageblock_order)
 				change_pageblock_range(page, current_order, start_migratetype);
 
-			// 参见__rmqueue_smallest()节
+			// 参见[6.4.1.1.2.1.1.1.1 __rmqueue_smallest()]节
 			expand(zone, page, order, current_order, area, migratetype);
 
 			trace_mm_page_alloc_extfrag(page, order, current_order, start_migratetype, migratetype);
@@ -17079,7 +17089,7 @@ static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
 
 	for (i = 0; i < (1 << order); i++) {
 		struct page *p = page + i;
-		if (unlikely(check_new_page(p)))			// 判断页面合法性，参见prep_new_page()节
+		if (unlikely(check_new_page(p)))			// 判断页面合法性，参见[6.4.1.1.2.1.2 prep_new_page()]节
 			return 1;
 	}
 
@@ -17546,7 +17556,7 @@ void page_address_init(void);
 ```
 static __always_inline void *lowmem_page_address(const struct page *page)
 {
-	// page_to_pfn()参见pte_page()/pte_pfn()节，__va()参见pgd_page_vaddr()节
+	// page_to_pfn()参见[6.1.2.6.5.5 pte_page()/pte_pfn()]节，__va()参见pgd_page_vaddr()节
 	return __va(PFN_PHYS(page_to_pfn(page)));
 }
 ```
@@ -17770,7 +17780,7 @@ static bool free_pages_prepare(struct page *page, unsigned int order)
 	if (PageAnon(page))
 		page->mapping = NULL;
 	for (i = 0; i < (1 << order); i++)
-		// 与check_new_page()对应，参见prep_new_page()节
+		// 与check_new_page()对应，参见[6.4.1.1.2.1.2 prep_new_page()]节
 		bad += free_pages_check(page + i);
 	if (bad)
 		return false;
@@ -18335,7 +18345,7 @@ The kmem_cache_init() function is invoked during system initialization to set up
 
 ```
 start_kernel()				// 参见start_kernel()节
--> mm_init()				// 参见mm_init()节
+-> mm_init()				// 参见[4.3.4.1.4.3.6 mm_init()]节
    -> kmem_cache_init()
 ```
 
@@ -18439,7 +18449,7 @@ void __init kmem_cache_init(void)
 	 */
 	/*
 	 * 创建一个cache并链接到链表cache_chain中，
-	 * 参见Create a Specific Cache/kmem_cache_create()节
+	 * 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	 */
 	sizes[INDEX_AC].cs_cachep = kmem_cache_create(names[INDEX_AC].name, sizes[INDEX_AC].cs_size,
 					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_PANIC, NULL);
@@ -18447,7 +18457,7 @@ void __init kmem_cache_init(void)
 	if (INDEX_AC != INDEX_L3) {
 		/*
 		 * 创建一个cache并链接到链表cache_chain中，
-		 * 参见Create a Specific Cache/kmem_cache_create()节
+		 * 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 		 */
 		sizes[INDEX_L3].cs_cachep = kmem_cache_create(names[INDEX_L3].name, sizes[INDEX_L3].cs_size,
 					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_PANIC, NULL);
@@ -18466,7 +18476,7 @@ void __init kmem_cache_init(void)
 		if (!sizes->cs_cachep) {
 			/*
 			 * 创建一个cache并链接到链表cache_chain中，
-			 * 参见Create a Specific Cache/kmem_cache_create()节
+			 * 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 			 */
 			sizes->cs_cachep = kmem_cache_create(names->name, sizes->cs_size,
 					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_PANIC, NULL);
@@ -18474,7 +18484,7 @@ void __init kmem_cache_init(void)
 #ifdef CONFIG_ZONE_DMA
 		/*
 		 * 创建一个cache并链接到链表cache_chain中，
-		 * 参见Create a Specific Cache/kmem_cache_create()节
+		 * 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 		 */
 		sizes->cs_dmacachep = kmem_cache_create(names->name_dma, sizes->cs_size,
 					ARCH_KMALLOC_MINALIGN, ARCH_KMALLOC_FLAGS|SLAB_CACHE_DMA|SLAB_PANIC, NULL);
@@ -20486,7 +20496,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
 			struct page *page = area->pages[i];
 
 			BUG_ON(!page);
-			__free_page(page);		// 参见__free_page()/free_page()节
+			__free_page(page);		// 参见[6.4.2.4 __free_page()/free_page()]节
 		}
 
 		if (area->flags & VM_VPAGES)
@@ -20620,7 +20630,7 @@ static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
 start_kernel()
 -> setup_arch()
    -> paging_init()
-      -> pagetable_init()		// 参见early_node_map[]=>node_data[]->node_zones[]节
+      -> pagetable_init()		// 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节
          -> permanent_kmaps_init(swapper_pg_dir)
 ```
 
@@ -20926,7 +20936,7 @@ Each symbol in km_type, except the last one, is an index of a fix-mapped linear 
 start_kernel()
 -> setup_arch()
    -> paging_init()
-      -> kmap_init()	// 参见early_node_map[]=>node_data[]->node_zones[]节
+      -> kmap_init()	// 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节
 ```
 
 #### 6.7.2.1 kmap_atomic()
@@ -21031,7 +21041,7 @@ void __kunmap_atomic(void *kvaddr)
 
 ## 6.8 虚拟内存空间/Virtual Memory Area
 
-与Virtual Memory Area有关的数据结构参见struct vm_area_struct节，其结构参见错误：引用源未找到。
+与Virtual Memory Area有关的数据结构参见[6.2.7 struct vm_area_struct](#6-2-7-struct-vm-area-struct)节，其结构参见错误：引用源未找到。
 
 ### 6.8.1 Find a Memory Regin
 
@@ -21099,7 +21109,7 @@ The ```find_vma_prev()``` function is similar to ```find_vma()```, except that i
 ```
 /* Same as find_vma, but also return a pointer to the previous VMA in *pprev. */
 struct vm_area_struct *find_vma_prev(struct mm_struct *mm, unsigned long addr,
-					struct vm_area_struct **pprev)
+				     struct vm_area_struct **pprev)
 {
 	struct vm_area_struct *vma = NULL, *prev = NULL;
 	struct rb_node *rb_node;
@@ -21490,8 +21500,8 @@ unacct_error:
 
 ```
 struct vm_area_struct *vma_merge(struct mm_struct *mm, struct vm_area_struct *prev,
-			unsigned long addr, unsigned long end, unsigned long vm_flags, struct anon_vma *anon_vma,
-			struct file *file, pgoff_t pgoff, struct mempolicy *policy)
+				 unsigned long addr, unsigned long end, unsigned long vm_flags, struct anon_vma *anon_vma,
+				 struct file *file, pgoff_t pgoff, struct mempolicy *policy)
 {
 	pgoff_t pglen = (end - addr) >> PAGE_SHIFT;
 	struct vm_area_struct *area, *next;
@@ -21837,7 +21847,7 @@ The purpose of the ```split_vma()``` function is to split a memory region that i
 
 ```
 static int __split_vma(struct mm_struct * mm, struct vm_area_struct * vma,
-			unsigned long addr, int new_below)
+		       unsigned long addr, int new_below)
 {
 	struct mempolicy *pol;
 	struct vm_area_struct *new;
@@ -21918,7 +21928,7 @@ The ```unmap_region()``` function walks through a list of memory regions and rel
 
 ```
 static void unmap_region(struct mm_struct *mm, struct vm_area_struct *vma,
-			  struct vm_area_struct *prev, unsigned long start, unsigned long end)
+			 struct vm_area_struct *prev, unsigned long start, unsigned long end)
 {
 	struct vm_area_struct *next = prev? prev->vm_next: mm->mmap;
 	struct mmu_gather tlb;
@@ -22268,7 +22278,7 @@ good_area:
 
 ```
 int handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
-			unsigned long address, unsigned int flags)
+		    unsigned long address, unsigned int flags)
 {
 	pgd_t *pgd;
 	pud_t *pud;
@@ -22670,7 +22680,7 @@ struct task_struct {
 	int on_rq;
 
 	// 进程调度有关的变量，参见进程调度节
-	int prio, static_prio, normal_prio; 		
+	int prio, static_prio, normal_prio;
 	unsigned int rt_priority;
 	const struct sched_class *sched_class;
 	struct sched_entity se;
@@ -22724,7 +22734,7 @@ struct task_struct {
 	// Kernel threads don’t own any memory descriptor, thus their mm field is always NULL.
 	// When a kernel thread is selected for execution, its active_mm field is initialized
 	// to the value of the active_mm of the previously running process.
-	struct mm_struct *mm, *active_mm; 	// 参见进程地址空间节和struct mm_struct节
+	struct mm_struct *mm, *active_mm; 	// 参见进程地址空间节和[6.2.6 struct mm_struct]节
 #ifdef CONFIG_COMPAT_BRK
 	unsigned brk_randomized:1; 		// 参见进程地址空间节
 #endif
@@ -24409,7 +24419,7 @@ Instead, a thread is merely a process that shares certain resources with other p
 
 使用sys_fork() / fork()时，子进程复制父进程的全部资源。由于要复制父进程的进程描述符task_struct给子进程，而进程描述符的结构体很大(参见进程描述符/struct task_struct节)，因此这一过程的开销很大。Linux采用了“写时复制技术”(copy-on-write，COW)，使子进程先共享父进程的物理页，只有当子进程进行写操作时，再复制对应的物理页，避免了无用的复制开销，从而提高了系统性能。
 
-系统调用sys_fork()的定义参见arch/x86/kernel/process.c:
+系统调用```sys_fork()```的定义参见arch/x86/kernel/process.c:
 
 ```
 int sys_fork(struct pt_regs *regs)
@@ -24669,7 +24679,7 @@ int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 }
 ```
 
-kernel_thread()会被rest_init()调用，在系统启动时创建相关内核线程，参见rest_init()节。此外，kernel_thread()还会被如下函数调用：
+函数```kernel_thread()```会被```rest_init()```调用，在系统启动时创建相关内核线程，参见[4.3.4.1.4.3.13 rest_init()](#4-3-4-1-4-3-13-rest-init-)节。此外，```kernel_thread()```还会被如下函数调用：
 
 ```
 static void create_kthread(struct kthread_create_info *create);
@@ -24815,8 +24825,8 @@ int system(const char *command);
 system() executes a command specified in command by calling /bin/sh -c command, and returns after the command has been completed. During execution of the command, SIGCHLD will be blocked, and SIGINT and SIGQUIT will be ignored.
 
 该函数的执行过程分为三个步骤：
-* 1) fork一个子进程(参见sys_fork()/fork()节)；
-* 2) 在子进程中调用exec函数去执行command命令(参见sys_execve()/exec()节)；
+* 1) fork一个子进程，参见sys_fork()/fork()节；
+* 2) 在子进程中调用exec函数去执行command命令，参见[7.2.1.5 sys_execve()/exec()](#7-2-1-5-sys-execve-exec-)节；
 * 3) 在父进程中调用wait去等待子进程结束。NOTE: system() does not affect the wait status of any other children.
 
 **Return Value**
@@ -25254,7 +25264,7 @@ static struct task_struct *copy_process(unsigned long clone_flags, unsigned long
 	retval = copy_files(clone_flags, p);
 	if (retval)
 		goto bad_fork_cleanup_semundo;
-	// 复制文件系统信息，参见init_mount_tree()节
+	// 复制文件系统信息，参见[4.3.4.1.4.3.11.4.3 init_mount_tree()]节
 	retval = copy_fs(clone_flags, p);
 	if (retval)
 		goto bad_fork_cleanup_files;
@@ -26144,7 +26154,7 @@ In multiprocessor systems there is a process 0 for each CPU. Right after the pow
 
 如果在配置系统时，配置了CONFIG_SMP，则编译后的系统为SMP系统。同时，可以通过CONFIG_NR_CPUS指定CPU的个数，NR_CPUS是根据CONFIG_NR_CPUS设置的。
 
-每个CPU存在一个自己的运行队列runqueues(参见运行队列结构/struct rq节)，其idle域即指向属于该CPU的idle进程(进程0)的进程描述符，参见kernel/sched.c中的init_idle():
+每个CPU存在一个自己的运行队列runqueues(参见[7.4.2.1 运行队列结构/struct rq](#7-4-2-1-struct-rq)节)，其idle域即指向属于该CPU的idle进程(进程0)的进程描述符，参见kernel/sched.c中的init_idle():
 
 ```
 void __cpuinit init_idle(struct task_struct *idle, int cpu)
@@ -26180,7 +26190,7 @@ struct task_struct *idle_task(int cpu)
 
 #### 7.2.4.2 进程1/init
 
-内核通过start_kernel() -> rest_init()中的如下语句创建进程1，参见rest_init()节和kernel_init()节。
+内核通过start_kernel() -> rest_init()中的如下语句创建进程1，参见[4.3.4.1.4.3.13 rest_init()](#4-3-4-1-4-3-13-rest-init-)节和[4.3.4.1.4.3.13.1 kernel_init()]节。
 
 ```
 kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
@@ -26190,7 +26200,7 @@ kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
 
 #### 7.2.4.3 kthreadd进程
 
-内核通过start_kernel() -> rest_init()中的如下语句创建kthreadd进程，参见rest_init()节和kthreadd()节。
+内核通过start_kernel() -> rest_init()中的如下语句创建kthreadd进程，参见[4.3.4.1.4.3.13 rest_init()](#4-3-4-1-4-3-13-rest-init-)节和[4.3.4.1.4.3.13.2 kthreadd()](#4-3-4-1-4-3-13-2-kthreadd-)节。
 
 ```
 pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
@@ -26279,7 +26289,7 @@ struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
 
 	/*
 	 * 将需要创建的内核线程信息保存到链表kthread_create_list中，
-	 * 由kthreadd进程创建该线程，参见kthreadd进程节
+	 * 由kthreadd进程创建该线程，参见[7.2.4.3 kthreadd进程]节
 	 */
 	spin_lock(&kthread_create_lock);
 	list_add_tail(&create.list, &kthread_create_list);
@@ -26287,7 +26297,7 @@ struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
 
 	/*
 	 * 唤醒kthreadd_task进程，使其创建指定的线程，
-	 * 参见kthreadd进程节，并等待该线程创建完成
+	 * 参见[7.2.4.3 kthreadd进程]节，并等待该线程创建完成
 	 */
 	wake_up_process(kthreadd_task);
 	wait_for_completion(&create.done);
@@ -27997,7 +28007,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, str
 
 		/* Re-load page tables */
 		/*
-		 * 重新加载页表，即修改CR3寄存器的值。参见分页机制节
+		 * 重新加载页表，即修改CR3寄存器的值。参见[6.1.2 分页机制](#6-1-2-)节
 		 * 切换地址空间发生在切换堆栈(参见switch_to()节)之前，
 		 * 不会影响后续代码执行，因为进程的切换发生在内核态，内核
 		 * 态地址空间是共用的。没有修改堆栈指针及其他寄存器的值，
@@ -28245,7 +28255,7 @@ void scheduler_tick(void)
 该函数的调用关系如下：
 
 ```
-tick_handle_periodic()				// 参见Architecture-dependent routine / tick_handle_periodic()节
+tick_handle_periodic()				// 参见[7.6.4.2.1.1 Architecture-dependent routine / tick_handle_periodic()]节
 -> tick_periodic()
    -> update_process_times()
       -> scheduler_tick()
@@ -31698,7 +31708,7 @@ static struct irqaction irq0  = {
 void __init setup_default_timer_irq(void)
 {
 	/*
-	 * 将IRQ0 (参见9.1 中断处理简介表格中的0x30，即Timer)的中断处理函数设
+	 * 将IRQ0 (参见[9.1 中断处理简介](#9-1-)节表格中的0x30，即Timer)的中断处理函数设
 	 * 置为timer_interrupt()，参见9.4.1.2 setup_irq()/__setup_irq()节;
 	 * 当接收到Timer中断时，系统将调用其处理函数timer_interrupt()，
 	 * 参见timer_interrupt()节
@@ -35397,7 +35407,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
 	else
 		override_rlimit = 0;
 
-	// Allocate a new signal queue record, 参见信号的初始化节
+	// Allocate a new signal queue record, 参见[8.3.5 信号的初始化]节
 	q = __sigqueue_alloc(sig, t, GFP_ATOMIC | __GFP_NOTRACK_FALSE_POSITIVE, override_rlimit);
 	if (q) {
 		// 将分配的sigqueue结构链接到选中的pending signal queue队列尾部
@@ -35579,7 +35589,7 @@ int wake_up_state(struct task_struct *p, unsigned int state)
 
 ### 8.3.4 信号的接收与处理
 
-The kernel checks the value of the TIF_SIGPENDING flag of the process before allowing the process to resume its execution in User Mode. Thus, the kernel checks for the existence of pending signals every time it finishes handling an interrupt or an exception. If it has pending signals, then calling handler do_notify_resume()->do_signal(), refer to section ret_from_intr.
+The kernel checks the value of the TIF_SIGPENDING flag of the process before allowing the process to resume its execution in User Mode. Thus, the kernel checks for the existence of pending signals every time it finishes handling an interrupt or an exception. If it has pending signals, then calling handler do_notify_resume()->do_signal(), refer to section [9.3.2 ret_from_intr](#9-3-2-ret-from-intr).
 
 函数do_notify_resume()定义于arch/x86/kernel/signal.c:
 
@@ -36688,7 +36698,7 @@ static struct kmem_cache *sigqueue_cachep;
 void __init signals_init(void)
 {
 	/*
-	 * 宏KMEM_CACHE()替换后的代码如下，参见Create a Specific Cache/kmem_cache_create()节：
+	 * 宏KMEM_CACHE()替换后的代码如下，参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节：
 	 * kmem_cache_create("sigqueue", sizeof(struct sigqueue),
 	 * 		__alignof__(struct sigqueue), SLAB_PANIC, NULL)
 	 */
@@ -39635,7 +39645,7 @@ Intel x86通过两片中断控制器8259A来响应15个外中断源，每个8259
 
 异常是CPU内部出现的中断，也就是说，在CPU执行特定指令时出现的非法情况。非屏蔽中断是计算机内部硬件出错时引起的异常情况。Intel把非屏蔽中断作为异常的一种来处理，因此后面所提到的异常也包括了非屏蔽中断。在CPU执行一个异常处理程序时，就不再为其他异常或可屏蔽中断请求服务，也就是说，当某个异常被响应后，CPU清除eflag的中IF位，禁止任何可屏蔽中断。但如果又有异常产生，则由CPU锁存(CPU具有缓冲异常的能力)，待这个异常处理完后，才响应被锁存的异常。此处讨论的异常中断向量取值范围为[0, 31]。
 
-Intel x86处理器发布了大约20种异常(具体数字与处理器模式有关，参见<<Intel 64 and IA-32 Architectures Software Developer’s Manual>> Table 6-1. Exceptions and Interrupts)，其取值范围为[0x0, 0x1F]。Linux内核必须为每种异常提供一个专门的异常处理程序，当系统启动时由trap_init()设置，参见trap_init()节。需要特别说明的是，在某些异常处理程序开始执行之前，CPU控制单元会产生一个硬件错误码，内核先把这个错误码压入内核栈中。
+Intel x86处理器发布了大约20种异常(具体数字与处理器模式有关，参见<<Intel 64 and IA-32 Architectures Software Developer’s Manual>> Table 6-1. Exceptions and Interrupts)，其取值范围为[0x0, 0x1F]。Linux内核必须为每种异常提供一个专门的异常处理程序，当系统启动时由trap_init()设置，参见[4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节。需要特别说明的是，在某些异常处理程序开始执行之前，CPU控制单元会产生一个硬件错误码，内核先把这个错误码压入内核栈中。
 
 ## 9.2 与中断处理有关的数据结构
 
@@ -39743,7 +39753,7 @@ void open_softirq(int nr, void (*action)(struct softirq_action *))
 }
 ```
 
-函数softirq_init()(参见softirq_init()节)和各相关模块的初始化函数为数组softirq_vec[]赋值，其结果参见下表。这些软中断处理函数在__do_softirq()中被调用，参见__do_softirq()节。
+函数softirq_init()(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)和各相关模块的初始化函数为数组softirq_vec[]赋值，其结果参见下表。这些软中断处理函数在__do_softirq()中被调用，参见__do_softirq()节。
 
 软中断处理函数
 
@@ -39884,7 +39894,7 @@ DEFINE_PER_CPU(struct list_head [NR_SOFTIRQS], softirq_work_list);
 EXPORT_PER_CPU_SYMBOL(softirq_work_list);
 ```
 
-该数组在softirq_init()中被初始化，参见softirq_init()节。
+该数组在softirq_init()中被初始化，参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节。
 
 ### 9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]
 
@@ -39937,7 +39947,7 @@ static DEFINE_PER_CPU(struct tasklet_head, tasklet_hi_vec);
 
 ![Interrupt_05](/assets/Interrupt_05.jpg)
 
-该数组在softirq_init()中初始化，参见softirq_init()节。
+该数组在softirq_init()中初始化，参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节。
 
 #### 9.2.5.1 Takslet的定义及初始化
 
@@ -40138,7 +40148,7 @@ void tasklet_kill_immediate(struct tasklet_struct *t, unsigned int cpu)
 
 #### 9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()
 
-链表tasklet_vec和tasklet_hi_vec的处理函数分别为```tasklet_action()```和```tasklet_hi_action()```。这两个处理函数是由```softirq_init()```设置的(参见softirq_init()节)，由```__do_softirq()```调用的(参见__do_softirq()节)。
+链表tasklet_vec和tasklet_hi_vec的处理函数分别为```tasklet_action()```和```tasklet_hi_action()```。这两个处理函数是由```softirq_init()```设置的(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)，由```__do_softirq()```调用的(参见__do_softirq()节)。
 
 函数tasklet_action()和tasklet_hi_action()定义于kernel/softirq.c:
 
@@ -40260,13 +40270,13 @@ static void tasklet_hi_action(struct softirq_action *a)
 
 ## 9.3 异常/中断处理流程
 
-当异常/中断发生后，首先根据中断号和IDTR(参见中断描述符表寄存器IDTR节)在IDT(参见中断描述符表IDT节)中查找对应项(假设为SS1)，并从该项中取出段选择子，由该段选择子和GDTR(参见全局描述符表寄存器GDTR节)在GDT(参见全局描述符表GDT节)中查找对应项(假设为SS2)。SS1中的DPL域表示中断处理程序应该在哪个级别下运行(一般是0级，即内核态下运行中断处理程序)。如果当前进程的CS中的低两位比中断处理程序的DPL还小(数值越小，级别越高，kernel的数值为0)，那么就直接出现异常，因为不可能会有某个进程的运行级别会被中断还低。经过此步骤的确认后，CS和EIP分别被赋值予SS1中的段选择子和偏移量，这意味着下一个执行的指令是：
-* 若中断号在[0, 31]范围内(即异常)，则执行trap_init()函数中指定的中断处理函数，参见trap_init()节；
-* 若中断号在[32, 255]范围内(即中断)，则执行init_IRQ()函数中指定的中断处理函数(参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节)，即interrupt数组中对应项(参见interrupt[]节)，也就是跳转到common_interrupt处，并开始执行do_IRQ()进行中断处理(参见do_IRQ()节)，完成后，执行ret_from_intr(参见ret_from_intr节)从中断中返回。
+当异常/中断发生后，首先根据中断号和IDTR(参见中断描述符表寄存器IDTR节)在IDT(参见[6.1.1.3.1 中断描述符表IDT](#6-1-1-3-1-idt)节)中查找对应项(假设为SS1)，并从该项中取出段选择子，由该段选择子和GDTR(参见[6.1.1.2.2 全局描述符表寄存器GDTR](#6-1-1-2-2-gdtr)节)在GDT(参见全局描述符表GDT节)中查找对应项(假设为SS2)。SS1中的DPL域表示中断处理程序应该在哪个级别下运行(一般是0级，即内核态下运行中断处理程序)。如果当前进程的CS中的低两位比中断处理程序的DPL还小(数值越小，级别越高，kernel的数值为0)，那么就直接出现异常，因为不可能会有某个进程的运行级别会被中断还低。经过此步骤的确认后，CS和EIP分别被赋值予SS1中的段选择子和偏移量，这意味着下一个执行的指令是：
+* 若中断号在[0, 31]范围内(即异常)，则执行trap_init()函数中指定的中断处理函数，参见[4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节；
+* 若中断号在[32, 255]范围内(即中断)，则执行init_IRQ()函数中指定的中断处理函数(参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节)，即interrupt数组中对应项(参见[4.3.4.1.4.3.9.2.3 interrupt[]](#4-3-4-1-4-3-9-2-3-interrupt-)节)，也就是跳转到common_interrupt处，并开始执行do_IRQ()进行中断处理(参见[9.3.1 do_IRQ()](#9-3-1-do-irq-)节)，完成后，执行ret_from_intr(参见[9.3.2 ret_from_intr](#9-3-2-ret-from-intr)节)从中断中返回。
 
 ### 9.3.1 do_IRQ()
 
-该函数被common_interrupt程序段(参见interrupt[]节)调用，其定义于arch/x86/kernel/irq.c:
+该函数被common_interrupt程序段(参见[4.3.4.1.4.3.9.2.3 interrupt[]](#4-3-4-1-4-3-9-2-3-interrupt-)节)调用，其定义于arch/x86/kernel/irq.c:
 
 ```
 /*
@@ -40278,7 +40288,7 @@ static void tasklet_hi_action(struct softirq_action *a)
  * Because the C calling convention places function arguments
  * at the top of the stack, the pt_regs structure contains the
  * initial register values that were previously saved in the
- * assembly entry routine. 参见 interrupt[]节common_interrupt程
+ * assembly entry routine. 参见[4.3.4.1.4.3.9.2.3 interrupt[]]节common_interrupt程
  * 序中的SAVE_ALL
  */
 unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
@@ -40286,7 +40296,7 @@ unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
 	struct pt_regs *old_regs = set_irq_regs(regs);
 
 	/*
-	 * 由interrupt[]节的common_interrupt程序段可知，regs->orig_ax
+	 * 由[4.3.4.1.4.3.9.2.3 interrupt[]]节的common_interrupt程序段可知，regs->orig_ax
 	 * 的取值范围为[-256, -1]，故此处vector的取值范围为[1, 256]
 	 */
 	/* high bit used in ret_from_ code  */
@@ -40302,7 +40312,7 @@ unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
 	 */
 	irq_enter();
 
-	// 数组vector_irq[]参见vector_irq节
+	// 数组vector_irq[]参见[9.3.1.1 vector_irq[]]节
 	irq = __this_cpu_read(vector_irq[vector]);
 
 	// 参见handle_irq()节
@@ -40359,7 +40369,7 @@ bool handle_irq(unsigned irq, struct pt_regs *regs)
 
 	overflow = check_stack_overflow();
 
-	// 从数组irq_desc[]中查找下标为irq的项，参见struct irq_desc节
+	// 从数组irq_desc[]中查找下标为irq的项，参见[9.2.1 struct irq_desc/irq_desc[]]节
 	desc = irq_to_desc(irq);
 	if (unlikely(!desc))
 		return false;
@@ -40420,7 +40430,7 @@ static inline int execute_on_irq_stack(int overflow, struct irq_desc *desc, int 
 
 ##### 9.3.1.2.1 desc->handle_irq()/handle_level_irq()
 
-在handle_irq()节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由struct irq_desc节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
+在handle_irq()节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
 
 ```
 /**
@@ -40502,7 +40512,7 @@ irqreturn_t handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *act
 		trace_irq_handler_entry(irq, action);
 		/*
 		 * 依次调用用户在desc->action链表中注册的处理函数，
-		 * 参见struct irq_desc节的该结构体定义于include/linux/irqdesc.h:;
+		 * 参见[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节的该结构体定义于include/linux/irqdesc.h:;
 		 * 该handler是通过__setup_irq()设置的，直接或间接调用__setup_irq()的函数，
 		 * 	参见中断处理函数的注册/注销节：
 		 * 	* native_init_IRQ()		-> setup_irq()
@@ -40541,7 +40551,7 @@ irqreturn_t handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *act
 		}
 
 		retval |= res;
-		// 参见struct irq_desc节的该结构体定义于include/linux/irqdesc.h:
+		// 参见[9.2.1 struct irq_desc/irq_desc[]]节的该结构体定义于include/linux/irqdesc.h:
 		action = action->next;
 	} while (action);
 
@@ -40574,7 +40584,7 @@ A: 参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第8. Bottom 
 
 Currently, three methods exist for deferring work:
 * softirqs (Refer to section struct softirq_action/softirq_vec[])
-* tasklets (Refer to section struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[])
+* tasklets (Refer to section [9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-))
 * work queues (Refer to section 工作队列/workqueue)
 Tasklets are built on softirqs and, therefore, both are similar. The work queue mechanism is an entirely different creature and is built on kernel threads.
 
@@ -40593,7 +40603,7 @@ Bottom Half Comparison:
 | Bottom Half | Context | Inherent Serialization | Reference |
 | :---------- | :------ | :--------------------- | :-------- |
 | Softirq     | Interrupt context | None | Section struct softirq_action/softirq_vec[] |
-| Tasklet     | Interrupt context | Against the same tasklet | Section struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[] |
+| Tasklet     | Interrupt context | Against the same tasklet | Section [9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-) |
 | Work queues | Process context | None (scheduled as process context) | Section 工作队列/workqueue |
 
 <p/>
@@ -40612,7 +40622,7 @@ void irq_exit(void)
 	trace_hardirq_exit();
 	/*
 	 * Decreases the interrupt counter. 与do_IRQ()->irq_enter()对应，
-	 * 参见do_IRQ()节
+	 * 参见[9.3.1 do_IRQ()]节
 	 */
 	sub_preempt_count(IRQ_EXIT_OFFSET);
 	/*
@@ -41337,7 +41347,7 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 
 	/*
 	 * 根据中断号，在数组irq_desc[]查找对应的中断描述符，
-	 * 参见struct irq_desc节
+	 * 参见[9.2.1 struct irq_desc/irq_desc[]]节
 	 */
 	desc = irq_to_desc(irq);
 	if (!desc)
@@ -41370,7 +41380,7 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 	chip_bus_lock(desc);
 	/*
 	 * 将action结构加入到desc->action链表中，
-	 * 参见struct irq_desc节和__setup_irq()节
+	 * 参见[9.2.1 struct irq_desc/irq_desc[]]节和__setup_irq()节
 	 */
 	retval = __setup_irq(irq, desc, action);
 	chip_bus_sync_unlock(desc);
@@ -41760,7 +41770,7 @@ void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume)
  */
 void free_irq(unsigned int irq, void *dev_id)
 {
-	// 根据中断号，在数组irq_desc[]查找对应的中断描述符，参见struct irq_desc节
+	// 根据中断号，在数组irq_desc[]查找对应的中断描述符，参见[9.2.1 struct irq_desc/irq_desc[]]节
 	struct irq_desc *desc = irq_to_desc(irq);
 
 	// 检查desc->status_use_accessors中的标志位IRQ_PER_CPU_DEVID
@@ -41821,7 +41831,7 @@ static struct irqaction *__free_irq(unsigned int irq, void *dev_id)
 		if (action->dev_id == dev_id)
 			break;
 
-		// 参见struct irq_desc节
+		// 参见[9.2.1 struct irq_desc/irq_desc[]]节
 		action_ptr = &action->next;
 	}
 
@@ -42079,7 +42089,7 @@ static irqreturn_t rtc_interrupt(int irq, void *dev_id)
 在系统启动时，需要初始化中断，参见： 
 * 中断描述符表的初步初始化节
 * 中断描述符表的最终初始化节
-* trap_init()节
+* [4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节
 * [4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节
 * [4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节
 
@@ -42411,9 +42421,9 @@ drwxr-xr-x  2 root root          60 Nov 15 02:42 cpu
 
 ```
 start_kernel()				// 参见start_kernel()节
--> rest_init()				// 参见rest_init()节
-   -> kernel_init()			// 参见kernel_init()节
-      -> do_basic_setup()		// 参见4.3.4.1.4.3.13.1.2 do_basic_setup()节
+-> rest_init()				// 参见[4.3.4.1.4.3.13 rest_init()]节
+   -> kernel_init()			// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
+      -> do_basic_setup()		// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
          -> driver_init()
 ```
 
@@ -42461,17 +42471,17 @@ int __init devices_init(void)
 	if (!devices_kset)
 		return -ENOMEM;
 
-	// 创建目录/sys/dev，参见kobject_create_and_add()节
+	// 创建目录/sys/dev，参见[15.7.1.2 kobject_create_and_add()]节
 	dev_kobj = kobject_create_and_add("dev", NULL);
 	if (!dev_kobj)
 		goto dev_kobj_err;
 
-	// 创建目录/sys/dev/block，参见kobject_create_and_add()节
+	// 创建目录/sys/dev/block，参见[15.7.1.2 kobject_create_and_add()]节
 	sysfs_dev_block_kobj = kobject_create_and_add("block", dev_kobj);
 	if (!sysfs_dev_block_kobj)
 		goto block_kobj_err;
 
-	// 创建目录/sys/dev/char，参见kobject_create_and_add()节
+	// 创建目录/sys/dev/char，参见[15.7.1.2 kobject_create_and_add()]节
 	sysfs_dev_char_kobj = kobject_create_and_add("char", dev_kobj);
 	if (!sysfs_dev_char_kobj)
 		goto char_kobj_err;
@@ -42479,9 +42489,9 @@ int __init devices_init(void)
 	return 0;
 
 char_kobj_err:
-	kobject_put(sysfs_dev_block_kobj);	// 参见15.7.2.2 kobject_put()节
+	kobject_put(sysfs_dev_block_kobj);	// 参见[15.7.2.2 kobject_put()]节
 block_kobj_err:
-	kobject_put(dev_kobj);			// 参见15.7.2.2 kobject_put()节
+	kobject_put(dev_kobj);			// 参见[15.7.2.2 kobject_put()]节
 dev_kobj_err:
 	kset_unregister(devices_kset);
 	return -ENOMEM;
@@ -42525,7 +42535,7 @@ int __init classes_init(void)
 ```
 int __init firmware_init(void)
 {
-	// 创建目录/sys/firmware，参见kobject_create_and_add()节
+	// 创建目录/sys/firmware，参见[15.7.1.2 kobject_create_and_add()]节
 	firmware_kobj = kobject_create_and_add("firmware", NULL);
 	if (!firmware_kobj)
 		return -ENOMEM;
@@ -42540,7 +42550,7 @@ int __init firmware_init(void)
 ```
 int __init hypervisor_init(void)
 {
-	// 创建目录/sys/hypervisor，参见kobject_create_and_add()节
+	// 创建目录/sys/hypervisor，参见[15.7.1.2 kobject_create_and_add()]节
 	hypervisor_kobj = kobject_create_and_add("hypervisor", NULL);
 	if (!hypervisor_kobj)
 		return -ENOMEM;
@@ -43672,7 +43682,7 @@ static struct kobject *virtual_device_parent(struct device *dev)
 
 	/*
 	 * 创建目录/sys/devices/virtual
-	 * 参见15.7.1.2 kobject_create_and_add()节
+	 * 参见[15.7.1.2 kobject_create_and_add()]节
 	 */
 	if (!virtual_dir)
 		virtual_dir = kobject_create_and_add("virtual", &devices_kset->kobj);
@@ -45157,7 +45167,7 @@ int __class_register(struct class *cls, struct lock_class_key *key)
 	/*
 	 * 变量sysfs_dev_char_kobj参见10.2.1.1 devices_init()节；
 	 * 函数调用genhd_device_init()->class_register()时，不进入
-	 * 此条件分支，参见10.4.2 块设备的初始化/genhd_device_init()节
+	 * 此条件分支，参见[10.4.2 块设备的初始化/genhd_device_init()]节
 	 */
 	if (!cls->dev_kobj)
 		cls->dev_kobj = sysfs_dev_char_kobj;
@@ -46282,18 +46292,18 @@ struct cdev {
 
 ### 10.3.2 字符设备的初始化/chr_dev_init()
 
-* 字符设备初始化函数之一：chrdev_init()			// 参见4.3.4.1.4.3.11.6 chrdev_init()节
+* 字符设备初始化函数之一：chrdev_init()			// 参见[4.3.4.1.4.3.11.6 chrdev_init()]节
 * 字符设备初始化函数之二：chr_dev_init()			// 参见本节
 
 ```
-start_kernel()						// 参见4.3.4.1.4.3 start_kernel()节
--> vfs_caches_init()					// 参见4.3.4.1.4.3.11 vfs_caches_init()节
-   -> chrdev_init()					// 参见4.3.4.1.4.3.11.6 chrdev_init()节
--> rest_init()						// 参见4.3.4.1.4.3.13 rest_init()节
-   -> kernel_init()					// 参见4.3.4.1.4.3.13.1 kernel_init()节
-      -> do_basic_setup()				// 参见4.3.4.1.4.3.13.1.2 do_basic_setup()节
-         -> do_initcalls()				// 参见13.5.1.1.1 do_initcalls()节
-            -> do_one_initcall()			// 参见13.5.1.1.1.2 do_one_initcall()节
+start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
+-> vfs_caches_init()					// 参见[4.3.4.1.4.3.11 vfs_caches_init()]节
+   -> chrdev_init()					// 参见[4.3.4.1.4.3.11.6 chrdev_init()]节
+-> rest_init()						// 参见[4.3.4.1.4.3.13 rest_init()]节
+   -> kernel_init()					// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
+      -> do_basic_setup()				// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
+         -> do_initcalls()				// 参见[13.5.1.1.1 do_initcalls()]节
+            -> do_one_initcall()			// 参见[13.5.1.1.1.2 do_one_initcall()]节
                -> fs_initcall(chr_dev_init)		// initcall5.init
                   -> chr_dev_init()			// 参见本节
 ```
@@ -46434,7 +46444,7 @@ int __init tty_init(void)
 
 	/*
 	 * 1.2) 添加字符设备/dev/tty
-	 * 参见10.3.3.3.3.1 cdev_add()节和10.3.3.3.1.2 register_chrdev_region()节
+	 * 参见[10.3.3.3.3.1 cdev_add()]节和[10.3.3.3.1.2 register_chrdev_region()]节
 	 */
 	if (cdev_add(&tty_cdev, MKDEV(TTYAUX_MAJOR, 0), 1) ||
 	    register_chrdev_region(MKDEV(TTYAUX_MAJOR, 0), 1, "/dev/tty") < 0)
@@ -46458,7 +46468,7 @@ int __init tty_init(void)
 
 	/*
 	 * 2.2) 添加字符设备/dev/console
-	 * 参见10.3.3.3.3.1 cdev_add()节和10.3.3.3.1.2 register_chrdev_region()节
+	 * 参见[10.3.3.3.3.1 cdev_add()]节和[10.3.3.3.1.2 register_chrdev_region()]节
 	 */
 	if (cdev_add(&console_cdev, MKDEV(TTYAUX_MAJOR, 1), 1) ||
 	    register_chrdev_region(MKDEV(TTYAUX_MAJOR, 1), 1, "/dev/console") < 0)
@@ -46524,7 +46534,7 @@ cdev_add(): Once the cdev structure is set up, the final step is to tell the ker
 
 There are a couple of important things to keep in mind when using cdev_add(). The first is that this call can fail. If it returns a negative error code, your device has not been added to the system. It almost always succeeds, however, and that brings up the other point: as soon as cdev_add() returns, your device is "live" and its operations can be called by the kernel. You should not call cdev_add() until your driver is completely ready to handle operations on the device.
 
-参见10.3.3.3.3.1 cdev_add()节。
+参见[10.3.3.3.3.1 cdev_add()](#10-3-3-3-3-1-cdev-add-)节。
 
 2.4) 访问字符设备
 
@@ -46619,8 +46629,7 @@ int __register_chrdev(unsigned int major, unsigned int baseminor,
 	kobject_set_name(&cdev->kobj, "%s", name);
 
 	/*
-	 * 将cdev链接到cdev_map.probe[major].data中，参见10.3.3.3.3.1 cdev_add()节；
-	 * 参见Subjects/Chapter10_Device_Driver/01_Char_Device/Figures/chrdevs[]_2.jpg
+	 * 将cdev链接到cdev_map.probe[major].data中，参见[10.3.3.3.3.1 cdev_add()]节
 	 */
 	err = cdev_add(cdev, MKDEV(cd->major, baseminor), count);
 	if (err)
@@ -47046,7 +47055,7 @@ int cdev_add(struct cdev *p, dev_t dev, unsigned count)
 
 	/*
 	 * 变量cdev_map是由函数chrdev_init()创建的，
-	 * 参见4.3.4.1.4.3.11.6 chrdev_init()节
+	 * 参见[4.3.4.1.4.3.11.6 chrdev_init()]节
 	 */
 	return kobj_map(cdev_map, dev, count, NULL, exact_match, exact_lock, p);
 }
@@ -47336,7 +47345,7 @@ retry:
 		/*
 		 * 调用该字符设备的lock()函数来锁定该字符设备; 其中，函数
 		 * 指针p->lock是由函数cdev_add()->kobj_map()设置的，
-		 * 即exact_lock(),参见10.3.3.3.3.1 cdev_add()节
+		 * 即exact_lock(),参见[10.3.3.3.3.1 cdev_add()]节
 		 */
 		if (p->lock && p->lock(dev, data) < 0) {
 			module_put(owner);
@@ -47347,7 +47356,7 @@ retry:
 		/*
 		 * 调用该字符设备的get()函数来查看该字符设备是否符合条件;
 		 * 其中，函数指针p->get是由函数cdev_add()->kobj_map()
-		 * 设置的，即exact_match()，参见10.3.3.3.3.1 cdev_add()节
+		 * 设置的，即exact_match()，参见[10.3.3.3.3.1 cdev_add()]节
 		 */
 		kobj = probe(dev, index, data);
 		/* Currently ->owner protects _only_ ->probe() itself. */
@@ -47575,7 +47584,7 @@ crw-------  1 root root    254,   0 Dec 30 08:20 rtc0
 
 #### 10.3.4.1 内存设备
 
-系统中存在下列特殊内存设备，其主设备号均为1，次设备号为数组devlist[]的下标。这些内存设备是由函数chr_dev_init()根据数组devlist[]创建的，参见10.3.2 字符设备的初始化/chr_dev_init()节：
+系统中存在下列特殊内存设备，其主设备号均为1，次设备号为数组devlist[]的下标。这些内存设备是由函数chr_dev_init()根据数组devlist[]创建的，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节：
 
 ```
 Name				Major			Minor (=数组devlist[]的下标)
@@ -49299,18 +49308,18 @@ struct request_queue {
 
 ### 10.4.2 块设备的初始化/genhd_device_init()
 
-* 字符设备初始化函数之一：bdev_cache_init()			// 参见4.3.4.1.4.3.11.5 bdev_cache_init()节
+* 字符设备初始化函数之一：bdev_cache_init()			// 参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节
 * 字符设备初始化函数之二：genhd_device_init()		// 参见本节
 
 ```
-start_kernel()						// 参见4.3.4.1.4.3 start_kernel()节
--> vfs_caches_init()					// 参见4.3.4.1.4.3.11 vfs_caches_init()节
-   -> bdev_cache_init()					// 参见4.3.4.1.4.3.11.6 chrdev_init()节
--> rest_init()						// 参见4.3.4.1.4.3.13 rest_init()节
-   -> kernel_init()					// 参见4.3.4.1.4.3.13.1 kernel_init()节
-      -> do_basic_setup()				// 参见4.3.4.1.4.3.13.1.2 do_basic_setup()节
-         -> do_initcalls()				// 参见13.5.1.1.1 do_initcalls()节
-            -> do_one_initcall()			// 参见13.5.1.1.1.2 do_one_initcall()节
+start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
+-> vfs_caches_init()					// 参见[4.3.4.1.4.3.11 vfs_caches_init()]节
+   -> bdev_cache_init()					// 参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节
+-> rest_init()						// 参见[4.3.4.1.4.3.13 rest_init()]节
+   -> kernel_init()					// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
+      -> do_basic_setup()				// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
+         -> do_initcalls()				// 参见[13.5.1.1.1 do_initcalls()]节
+            -> do_one_initcall()			// 参见[13.5.1.1.1.2 do_one_initcall()]节
                -> subsys_initcall(genhd_device_init)	// initcall4.init
                   -> genhd_device_init()		// 参见本节
 ```
@@ -49348,7 +49357,7 @@ static int __init genhd_device_init(void)
 	/* create top-level block dir */
 	/*
 	 * 创建目录/sys/block，
-	 * 参见15.7.1.2 kobject_create_and_add()节
+	 * 参见[15.7.1.2 kobject_create_and_add()]节
 	 */
 	if (!sysfs_deprecated)
 		block_depr = kobject_create_and_add("block", NULL);
@@ -49372,11 +49381,11 @@ int __init blk_dev_init(void)
 	if (!kblockd_workqueue)
 		panic("Failed to create kblockd\n");
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	request_cachep = kmem_cache_create("blkdev_requests",
 			sizeof(struct request), 0, SLAB_PANIC, NULL);
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	blk_requestq_cachep = kmem_cache_create("blkdev_queue",
 			sizeof(struct request_queue), 0, SLAB_PANIC, NULL);
 
@@ -51950,12 +51959,12 @@ static int __init sock_init(void)
 	 */
 	init_inodecache();
 
-	// 注册sockfs文件系统，参见11.2.2.1 注册/注销文件系统节
+	// 注册sockfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	err = register_filesystem(&sock_fs_type);
 	if (err)
 		goto out_fs;
 
-	// 挂载sockfs文件系统，参见11.2.2.2 安装文件系统(1)/kern_mount()节
+	// 挂载sockfs文件系统，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 	sock_mnt = kern_mount(&sock_fs_type);
 	if (IS_ERR(sock_mnt)) {
 		err = PTR_ERR(sock_mnt);
@@ -52603,16 +52612,16 @@ struct file_system_type {
 
 	/*
 	 * Read the superblock off the disk. 该函数的调用关系如下:
-	 * do_kern_mount() / kern_mount_data()	// 参见11.2.2.2 安装文件系统(1)/kern_mount()节
-	 * -> vfs_kern_mount(type, ..)		// 参见11.2.2.2.1 vfs_kern_mount()节
-	 *    -> mount_fs(type, ..)		// 参见11.2.2.2.1.2 mount_fs()节
+	 * do_kern_mount() / kern_mount_data()	// 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
+	 * -> vfs_kern_mount(type, ..)		// 参见[11.2.2.2.1 vfs_kern_mount()]节
+	 *    -> mount_fs(type, ..)		// 参见[11.2.2.2.1.2 mount_fs()]节
 	 *       -> type->mount()
 	 */
 	struct dentry *(*mount) (struct file_system_type *, int, const char *, void *);
 
 	/*
 	 * Terminate access to the superblock. 该函数的调用关系如下:
-	 * sys_umount()				// 参见11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()节
+	 * sys_umount()				// 参见[11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()]节
 	 * -> mntput_no_expire()
 	 *    -> mntfree()
 	 *       -> deactivate_super()
@@ -52631,7 +52640,7 @@ struct file_system_type {
 	struct file_system_type *next;
 	/*
 	 * Head of a list of superblock objectshaving the same filesystem type.
-	 * 该链表是由sget()函数链接起来的，参见注册/注销文件系统节。
+	 * 该链表是由sget()函数链接起来的，参见[11.2.2.1 注册/注销文件系统]节。
 	 * 注：在kernel v3.3中，变量fs_supers的类型改为struct hlist_head，
 	 * 参见15.2 哈希链表/struct hlist_head/struct hlist_node节
 	 */
@@ -52678,7 +52687,7 @@ file_systems单链表，参见:
 
 ###### 11.2.1.1.1.1 如何向file_systems注册文件系统及其先后顺序
 
-通过函数register_filesystem()/unregister_filesystem()向单链表file_systems中注册/注销指定的文件系统，参见注册/注销文件系统节。其调用关系如下：
+通过函数register_filesystem()/unregister_filesystem()向单链表file_systems中注册/注销指定的文件系统，参见[11.2.2.1 注册/注销文件系统]节。其调用关系如下：
 
 ```
 <source-code-of-specific-filesystem>
@@ -52688,7 +52697,7 @@ file_systems单链表，参见:
    module_init(<fs-init-func>), or			// ext2, ext3, ext4, efs, fat等
    <fs-init-func> is called during system init		// sysfs, ramfs等
    -> <fs-init-func>
-      -> register_filesystem(<fs-object-ptr>)		// 参见注册/注销文件系统节
+      -> register_filesystem(<fs-object-ptr>)		// 参见[11.2.2.1 注册/注销文件系统]节
          -> <fs-object-ptr> is appended into list file_systems
 ```
 
@@ -53004,7 +53013,7 @@ struct super_block {
 	/*
 	 * 同一种文件系统可能存在多个超级块，并通过s_instances域链接起来，
 	 * 组成双向链表file_systems->fs_supers，参见文件系统链表/file_systems节；
-	 * s_instances域会被sget()函数引用，参见注册/注销文件系统节
+	 * s_instances域会被sget()函数引用，参见[11.2.2.1 注册/注销文件系统]节
 	 */
 	struct list_head			s_instances;
 	struct quota_info			s_dquot;		/* Diskquota specific options */
@@ -53067,8 +53076,8 @@ DEFINE_SPINLOCK(sb_lock);
 
 ```
 /*
- * 在安装文件系统时，调用sget()函数，参见安装文件系统(1)/kern_mount()节
- * 和安装文件系统(2)/sys_mount()节
+ * 在安装文件系统时，调用sget()函数，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
+ * 和[11.2.2.4 安装文件系统(2)/sys_mount()]节
  */
 struct super_block *sget(struct file_system_type *type,
 			 int (*test)(struct super_block *,void *),
@@ -53493,8 +53502,8 @@ static const struct super_operations nfs_sops = {
 每种具体文件系统的struct super_operations对象是通过如下方式赋值给super_blocks[x]->s_op的:
 
 ```
-/* 手动(参见安装文件系统(2)/sys_mount()节)或自动(参见文件系统的自动安装节)调用如下函数 */
-kern_mount() / do_kern_mount()		// 参见do_kern_mount()节
+/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见文件系统的自动安装节)调用如下函数 */
+kern_mount() / do_kern_mount()		// 参见[11.2.2.4.1.2.1 do_kern_mount()]节
 -> vfs_kern_mount()			// 参见vfs_kern_mount()节
    -> mount_fs()			// 参见mount_fs()节
       -> type->mount()			// 其中type为某种具体的文件系统类型，参见mount_fs()节
@@ -53505,9 +53514,9 @@ kern_mount() / do_kern_mount()		// 参见do_kern_mount()节
 以EXT3为例，其调用过程如下：
 
 ```
-/* 手动(参见安装文件系统(2)/sys_mount()节)或自动(参见文件系统的自动安装节)调用如下函数 */
+/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见文件系统的自动安装节)调用如下函数 */
 kern_mount(ext3_fs_type, ...) / do_kern_mount(ext3_fs_type, ...)
--> vfs_kern_mount()				// 参见do_kern_mount()节
+-> vfs_kern_mount()				// 参见[11.2.2.4.1.2.1 do_kern_mount()]节
    -> mount_fs()				// 参见mount_fs()节
       -> &ext3_fs_type->mount()			// that’s ext3_mount()
          -> ext3_mount()			// 参见fs/ext3/super.c
@@ -53778,7 +53787,7 @@ struct inode {
 	struct super_block		*i_sb;
 	/*
 	 * 链接所有可交换的页面，associated mapping.
-	 * 参见6.2.7 struct vm_area_struct和struct address_space节
+	 * 参见[6.2.7 struct vm_area_struct]节和struct address_space节
 	 */
 	struct address_space		*i_mapping;
 
@@ -54035,8 +54044,8 @@ static struct inode *alloc_inode(struct super_block *sb)
 
 	/*
 	 * 若该超级块存在函数alloc_inode()，则调用该函数为inode分配空间；
-	 * 否则，从缓存inode_cachep中为inode分配空间，参见inode_init()节和
-	 * 6.5.1.1.3.1 kmem_cache_zalloc()节
+	 * 否则，从缓存inode_cachep中为inode分配空间，参见[4.3.4.1.4.3.11.2 inode_init()]节和
+	 * [6.5.1.1.3.1 kmem_cache_zalloc()]节
 	 */
 	if (sb->s_op->alloc_inode)
 		inode = sb->s_op->alloc_inode(sb);
@@ -54081,9 +54090,9 @@ static void destroy_inode(struct inode *inode)
 以EXT3为例，分配inode并为struct inode->i_op赋值的过程如下：
 
 ```
-/* 手动(参见安装文件系统(2)/sys_mount()节)或自动(参见文件系统的自动安装节)调用如下函数 */
+/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见文件系统的自动安装节)调用如下函数 */
 kern_mount(ext3_fs_type, ...) / do_kern_mount(ext3_fs_type, ...)
--> vfs_kern_mount()				// 参见do_kern_mount()节
+-> vfs_kern_mount()				// 参见[11.2.2.4.1.2.1 do_kern_mount()]节
    -> mount_fs()				// 参见mount_fs()节
       -> &ext3_fs_type->mount()			// that’s ext3_mount()
          -> ext3_mount()			// 参见fs/ext3/super.c
@@ -54358,7 +54367,7 @@ struct file {
 };
 ```
 
-引用file结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_2.jpg。其中，根目录的inode和当前目录的inode，参见init_mount_tree()节。
+引用file结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_2.jpg。其中，根目录的inode和当前目录的inode，参见[4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节。
 
 ##### 11.2.1.5.1 文件操作/struct file_operations
 
@@ -54665,7 +54674,7 @@ struct vfsmount {
 };
 ```
 
-进程通过task_struct访问vfsmount结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_29.jpg，其赋值过程参见init_mount_tree()节。
+进程通过task_struct访问vfsmount结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_29.jpg，其赋值过程参见[4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节。
 
 ##### 11.2.1.6.1 虚拟文件系统安装点数组mount_hashtable[idx]及各链表
 
@@ -54677,7 +54686,7 @@ static struct kmem_cache	*mnt_cache __read_mostly;
 static struct rw_semaphore	namespace_sem;
 ```
 
-函数mnt_init()为变量mount_hashtable分配空间，参见mnt_init()节。
+函数mnt_init()为变量mount_hashtable分配空间，参见[4.3.4.1.4.3.11.4 mnt_init()]节。
 
 mount_hashtable哈希链表结构:
 
@@ -54701,7 +54710,7 @@ struct vfsmount父子关系：
 struct vfsmount类型的对象是在安装文件系统时创建的:
 
 ```
-kern_mount(type) / kern_mount_data(type, NULL)		// 参见11.2.2.2 安装文件系统(1)/kern_mount()节
+kern_mount(type) / kern_mount_data(type, NULL)		// 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 -> mnt = vfs_kern_mount(type, MS_KERNMOUNT,		// 参见vfs_kern_mount()节
                         type->name, data);
    -> alloc_vfsmnt(name)				// 参见alloc_vfsmnt()节
@@ -54711,10 +54720,10 @@ kern_mount(type) / kern_mount_data(type, NULL)		// 参见11.2.2.2 安装文件�
 其中，缓冲区mnt_cache是在系统启动时初始化的:
 
 ```
-start_kernel()						// 参见4.3.4.1.4.3 start_kernel()节
--> vfs_caches_init()					// 参见vfs_caches_init()节
-   -> mnt_init()					// 参见mnt_init()节
-      -> mnt_cache = kmem_cache_create(			// 参见Create a Specific Cache/kmem_cache_create()节
+start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
+-> vfs_caches_init()					// 参见[4.3.4.1.4.3.11 vfs_caches_init()]节
+   -> mnt_init()					// 参见[4.3.4.1.4.3.11.4 mnt_init()]节
+      -> mnt_cache = kmem_cache_create(			// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
                      "mnt_cache", sizeof(struct vfsmount),
                      0, SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL);
 ```
@@ -55059,7 +55068,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 	/*
 	 * Allocate a new mounted filesystem descriptor and
 	 * stores its address in the mnt local variable.
-	 * 从缓存mnt_cache(由mnt_init()分配，参见mnt_init()节)
+	 * 从缓存mnt_cache(由mnt_init()分配，参见[4.3.4.1.4.3.11.4 mnt_init()]节)
 	 * 中分配并初始化类型为struct vfsmount的内存，
 	 * 参见alloc_vfsmnt()节
 	 */
@@ -55069,7 +55078,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 
 	/*
 	 * 通过kern_mount()调用本函数时，设置MS_KERNMOUNT标志，
-	 * 参见安装文件系统(1)/kern_mount()节
+	 * 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 	 */
 	if (flags & MS_KERNMOUNT)
 		mnt->mnt_flags = MNT_INTERNAL;
@@ -55108,7 +55117,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 ```
 static struct vfsmount *alloc_vfsmnt(const char *name)
 {
-	// 从缓存mnt_cache中为mnt分配空间，参见mnt_init()节和kmem_cache_zalloc()节
+	// 从缓存mnt_cache中为mnt分配空间，参见[4.3.4.1.4.3.11.4 mnt_init()]节和kmem_cache_zalloc()节
 	struct vfsmount *mnt = kmem_cache_zalloc(mnt_cache, GFP_KERNEL);
 	if (mnt) {
 		int err;
@@ -55178,7 +55187,7 @@ struct dentry *mount_fs(struct file_system_type *type, int flags,
 
 	/*
 	 * 通过kern_mount()->vfs_kern_mount()->mount_fs()调用时，
-	 * data = NULL; 参见安装文件系统(1)/kern_mount()节
+	 * data = NULL; 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 	 */
 	if (data && !(type->fs_flags & FS_BINARY_MOUNTDATA)) {
 		secdata = alloc_secdata();
@@ -55196,10 +55205,10 @@ struct dentry *mount_fs(struct file_system_type *type, int flags,
 	 * 来挂载文件系统，并返回挂载后根目录的目录项。
 	 *
 	 * 根据文件系统类型的不同，其安装函数也不同:
-	 * - 若文件系统为sysfs_fs_type，则调用sysfs_mount()，参见sysfs_init()节和sysfs_mount()节；
-	 * - 若文件系统为rootfs_fs_type，则调用rootfs_mount()，参见init_rootfs()节和rootfs_mount()节；
-	 * - 若文件系统为bd_type，则调用bd_mount()，参见bdev_cache_init()节和bd_mount()节；
-	 * - 若文件系统为proc，则调用proc_mount()，参见proc_root_init()节和proc_mount()节；
+	 * - 若文件系统为sysfs_fs_type，则调用sysfs_mount()，参见[4.3.4.1.4.3.11.4.1 sysfs_init()]节和sysfs_mount()节；
+	 * - 若文件系统为rootfs_fs_type，则调用rootfs_mount()，参见[4.3.4.1.4.3.11.4.2 init_rootfs()]节和[11.2.2.2.1.2.2 rootfs_mount()](#11-2-2-2-1-2-2-rootfs-mount-)节；
+	 * - 若文件系统为bd_type，则调用bd_mount()，参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节和bd_mount()节；
+	 * - 若文件系统为proc，则调用proc_mount()，参见[4.3.4.1.4.3.12 proc_root_init()]节和[11.2.2.2.1.2.4 proc_mount()]节；
 	 * - 若文件系统为debugfs，则调用debug_mount()，参见Debugfs的编译及初始化节和debug_mount()节；
 	 * - ...
 	 * 其共同点为: 1) 分配该文件系统的超级块； 2) 分配挂载点dentry结构
@@ -55245,7 +55254,7 @@ out:
 
 ###### 11.2.2.2.1.2.1 sysfs_mount()
 
-该函数用于安装sysfs文件系统(参见sysfs_init()节)，其定义于fs/sysfs/mount.c:
+该函数用于安装sysfs文件系统(参见[4.3.4.1.4.3.11.4.1 sysfs_init()](#4-3-4-1-4-3-11-4-1-sysfs-init-)节)，其定义于fs/sysfs/mount.c:
 
 ```
 static struct dentry *sysfs_mount(struct file_system_type *fs_type, int flags,
@@ -55419,7 +55428,7 @@ struct dentry * d_alloc_root(struct inode * root_inode)
 		static const struct qstr name = { .name = "/", .len = 1 };
 
 		/*
-		 * 从缓存dentry_cache中(参见dcache_init()节)分配根目录项，
+		 * 从缓存dentry_cache中(参见[4.3.4.1.4.3.11.1 dcache_init()]节)分配根目录项，
 		 * 并赋值，参见__d_alloc()节
 		 */
 		res = __d_alloc(root_inode->i_sb, &name);
@@ -55456,7 +55465,7 @@ struct dentry *__d_alloc(struct super_block *sb, const struct qstr *name)
 	char *dname;
 
 	/*
-	 * 从缓存dentry_cache中获取目录项，参见dcache_init()节
+	 * 从缓存dentry_cache中获取目录项，参见[4.3.4.1.4.3.11.1 dcache_init()]节
 	 * 和6.5.1.1.3.1 kmem_cache_zalloc()节
 	 */
 	dentry = kmem_cache_alloc(dentry_cache, GFP_KERNEL);
@@ -55778,9 +55787,9 @@ Enomem:
 该函数安装proc文件系统，其调用关系如下：
 
 ```
-proc_root_init()							// 参见proc_root_init()节
+proc_root_init()							// 参见[4.3.4.1.4.3.12 proc_root_init()]节
 -> register_filesystem(&proc_fs_type)
--> pid_ns_prepare_proc(&init_pid_ns)					// 参见proc_root_init()节
+-> pid_ns_prepare_proc(&init_pid_ns)					// 参见[4.3.4.1.4.3.12 proc_root_init()]节
    -> kern_mount_data(&proc_fs_type, &init_pid_ns);			// 参见vfs_kern_mount()节
       -> vfs_kern_mount(type, MS_KERNMOUNT, type->name, data);		// 参见vfs_kern_mount()节
          -> mount_fs(type, flags, name, data);				// 参见mount_fs()节
@@ -55973,7 +55982,7 @@ struct dentry *mount_single(struct file_system_type *fs_type, int flags, void *d
 ```
 /*
  * 本函数的入参struct vfsmount *mnt是函数kern_mount()的返回值，
- * 参见安装文件系统(1)/kern_mount()节
+ * 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
  */
 void kern_unmount(struct vfsmount *mnt)
 {
@@ -55982,7 +55991,7 @@ void kern_unmount(struct vfsmount *mnt)
 		/*
 		 * decrement atomic variable: mnt->mnt_longterm
 		 * 与kern_mount()->mnt_make_longterm()相对应，
-		 * 参见安装文件系统(1)/kern_mount()节
+		 * 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 		 */
 		mnt_make_shortterm(mnt);
 		mntput(mnt);	// 参见mntput()节
@@ -57240,7 +57249,7 @@ static int do_new_mount(struct path *path, char *type, int flags,
 		return -EPERM;
 
 	/*
-	 * 挂载指定的文件系统，并返回生成的挂载点结构mnt，参见do_kern_mount()节
+	 * 挂载指定的文件系统，并返回生成的挂载点结构mnt，参见[11.2.2.4.1.2.1 do_kern_mount()]节
 	 * 示例：do_kern_mount("sysfs", 0, "sysfs_name", NULL)
 	 */
 	mnt = do_kern_mount(type, flags, name, data);
@@ -58061,7 +58070,7 @@ start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
 -> vfs_caches_init_early()					// 参见vfs_caches_init_early()节
    -> dcache_init_early()					// 分配并初始化dentry_hashtable
    -> inode_init_early()					// 分配并初始化inode_hashtable
--> vfs_caches_init(totalram_pages)				// 参见vfs_caches_init()节
+-> vfs_caches_init(totalram_pages)				// 参见[4.3.4.1.4.3.11 vfs_caches_init()]节
    -> names_cachep = ... 					// 分配并初始化names_cachep
    -> dcache_init()						// 分配并初始化dentry_cache, dentry_hashtable
    -> inode_init()						// 分配并初始化inode_cachep, inode_hashtable
@@ -58069,26 +58078,26 @@ start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
       -> files_stat.max_files = ...				// 设置打开文件的最大数目
       -> fdtable_defer_list_init()				// fs/file.c, 初始化全局变量fdtable_defer_list->wq
       -> percpu_counter_init(&nr_files, 0)			// 初始化全局变量nr_files为0
-   -> mnt_init()						// 参见mnt_init()节
+   -> mnt_init()						// 参见[4.3.4.1.4.3.11.4 mnt_init()]节
       -> mnt_cache = ... 					// 分配并初始化mnt_cache
       -> mount_hashtable = ...					// 分配并初始化mount_hashtable
       -> sysfs_init()
       -> fs_kobj = ... 						// 创建内核对象fs_kobj
       /* Phase 1: Mounting the rootfs filesystem */
-      -> init_rootfs()						// 加载rootfs文件系统，参见init_rootfs()节
-      -> init_mount_tree()					// 创建根目录树，参见init_mount_tree()节
-      /* 分配并初始化bdev_cachep, blockdev_superblock，参见bdev_cache_init()节 */
+      -> init_rootfs()						// 加载rootfs文件系统，参见[4.3.4.1.4.3.11.4.2 init_rootfs()]节
+      -> init_mount_tree()					// 创建根目录树，参见[4.3.4.1.4.3.11.4.3 init_mount_tree()]节
+      /* 分配并初始化bdev_cachep, blockdev_superblock，参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节 */
    -> bdev_cache_init()
-   -> chrdev_init()						// 分配并初始化cdev_map，参见chrdev_init()节
--> rest_init()							// 参见rest_init()节
+   -> chrdev_init()						// 分配并初始化cdev_map，参见[4.3.4.1.4.3.11.6 chrdev_init()]节
+-> rest_init()							// 参见[4.3.4.1.4.3.13 rest_init()]节
    -> kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
-      -> kernel_init()						// 参见kernel_init()节
+      -> kernel_init()						// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
          -> if (!ramdisk_execute_command)
                 ramdisk_execute_command = "/init";
             if (sys_access((const char __user *) ramdisk_execute_command, 0) != 0) {
                 ramdisk_execute_command = NULL;
                 /* Phase 2: Mounting the real root filesystem */
-                prepare_namespace();				// 参见prepare_namespace()节
+                prepare_namespace();				// 参见[4.3.4.1.4.3.13.1.3 prepare_namespace()]节
             }
 ```
 
@@ -58653,7 +58662,7 @@ static struct file *path_openat(int dfd, const char *pathname, struct nameidata 
 	/*
 	 * Find an unused file structure and return a pointer to it.
 	 * The file structure is allocated from cache filp_cachep,
-	 * see method files_init() in files_init().
+	 * see method files_init() in section [4.3.4.1.4.3.11.3 files_init()].
 	 */
 	filp = get_empty_filp();
 	if (!filp)
@@ -59074,8 +59083,8 @@ static struct file *__dentry_open(struct dentry *dentry, struct vfsmount *mnt,
 
 	/*
 	 * 此处为文件操作函数指针赋值，与具体的文件系统相关；后续的文件操作将调用这些函数：
-	 * - sys_read系统调用将会调用file->f_op->read()，参见11.2.4.2.2 read()节
-	 * - sys_write系统调用将会调用file->f_op->write()，参见11.2.4.2.3 write()节
+	 * - sys_read系统调用将会调用file->f_op->read()，参见[11.2.4.2.2 read()]节
+	 * - sys_write系统调用将会调用file->f_op->write()，参见[11.2.4.2.3 write()]节
 	 *   ...
 	 */
 	f->f_op = fops_get(inode->i_fop);
@@ -59228,7 +59237,7 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 		/*
 		 * 调用函数file->f_op->read或file->f_op->aio_read
 		 * 来读取该文件，该函数由具体的文件系统来定义，
-		 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+		 * 参见[11.2.4.2.0 如何查找某文件所对应的文件操作函数]节
 		 */
 		if (file->f_op->read)
 			/*
@@ -59347,7 +59356,7 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 		/*
 		 * 调用函数file->f_op->write或file->f_op->aio_write
 		 * 来写入该文件，该函数由具体的文件系统来定义，
-		 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+		 * 参见[11.2.4.2.0 如何查找某文件所对应的文件操作函数]节
 		 */
 		if (file->f_op->write)
 			/*
@@ -59470,10 +59479,10 @@ int filp_close(struct file *filp, fl_owner_t id)
 	 *    inode = dentry->d_inode;
 	 *    f->f_op = fops_get(inode->i_fop);
 	 *    ...
-	 * 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+	 * 参见[11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()]节
 	 *
 	 * 该函数由具体的文件系统定义，
-	 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+	 * 参见[11.2.4.2.0 如何查找某文件所对应的文件操作函数]节
 	 */
 	if (filp->f_op && filp->f_op->flush)
 		retval = filp->f_op->flush(filp, id);
@@ -59499,7 +59508,7 @@ int filp_close(struct file *filp, fl_owner_t id)
 # cat /proc/filesystems
 ```
 
-可通过下列命令查看挂载到当前系统中的文件系统，参见安装文件系统(2)/sys_mount()节：
+可通过下列命令查看挂载到当前系统中的文件系统，参见[11.2.2.4 安装文件系统(2)/sys_mount()](#11-2-2-4-2-sys-mount-)节：
 
 ```
 # cat /proc/mounts
@@ -59607,7 +59616,7 @@ static struct file_system_type ramfs_fs_type = {
 
 static int __init init_ramfs_fs(void)
 {
-	// 注册ramfs文件系统，参见注册/注销文件系统节
+	// 注册ramfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	return register_filesystem(&ramfs_fs_type);
 }
 
@@ -59731,7 +59740,7 @@ static struct file_system_type rootfs_fs_type = {
 	.name		= "rootfs",
 	/*
 	 * rootfs_mount()通过被如下函数调用，
-	 * 参见init_mount_tree()节和rootfs_mount()节:
+	 * 参见[4.3.4.1.4.3.11.4.3 init_mount_tree()]节和[11.2.2.2.1.2.2 rootfs_mount()]节:
 	 * init_mount_tree()->do_kern_mount()->
 	 * vfs_kern_mount()->mount_fs()中的type->mount()
 	 */
@@ -59741,11 +59750,11 @@ static struct file_system_type rootfs_fs_type = {
 ```
 
 Rootfs的初始化及安装过程，参见下列章节：
-* init_rootfs()节
-* 4.3.4.1.4.3.11.4.3 init_mount_tree()节
+* [4.3.4.1.4.3.11.4.2 init_rootfs()](#4-3-4-1-4-3-11-4-2-init-rootfs-)节
+* [4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节
 * 文件系统的自动安装节
 
-注：由内核参数"root="指定根文件系统的位置，参见prepare_namespace()节。
+注：由内核参数"root="指定根文件系统的位置，参见[4.3.4.1.4.3.13.1.3 prepare_namespace()](#4-3-4-1-4-3-13-1-3-prepare-namespace-)节。
 
 ### 11.3.3 Initramfs
 
@@ -59769,7 +59778,7 @@ endif
 mounts-$(CONFIG_BLK_DEV_INITRD)	+= do_mounts_initrd.o
 ```
 
-可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见CONFIG_BLK_DEV_INITRD=n节和CONFIG_BLK_DEV_INITRD=y节。
+可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见CONFIG_BLK_DEV_INITRD=n节和[11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y](#11-3-3-2-2-config-blk-dev-initrd-y)节。
 
 ##### 11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n
 
@@ -59852,7 +59861,7 @@ static int __init populate_rootfs(void)
 		 * 
 		 * 区域[initrd_start, initrd_end]表示/initrd.image，示例如下：
 		 *     /initrd.img -> boot/initrd.img-3.11.0-12-generic
-		 * 映像/initrd.img是通过如下函数调用加载而来的，参见prepare_namespace()节:
+		 * 映像/initrd.img是通过如下函数调用加载而来的，参见[4.3.4.1.4.3.13.1.3 prepare_namespace()]节:
 		 *     kernel_init() -> prepare_namespace() -> initrd_load()
 		 */
 		err = unpack_to_rootfs((char *)initrd_start, initrd_end - initrd_start);
@@ -59909,19 +59918,19 @@ See Documentation/filesystems/proc.txt
 ```
 obj-$(CONFIG_PROC_FS) += proc/
 
-Proc的初始化过程参见proc_root_init()节。
+Proc的初始化过程参见[4.3.4.1.4.3.12 proc_root_init()](#4-3-4-1-4-3-12-proc-root-init-)节。
 
 变量proc_fs_type定义于fs/proc/root.c:
 static struct file_system_type proc_fs_type = {
 	.name		= "proc",
-	.mount		= proc_mount,	// 参见11.2.2.2.1.2.4 proc_mount()节
+	.mount		= proc_mount,	// 参见[11.2.2.2.1.2.4 proc_mount()]节
 	.kill_sb	= proc_kill_sb,
 };
 ```
 
 #### 11.3.4.3 Proc的安装
 
-文件系统proc的安装过程参见proc_mount()节和文件系统的自动安装节。
+文件系统proc的安装过程参见[11.2.2.2.1.2.4 proc_mount()](#11-2-2-2-1-2-4-proc-mount-)节和文件系统的自动安装节。
 
 #### 11.3.4.4 /proc目录结构
 
@@ -60008,15 +60017,15 @@ module_init(proc_kmsg_init);
 目录/proc/sys是由函数proc_sys_init()创建的，其调用关系如下：
 
 ```
-start_kernel() 						// 参见4.3.4.1.4.3 start_kernel()节
-->  proc_root_init() 					// 参见4.3.4.1.4.3.12 proc_root_init()节
+start_kernel() 						// 参见[4.3.4.1.4.3 start_kernel()]节
+->  proc_root_init() 					// 参见[4.3.4.1.4.3.12 proc_root_init()]节
     ->  register_filesystem(&proc_fs_type) 
     ->  pid_ns_prepare_proc(&init_pid_ns) 
         ->  kern_mount_data(&proc_fs_type, ns) 
             ->  vfs_kern_mount() 
                 ->  mount_fs() 
                     ->  type->mount()			// proc_fs_type->mount = proc_mount; 
-                        ->  proc_mount()		// 参见11.2.2.2.1.2.4 proc_mount()节
+                        ->  proc_mount()		// 参见[11.2.2.2.1.2.4 proc_mount()]节
                             ->  proc_fill_super() 
                                 ->  proc_get_inode() 
     ->  proc_sys_init()					// 创建/proc/sys 目录
@@ -60849,7 +60858,7 @@ Sysfs文件系统的内部结构与外部表现:
 obj-$(CONFIG_SYSFS) += sysfs/
 ```
 
-Sysfs的初始化过程参见sysfs_init()节。
+Sysfs的初始化过程参见[4.3.4.1.4.3.11.4.1 sysfs_init()](#4-3-4-1-4-3-11-4-1-sysfs-init-)节。
 
 变量sysfs_fs_type定义于fs/sysfs/mount.c:
 
@@ -61267,7 +61276,7 @@ int sysfs_create_dir(struct kobject * kobj)
 
 	/*
 	 * 若kobj的父节点kobj->parent不为空，则将新目录创建于kobj->parent->sd目录之下；
-	 * 否则，将新目录创建于sysfs顶级目录之下，即sysfs_root，参见sysfs_init()节
+	 * 否则，将新目录创建于sysfs顶级目录之下，即sysfs_root，参见[4.3.4.1.4.3.11.4.1 sysfs_init()]节
 	 */
 	if (kobj->parent)
 		parent_sd = kobj->parent->sd;
@@ -61306,7 +61315,7 @@ static int create_dir(struct kobject *kobj, struct sysfs_dirent *parent_sd,
 	int rc;
 
 	/*
-	 * 从缓存sysfs_dir_cachep(参见4.3.4.1.4.3.11.4.1 sysfs_init()节)中
+	 * 从缓存sysfs_dir_cachep(参见[4.3.4.1.4.3.11.4.1 sysfs_init()]节)中
 	 * 分配类型为struct sysfs_dirent的对象并初始化，该对象被链接到kobj->sd
 	 */
 	sd = sysfs_new_dirent(name, mode, SYSFS_DIR);
@@ -62042,7 +62051,7 @@ static int __init fuse_fs_init(void)
 {
 	int err;
 
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	fuse_inode_cachep = kmem_cache_create("fuse_inode", sizeof(struct fuse_inode),
 					      0, SLAB_HWCACHE_ALIGN, fuse_inode_init_once);
 	err = -ENOMEM;
@@ -62086,7 +62095,7 @@ static struct miscdevice fuse_miscdevice = {
 int __init fuse_dev_init(void)
 {
 	int err = -ENOMEM;
-	// 参见Create a Specific Cache/kmem_cache_create()节
+	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	fuse_req_cachep = kmem_cache_create("fuse_request", sizeof(struct fuse_req), 0, 0, NULL);
 	if (!fuse_req_cachep)
 		goto out;
@@ -62117,8 +62126,8 @@ static int fuse_sysfs_init(void)
 	int err;
 
 	/*
-	 * 在fs_kobj指定的目录(即/sys/fs/，参见mnt_init()节)
-	 * 下创建fuse目录，参见kobject_create_and_add()节
+	 * 在fs_kobj指定的目录(即/sys/fs/，参见[4.3.4.1.4.3.11.4 mnt_init()]节)
+	 * 下创建fuse目录，参见[15.7.1.2 kobject_create_and_add()]节
 	 */
 	fuse_kobj = kobject_create_and_add("fuse", fs_kobj);
 	if (!fuse_kobj) {
@@ -62128,7 +62137,7 @@ static int fuse_sysfs_init(void)
 
 	/*
 	 * 在fuse_kobj指定的目录(即/sys/fs/fuse)下创建
-	 * connections目录，参见kobject_create_and_add()节
+	 * connections目录，参见[15.7.1.2 kobject_create_and_add()]节
 	 */
 	connections_kobj = kobject_create_and_add("connections", fuse_kobj);
 	if (!connections_kobj) {
@@ -62160,13 +62169,13 @@ static struct file_system_type fuse_ctl_fs_type = {
 
 int __init fuse_ctl_init(void)
 {
-	// 注册fusectl文件系统，参见注册/注销文件系统节
+	// 注册fusectl文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	return register_filesystem(&fuse_ctl_fs_type);
 }
 
 void fuse_ctl_cleanup(void)
 {
-	// 注销fusectl文件系统，参见注册/注销文件系统节
+	// 注销fusectl文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	unregister_filesystem(&fuse_ctl_fs_type);
 }
 ```
@@ -62243,13 +62252,13 @@ static int __init debugfs_init(void)
 
 	/*
 	 * 在kernel_kobj指定的目录(即/sys/kernel/目录)下创建debug目录，
-	 * 即/sys/kernel/debug/，参见kobject_create_and_add()节
+	 * 即/sys/kernel/debug/，参见[15.7.1.2 kobject_create_and_add()]节
 	 */
 	debug_kobj = kobject_create_and_add("debug", kernel_kobj);
 	if (!debug_kobj)
 		return -EINVAL;
 
-	// 注册debugfs文件系统，参见注册/注销文件系统节
+	// 注册debugfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	retval = register_filesystem(&debug_fs_type);
 	if (retval)
 		kobject_put(debug_kobj);	// 参见15.7.2.2 kobject_put()节
@@ -62336,13 +62345,13 @@ static int __init securityfs_init(void)
 
 	/*
 	 * 在kernel_kobj指定的目录(即/sys/kernel/目录)下创建security目录，
-	 * 即/sys/kernel/security/，参见kobject_create_and_add()节
+	 * 即/sys/kernel/security/，参见[15.7.1.2 kobject_create_and_add()]节
 	 */
 	security_kobj = kobject_create_and_add("security", kernel_kobj);
 	if (!security_kobj)
 		return -EINVAL;
 
-	// 注册securityfs文件系统，参见注册/注销文件系统节
+	// 注册securityfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	retval = register_filesystem(&fs_type);
 	if (retval)
 		kobject_put(security_kobj);	// 参见15.7.2.2 kobject_put()节
@@ -62415,14 +62424,14 @@ int __init shmem_init(void)
 	if (error)
 		goto out3;
 
-	// 注册tmpfs文件系统，参见注册/注销文件系统节
+	// 注册tmpfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	error = register_filesystem(&shmem_fs_type);
 	if (error) {
 		printk(KERN_ERR "Could not register tmpfs\n");
 		goto out2;
 	}
 
-	// 安装tmpfs文件系统，参见安装文件系统(1)/kern_mount()节
+	// 安装tmpfs文件系统，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 	shm_mnt = vfs_kern_mount(&shmem_fs_type, MS_NOUSER, shmem_fs_type.name, NULL);
 	if (IS_ERR(shm_mnt)) {
 		error = PTR_ERR(shm_mnt);
@@ -62452,10 +62461,10 @@ static struct file_system_type shmem_fs_type = {
 
 int __init shmem_init(void)
 {
-	// 注册tmpfs文件系统，参见注册/注销文件系统节
+	// 注册tmpfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	BUG_ON(register_filesystem(&shmem_fs_type) != 0);
 
-	// 安装tmpfs文件系统，参见安装文件系统(1)/kern_mount()节
+	// 安装tmpfs文件系统，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 	shm_mnt = kern_mount(&shmem_fs_type);
 	BUG_ON(IS_ERR(shm_mnt));
 
@@ -62470,8 +62479,8 @@ int __init shmem_init(void)
 ```
 start_kernel()
 -> rest_init()
-   -> kernel_init()			// 参见kernel_init()节
-      -> do_basic_setup()		// 参见do_basic_setup()节
+   -> kernel_init()			// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
+      -> do_basic_setup()		// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
          -> shmem_init()
 ```
 
@@ -62527,7 +62536,7 @@ static DECLARE_COMPLETION(setup_done);
  */
 int __init devtmpfs_init(void)
 {
-	// 注册devtmpfs文件系统，参见注册/注销文件系统节
+	// 注册devtmpfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	int err = register_filesystem(&dev_fs_type);
 	if (err) {
 		printk(KERN_ERR "devtmpfs: unable to register devtmpfs type %i\n", err);
@@ -62562,9 +62571,9 @@ int __init devtmpfs_init(void)
 
 ```
 start_kernel()								// 参见start_kernel()节
--> rest_init()								// 参见rest_init()节
-   -> kernel_init()							// 参见kernel_init()节
-      -> do_basic_setup()						// 参见kernel_init()节
+-> rest_init()								// 参见[4.3.4.1.4.3.13 rest_init()]节
+   -> kernel_init()							// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
+      -> do_basic_setup()						// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
          -> driver_init()						// 参见10.2.1 设备驱动程序的初始化/driver_init()节
             -> devtmpfs_init()						// 参见11.3.10.2 Devtmpfs的编译及初始化节
                -> devtmpfsd()						// 参见11.3.10.2.1 devtmpfsd()节
@@ -62602,7 +62611,7 @@ static int devtmpfsd(void *p)
 	if (*err)
 		goto out;
 
-	// 安装devtmpfs文件系统到目录/，参见安装文件系统(2)/sys_mount()节
+	// 安装devtmpfs文件系统到目录/，参见[11.2.2.4 安装文件系统(2)/sys_mount()]节
 	*err = sys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
 	if (*err)
 		goto out;
@@ -62965,9 +62974,9 @@ int devtmpfs_delete_node(struct device *dev)
 
 ```
 start_kernel()				// 参见start_kernel()节
--> rest_init()				// 参见rest_init()节
-   -> kernel_init()			// 参见kernel_init()节
-      -> prepare_namespace()		// 参见prepare_namespace()节
+-> rest_init()				// 参见[4.3.4.1.4.3.13 rest_init()]节
+   -> kernel_init()			// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
+      -> prepare_namespace()		// 参见[4.3.4.1.4.3.13.1.3 prepare_namespace()]节
          -> devtmpfs_mount("dev");	// 将devtmpfs文件系统挂载到/dev目录
 ```
 
@@ -62992,7 +63001,7 @@ int devtmpfs_mount(const char *mntdir)
 	if (!thread)
 		return 0;
 
-	// 参见安装文件系统(2)/sys_mount()节
+	// 参见[11.2.2.4 安装文件系统(2)/sys_mount()]节
 	err = sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT, NULL);
 	if (err)
 		printk(KERN_INFO "devtmpfs: error mounting %i\n", err);
@@ -63032,10 +63041,10 @@ static struct file_system_type devpts_fs_type = {
 
 static int __init init_devpts_fs(void)
 {
-	// 注册devpts文件系统，参见注册/注销文件系统节
+	// 注册devpts文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	int err = register_filesystem(&devpts_fs_type);
 	if (!err) {
-		// 安装devpts文件系统，参见安装文件系统(1)/kern_mount()节
+		// 安装devpts文件系统，参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 		devpts_mnt = kern_mount(&devpts_fs_type);
 		if (IS_ERR(devpts_mnt)) {
 			err = PTR_ERR(devpts_mnt);
@@ -63236,7 +63245,7 @@ static struct file_system_type ext3_fs_type = {
 	.owner		= THIS_MODULE,
 	.name		= "ext3",
 	/*
-	 * ext3_mount()通过如下函数被调用，参见安装文件系统(2)/sys_mount()节：
+	 * ext3_mount()通过如下函数被调用，参见[11.2.2.4 安装文件系统(2)/sys_mount()]节：
 	 * sys_mount()->do_mount()->do_new_mount()->do_kern_mount()
 	 * ->vfs_kern_mount()->mount_fs()中的type->mount()
 	 */
@@ -65063,9 +65072,9 @@ If you really need a type that does not appear in the list of above sections, th
 
 ```
 start_kernel()
--> parse_early_param()				// 参见4.3.4.1.4.3.3.3.1 parse_early_param()节
+-> parse_early_param()				// 参见[4.3.4.1.4.3.3.3.1 parse_early_param()]节
    -> parse_early_options()
-      -> parse_args(.., do_early_param)		// 参见4.3.4.1.4.3.3.3.2 parse_args()节
+      -> parse_args(.., do_early_param)		// 参见[4.3.4.1.4.3.3.3.2 parse_args()]节
          -> do_early_param()
             -> p->setup_func(val)		// (1) 处理由宏early_param()定义的模块参数
 -> parse_args("Booting kernel", static_command_line, __start___param,
@@ -66386,7 +66395,7 @@ void __init usermodehelper_init(void)
 函数usermodehelper_init()的调用关系如下：
 
 ```
-do_basic_setup()			// 参见do_basic_setup()节
+do_basic_setup()			// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
 -> usermodehelper_init()		// 创建工作队列khelper_wq
 -> usermodehelper_enable()		// 设置标志位usermodehelper_disabled = 0
 ```
@@ -66412,7 +66421,7 @@ static void __call_usermodehelper(struct work_struct *work)
 	 * successfully We need the data structures to stay around
 	 * until that is done.  */
 	/*
-	 * 调用kernel_thread()创建内核线程，参见kernel_thread()节；
+	 * 调用kernel_thread()创建内核线程，参见[7.2.1.4 kernel_thread()]节；
 	 * 并执行函数wait_for_helper()或____call_usermodehelper()，
 	 * 入参为sub_info，参见wait_for_helper()节和____call_usermodehelper()节
 	 */
@@ -66458,7 +66467,7 @@ static int wait_for_helper(void *data)
 	spin_unlock_irq(&current->sighand->siglock);
 
 	/*
-	 * 调用kernel_thread()创建内核线程，参见kernel_thread()节；
+	 * 调用kernel_thread()创建内核线程，参见[7.2.1.4 kernel_thread()]节；
 	 * 并执行函数____call_usermodehelper()，入参为sub_info，
 	 * 参见____call_usermodehelper()节
 	 */
@@ -67645,9 +67654,9 @@ kernel_init() -> do_pre_smp_initcalls() -> do_one_initcall()
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 ```
 
-函数```do_pre_smp_initcalls()```定义于init/main.c，参见do_pre_smp_initcalls()节。
+函数```do_pre_smp_initcalls()```定义于init/main.c，参见[4.3.4.1.4.3.13.1.1 do_pre_smp_initcalls()]节。
 
-函数```do_basic_setup()```定义于init/main.c，参见do_basic_setup()节。
+函数```do_basic_setup()```定义于init/main.c，参见[4.3.4.1.4.3.13.1.2 do_basic_setup()](#4-3-4-1-4-3-13-1-2-do-basic-setup-)节。
 
 ##### 13.5.1.1.1 do_initcalls()
 
@@ -68897,7 +68906,7 @@ int __init register_security(struct security_operations *ops)
 		return -EINVAL;
 	}
 
-	if (security_ops != &default_security_ops)	// 参见LSM的初始化节
+	if (security_ops != &default_security_ops)	// 参见[14.4 LSM的初始化]节
 		return -EAGAIN;
 
 	security_ops = ops;
@@ -71759,7 +71768,7 @@ void __init idr_init_cache(void)
 {
 	/*
 	 * 为idr分配缓存空间，用于idr_pre_get()，参见分配节点空间/idr_pre_get()节
-	 * kmem_cache_create()参见Create a Specific Cache/kmem_cache_create()节
+	 * kmem_cache_create()参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	 */
 	idr_layer_cache = kmem_cache_create("idr_layer_cache",
 					    sizeof(struct idr_layer), 0, SLAB_PANIC, NULL);
@@ -77033,7 +77042,7 @@ notrace static void __cpuinit start_secondary(void *unused)
 	x86_cpuinit.setup_percpu_clockev();
 
 	wmb();
-	// 若该CPU启动了，则调用cpu_idle()进行任务调度，参见cpu_idle()节
+	// 若该CPU启动了，则调用cpu_idle()进行任务调度，参见[4.3.4.1.4.3.13.3 cpu_idle()]节
 	cpu_idle();
 }
 ```
@@ -77265,7 +77274,7 @@ x86_64
 
 ## 18.3 Memory Management on 64-Bit Kernel
 
-参见Paging for 64-bit Architectures节。
+参见[6.1.2.4 Paging for 64-bit Architectures](#6-1-2-4-paging-for-64-bit-architectures)节。
 
 # 19 内核调试/Debug Kernel
 
@@ -77675,7 +77684,7 @@ static int __init quiet_kernel(char *str)
 	return 0; 
 } 
 
-// 函数early_param()，参见4.3.4.1.4.3.3.2.1 early_param()/__setup()节
+// 函数early_param()，参见[4.3.4.1.4.3.3.2.1 early_param()/__setup()]节
 early_param("debug", debug_kernel); 
 early_param("quiet", quiet_kernel);
 

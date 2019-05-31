@@ -11319,6 +11319,10 @@ retval = copy_fs(clone_flags, p);
 
 综上，函数init_mount_tree()为VFS建立了根目录"/"，而一旦有了根目录，那么这棵树就可以发展壮大，例如: 可以通过系统调用sys_mkdir在这棵树上建立新的叶子节点等。
 
+**NOTE**: Filesystem_20.jpg
+
+![Filesystem_20](/assets/Filesystem_20.jpg)
+
 ###### 4.3.4.1.4.3.11.5 bdev_cache_init()
 
 * 字符设备初始化函数之一：bdev_cache_init()，参见本节
@@ -12237,8 +12241,9 @@ Because it's a system daemon, and under Unix/Linux those are in lower case, and 
 
 systemd software architecture:
 
-* Subjects/Chapter04_Boot/Figures/systemd_components.png
-* Subjects/Chapter04_Boot/Figures/unified_hierarchy_cgroups_and_systemd.png
+![systemd_components](/assets/systemd_components.png)
+
+![unified_hierarchy_cgroups_and_systemd](/assets/unified_hierarchy_cgroups_and_systemd.png)
 
 Git repository
 
@@ -12368,7 +12373,7 @@ syscall_call:
 	/*
 	 * 根据eax寄存器中的系统调用号(参见[5.5.2 系统调用号/__NR_xxx]节)，
 	 * 调用sys_call_table中对应的系统调用，其等价于： call near [eax*4+sys_call_table]
-	 * 参见Subjects/Chapter05_System_Call_Interface/Figures/系统调用过程.jpg中的①
+	 * 参见[5.2 系统调用的执行过程]节图中的①
 	 */
 	call *sys_call_table(,%eax,4)
 	movl %eax,PT_EAX(%esp)				# store the return value
@@ -13965,7 +13970,9 @@ Intel has changed the paging mechanism in order to support PAE.
 
 * The cr3 control register contains a 27-bit Page Directory Pointer Table (PDPT) base address field. Because PDPTs are stored in the first 4 GB of RAM and aligned to a multiple of 32 bytes (25), 27 bits are sufficient to represent the base address of such tables.
 
-* When mapping linear addresses to 4 KB pages (PS flag cleared in Page Directory entry), the 32 bits of a linear address are interpreted in the following way. Refer to Subjects/Chapter06_Memory_Management/Figures/PAE1.jpg
+* When mapping linear addresses to 4 KB pages (PS flag cleared in Page Directory entry), the 32 bits of a linear address are interpreted in the following way. Refer to below figure:
+
+![PAE1](/assets/PAE1.jpg)
 
 * When mapping linear addresses to 2-MB pages (PS flag set in Page Directory entry), the 32 bits of a linear address are interpreted in the following way. Refer to below figure:
 
@@ -14001,7 +14008,9 @@ Two paging levels are sufficient for 32-bit architectures, while 64-bit architec
 * Page Middle Directory
 * Page Table
 
-Linux paging model, refer to Subjects/Chapter06_Memory_Management/Figures/Linux_paging_model.jpg
+Linux paging model:
+
+![Linux_paging_model](/assets/Linux_paging_model.jpg)
 
 The Page Global Directory includes the addresses of several Page Upper Directories, which in turn include the addresses of several Page Middle Directories, which in turn include the addresses of several Page Tables. Each Page Table entry points to a page frame. Thus the linear address can be split into up to five parts. 错误：引用源未找到 does not show the bit numbers, because the size of each part depends on the computer architecture.
 
@@ -16033,7 +16042,7 @@ start_kernel()
    -> finish_e820_parsing()				// Printing memory info of e820 if userdef is True
 ```
 
-![Memery_Layout_08.jpg](/assets/Memery_Layout_08.jpg)
+![Memery_Layout_08](/assets/Memery_Layout_08.jpg)
 
 **NOTE 1**:
 
@@ -18178,20 +18187,24 @@ struct kmem_list3 {
 	// Number of free objects in the cache.
 	unsigned long	free_objects;
 	unsigned int	free_limit;
-	unsigned int	colour_next;	/* Per-node cache coloring */
-	spinlock_t		list_lock;
+	unsigned int	colour_next;		/* Per-node cache coloring */
+	spinlock_t	list_lock;
 	// Pointer to a local cache shared by all CPUs.
 	struct array_cache *shared;		/* shared per node */
 	struct array_cache **alien;		/* on other nodes */
 	// Below two variable are used by the slab allocator’s page reclaiming algorithm.
 	unsigned long	next_reap;		/* updated without locking */
-	int			free_touched;	/* updated without locking */
+	int		free_touched;		/* updated without locking */
 };
 ```
 
 Relationship between cache and slab descriptors:
 
 ![Memery_Layout_14](/assets/Memery_Layout_14.jpg)
+
+**NOTE**: Memery_Layout_15.jpg
+
+![Memery_Layout_15](/assets/Memery_Layout_15.jpg)
 
 #### 6.5.1.1 General Cache/Specific Cache
 
@@ -31234,7 +31247,7 @@ The **ld** scripts vmlinux.lds.S overlays the **jiffies** variable over the star
 
 Thus, **jiffies** is the lower 32 bits of the full 64-bit **jiffies_64** variable. The layout of **jiffies** and **jiffies_64**：
 
-![assets/Jiffies_1.jpg](/assets/Jiffies_1.jpg)
+![Jiffies_1](/assets/Jiffies_1.jpg)
 
 在kernel/timer.c中，包含jiffies_64的定义：
 
@@ -44301,6 +44314,10 @@ int driver_register(struct device_driver *drv)
 }
 ```
 
+**NOTE**: Device_Driver_Model.jpg
+
+![Device_Driver_Model](/assets/Device_Driver_Model.jpg)
+
 ##### 10.2.4.1.1 添加设备驱动程序/bus_add_driver()
 
 该函数定义于drivers/base/driver.c:
@@ -46900,6 +46917,10 @@ out:
 }
 ```
 
+**NOTE**: chrdevs[]_1.jpg
+
+![chrdevs_1](/assets/chrdevs_1.jpg)
+
 ###### 10.3.3.3.1.4 unregister_chrdev_region()
 
 该函数定义于fs/char_dev.c:
@@ -49378,6 +49399,10 @@ static int __init genhd_device_init(void)
 	return 0;
 }
 ```
+
+**NOTE**: major_names[255]_2.jpg
+
+![major_names_255_2](/assets/major_names_255_2.jpg)
 
 #### 10.4.2.1 blk_dev_init()
 
@@ -52722,7 +52747,11 @@ file_systems单链表，参见:
 
 因而，可根据如下方法来确定某文件系统在单链表file_systems中的位置：
 * 1) 该文件系统的初始化函数是被哪个宏调用的: fs_install(), fs_install_sync(), rootfs_initcall(), or module_init()
-* 2) 链接目标文件vmlinux时各.o文件的先后顺序，参见Subjects/Chapter03_Compile/Figures/Targets_Tree.jpg和bzImage.jpg
+* 2) 链接目标文件vmlinux时各.o文件的先后顺序，参见下图:
+
+![Targets_Tree](/assets/Targets_Tree.jpg)
+
+![bzImage](/assets/bzImage.jpg)
 
 ##### 11.2.1.1.2 查看系统中注册的文件系统
 
@@ -54380,7 +54409,11 @@ struct file {
 };
 ```
 
-引用file结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_2.jpg。其中，根目录的inode和当前目录的inode，参见[4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节。
+引用file结构:
+
+![Filesystem_2.jpg](/assets/Filesystem_2.jpg)
+
+其中，根目录的inode和当前目录的inode，参见[4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节。
 
 ##### 11.2.1.5.1 文件操作/struct file_operations
 
@@ -54687,7 +54720,11 @@ struct vfsmount {
 };
 ```
 
-进程通过task_struct访问vfsmount结构，参见Subjects/Chapter11_Filesystem/Figures/Filesystem_29.jpg，其赋值过程参见[4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节。
+进程通过task_struct访问vfsmount结构:
+
+![Filesystem_29](/assets/Filesystem_29.jpg)
+
+其赋值过程参见[4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节。
 
 ##### 11.2.1.6.1 虚拟文件系统安装点数组mount_hashtable[idx]及各链表
 
@@ -54819,7 +54856,9 @@ current->files结构:
 
 ##### 11.2.1.7.2 struct fs_struct
 
-struct fs_struct contains filesystem information related to a process and is pointed at by the fs field in  the process descriptor. See Subjects/Chapter11_Filesystem/Figures/Filesystem_2.jpg
+struct fs_struct contains filesystem information related to a process and is pointed at by the fs field in  the process descriptor.
+
+![Filesystem_2](/assets/Filesystem_2.jpg)
 
 该结构定义于include/linux/fs_struct.h:
 
@@ -64564,7 +64603,7 @@ chenwx@chenwx ~ $ cat /sys/module/helloworld/parameters/helloworld.isSayHello
 
 参见下图：
 
-![module_param_cb.jpg](/assets/module_param_cb.jpg)
+![module_param_cb](/assets/module_param_cb.jpg)
 
 ##### 13.1.3.1.2 __MODULE_PARM_TYPE()
 
@@ -71501,11 +71540,15 @@ struct idr_layer {
 
 ##### 15.5.1.1.1 当BITS_PER_LONG==32时
 
-最大层数为MAX_LEVEL=7层，顶层最多使用ary[]数组中的前2位，即top->ary[0]，top->ary[1]。各结构之间的关系，参见Subjects/Chapter15_Data_Structure/Figures/idr_03.jpg
+最大层数为MAX_LEVEL=7层，顶层最多使用ary[]数组中的前2位，即top->ary[0]，top->ary[1]。各结构之间的关系:
+
+![idr_03](/assets/idr_03.jpg)
 
 ##### 15.5.1.1.2 当BITS_PER_LONG==64时
 
-最大层数为MAX_LEVEL=6层，顶层最多使用ary[]数组中的前2位，即top->ary[0]，top->ary[1]。各结构之间的关系，参见Subjects/Chapter15_Data_Structure/Figures/idr_04.jpg
+最大层数为MAX_LEVEL=6层，顶层最多使用ary[]数组中的前2位，即top->ary[0]，top->ary[1]。各结构之间的关系:
+
+![idr_04](/assets/idr_04.jpg)
 
 #### 15.5.1.2 struct ida
 

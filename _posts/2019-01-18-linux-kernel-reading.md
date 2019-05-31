@@ -2441,7 +2441,7 @@ $(vmlinux-dirs): prepare scripts
 	$(Q)$(MAKE) $(build)=$@
 ```
 
-由此可知，编译vmlinux时，vmlinux所依赖的目标$(vmlinux-init)、$(vmlinux-main)和$(vmlinux-lds)均依赖于$(vmlinux-dirs)。而$(vmlinux-dirs)又依赖于目标prepare和scripts。
+由此可知，编译vmlinux时，vmlinux所依赖的目标```$(vmlinux-init)```、```$(vmlinux-main)```和```$(vmlinux-lds)```均依赖于```$(vmlinux-dirs)```。而```$(vmlinux-dirs)```又依赖于目标prepare和scripts。
 
 ##### 3.4.2.1.1 prepare
 
@@ -2692,7 +2692,7 @@ define filechk_utsrelease.h
 	(echo \#define UTS_RELEASE \"$(KERNELRELEASE)\";)
 endef
 
-// 依赖于kernel.release，参见include/config/kernel.release节
+// 依赖于kernel.release，参见[3.4.2.1.1.2 include/config/kernel.release]节
 include/generated/utsrelease.h: include/config/kernel.release FORCE
 	/*
 	 * 参见scripts/Kbuild.include，调用filechk_utsrelease.h
@@ -2862,7 +2862,7 @@ endif # KBUILD_EXTMOD
 make -f scripts/Makefile.build obj=scripts
 ```
 
-该编译过程与scripts_basic节类似，只不过变量$(always)是由scripts/Makefile引入的，如下：
+该编译过程与[3.4.2.1.1.8 scripts_basic](#3-4-2-1-1-8-scripts-basic)节类似，只不过变量$(always)是由scripts/Makefile引入的，如下：
 
 ```
 hostprogs-$(CONFIG_KALLSYMS)		+= kallsyms
@@ -2871,7 +2871,7 @@ hostprogs-$(CONFIG_VT)			+= conmakehash
 hostprogs-$(CONFIG_IKCONFIG)		+= bin2c
 hostprogs-$(BUILD_C_RECORDMCOUNT)	+= recordmcount
 
-always	:= $(hostprogs-y) $(hostprogs-m)
+always					:= $(hostprogs-y) $(hostprogs-m)
 
 subdir-y				+= mod
 ```
@@ -3286,7 +3286,7 @@ subdir-obj-y := $(filter %/built-in.o, $(obj-y))
 
 /*
  * $(subdir-obj-y)的取值，如 fs/notify/built-in.o fs/proc/built-in.o ...
- * 而这些目标文件的编译参见[3.4.2.1.3.1.1 $(builtin-target)]节]
+ * 而这些目标文件的编译参见[3.4.2.1.3.1.1 $(builtin-target)]节
  */
 subdir-obj-y := $(addprefix $(obj)/,$(subdir-obj-y))
 ```
@@ -3499,7 +3499,7 @@ vmlinux-lds  := arch/$(SRCARCH)/kernel/vmlinux.lds
 $(sort $(vmlinux-init) $(vmlinux-main)) $(vmlinux-lds): $(vmlinux-dirs) ;
 ```
 
-由$(vmlinux-dirs)节可知，当编译arch/x86目录时，将执行下列命令：
+由[3.4.2.1.3 $(vmlinux-dirs)](#3-4-2-1-3-vmlinux-dirs-)节可知，当编译arch/x86目录时，将执行下列命令：
 
 ```
 // 此处以x86体系为例，由arch/x86/Makefile中的core-y引入
@@ -3518,7 +3518,7 @@ obj-y += kernel/
 extra-y := head_$(BITS).o head$(BITS).o head.o init_task.o vmlinux.lds
 ```
 
-根据$(extra-y)节的规则编译$(extra-y)，即根据scripts/Makefile.build中的下列规则来生成vmlinux.lds：
+根据[3.4.2.1.3.1.3 $(extra-y)](#3-4-2-1-3-1-3-extra-y-)节的规则编译$(extra-y)，即根据scripts/Makefile.build中的下列规则来生成vmlinux.lds：
 
 ```
 # Linker scripts preprocessor (.lds.S -> .lds)
@@ -3581,7 +3581,7 @@ init-y	:= init/
 init-y	:= $(patsubst %/, %/built-in.o, $(init-y))
 ```
 
-根据$(vmlinux-dirs)节，在执行命令：
+根据[3.4.2.1.3 $(vmlinux-dirs)](#3-4-2-1-3-vmlinux-dirs-)节，在执行命令：
 
 ```
 make -f scripts/Makefile.build obj=init
@@ -3742,24 +3742,24 @@ make -f scripts/Makefile.build obj=arch/x86/lib/	// 以x86为例，由arch/x86/M
 
 ```
 /*
- * 由$(vmlinux-init)节可知，modpost-init被扩展
- * 为$(head-y)，而$(head-y)的编译参见$(head-y)节
+ * 由[3.4.2.3 $(vmlinux-init)]节可知，modpost-init被扩展
+ * 为$(head-y)，而$(head-y)的编译参见[3.4.2.3.1 $(head-y)]节
  */
 modpost-init := $(filter-out init/built-in.o, $(vmlinux-init))
 
-// $(vmlinux-main)的编译参见$(vmlinux-main)节
+// $(vmlinux-main)的编译参见[3.4.2.4 $(vmlinux-main)]节
 vmlinux.o: $(modpost-init) $(vmlinux-main) FORCE
 	// 调用rule_vmlinux-modpost生成vmlinux.o
 	$(call if_changed_rule,vmlinux-modpost)
 
 ...
-// 参见cmd_vmlinux-modpost节
+// 参见[3.4.2.5.1 cmd_vmlinux-modpost]节
 quiet_cmd_vmlinux-modpost = LD      $@
      cmd_vmlinux-modpost   = $(LD) $(LDFLAGS) -r -o $@			\
 	 $(vmlinux-init) --start-group $(vmlinux-main) --end-group	\
 	 $(filter-out $(vmlinux-init) $(vmlinux-main) FORCE ,$^)
 
-// 参见rule_vmlinux-modpost节
+// 参见[3.4.2.5.2 rule_vmlinux-modpost]节
 define rule_vmlinux-modpost
 	:
 	// 调用cmd_vmlinux-modpost编译vmlinux.o
@@ -3966,7 +3966,7 @@ cmd_.tmp_vmlinux3 := ld -m elf_i386 --build-id -o .tmp_vmlinux3 -T arch/x86/kern
 
 该命令的输出为.tmp_vmlinux1, .tmp_vmlinux2, 或.tmp_vmlinux3。
 
-链接vmlinux时(参见rule_vmlinux__节)，该命令被扩展为：
+链接vmlinux时(参见[3.4.2.7.4 rule_vmlinux__](#3-4-2-7-4-rule-vmlinux-)节)，该命令被扩展为：
 
 ```
 cmd_vmlinux := ld -m elf_i386 --build-id -o vmlinux -T arch/x86/kernel/vmlinux.lds arch/x86/kernel/head_32.o arch/x86/kernel/head32.o arch/x86/kernel/head.o arch/x86/kernel/init_task.o  init/built-in.o --start-group  usr/built-in.o  arch/x86/built-in.o  kernel/built-in.o  mm/built-in.o  fs/built-in.o  ipc/built-in.o  security/built-in.o  crypto/built-in.o  block/built-in.o  lib/lib.a  arch/x86/lib/lib.a  lib/built-in.o  arch/x86/lib/built-in.o  drivers/built-in.o  sound/built-in.o  firmware/built-in.o  arch/x86/math-emu/built-in.o  arch/x86/power/built-in.o  net/built-in.o --end-group .tmp_kallsyms2.o
@@ -4127,9 +4127,9 @@ quiet_cmd_sysmap = SYSMAP
 # First command is ':' to allow us to use + in front of the rule
 define rule_vmlinux__
 	:
-	// 调用cmd_vmlinux_version，参见cmd_vmlinux_version节
+	// 调用cmd_vmlinux_version，参见[3.4.2.6.1.1 cmd_vmlinux_version]节
 	$(if $(CONFIG_KALLSYMS),,+$(call cmd,vmlinux_version))
-	// 调用cmd_vmlinux__链接vmlinux，参见cmd_vmlinux__节
+	// 调用cmd_vmlinux__链接vmlinux，参见[3.4.2.6.1.2 cmd_vmlinux__]节
 	$(call cmd,vmlinux__)
 	// 生成命令文件./.vmlinux.cmd
 	$(Q)echo 'cmd_$@ := $(cmd_vmlinux__)' > $(@D)/.$(@F).cmd
@@ -4150,7 +4150,7 @@ define verify_kallsyms
 	  echo '  $($(quiet)cmd_sysmap)  .tmp_System.map' &&)			\
 	  /*
 	   * 提取.tmp_vmlinux2或.tmp_vmlinux3中的符号
-	   * (参见$(kallsyms.o)节和cmd_vmlinux__节)，
+	   * (参见[3.4.2.6 $(kallsyms.o)]节和[3.4.2.6.1.2 cmd_vmlinux__]节)，
 	   * 并保存于.tmp_System.map
 	   */
 	  $(cmd_sysmap) .tmp_vmlinux$(last_kallsyms) .tmp_System.map
@@ -4169,7 +4169,7 @@ endef
 本命令的输出为vmlinux和System.map，其中：
 
 * vmlinux用来生成bzImage，参见[3.4.2.8.5.1 $(obj)/piggy.o](#3-4-2-8-5-1-obj-piggy-o)节；
-* System.map被安装到/boot/System.map-3.2.0(通过执行命令make install)，参见[编译内核](#)节。
+* System.map被安装到/boot/System.map-3.2.0(通过执行命令make install)，参见[3.5.4 编译内核](#3-5-4-)节。
 
 查看vmlinux的文件属性：
 
@@ -4223,28 +4223,28 @@ make -f scripts/Makefile.build obj=arch/x86/boot arch/x86/boot/bzImage
 
 ```
 /*
- * (1) 参见3.4.2.8.1 $(src)/setup.ld节，
- *     3.4.2.8.2 $(SETUP_OBJS)节，3.4.2.8.3 $(obj)/setup.elf节
+ * (1) 参见[3.4.2.8.1 $(src)/setup.ld]节，
+ *     [3.4.2.8.2 $(SETUP_OBJS)]节，[3.4.2.8.3 $(obj)/setup.elf]节
  */
 LDFLAGS_setup.elf	:= -T
 $(obj)/setup.elf: $(src)/setup.ld $(SETUP_OBJS) FORCE
 	$(call if_changed,ld)
 
-// (2) 参见3.4.2.8.4 $(obj)/setup.bin节
+// (2) 参见[3.4.2.8.4 $(obj)/setup.bin]节
 OBJCOPYFLAGS_setup.bin	:= -O binary
 $(obj)/setup.bin: $(obj)/setup.elf FORCE
 	$(call if_changed,objcopy)
 
-// (3) 参见3.4.2.8.5 $(obj)/compressed/vmlinux节
+// (3) 参见[3.4.2.8.5 $(obj)/compressed/vmlinux]节
 $(obj)/compressed/vmlinux: FORCE
 	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
 
-// (4) 参见3.4.2.8.6 $(obj)/vmlinux.bin节
+// (4) 参见[3.4.2.8.6 $(obj)/vmlinux.bin]节
 OBJCOPYFLAGS_vmlinux.bin := -O binary -R .note -R .comment -S
 $(obj)/vmlinux.bin: $(obj)/compressed/vmlinux FORCE
 	$(call if_changed,objcopy)
 
-// (5) 参见3.4.2.8.8 arch/x86/boot/bzImage节
+// (5) 参见[3.4.2.8.8 arch/x86/boot/bzImage]节
 $(obj)/bzImage: $(obj)/setup.bin $(obj)/vmlinux.bin $(obj)/tools/build FORCE
 	$(call if_changed,image)
 	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
@@ -4836,7 +4836,7 @@ make -f scripts/Makefile.modbuiltin obj=$*
 
 ##### 3.4.3.3.1 make -f scripts/Makefile.modbuiltin obj=$*
 
-由modules.builtin节可知，make -f scripts/Makefile.modbuiltin obj=$* 被扩展为：
+由[3.4.3.3 modules.builtin](#3-4-3-3-modules-builtin)节可知，make -f scripts/Makefile.modbuiltin obj=$* 被扩展为：
 
 ```
 make -f scripts/Makefile.modbuiltin obj=init
@@ -5860,7 +5860,7 @@ parm:           CrcStripping:Enable CRC Stripping, disable if your BMC needs the
 
 交叉编译内核需要安装交叉编译器，参见[Cross compiling Linux kernel on x86_64](/docs/Cross_Compile_Linux.pdf)。
 
-根据顶层Makefile中的如下定义可知，Makefile的Default Target节至编译external modules节的编译与当前环境的体系架构有关：
+根据顶层Makefile中的如下定义可知，[3.4.1 Makefile的Default Target](#3-4-1-makefile-default-target)节至[3.4.4 编译external modules](#3-4-4-external-modules)节的编译与当前环境的体系架构有关：
 
 ```
 # SUBARCH tells the usermode build what the underlying arch is.  That is set
@@ -5870,7 +5870,7 @@ parm:           CrcStripping:Enable CRC Stripping, disable if your BMC needs the
 # SUBARCH is subsequently ignored.
 SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/				\
 						  -e s/arm.*/arm/ -e s/sa110/arm/		\
-						  -e s/s390x/s390/ -e s/parisc64/parisc/		\
+						  -e s/s390x/s390/ -e s/parisc64/parisc/	\
 						  -e s/ppc.*/powerpc/ -e s/mips.*/mips/		\
 						  -e s/sh[234].*/sh/ )
 
@@ -6594,12 +6594,12 @@ There is only one caution, though. Once you initially select an output directory
 可加载模块被安装到/lib/modules/3.2.0/目录下：
 
 ```
-/lib/modules/3.2.0/source		==链接==>	~/linux-build
-/lib/modules/3.2.0/build		==链接==>	~/linux-build
-~/linux-build/modules.order		==安装==>	/lib/modules/3.2.0/modules.order
-~/linux-build/modules.builtin		==安装==>	/lib/modules/3.2.0/modules.builtin
-$(modules)节的输出文件(*.ko)		==安装==>	/lib/modules/3.2.0/kernel/目录
-$(mod-fw)节的输出文件(*.fw/*.bin/*.dsp)	==安装==>	/lib/firmware/目录
+/lib/modules/3.2.0/source				==链接==>	~/linux-build
+/lib/modules/3.2.0/build				==链接==>	~/linux-build
+~/linux-build/modules.order				==安装==>	/lib/modules/3.2.0/modules.order
+~/linux-build/modules.builtin				==安装==>	/lib/modules/3.2.0/modules.builtin
+[3.4.3.4.2.3 $(modules)]节的输出文件(*.ko)		==安装==>	/lib/modules/3.2.0/kernel/目录
+[3.4.3.4.3.1 $(mod-fw)]节的输出文件(*.fw/*.bin/*.dsp)	==安装==>	/lib/firmware/目录
 ```
 
 执行如下命令安装新内核：
@@ -7193,7 +7193,7 @@ dmesg -t > `uname -r`.dmesg_current
 
 **NOTE**: Thinkpad R61i采用LinuxMint系统，故使用此方法升级内核更方便，简单！
 
-除了采用[3.5 内核升级](#)节所述的方法升级内核外，也可以采用```make deb-pkg```命令编译内核并为Debian系统升级内核：
+除了采用[3.5 内核升级](#3-5-)节所述的方法升级内核外，也可以采用```make deb-pkg```命令编译内核并为Debian系统升级内核：
 
 ```
 # 安装必要工具包(仅需执行一次)
@@ -8435,7 +8435,7 @@ void go_to_protected_mode(void)
 	/*
 	 * 函数protected_mode_jump()参见[4.3.4.1.2.11.2 protected_mode_jump()]节，该函数需要两个入参：
 	 * 1) 第一个入参：boot_params.hdr.code32_start，定义于arch/x86/boot/header.S，
-	 *    取值为0x100000，由bzImage (modern kernel)节的图可知，该参数表示进入保护模式后
+	 *    取值为0x100000，由[4.1.2 bzImage (modern kernel)]节的图可知，该参数表示进入保护模式后
 	 *    执行的第一条内核代码(Protected-mode kernel)；
 	 * 2) 第二个入参：&boot_params+(ds()<<4)是传递给内核的参数，为0号页面的地址，
 	 *    即变量boot_params，参见[4.3.4.1.2.1 copy_boot_params()]节
@@ -8536,7 +8536,7 @@ ENDPROC(in_pm32)
 
 ##### 4.3.4.1.3 arch/x86/boot/compressed/head_32.S
 
-由protected_mode_jump()节可知，进入保护模式后执行的第一个函数为arch/x86/boot/compressed/head_32.S中的函数startup_32：
+由[4.3.4.1.2.11.2 protected_mode_jump()](#4-3-4-1-2-11-2-protected-mode-jump-)节可知，进入保护模式后执行的第一个函数为arch/x86/boot/compressed/head_32.S中的函数startup_32：
 
 ```
 	__HEAD
@@ -8797,7 +8797,7 @@ asmlinkage void decompress_kernel(void *rmode, memptr heap, unsigned char *input
 
 ##### 4.3.4.1.4 arch/x86/kernel/head_32.S
 
-由arch/x86/boot/compressed/head_32.S节可知，解压内核后，执行的第一个函数是arch/x86/kernel/head_32.S中的startup_32()函数。该函数主要是为第一个Linux进程(进程0)建立执行环境，主要执行以下操作：
+由[4.3.4.1.3 arch/x86/boot/compressed/head_32.S](#4-3-4-1-3-arch-x86-boot-compressed-head-32-s)节可知，解压内核后，执行的第一个函数是arch/x86/kernel/head_32.S中的startup_32()函数。该函数主要是为第一个Linux进程(进程0)建立执行环境，主要执行以下操作：
 
 * 把段寄存器初始化为最终值
 * 把内核的bss段填充为0
@@ -9318,7 +9318,7 @@ struct obs_kernel_param {
 		= { __setup_str_##unique_id, fn, early }
 ```
 
-这两个宏定义并初始化了类型为struct obs_kernel_param的对象，它被编译到.init.setup段。根据vmlinux.lds如何生成节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(详见错误：引用源未找到)，其中，.init.setup段包含如下内容：
+这两个宏定义并初始化了类型为struct obs_kernel_param的对象，它被编译到.init.setup段。根据[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(详见错误：引用源未找到)，其中，.init.setup段包含如下内容：
 
 ```
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
@@ -9388,7 +9388,7 @@ struct kernel_param {
 	= { __param_str_##name, ops, perm, isbool ? KPARAM_ISBOOL : 0,	{ arg } }
 ```
 
-该宏定义并初始化了类型为struct kernel_param的对象，它被编译到__param段。根据vmlinux.lds如何生成节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(详见错误：引用源未找到)，其中包含如下内容：
+该宏定义并初始化了类型为struct kernel_param的对象，它被编译到__param段。根据[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(详见错误：引用源未找到)，其中包含如下内容：
 
 ```
 __param : AT(ADDR(__param) - 0xC0000000) { __start___param = .; *(__param) __stop___param = .; }
@@ -10299,7 +10299,7 @@ void __init add_highpages_with_active_regions(int nid, unsigned long start_pfn, 
 			page = pfn_to_page(node_pfn);
 			/*
 			 * 调用__free_page()将该页加入到Buddy Allocator System中
-			 * 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)节
+			 * 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节
 			 * 和[6.4.2.4 __free_page()/free_page()]节
 			 */
 			add_one_highpage_init(page);
@@ -10820,12 +10820,12 @@ void __init softirq_init(void)
 
 	/*
 	 * 设置软中断TASKLET_SOFTIRQ的服务程序为tasklet_action()，
-	 * 参见struct softirq_节和tasklet_action()节
+	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节和[4.3.4.1.4.3.10.1 tasklet_action()]节
 	 */
 	open_softirq(TASKLET_SOFTIRQ, tasklet_action);
 	/*
 	 * 设置软中断HI_SOFTIRQ的服务程序为tasklet_hi_action()，
-	 * 参见struct softirq_节和tasklet_hi_action()节
+	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节和[4.3.4.1.4.3.10.2 tasklet_hi_action()]节
 	 */
 	open_softirq(HI_SOFTIRQ, tasklet_hi_action);
 }
@@ -11311,7 +11311,7 @@ static void __init init_mount_tree(void)
 
 ![init_mount_tree](/assets/init_mount_tree.jpg)
 
-此后，由init_task进程fork出来的子进程也继承了init_task->nsproxy->mnt_ns信息，参见copy_process()节中的:
+此后，由init_task进程fork出来的子进程也继承了init_task->nsproxy->mnt_ns信息，参见[7.2.2.2 copy_process()](#7-2-2-2-copy-process-)节中的:
 
 ```
 retval = copy_fs(clone_flags, p);
@@ -13463,7 +13463,7 @@ struct ldttss_desc64 {
 	u32 zero1;
 } __attribute__((packed));
 
-// 用于初始化struct desc_struct类型的变量，参见全局描述符表GDT节
+// 用于初始化struct desc_struct类型的变量，参见[6.1.1.2.1 全局描述符表GDT]节
 #define GDT_ENTRY_INIT(flags, base, limit) { { {					\
 		.a = ((limit) & 0xffff) | (((base) & 0xffff) << 16),			\
 		.b = (((base) & 0xff0000) >> 16) | (((flags) & 0xf0ff) << 8) |		\
@@ -14012,7 +14012,7 @@ corresponds to the 80×86’s Page Table.
 
 Finally, **for 64-bit architectures** three or four levels of paging are used depending on the linear address bit splitting performed by the hardware, see section [6.1.2.4 Paging for 64-bit Architectures](#6-1-2-4-paging-for-64-bit-architectures) Table 2-4. For x86-64, four levels of paging are used.
 
-Each process has its own Page Global Directory (**mm_struct->pgd**) and its own set of Page Tables. When a process switch occurs (see section context_switch()), Linux saves the **cr3** control register in the descriptor of the process previously in execution and then loads **cr3** with the value stored in the descriptor of the process to be executed next. Thus, when the new process resumes its execution on the CPU, the paging unit refers to the correct set of Page Tables.
+Each process has its own Page Global Directory (**mm_struct->pgd**) and its own set of Page Tables. When a process switch occurs (see section [7.4.5.2.3 context_switch()](#7-4-5-2-3-context-switch-)), Linux saves the **cr3** control register in the descriptor of the process previously in execution and then loads **cr3** with the value stored in the descriptor of the process to be executed next. Thus, when the new process resumes its execution on the CPU, the paging unit refers to the correct set of Page Tables.
 
 ##### 6.1.2.6.1 页表结构层级
 
@@ -14134,7 +14134,7 @@ arch/x86/include/asm/pgtable.h
 
 ###### 6.1.2.6.1.1 与页目录表项/页表项有关的操作函数
 
-除了页目录结构/pgd_t节至页面结构/pte_t节中的函数，如下函数用于操作页目录表项/页表项：
+除了[6.1.2.6.2 页目录结构/pgd_t](#6-1-2-6-2-pgd-t)节至[6.1.2.6.5 页面结构/pte_t](#6-1-2-6-5-pte-t)节中的函数，如下函数用于操作页目录表项/页表项：
 
 * **pgd_none(), pud_none(), pmd_none(), pte_none()**
 
@@ -14181,7 +14181,7 @@ arch/x86/include/asm/pgtable.h
 
 ###### 6.1.2.6.2.1 pgd_t结构
 
-页目录项结构为pgd_t，如页目录项/Page Directory Entry节的图所示，其定义于arch/x86/include/asm/pgtable_types.h:
+页目录项结构为pgd_t，如[6.1.2.1.1 页目录项/Page Directory Entry](#6-1-2-1-1-page-directory-entry)节的图所示，其定义于arch/x86/include/asm/pgtable_types.h:
 
 ```
 typedef struct { pgdval_t pgd; } pgd_t;
@@ -14373,7 +14373,7 @@ static inline pgdval_t pgd_flags(pgd_t pgd)
 ```
 static inline unsigned long pgd_page_vaddr(pgd_t pgd)
 {
-	// PTE_PFN_MASK定义于pgd_flags()节
+	// PTE_PFN_MASK定义于[6.1.2.6.2.4 pgd_flags()]节
 	return (unsigned long)__va((unsigned long)pgd_val(pgd) & PTE_PFN_MASK);
 }
 ```
@@ -14464,7 +14464,7 @@ static inline unsigned long pud_index(unsigned long address)
 
 static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
 {
-	// 函数pgd_page_vaddr()参见pgd_page_vaddr()节
+	// 函数pgd_page_vaddr()参见[6.1.2.6.2.5 pgd_page_vaddr()]节
 	return (pud_t *)pgd_page_vaddr(*pgd) + pud_index(address);
 }
 ```
@@ -14497,7 +14497,7 @@ static inline pudval_t native_pud_val(pud_t pud)
 
 static inline pudval_t native_pud_val(pud_t pud)
 {
-	// 参见pgd_val()/native_pgd_val()节
+	// 参见[6.1.2.6.2.3 pgd_val()/native_pgd_val()/native_make_pgd()]节
 	return native_pgd_val(pud.pgd);
 }
 #endif
@@ -14510,7 +14510,7 @@ static inline pudval_t native_pud_val(pud_t pud)
 ```
 static inline pudval_t pud_flags(pud_t pud)
 {
-	// PTE_FLAGS_MASK参见pmd_flags()节
+	// PTE_FLAGS_MASK参见[6.1.2.6.4.4 pmd_flags()]节
 	return native_pud_val(pud) & PTE_FLAGS_MASK;
 }
 ```
@@ -14582,7 +14582,7 @@ static inline pmdval_t native_pmd_val(pmd_t pmd)
 
 static inline pmdval_t native_pmd_val(pmd_t pmd)
 {
-	// 参见pgd_val()/native_pgd_val()节
+	// 参见[6.1.2.6.2.3 pgd_val()/native_pgd_val()/native_make_pgd()]节
 	return native_pgd_val(pmd.pud.pgd);
 }
 #endif
@@ -14595,7 +14595,7 @@ static inline pmdval_t native_pmd_val(pmd_t pmd)
 ```
 static inline pmdval_t pmd_flags(pmd_t pmd)
 {
-	// PTE_FLAGS_MASK参见pmd_flags()节
+	// PTE_FLAGS_MASK参见[6.1.2.6.4.4 pmd_flags()]节
 	return native_pmd_val(pmd) & PTE_FLAGS_MASK;
 }
 ```
@@ -15286,7 +15286,7 @@ struct mm_struct {
 	 * map_count field contains the number of memory regions owned by the process.
 	 * By default, a process may own up to 65,536 different memory regions;
 	 * however, the system administrator may change this limit by writing in
-	 * /proc/sys/vm/max_map_count，参do_mmap_pgoff()见节，do_mmap_pgoff():
+	 * /proc/sys/vm/max_map_count，参见[6.8.2.1.1 do_mmap_pgoff()]节，do_mmap_pgoff():
 	 * if (mm->map_count > sysctl_max_map_count)
 	 */
 	int 				map_count;			/* number of VMAs */
@@ -15801,7 +15801,7 @@ static struct list_head bdata_list __initdata = LIST_HEAD_INIT(bdata_list);
 
 Each architecture is required to supply a setup_arch() function which, among other tasks, is responsible for acquiring the necessary parameters to initialise the boot memory allocator.
 
-Each architecture has its own function to get the necessary parameters. On the x86, it is called setup_arch(). Regardless of the architecture, the tasks are essentially the same. See section e820=>memblock.memory. The parameters it calculates are:
+Each architecture has its own function to get the necessary parameters. On the x86, it is called setup_arch(). Regardless of the architecture, the tasks are essentially the same. See section [6.3.2.2 e820=>memblock.memory](#6-3-2-2-e820-gt-memblock-memory). The parameters it calculates are:
 
 | Variable Name | Description |
 | :------------ | :---------- |
@@ -15981,7 +15981,7 @@ struct vm_struct {
 
 ### 6.3.1 检测内存段及其大小/boot_params.e820_map
 
-系统启动时，将调用arch/x86/boot/main.c中的main()，参见arch/x86/boot/main.c节，其调用关系如下：
+系统启动时，将调用arch/x86/boot/main.c中的main()，参见[4.3.4.1.2 arch/x86/boot/main.c](#4-3-4-1-2-arch-x86-boot-main-c)节，其调用关系如下：
 
 ```
 main()					// arch/x86/boot/main.c
@@ -16001,10 +16001,10 @@ boot_params.e820_map:
 
 ```
 boot_params.e820_map[]
--> e820 / e820_saved			// 参见boot_params.e820_map[]=>e820节
-   -> memblock.memory			// 参见e820=>memblock.memory节
-      -> early_node_map[]		// 参见memblock.memory=>early_node_map[]节
-         -> node_data[]->node_zones[]	// 参见early_node_map[]=>node_data[]节
+-> e820 / e820_saved			// 参见[6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved]节
+   -> memblock.memory			// 参见[6.3.2.2 e820=>memblock.memory]节
+      -> early_node_map[]		// 参见[6.3.2.3 memblock.memory=>early_node_map[]]节
+         -> node_data[]->node_zones[]	// 参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节
 ```
 
 #### 6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved
@@ -16061,7 +16061,7 @@ e820: remove [mem 0x000a0000-0x000fffff] usable
 ```
 start_kernel()
 -> setup_arch(&command_line)
-   -> Functions in section boot_params.e820_map[]=>e820 / e820_saved
+   -> Functions in section [6.3.2.1 boot_params.e820_map[]=>e820 / e820_saved]
    -> max_pfn = e820_end_of_ram_pfn()						// max_pfn = last_pfn
       -> e820_end_pfn(MAX_ARCH_PFN, E820_RAM)					// 查找e820.map[]中类型为E820_RAM的最大页框号
       -> printk(KERN_INFO "last_pfn = %#lx					// 示例参见NOTE 3
@@ -16125,7 +16125,7 @@ kernel direct mapping tables up to 0x1ffeffff @ [mem 0x01ffa000-0x01ffffff]
 ```
 start_kernel()
 -> setup_arch(&command_line)
-   -> Functions in section e820=>memblock.memory
+   -> Functions in section [6.3.2.2 e820=>memblock.memory]
    -> initmem_init()							// arch/x86/mm/init_32.c
       -> memblock_x86_register_active_regions()
          // Get active region (Physical Frame Number, pfn)
@@ -16140,8 +16140,11 @@ start_kernel()
          -> after_bootmem = 1;
 ```
 
-数组early_node_map[]的结构，参见Subjects/Chapter06_Memory_Management/Figures/Memery_Layout_09.jpg，其中
-start_pfn和end_pfn域表示Physical Frame Number，取值为内存地址的高20 bits (12-31 bit)。因为内存页大小为4KB，内存页是4KB对齐的，故内存页地址的低12 bits取值为0。因此只需要内存地址的高20 bits就可以表示内存也的地址了。
+数组early_node_map[]的结构:
+
+![Memery_Layout_09](/assets/Memery_Layout_09.jpg)
+
+其中```start_pfn```和```end_pfn```域表示Physical Frame Number，取值为内存地址的高20 bits (12-31 bit)。因为内存页大小为4KB，内存页是4KB对齐的，故内存页地址的低12 bits取值为0。因此只需要内存地址的高20 bits就可以表示内存也的地址了。
 
 **NOTE 5**:
 
@@ -16169,16 +16172,16 @@ low ram: 0 – 1fff0000
 ```
 start_kernel()
 -> setup_arch(&command_line)
-   -> Functions in section memblock.memory=>early_node_map[]
+   -> Functions in section [6.3.2.3 memblock.memory=>early_node_map[]]
    -> x86_init.paging.pagetable_setup_start(swapper_pg_dir) 	// native_pagetable_setup_start()
    -> paging_init()
       -> pagetable_init()
          // Initialise the page tables necessary to reference all physical memory in
          // ZONE_DMA and ZONE_NORMAL. High memory in ZONE_HIGHMEM cannot be directly
          // referenced and mappings are set up for it.
-         -> permanent_kmaps_init(swapper_pg_dir)		// 参见pkmap_page_table的初始化节
+         -> permanent_kmaps_init(swapper_pg_dir)		// 参见[6.7.1.1 pkmap_page_table的初始化]节
       -> __flush_tlb_all()					// Refresh CR3 register
-      -> kmap_init()						// 参见emporary Kernel Mapping节
+      -> kmap_init()						// 参见[6.7.2 Temporary Kernel Mapping]节
       -> sparse_init()						// mm/sparse.c
       -> zone_sizes_init()
          -> free_area_init_nodes()				// early_node_map[] => node_data[]
@@ -16197,7 +16200,7 @@ start_kernel()
                                pgdat->node_id, realtotalpages);
                         // 示例参见NOTE 9
                   -> alloc_node_mem_map(pgdat)
-                     // Set mem_map and pgdat->node_mem_map，参见mem_map节，示例参见NOTE 10
+                     // Set mem_map and pgdat->node_mem_map，参见[6.2.2.1 mem_map]节，示例参见NOTE 10
                   -> printk(KERN_DEBUG "free_area_init_node: node %d, pgdat %08lx,
                             node_mem_map %08lx\n", nid, (unsigned long)pgdat,
                             (unsigned long)pgdat->node_mem_map);
@@ -16241,7 +16244,7 @@ start_kernel()
    -> x86_init.paging.pagetable_setup_done(swapper_pg_dir)
 -> build_all_zonelists()					// 示例参见NOTE 12
 -> mm_init()							// 参见[4.3.4.1.4.3.6 mm_init()]节
-   -> mem_init()						// 参见mem_init()节，示例参见NOTE 13
+   -> mem_init()						// 参见[4.3.4.1.4.3.6.1 mem_init()]节，示例参见NOTE 13
       /*
        * 将低端内存转入Buddy Allocator System中管理，
        * 参见[4.3.4.1.4.3.6.1.1 free_all_bootmem()/free_all_bootmem_core()]节
@@ -16330,7 +16333,7 @@ virtual kernel memory layout:
       .data : 0xc15d1358 - 0xc18ad6c0   (2928 kB)		// [_etext, _edata]
       .text : 0xc1000000 - 0xc15d1358   (5956 kB)		// [_text, _etext]
 => 各变量定义于vmlinux.lds
-=> Virtual Kernel Memory Layout参见错误：引用源未找到和Physical Memory Layout节。
+=> Virtual Kernel Memory Layout参见错误：引用源未找到和[6.3.3 Physical Memory Layout]节。
 ```
 
 **NOTE 14**:
@@ -16509,7 +16512,7 @@ static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 	return alloc_pages_current(gfp_mask, order);
 }
 #else
-// gfp_mask参见gfp_t节
+// gfp_mask参见[6.2.5 gfp_t]节
 #define alloc_pages(gfp_mask, order)		alloc_pages_node(numa_node_id(), gfp_mask, order)
 #endif
 ```
@@ -16528,7 +16531,7 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask, unsigned in
 }
 ```
 
-其中，函数__alloc_pages()定义于include/linux/gfp.h:
+其中，函数```__alloc_pages()```定义于include/linux/gfp.h:
 
 ```
 static inline struct page *__alloc_pages(gfp_t gfp_mask, unsigned int order, struct zonelist *zonelist)
@@ -16537,7 +16540,7 @@ static inline struct page *__alloc_pages(gfp_t gfp_mask, unsigned int order, str
 }
 ```
 
-其中，函数__alloc_pages_nodemask()定义于mm/page_alloc.c:
+其中，函数```__alloc_pages_nodemask()```定义于mm/page_alloc.c:
 
 ```
 /*
@@ -16571,7 +16574,7 @@ struct page *__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
 		return NULL;
 
 	get_mems_allowed();
-	/* The preferred zone is used for statistics later */ // 参见first_zones_zonelist()节
+	/* The preferred zone is used for statistics later */ // 参见[6.4.1.1.1 first_zones_zonelist()]节
 	first_zones_zonelist(zonelist, high_zoneidx,
 					nodemask ? : &cpuset_current_mems_allowed, &preferred_zone);
 	if (!preferred_zone) {
@@ -16579,10 +16582,10 @@ struct page *__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
 		return NULL;
 	}
 
-	/* First allocation attempt */	// 参见get_page_from_freelist()节
+	/* First allocation attempt */	// 参见[6.4.1.1.2 get_page_from_freelist()]节
 	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, nodemask, order, zonelist,
 			high_zoneidx, ALLOC_WMARK_LOW|ALLOC_CPUSET, preferred_zone, migratetype);
-	if (unlikely(!page))		// 参见__alloc_pages_slowpath()节
+	if (unlikely(!page))		// 参见[6.4.1.1.3 __alloc_pages_slowpath()]节
 		page = __alloc_pages_slowpath(gfp_mask, order, zonelist,
 				high_zoneidx, nodemask, preferred_zone, migratetype);
 	put_mems_allowed();
@@ -16622,7 +16625,7 @@ static inline struct zoneref *first_zones_zonelist(struct zonelist *zonelist,
 ```
 /* Returns the next zone at or below highest_zoneidx in a zonelist */
 struct zoneref *next_zones_zonelist(struct zoneref *z, enum zone_type highest_zoneidx,
-							nodemask_t *nodes, struct zone **zone)
+				    nodemask_t *nodes, struct zone **zone)
 {
 	/*
 	 * Find the next suitable zone to use for the allocation.
@@ -16720,7 +16723,7 @@ zonelist_scan:
 		}
 
 try_this_zone:
-		// 参见buffered_rmqueue()节
+		// 参见[6.4.1.1.2.1 buffered_rmqueue()]节
 		page = buffered_rmqueue(preferred_zone, zone, order, gfp_mask, migratetype);
 		if (page)
 			break;
@@ -16771,7 +16774,7 @@ again:
 		pcp = &this_cpu_ptr(zone->pageset)->pcp;
 		list = &pcp->lists[migratetype];
 		if (list_empty(list)) {
-			// 若缓存为空，则分配pcp->batch的页来填充缓存。参见rmqueue_bulk()节
+			// 若缓存为空，则分配pcp->batch的页来填充缓存。参见[6.4.1.1.2.1.1 rmqueue_bulk()]节
 			pcp->count += rmqueue_bulk(zone, 0, pcp->batch, list, migratetype, cold);
 			if (unlikely(list_empty(list)))
 				goto failed;
@@ -16779,7 +16782,7 @@ again:
 
 		/*
 		 * 冷热页是保存在一条链表上的：热页通过list->next访问，冷页通过list->prev访问。
-		 * 另参见free_hot_cold_page()节
+		 * 另参见[6.4.1.5.1 free_hot_cold_page()]节
 		 */
 		if (cold)
 			page = list_entry(list->prev, struct page, lru);
@@ -16803,7 +16806,7 @@ again:
 			WARN_ON_ONCE(order > 1);
 		}
 		spin_lock_irqsave(&zone->lock, flags);
-		page = __rmqueue(zone, order, migratetype);	// 参见__rmqueue()节
+		page = __rmqueue(zone, order, migratetype);	// 参见[6.4.1.1.2.1.1.1 __rmqueue()]节
 		spin_unlock(&zone->lock);
 		if (!page)
 			goto failed;
@@ -16840,15 +16843,15 @@ Per-CPU page frame cache:
  * a single hold of the lock, for efficiency.  Add them to the supplied list.
  * Returns the number of new pages which were placed at *list.
  */
-// 由buffered_rmqueue()节可知，rmqueue_bulk(zone, 0, pcp->batch, list, migratetype, cold);
+// 由[6.4.1.1.2.1 buffered_rmqueue()]节可知，rmqueue_bulk(zone, 0, pcp->batch, list, migratetype, cold);
 static int rmqueue_bulk(struct zone *zone, unsigned int order, unsigned long count,
-				  struct list_head *list, int migratetype, int cold)
+			struct list_head *list, int migratetype, int cold)
 {
 	int i;
 
 	spin_lock(&zone->lock);
 	for (i = 0; i < count; ++i) {
-		struct page *page = __rmqueue(zone, order, migratetype);	// 参见__rmqueue()节
+		struct page *page = __rmqueue(zone, order, migratetype);	// 参见[6.4.1.1.2.1.1.1 __rmqueue()]节
 		if (unlikely(page == NULL))
 			break;
 
@@ -16892,7 +16895,7 @@ retry_reserve:
 	page = __rmqueue_smallest(zone, order, migratetype);		// 参见[6.4.1.1.2.1.1.1.1 __rmqueue_smallest()]节
 
 	if (unlikely(!page) && migratetype != MIGRATE_RESERVE) {
-		page = __rmqueue_fallback(zone, order, migratetype);	// 参见__rmqueue_fallback()节
+		page = __rmqueue_fallback(zone, order, migratetype);	// 参见[6.4.1.1.2.1.1.1.2 __rmqueue_fallback()]节
 
 		/*
 		 * Use MIGRATE_RESERVE rather than fail an allocation. goto
@@ -16926,7 +16929,7 @@ static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int or
 	struct page *page;
 
 	/*
-	 * 与__rmqueue_fallback()不同(参见__rmqueue_fallback()节)：
+	 * 与__rmqueue_fallback()不同，参见[6.4.1.1.2.1.1.1.2 __rmqueue_fallback()]节：
 	 * 此处按order由小到大的顺序分配，且只查找指定的migratetype类型
 	 */
 	/* Find a page of the appropriate size in the preferred list */
@@ -16951,7 +16954,7 @@ static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int or
 		 * the last 2k–2h page frames to the free_area lists that have
 		 * indexes between h and k.
 		 * 此处，current_order >= order，示例参见错误：引用源未找到。
-		 * 另参见struct zone节中free_area[]的注释
+		 * 另参见[6.2.3 struct zone]节中free_area[]的注释
 		 */
 		expand(zone, page, order, current_order, area, migratetype);
 		return page;
@@ -16965,7 +16968,7 @@ static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int or
 
 ```
 static inline void expand(struct zone *zone, struct page *page, int low,
-							   int high, struct free_area *area, int migratetype)
+			  int high, struct free_area *area, int migratetype)
 {
 	unsigned long size = 1 << high;
 
@@ -17089,21 +17092,21 @@ static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
 
 	for (i = 0; i < (1 << order); i++) {
 		struct page *p = page + i;
-		if (unlikely(check_new_page(p)))			// 判断页面合法性，参见[6.4.1.1.2.1.2 prep_new_page()]节
+		if (unlikely(check_new_page(p)))		// 判断页面合法性，参见[6.4.1.1.2.1.2 prep_new_page()]节
 			return 1;
 	}
 
-	set_page_private(page, 0);					// page->private = 0
-	set_page_refcounted(page);					// page->_count = 1
+	set_page_private(page, 0);				// page->private = 0
+	set_page_refcounted(page);				// page->_count = 1
 
 	arch_alloc_page(page, order);
 	kernel_map_pages(page, 1 << order, 1);
 
 	if (gfp_flags & __GFP_ZERO)
-		prep_zero_page(page, order, gfp_flags);	// Fill the allocated memory area with zeros.
+		prep_zero_page(page, order, gfp_flags);		// Fill the allocated memory area with zeros.
 
 	if (order && (gfp_flags & __GFP_COMP))
-		prep_compound_page(page, order);			// 参见prep_compound_page()节
+		prep_compound_page(page, order);		// 参见[6.4.1.1.2.1.2.2 prep_compound_page()]节
 
 	return 0;
 }
@@ -17116,7 +17119,7 @@ static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
 ```
 static inline int check_new_page(struct page *page)
 {
-	if (unlikely(page_mapcount(page)				// &(page)->_mapcount) + 1
+	if (unlikely(page_mapcount(page)			// &(page)->_mapcount) + 1
 		 | (page->mapping != NULL)
 		 | (atomic_read(&page->_count) != 0)
 		 | (page->flags & PAGE_FLAGS_CHECK_AT_PREP)
@@ -17192,7 +17195,7 @@ static inline struct page *__alloc_pages_slowpath(gfp_t gfp_mask, unsigned int o
 		goto nopage;
 
 restart:
-	// 参见wake_all_kswapd()节
+	// 参见[6.4.1.1.3.1 wake_all_kswapd()]节
 	if (!(gfp_mask & __GFP_NO_KSWAPD))
 		wake_all_kswapd(order, zonelist, high_zoneidx, zone_idx(preferred_zone));
 
@@ -17212,7 +17215,7 @@ restart:
 
 rebalance:
 	/* This is the last chance, in general, before the goto nopage. */
-	// 参见get_page_from_freelist()节
+	// 参见[6.4.1.1.2 get_page_from_freelist()]节
 	page = get_page_from_freelist(gfp_mask, nodemask, order, zonelist, high_zoneidx,
 			alloc_flags & ~ALLOC_NO_WATERMARKS, preferred_zone, migratetype);
 	if (page)
@@ -17330,7 +17333,7 @@ static inline void wake_all_kswapd(unsigned int order, struct zonelist *zonelist
 	struct zone *zone;
 
 	for_each_zone_zonelist(zone, z, zonelist, high_zoneidx)
-		wakeup_kswapd(zone, order, classzone_idx);	// 参见wakeup_kswapd()节
+		wakeup_kswapd(zone, order, classzone_idx);	// 参见[6.4.1.1.3.1.1.2 wakeup_kswapd()]节
 }
 ```
 
@@ -17353,8 +17356,8 @@ static int __init kswapd_init(void)
 }
 
 /*
-* 由mm/Makefile可知，vmscan.c被直接编译进内核，因此kswapd_init()在系统启动时执行，参见.initcall*.init节
-* kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
+ * 由mm/Makefile可知，vmscan.c被直接编译进内核，因此kswapd_init()在系统启动时执行，参见[13.5.1.1.1.1.1 .initcall*.init]节
+ * kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
  *                                                ^
  *                                                +-- 其中的.initcall6.init
  */
@@ -17372,7 +17375,7 @@ int kswapd_run(int nid)
 	if (pgdat->kswapd)
 		return 0;
 
-	// 创建kswapd内核线程，参见kthread_run()节，该线程执行函数kswapd().
+	// 创建kswapd内核线程，参见[7.2.4.4.1 kthread_run()]节，该线程执行函数kswapd().
 	pgdat->kswapd = kthread_run(kswapd, pgdat, "kswapd%d", nid);
 	if (IS_ERR(pgdat->kswapd)) {
 		/* failure at boot is fatal */
@@ -17501,7 +17504,7 @@ void wakeup_kswapd(struct zone *zone, int order, enum zone_type classzone_idx)
 		return;
 
 	trace_mm_vmscan_wakeup_kswapd(pgdat->node_id, zone_idx(zone), order);
-	// 唤醒pgdat->kswapd_wait进程，参见wake_up_xxx()节
+	// 唤醒pgdat->kswapd_wait进程，参见[7.4.10.1 wake_up_XXX()]节
 	wake_up_interruptible(&pgdat->kswapd_wait);
 }
 ```
@@ -17515,8 +17518,8 @@ The page_address() function returns the linear address associated with the page 
 | Macros Definitions<br>WANT_PAGE_VIRTUAL | Macros Definitions<br>CONFIG_HIGHMEM | page_address() |
 |:--------------------------------------- | :----------------------------------- | :------------- |
 | Defined     | -           | #define page_address(page) ((page)->virtual) |
-| Not Defined | Not Defined | #define page_address(page) lowmem_page_address(page)，参见lowmem_page_address()节 |
-| Not Defined | Defined     | 定义于mm/highmem.c，参见page_address() in mm/highmem.c节 |
+| Not Defined | Not Defined | #define page_address(page) lowmem_page_address(page)，参见[6.4.1.2.1 lowmem_page_address()](#6-4-1-2-1-lowmem-page-address-)节 |
+| Not Defined | Defined     | 定义于mm/highmem.c，参见[6.4.1.2.2 page_address() in mm/highmem.c](#6-4-1-2-2-page-address-in-mm-highmem-c)节 |
 
 <p/>
 
@@ -17556,7 +17559,7 @@ void page_address_init(void);
 ```
 static __always_inline void *lowmem_page_address(const struct page *page)
 {
-	// page_to_pfn()参见[6.1.2.6.5.5 pte_page()/pte_pfn()]节，__va()参见pgd_page_vaddr()节
+	// page_to_pfn()参见[6.1.2.6.5.5 pte_page()/pte_pfn()]节，__va()参见[6.1.2.6.2.5 pgd_page_vaddr()]节
 	return __va(PFN_PHYS(page_to_pfn(page)));
 }
 ```
@@ -17584,7 +17587,7 @@ void *page_address(const struct page *page)
 	void *ret;
 	struct page_address_slot *pas;
 
-	// 若不是高端内存，参见lowmem_page_address()节
+	// 若不是高端内存，参见[6.4.1.2.1 lowmem_page_address()]节
 	if (!PageHighMem(page))
 		return lowmem_page_address(page);
 
@@ -17617,7 +17620,7 @@ done:
 
 #### 6.4.1.3 \__get_free_pages()
 
-Function that is similar to alloc_pages(), but it returns the linear address of the first allocated page.
+Function that is similar to ```alloc_pages()```, but it returns the linear address of the first allocated page.
 
 该函数定义于mm/page_alloc.c:
 
@@ -17632,10 +17635,10 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 	 */
 	VM_BUG_ON((gfp_mask & __GFP_HIGHMEM) != 0);
 
-	page = alloc_pages(gfp_mask, order);		// 参见alloc_pages()节
+	page = alloc_pages(gfp_mask, order);		// 参见[6.4.1.1 alloc_pages()/alloc_pages_node()]节
 	if (!page)
 		return 0;
-	return (unsigned long) page_address(page);	// 参见page_address()节
+	return (unsigned long) page_address(page);	// 参见[6.4.1.2 page_address()]节
 }
 ```
 
@@ -17644,7 +17647,7 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 Macro used to get page frames suitable for DMA; see include/linux/gfp.h:
 
 ```
-// 参见__get_free_pages()节
+// 参见[6.4.1.3 __get_free_pages()]节
 #define __get_dma_pages(gfp_mask, order)		\
 		 __get_free_pages((gfp_mask) | GFP_DMA, (order))
 ```
@@ -17683,9 +17686,9 @@ void __free_pages(struct page *page, unsigned int order)
 	// if page->_count-- is 0, then the page has no users, release it!
 	if (put_page_testzero(page)) {
 		if (order == 0)
-			free_hot_cold_page(page, 0);	// 参见free_hot_cold_page()节
+			free_hot_cold_page(page, 0);	// 参见[6.4.1.5.1 free_hot_cold_page()]节
 		else
-			__free_pages_ok(page, order);	// 参见__free_pages_ok()节
+			__free_pages_ok(page, order);	// 参见[6.4.1.5.2 __free_pages_ok()]节
 	}
 }
 ```
@@ -17708,7 +17711,7 @@ void free_hot_cold_page(struct page *page, int cold)
 	// 判断并清除page->flags中的PG_mlocked标志位
 	int wasMlocked = __TestClearPageMlocked(page);
 
-	// 参见free_pages_prepare()节
+	// 参见[6.4.1.5.1.1 free_pages_prepare()]节
 	if (!free_pages_prepare(page, 0))
 		return;
 
@@ -17731,7 +17734,7 @@ void free_hot_cold_page(struct page *page, int cold)
 	 */
 	if (migratetype >= MIGRATE_PCPTYPES) {
 		if (unlikely(migratetype == MIGRATE_ISOLATE)) {
-			// 参见free_one_page()节
+			// 参见[6.4.1.5.1.2 free_one_page()]节
 			free_one_page(zone, page, 0, migratetype);
 			goto out;
 		}
@@ -17751,7 +17754,7 @@ void free_hot_cold_page(struct page *page, int cold)
 	/*
 	 * 若超过阀值，则释放batch个页面到Buddy Allocator System
 	 * 与buffered_rmqueue()->rmqueue_bulk()对应，
-	 * 参见buffered_rmqueue()节
+	 * 参见[6.4.1.1.2.1 buffered_rmqueue()]节
 	 */
 	if (pcp->count >= pcp->high) {
 		free_pcppages_bulk(zone, pcp->batch, pcp);
@@ -17808,7 +17811,7 @@ static void free_one_page(struct zone *zone, struct page *page, int order, int m
 	zone->all_unreclaimable = 0;
 	zone->pages_scanned = 0;
 
-	// 参见__free_one_page()节
+	// 参见[6.4.1.5.1.2.1 __free_one_page()]节
 	__free_one_page(page, zone, order, migratetype);
 	__mod_zone_page_state(zone, NR_FREE_PAGES, 1 << order);
 	spin_unlock(&zone->lock);
@@ -17835,7 +17838,7 @@ static inline void __free_one_page(struct page *page,
 
 	VM_BUG_ON(migratetype == -1);
 
-	// page_idx取页框号的低11比特位，参见struct zone节中free_area[]的注释
+	// page_idx取页框号的低11比特位，参见[6.2.3 struct zone]节中free_area[]的注释
 	page_idx = page_to_pfn(page) & ((1 << MAX_ORDER) - 1);
 
 	VM_BUG_ON(page_idx & ((1 << order) - 1));
@@ -17948,7 +17951,7 @@ static void free_pcppages_bulk(struct zone *zone, int count, struct per_cpu_page
 			/* must delete as __free_one_page list manipulates */
 			list_del(&page->lru);
 			/* MIGRATE_MOVABLE list may include MIGRATE_RESERVEs */
-			// 参见__free_one_page()节
+			// 参见[6.4.1.5.1.2.1 __free_one_page()]节
 			__free_one_page(page, zone, 0, page_private(page));
 			trace_mm_page_pcpu_drain(page, 0, page_private(page));
 		} while (--to_free && --batch_free && !list_empty(list));
@@ -17969,7 +17972,7 @@ static void __free_pages_ok(struct page *page, unsigned int order)
 	// 判断并清除page->flags中的PG_mlocked标志位
 	int wasMlocked = __TestClearPageMlocked(page);
 
-	// 参见free_pages_prepare()节
+	// 参见[6.4.1.5.1.1 free_pages_prepare()]节
 	if (!free_pages_prepare(page, order))
 		return;
 
@@ -17977,7 +17980,7 @@ static void __free_pages_ok(struct page *page, unsigned int order)
 	if (unlikely(wasMlocked))
 		free_page_mlock(page);
 	__count_vm_events(PGFREE, 1 << order);
-	// 参见free_one_page()节
+	// 参见[6.4.1.5.1.2 free_one_page()]节
 	free_one_page(page_zone(page), page, order, get_pageblock_migratetype(page));
 	local_irq_restore(flags);
 }
@@ -17987,10 +17990,10 @@ static void __free_pages_ok(struct page *page, unsigned int order)
 
 #### 6.4.2.1 alloc_page()
 
-The macro alloc_page() used to get a single page frame; see include/linux/gfp.h:
+The macro ```alloc_page()``` used to get a single page frame; see include/linux/gfp.h:
 
 ```
-// 参见alloc_pages()节
+// 参见[6.4.1.1 alloc_pages()/alloc_pages_node()]节
 #define alloc_page(gfp_mask)		alloc_pages(gfp_mask, 0)
 ```
 
@@ -18003,7 +18006,7 @@ Function get_zeroed_page() used to obtain a page frame filled with zeros; see mm
 ```
 unsigned long get_zeroed_page(gfp_t gfp_mask)
 {
-	// 参见__get_free_pages()节
+	// 参见[6.4.1.3 __get_free_pages()]节
 	return __get_free_pages(gfp_mask | __GFP_ZERO, 0);
 }
 ```
@@ -18015,7 +18018,7 @@ It returns the linear address of the obtained page frame.
 The macro ```__get_free_page()``` used to get a single page frame; see include/linux/gfp.h:
 
 ```
-// 参见__get_free_pages()节
+// 参见[6.4.1.3 __get_free_pages()]节
 #define __get_free_page(gfp_mask)	__get_free_pages((gfp_mask), 0)
 ```
 
@@ -18024,20 +18027,20 @@ The macro ```__get_free_page()``` used to get a single page frame; see include/l
 Macro ```__free_page()``` releases the page frame having the descriptor pointed to by page; Macro free_page() releases the page frame having the linear address addr. See include/linux/gfp.h:
 
 ```
-// 参见free_pages()/__free_pages()节
+// 参见[6.4.1.5 free_pages()/__free_pages()]节
 #define __free_page(page)		__free_pages((page), 0)
 #define free_page(addr)			free_pages((addr), 0)
 ```
 
 ## 6.5 Slab Allocator
 
-Running a memory area allocation algorithm on top of the buddy algorithm (参见分配/释放内存页节) is not particularly efficient. A better algorithm is derived from the slab allocator schema that was adopted for the first time in the Sun Microsystems Solaris 2.4 operating system.
+Running a memory area allocation algorithm on top of the buddy algorithm (参见[6.4 分配/释放内存页](#6-4-)节) is not particularly efficient. A better algorithm is derived from the slab allocator schema that was adopted for the first time in the Sun Microsystems Solaris 2.4 operating system.
 
 The slab allocator groups objects into caches. Each cache is a "store" of objects of the same type.
 
 The area of main memory that contains a cache is divided into slabs; each slab consists of one or more contiguous page frames that contain both allocated and free objects.
 
-Run following command to get a full list of caches available on a running system (参见6.5.1.1.2.1 查看slab的分配信息节):
+Run following command to get a full list of caches available on a running system (参见[6.5.1.1.2.1 查看slab的分配信息](#6-5-1-1-2-1-slab-节):
 
 ```
 # cat /proc/slabinfo
@@ -18344,7 +18347,7 @@ static struct cache_names __initdata cache_names[] = {
 The kmem_cache_init() function is invoked during system initialization to set up the general caches.
 
 ```
-start_kernel()				// 参见start_kernel()节
+start_kernel()				// 参见[4.3.4.1.4.3 start_kernel()]节
 -> mm_init()				// 参见[4.3.4.1.4.3.6 mm_init()]节
    -> kmem_cache_init()
 ```
@@ -18440,8 +18443,8 @@ void __init kmem_cache_init(void)
 										cache_line_size());
 
 	/* 2+3) create the kmalloc caches */
-	sizes = malloc_sizes;		// 变量malloc_sizes参见General Cache/Specific Cache节
-	names = cache_names;		// 变量cache_names参见General Cache/Specific Cache节
+	sizes = malloc_sizes;		// 变量malloc_sizes参见[6.5.1.1 General Cache/Specific Cache]节
+	names = cache_names;		// 变量cache_names参见[6.5.1.1 General Cache/Specific Cache]节
 
 	/*
 	 * Initialize the caches that provide memory for the array cache and the
@@ -18732,7 +18735,7 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 	else
 		gfp = GFP_NOWAIT;
 
-	/* Get cache's description obj. 参见kmem_cache_zalloc()节 */
+	/* Get cache's description obj. 参见[6.5.1.1.3.1 kmem_cache_zalloc()]节 */
 	cachep = kmem_cache_zalloc(&cache_cache, gfp);
 	if (!cachep)
 		goto oops;
@@ -19038,7 +19041,7 @@ proc_slabinfo_operations->close()
 
 ```
 kmem_cache_zalloc(&cache_cache, gfp)
--> kmem_cache_alloc(k, flags | __GFP_ZERO)		// 参见6.5.1.1.3.2 kmem_cache_alloc()节
+-> kmem_cache_alloc(k, flags | __GFP_ZERO)		// 参见[6.5.1.1.3.2 kmem_cache_alloc()]节
    -> __cache_alloc(cachep, flags, ..)
       -> __do_cache_alloc()
          -> ____cache_alloc()
@@ -19046,7 +19049,7 @@ kmem_cache_zalloc(&cache_cache, gfp)
                -> cache_grow()
                   -> kmem_getpages()
                      -> alloc_pages_exact_node()
-                        -> __alloc_pages()		// 参见alloc_pages()节
+                        -> __alloc_pages()		// 参见[6.4.1.1 alloc_pages()/alloc_pages_node()]节
 ```
 
 该函数定义于include/linux/slab.h:
@@ -19054,7 +19057,7 @@ kmem_cache_zalloc(&cache_cache, gfp)
 ```
 static inline void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags)
 {
-	// 参见6.5.1.1.3.2 kmem_cache_alloc()节
+	// 参见[6.5.1.1.3.2 kmem_cache_alloc()]节
 	return kmem_cache_alloc(k, flags | __GFP_ZERO);
 }
 ```
@@ -19173,7 +19176,7 @@ static inline void *____cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 		objp = ac->entry[--ac->avail];
 	} else {
 		STATS_INC_ALLOCMISS(cachep);
-		// 参见cache_alloc_refill()节
+		// 参见[6.5.1.1.3.2.1 cache_alloc_refill()]节
 		objp = cache_alloc_refill(cachep, flags);
 		/*
 		 * the 'ac' may be updated by cache_alloc_refill(),
@@ -19260,7 +19263,7 @@ retry:
 			STATS_INC_ACTIVE(cachep);
 			STATS_SET_HIGH(cachep);
 
-			// 参见slab_get_obj()节
+			// 参见[6.5.1.1.3.2.1.1 slab_get_obj()]节
 			ac->entry[ac->avail++] = slab_get_obj(cachep, slabp, node);
 		}
 		check_slabp(cachep, slabp);
@@ -19280,7 +19283,7 @@ alloc_done:
 
 	if (unlikely(!ac->avail)) {
 		int x;
-		// 参见cache_grow()节
+		// 参见[6.5.1.1.3.2.2 cache_grow()]节
 		x = cache_grow(cachep, flags | GFP_THISNODE, node, NULL);
 
 		/* cache_grow can reenable interrupts, then ac could change. */
@@ -19372,7 +19375,7 @@ static int cache_grow(struct kmem_cache *cachep, gfp_t flags, int nodeid, void *
 	 * Get mem for the objs.  Attempt to allocate a physical page from 'nodeid'.
 	 */
 	if (!objp)
-		objp = kmem_getpages(cachep, local_flags, nodeid);	// 参见kmem_getpages()节
+		objp = kmem_getpages(cachep, local_flags, nodeid);	// 参见[6.5.1.1.3.2.2.1 kmem_getpages()]节
 	if (!objp)
 		goto failed;
 
@@ -19442,7 +19445,7 @@ static void *kmem_getpages(struct kmem_cache *cachep, gfp_t flags, int nodeid)
 	if (cachep->flags & SLAB_RECLAIM_ACCOUNT)
 		flags |= __GFP_RECLAIMABLE;
 
-	// 通过调用__alloc_pages()分配2cachep->gfporder个连续物理页面，参见alloc_pages()节
+	// 通过调用__alloc_pages()分配2cachep->gfporder个连续物理页面，参见[6.4.1.1 alloc_pages()/alloc_pages_node()]节
 	page = alloc_pages_exact_node(nodeid, flags | __GFP_NOTRACK, cachep->gfporder);
 	if (!page)
 		return NULL;
@@ -19501,7 +19504,7 @@ static struct slab *alloc_slabmgmt(struct kmem_cache *cachep, void *objp,
 		/* Slab management obj is off-slab. */
 		/*
 		 * 通过调用kmem_cache_alloc(cachep, flags)来分配object，
-		 * 参见kmem_cache_zalloc()节
+		 * 参见[6.5.1.1.3.1 kmem_cache_zalloc()]节
 		 */
 		slabp = kmem_cache_alloc_node(cachep->slabp_cache, local_flags, nodeid);
 		/*
@@ -19619,7 +19622,7 @@ void kmem_cache_destroy(struct kmem_cache *cachep)
 	 * the chain is never empty, cache_cache is never destroyed
 	 */
 	list_del(&cachep->next);
-	// 参见__cache_shrink()节
+	// 参见[6.5.1.1.5.1 __cache_shrink()]节
 	if (__cache_shrink(cachep)) {
 		slab_error(cachep, "Can't free all objects");
 		list_add(&cachep->next, &cache_chain);
@@ -19631,7 +19634,7 @@ void kmem_cache_destroy(struct kmem_cache *cachep)
 	if (unlikely(cachep->flags & SLAB_DESTROY_BY_RCU))
 		rcu_barrier();
 
-	// 参见__kmem_cache_destroy()节
+	// 参见[6.5.1.1.5.2 __kmem_cache_destroy()]节
 	__kmem_cache_destroy(cachep);
 	mutex_unlock(&cache_chain_mutex);
 	put_online_cpus();
@@ -19733,7 +19736,7 @@ Slab descriptors can be stored in two possible places:
 
 2) Internal slab descriptor: Stored inside the slab, at the beginning of the first page frame assigned to the slab.
 
-The slab allocator chooses the second solution when the size of the objects is smaller than 512MB or when internal fragmentation leaves enough space for the slab descriptor and the object descriptor inside the slab. The CFLGS_OFF_SLAB flag in the flags field of the cache descriptor is set to one if the slab descriptor is stored outside the slab; it is set to zero otherwise. 参见alloc_slabmgmt()节中的alloc_slabmgmt().
+The slab allocator chooses the second solution when the size of the objects is smaller than 512MB or when internal fragmentation leaves enough space for the slab descriptor and the object descriptor inside the slab. The CFLGS_OFF_SLAB flag in the flags field of the cache descriptor is set to one if the slab descriptor is stored outside the slab; it is set to zero otherwise. 参见[6.5.1.1.3.2.2.2 alloc_slabmgmt()](#6-5-1-1-3-2-2-2-alloc-slabmgmt-)节中的alloc_slabmgmt().
 
 ### 6.5.3 Object Descriptor/kmem_bufctl_t
 
@@ -19824,13 +19827,13 @@ found:
 #endif
 			cachep = malloc_sizes[i].cs_cachep;
 
-		// 参见kmem_cache_alloc_trace()节
+		// 参见[6.6.1.1.1 kmem_cache_alloc_trace()]节
 		ret = kmem_cache_alloc_trace(size, cachep, flags);
 
 		return ret;
 	}
 
-	// 参见__kmalloc()节
+	// 参见[6.6.1.1.2 __kmalloc()]节
 	return __kmalloc(size, flags);
 }
 ```
@@ -19845,7 +19848,7 @@ extern void *kmem_cache_alloc_trace(size_t size, struct kmem_cache *cachep, gfp_
 #else
 static __always_inline void *kmem_cache_alloc_trace(size_t size, struct kmem_cache *cachep, gfp_t flags)
 {
-	// 参见6.5.1.1.3.1 kmem_cache_zalloc()节
+	// 参见[6.5.1.1.3.1 kmem_cache_zalloc()]节
 	return kmem_cache_alloc(cachep, flags);
 }
 #endif
@@ -19885,7 +19888,7 @@ static inline void *kcalloc(size_t n, size_t size, gfp_t flags)
 	if (size != 0 && n > ULONG_MAX / size)
 		return NULL;
 
-	// 参见__kmalloc()节
+	// 参见[6.6.1.1.2 __kmalloc()]节
 	return __kmalloc(n * size, flags | __GFP_ZERO);
 }
 ```
@@ -19915,7 +19918,7 @@ void kfree(const void *objp)
 		return;
 	local_irq_save(flags);
 	kfree_debugcheck(objp);
-	// 参见virt_to_cache()节
+	// 参见[6.6.1.3.1 virt_to_cache()]节
 	c = virt_to_cache(objp);
 	debug_check_no_locks_freed(objp, obj_size(c));
 	debug_check_no_obj_freed(objp, obj_size(c));
@@ -19933,7 +19936,7 @@ static inline struct kmem_cache *virt_to_cache(const void *obj)
 {
 	// page = virt_to_page(obj)->first_page
 	struct page *page = virt_to_head_page(obj);
-	// (struct slab *)page->lru.prev; 参见slab_map_pages()节
+	// (struct slab *)page->lru.prev; 参见[6.5.1.1.3.2.2.3 slab_map_pages()]节
 	return page_get_cache(page);
 }
 ```
@@ -20009,10 +20012,10 @@ static void *__vmalloc_node(unsigned long size, unsigned long align,
 {
 	/*
 	 * 函数vmalloc()从区间[VMALLOC_START, VMALLOC_END]中分配内存空间，
-	 * 参见__vmalloc_node_range()节
+	 * 参见[6.6.2.1.1 __vmalloc_node_range()]节
 	 */
 	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
-					gfp_mask, prot, node, caller);
+				    gfp_mask, prot, node, caller);
 }
 ```
 
@@ -20056,13 +20059,13 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	if (!size || (size >> PAGE_SHIFT) > totalram_pages)
 		goto fail;
 
-	// 参见__get_vm_area_node()节
+	// 参见[6.6.2.1.1.1 __get_vm_area_node()]节
 	area = __get_vm_area_node(size, align, VM_ALLOC | VM_UNLIST,
 				  start, end, node, gfp_mask, caller);
 	if (!area)
 		goto fail;
 
-	// 参见__vmalloc_area_node()节
+	// 参见[6.6.2.1.1.2 __vmalloc_area_node()]节
 	addr = __vmalloc_area_node(area, gfp_mask, prot, node, caller);
 	if (!addr)
 		return NULL;
@@ -20071,7 +20074,7 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	 * In this function, newly allocated vm_struct is not added
 	 * to vmlist at __get_vm_area_node(). so, it is added here.
 	 */
-	// 参见insert_vmalloc_vmlist()节
+	// 参见[6.6.2.1.1.3 insert_vmalloc_vmlist()]节
 	insert_vmalloc_vmlist(area);
 
 	/*
@@ -20121,7 +20124,7 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 	if (unlikely(!size))
 		return NULL;
 
-	// 参见kzalloc_node()节
+	// 参见[6.6.2.1.1.1.1 kzalloc_node()]节
 	area = kzalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node);
 	if (unlikely(!area))
 		return NULL;
@@ -20131,7 +20134,7 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 	 */
 	size += PAGE_SIZE;
 
-	// 参见alloc_vmap_area()节
+	// 参见[6.6.2.1.1.1.2 alloc_vmap_area()]节
 	va = alloc_vmap_area(size, align, start, end, node, gfp_mask);
 	if (IS_ERR(va)) {
 		kfree(area);
@@ -20146,7 +20149,7 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 	 * To distinguish it from others, we use a VM_UNLIST flag.
 	 */
 	if (flags & VM_UNLIST)
-		setup_vmalloc_vm(area, va, flags, caller);	// 参见setup_vmalloc_vm()节
+		setup_vmalloc_vm(area, va, flags, caller);	// 参见[6.6.2.1.1.1.3 setup_vmalloc_vm()]节
 	else
 		insert_vmalloc_vm(area, va, flags, caller);
 
@@ -20170,7 +20173,7 @@ static inline void *kzalloc_node(size_t size, gfp_t flags, int node)
 	/*
 	 * Invoke kmalloc() to request a group of contiguous
 	 * page frames large enough to contain an array of page
-	 * descriptor pointers. 参见kzalloc()/kmalloc()节
+	 * descriptor pointers. 参见[6.6.1.1 kzalloc()/kmalloc()]节
 	 */
 	return kmalloc_node(size, flags | __GFP_ZERO, node);
 }
@@ -20201,7 +20204,7 @@ static struct vmap_area *alloc_vmap_area(unsigned long size, unsigned long align
 	/*
 	 * Invoke kmalloc() to request a group of contiguous
 	 * page frames large enough to contain an array of
-	 * page descriptor pointers. 参见kzalloc()/kmalloc()节
+	 * page descriptor pointers. 参见[6.6.1.1 kzalloc()/kmalloc()]节
 	 */
 	va = kmalloc_node(sizeof(struct vmap_area), gfp_mask & GFP_RECLAIM_MASK, node);
 	if (unlikely(!va))
@@ -20347,14 +20350,14 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
 	area->nr_pages = nr_pages;
 	/* Please note that the recursion is strictly bounded. */
 	if (array_size > PAGE_SIZE) {
-		// 参见vzalloc()/vmalloc()节
+		// 参见[6.6.2.1 vzalloc()/vmalloc()]节
 		pages = __vmalloc_node(array_size, 1, nested_gfp|__GFP_HIGHMEM, PAGE_KERNEL, node, caller);
 		area->flags |= VM_VPAGES;
 	} else {
 		/*
 		 * Invoke kmalloc() to request a group of contiguous
 		 * page frames large enough to contain an array of
-		 * page descriptor pointers. 参见kzalloc()/kmalloc()节
+		 * page descriptor pointers. 参见[6.6.1.1 kzalloc()/kmalloc()]节
 		 */
 		pages = kmalloc_node(array_size, nested_gfp, node);
 	}
@@ -20371,9 +20374,9 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
 		gfp_t tmp_mask = gfp_mask | __GFP_NOWARN;
 
 		if (node < 0)
-			page = alloc_page(tmp_mask);				// 参见alloc_page()节
+			page = alloc_page(tmp_mask);				// 参见[6.4.2.1 alloc_page()]节
 		else
-			page = alloc_pages_node(node, tmp_mask, order);		// 参见alloc_pages()节
+			page = alloc_pages_node(node, tmp_mask, order);		// 参见[6.4.1.1 alloc_pages()/alloc_pages_node()]节
 
 		if (unlikely(!page)) {
 			/* Successfully allocated i pages, free them in __vunmap() */
@@ -20431,7 +20434,7 @@ static void insert_vmalloc_vmlist(struct vm_struct *vm)
  */
 void *vmalloc_32(unsigned long size)
 {
-	// 参见vzalloc()/vmalloc()节
+	// 参见[6.6.2.1 vzalloc()/vmalloc()]节
 	return __vmalloc_node(size, 1, GFP_VMALLOC32, PAGE_KERNEL, -1, __builtin_return_address(0));
 }
 ```
@@ -20459,7 +20462,8 @@ void vfree(const void *addr)
 
 	kmemleak_free(addr);
 
-	__vunmap(addr, 1);	// 参见__vunmap()节
+	// 参见[6.6.2.3.1 __vunmap()]节
+	__vunmap(addr, 1);
 }
 ```
 
@@ -20480,7 +20484,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
 		return;
 	}
 
-	area = remove_vm_area(addr);			// 参见remove_vm_area()节
+	area = remove_vm_area(addr);			// 参见[6.6.2.3.1.1 remove_vm_area()]节
 	if (unlikely(!area)) {
 		WARN(1, KERN_ERR "Trying to vfree() nonexistent vm area (%p)\n", addr);
 		return;
@@ -20500,12 +20504,12 @@ static void __vunmap(const void *addr, int deallocate_pages)
 		}
 
 		if (area->flags & VM_VPAGES)
-			vfree(area->pages);		// 参见vfree()节
+			vfree(area->pages);		// 参见[6.6.2.3 vfree()]节
 		else
-			kfree(area->pages);		// 参见kfree()节
+			kfree(area->pages);		// 参见[6.6.2.3 vfree()]节
 	}
 
-	kfree(area);					// 参见kfree()节
+	kfree(area);					// 参见[6.6.2.3 vfree()]节
 	return;
 }
 ```
@@ -20592,7 +20596,7 @@ The kernel uses three different mechanisms to map page frames in high memory; th
 
 ### 6.7.1 Permanent Kernel Mapping
 
-Permanent kernel mappings allow the kernel to establish long-lasting mappings of high-memory page frames into the kernel address space. They use a dedicated Page Table in the master kernel page tables. The pkmap_page_table variable (see section pkmap_page_table的初始化) stores the address of this Page Table, while the LAST_PKMAP macro yields the number of entries. As usual, the Page Table includes either 512 or 1,024 entries, according to whether PAE is enabled or disabled; thus, the kernel can access at most 2 or 4 MB of high memory at once. The Page Table maps the linear addresses starting from PKMAP_BASE.
+Permanent kernel mappings allow the kernel to establish long-lasting mappings of high-memory page frames into the kernel address space. They use a dedicated Page Table in the master kernel page tables. The pkmap_page_table variable (see section [6.7.1.1 pkmap_page_table的初始化](#6-7-1-1-pkmap-page-table-)) stores the address of this Page Table, while the LAST_PKMAP macro yields the number of entries. As usual, the Page Table includes either 512 or 1,024 entries, according to whether PAE is enabled or disabled; thus, the kernel can access at most 2 or 4 MB of high memory at once. The Page Table maps the linear addresses starting from PKMAP_BASE.
 
 The current state of the page table entries is managed by a simple array called pkmap_count which has LAST_PKMAP entries in it. Each element is not exactly a reference count but it is very close. If the entry is 0, the page is free and has not been used since the last TLB flush. If it is 1, the slot is unused but a page is still mapped there waiting for a TLB flush. Flushes are delayed until every slot has been used at least once as a global flush is required for all CPUs when the global page tables are modified and is extremely expensive. Any higher value is a reference count of n-1 users of the page.
 
@@ -20710,12 +20714,12 @@ void *kmap(struct page *page)
 	 * returns the address if it is.
 	 */
 	if (!PageHighMem(page))
-		return page_address(page);	// 参见page_address()节
+		return page_address(page);	// 参见[6.4.1.2 page_address()]节
 
 	/* If it is a high page to be mapped, kmap_high() is
 	 * called to map a highmem page into memory.
 	 */
-	return kmap_high(page);			// 参见kmap_high()节
+	return kmap_high(page);			// 参见[6.7.1.2.1 kmap_high()]节
 }
 ```
 
@@ -20746,9 +20750,9 @@ void *kmap_high(struct page *page)
 	 * If the page isn’t mapped yet (vaddr = NULL), call
 	 * map_new_virtual() to provide a mapping for the page.
 	 */
-	vaddr = (unsigned long)page_address(page);	// 参见page_address() in mm/highmem.c节
+	vaddr = (unsigned long)page_address(page);	// 参见[6.4.1.2.2 page_address() in mm/highmem.c]节
 	if (!vaddr)
-		vaddr = map_new_virtual(page);		// 参见map_new_virtual()节
+		vaddr = map_new_virtual(page);		// 参见[6.7.1.2.1.1 map_new_virtual()]节
 
 	/*
 	 * Once a mapping has been created, the corresponding
@@ -20806,13 +20810,13 @@ start:
 		 * current process until some other process releases an entry of
 		 * the pkmap_page_table Page Table. That’s, the process sleeps on
 		 * the pkmap_map_wait wait queue until it’s woken up after next
-		 * kunmap(). 参见kunmap()节
+		 * kunmap(). 参见[6.7.1.3 kunmap()]节
 		 */
 		/*
 		 * Sleep for somebody else to unmap their entries
 		 */
 		{
-			// 参见定义/初始化等待队列/wait_queue_t节
+			// 参见[7.4.2.4.2 定义/初始化等待队列/wait_queue_t]节
 			DECLARE_WAITQUEUE(wait, current);
 
 			__set_current_state(TASK_UNINTERRUPTIBLE);
@@ -20823,7 +20827,7 @@ start:
 			lock_kmap();
 
 			/* Somebody else might have mapped it while we slept */
-			// 参见page_address() in mm/highmem.c节
+			// 参见[6.4.1.2.2 page_address() in mm/highmem.c]节
 			if (page_address(page))
 				return (unsigned long)page_address(page);
 
@@ -20859,7 +20863,7 @@ void kunmap(struct page *page)
 	 */
 	if (!PageHighMem(page))
 		return;
-	kunmap_high(page);	// 参见kunmap_high()节
+	kunmap_high(page);	// 参见[6.7.1.3.1 kunmap_high()]节
 }
 ```
 
@@ -21210,7 +21214,7 @@ unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
 	/* Obtain the address to map to. we verify (or select) it and ensure
 	 * that it represents a valid section of the address space.
 	 */
-	// 参见Find a Memory Regin节
+	// 参见[6.8.1 Find a Memory Regin]节
 	addr = get_unmapped_area(file, addr, len, pgoff, flags);
 	if (addr & ~PAGE_MASK)
 		return addr;
@@ -21304,7 +21308,7 @@ unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
 	if (error)
 		return error;
 
-	// 参见mmap_region()节
+	// 参见[6.8.2.1.1.1 mmap_region()]节
 	return mmap_region(file, addr, len, flags, vm_flags, pgoff);
 }
 ```
@@ -21328,10 +21332,10 @@ unsigned long mmap_region(struct file *file, unsigned long addr, unsigned long l
 	/* Clear old maps */
 	error = -ENOMEM;
 munmap_back:
-	// 参见Find a Memory Regin节
+	// 参见[6.8.1 Find a Memory Regin]节
 	vma = find_vma_prepare(mm, addr, &prev, &rb_link, &rb_parent);
 	if (vma && vma->vm_start < addr + len) {
-		if (do_munmap(mm, addr, len))	// 参见do_munmap()节
+		if (do_munmap(mm, addr, len))	// 参见[6.8.5.1 do_munmap()]节
 			return -ENOMEM;
 		goto munmap_back;
 	}
@@ -21384,7 +21388,7 @@ munmap_back:
 	 * specific mapper. the address has already been validated, but
 	 * not unmapped, but the maps are removed from the list.
 	 */
-	vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);	// 参见kmem_cache_zalloc()节
+	vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);	// 参见[6.5.1.1.3.1 kmem_cache_zalloc()]节
 	if (!vma) {
 		error = -ENOMEM;
 		goto unacct_error;
@@ -21596,7 +21600,7 @@ int insert_vm_struct(struct mm_struct * mm, struct vm_area_struct * vma)
 		BUG_ON(vma->anon_vma);
 		vma->vm_pgoff = vma->vm_start >> PAGE_SHIFT;
 	}
-	// 参见Find a Memory Regin节
+	// 参见[6.8.1 Find a Memory Regin]节
 	__vma = find_vma_prepare(mm,vma->vm_start,&prev,&rb_link,&rb_parent);
 	if (__vma && __vma->vm_start < vma->vm_end)
 		return -ENOMEM;
@@ -21620,7 +21624,7 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
 	unsigned long ret;
 
 	down_write(&current->mm->mmap_sem);
-	ret = do_mremap(addr, old_len, new_len, flags, new_addr);	// 参见do_mremap()节
+	ret = do_mremap(addr, old_len, new_len, flags, new_addr);	// 参见[6.8.4.1.1 do_mremap()]节
 	up_write(&current->mm->mmap_sem);
 	return ret;
 }
@@ -21675,7 +21679,7 @@ unsigned long do_mremap(unsigned long addr, unsigned long old_len,
 	 * do_munmap does all the needed commit accounting
 	 */
 	if (old_len >= new_len) {
-		ret = do_munmap(mm, addr+new_len, old_len - new_len);	// 参见do_munmap()节
+		ret = do_munmap(mm, addr+new_len, old_len - new_len);	// 参见[6.8.5.1 do_munmap()]节
 		if (ret && old_len != new_len)
 			goto out;
 		ret = addr;
@@ -21768,7 +21772,7 @@ int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
 		return -EINVAL;
 
 	/* Find the first overlapping VMA */
-	vma = find_vma(mm, start);				// 参见find_vma()节
+	vma = find_vma(mm, start);				// 参见[6.8.1.1 find_vma()]节
 	if (!vma)
 		return 0;
 	prev = vma->vm_prev;
@@ -21797,16 +21801,16 @@ int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
 		if (end < vma->vm_end && mm->map_count >= sysctl_max_map_count)
 			return -ENOMEM;
 
-		error = __split_vma(mm, vma, start, 0);		// 参见__split_vma()节
+		error = __split_vma(mm, vma, start, 0);		// 参见[6.8.5.1.1 __split_vma()]节
 		if (error)
 			return error;
 		prev = vma;
 	}
 
 	/* Does it split the last one? */
-	last = find_vma(mm, end); 				// 参见find_vma()节
+	last = find_vma(mm, end); 				// 参见[6.8.1.1 find_vma()]节
 	if (last && end > last->vm_start) {
-		int error = __split_vma(mm, last, end, 1);	// 参见__split_vma()节
+		int error = __split_vma(mm, last, end, 1);	// 参见[6.8.5.1.1 __split_vma()]节
 		if (error)
 			return error;
 	}
@@ -21830,7 +21834,7 @@ int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
 	 * Remove the vma's, and unmap the actual pages
 	 */
 	detach_vmas_to_be_unmapped(mm, vma, prev, end);
-	unmap_region(mm, vma, prev, start, end);		// 参见unmap_region()节
+	unmap_region(mm, vma, prev, start, end);		// 参见[6.8.5.1.2 unmap_region()]节
 
 	/* Fix up all other VM information */
 	remove_vma_list(mm, vma);
@@ -21856,7 +21860,7 @@ static int __split_vma(struct mm_struct * mm, struct vm_area_struct * vma,
 	if (is_vm_hugetlb_page(vma) && (addr & ~(huge_page_mask(hstate_vma(vma)))))
 		return -EINVAL;
 
-	// 参见6.5.1.1.3.1 kmem_cache_zalloc()节
+	// 参见[6.5.1.1.3.1 kmem_cache_zalloc()]节
 	new = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
 	if (!new)
 		goto out_err;
@@ -22031,7 +22035,7 @@ Pages in the process linear address space are not necessarily resident in memory
 
 Linux, like most operating systems, has a Demand Fetch policy as its fetch policy for dealing with pages that are not resident. This states that the page is only fetched from backing storage when the hardware raises a page fault exception (see Vec=0xEC in 错误：引用源未找到) which the operating system traps and allocates a page.
 
-There are two types of page fault, major and minor faults. Major page faults occur when data has to be read from disk which is an expensive operation, else the fault is referred to as a minor, or soft page fault. Linux maintains statistics on the number of these types of page faults with the task_struct->maj_flt and task_struct->min_flt fields respectively (see section 进程描述符/struct task_struct).
+There are two types of page fault, major and minor faults. Major page faults occur when data has to be read from disk which is an expensive operation, else the fault is referred to as a minor, or soft page fault. Linux maintains statistics on the number of these types of page faults with the task_struct->maj_flt and task_struct->min_flt fields respectively (see section [7.1 进程描述符/struct task_struct](#7-1-struct-task-struct)).
 
 The page fault handler in Linux is expected to recognise and act on a number of different types of page faults listed in 错误：引用源未找到.
 
@@ -22189,7 +22193,7 @@ retry:
 		might_sleep();
 	}
 
-	vma = find_vma(mm, address);	// 参见find_vma()节
+	vma = find_vma(mm, address);	// 参见[6.8.1.1 find_vma()]节
 	if (unlikely(!vma)) {
 		bad_area(regs, error_code, address);
 		return;
@@ -22236,7 +22240,7 @@ good_area:
 	 * If handle_mm_fault() returns 1, it’s a minor fault,
 	 * 2 is a major fault, 0 sends a SIGBUS error and any
 	 * other value invokes the out of memory handler.
-	 * 参见handle_mm_fault()节
+	 * 参见[6.9.1 handle_mm_fault()]节
 	 */
 	fault = handle_mm_fault(mm, vma, address, flags);
 
@@ -22336,7 +22340,7 @@ int handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	 */
 	pte = pte_offset_map(pmd, address);
 
-	// 参见handle_pte_fault()节
+	// 参见[6.9.1.1 handle_pte_fault()]节
 	return handle_pte_fault(mm, vma, address, pte, pmd, flags);
 }
 ```
@@ -22492,7 +22496,7 @@ static void out_of_memory(struct pt_regs *regs, unsigned long error_code, unsign
 void pagefault_out_of_memory(void)
 {
 	if (try_set_system_oom()) {
-		out_of_memory(NULL, 0, 0, NULL);	// 参见out_of_memory()节
+		out_of_memory(NULL, 0, 0, NULL);	// 参见[6.9.2.1.1 out_of_memory()]节
 		clear_system_oom();
 	}
 	if (!test_thread_flag(TIF_MEMDIE))
@@ -22649,7 +22653,7 @@ int __meminit init_per_zone_wmark_min(void)
 /*
  * 由mm/Makefile可知，mm/page_alloc.c被直接编译进内核，
  * 故在系统启动时如下初始化函数被调用，
- * 参见[13.5.1.1 module被编译进内核时的初始化过程]节
+ * 参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节
  */
 module_init(init_per_zone_wmark_min)
 ```
@@ -22666,12 +22670,12 @@ Linux系统中每个进程都有一个进程描述符结构struct task_struct，
 
 ```
 struct task_struct {
-	// 其取值参见进程状态节
+	// 其取值参见[7.1.1.1 进程状态]节
 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
-	void *stack; 		// 参见进程内核栈节
-	atomic_t usage; 	// 参见进程描述符使用计数节
-	unsigned int flags;	/* per process flags, defined below */	 // 参见标志节
-	unsigned int ptrace; 	// 参见ptrace系统调用节
+	void *stack; 		// 参见[7.1.1.3 进程内核栈]节
+	atomic_t usage; 	// 参见[7.1.1.14 进程描述符使用计数]节
+	unsigned int flags;	/* per process flags, defined below */ // 参见[7.1.1.4 标志]节
+	unsigned int ptrace; 	// 参见[7.1.1.6 ptrace系统调用]节
 
 #ifdef CONFIG_SMP
 	struct llist_node wake_entry;
@@ -22679,7 +22683,7 @@ struct task_struct {
 #endif
 	int on_rq;
 
-	// 进程调度有关的变量，参见进程调度节
+	// 进程调度有关的变量，参见[7.4 进程调度]节
 	int prio, static_prio, normal_prio;
 	unsigned int rt_priority;
 	const struct sched_class *sched_class;
@@ -22699,33 +22703,33 @@ struct task_struct {
 	 * lazy again; this to deal with bursty apps that only use FPU for
 	 * a short time
 	 */
-	unsigned char fpu_counter;		// 参见FPU使用计数节
+	unsigned char fpu_counter;		// 参见[7.1.1.15 FPU使用计数]节
 #ifdef CONFIG_BLK_DEV_IO_TRACE
-	unsigned int btrace_seq; 		// 参见块设备I/O层的跟踪工具节
+	unsigned int btrace_seq; 		// 参见[7.1.1.16 块设备I/O层的跟踪工具]节
 #endif
 
-	unsigned int policy; 			// 参见进程调度节
-	cpumask_t cpus_allowed; 		// 参见进程调度节
+	unsigned int policy; 			// 参见[7.4 进程调度]节
+	cpumask_t cpus_allowed; 		// 参见[7.4 进程调度]节
 
 #ifdef CONFIG_PREEMPT_RCU
-	int rcu_read_lock_nesting; 		// 参见RCU同步原语节
-	char rcu_read_unlock_special; 		// 参见RCU同步原语节
-	struct list_head rcu_node_entry; 	// 参见RCU同步原语节
+	int rcu_read_lock_nesting; 		// 参见[7.1.1.17 RCU同步原语]节
+	char rcu_read_unlock_special; 		// 参见[7.1.1.17 RCU同步原语]节
+	struct list_head rcu_node_entry; 	// 参见[7.1.1.17 RCU同步原语]节
 #endif /* #ifdef CONFIG_PREEMPT_RCU */
 #ifdef CONFIG_TREE_PREEMPT_RCU
-	struct rcu_node *rcu_blocked_node; 	// 参见RCU同步原语节
+	struct rcu_node *rcu_blocked_node; 	// 参见[7.1.1.17 RCU同步原语]节
 #endif /* #ifdef CONFIG_TREE_PREEMPT_RCU */
 #ifdef CONFIG_RCU_BOOST
-	struct rt_mutex *rcu_boost_mutex;	// 参见RCU同步原语节
+	struct rt_mutex *rcu_boost_mutex;	// 参见[7.1.1.17 RCU同步原语]节
 #endif /* #ifdef CONFIG_RCU_BOOST */
 
 #if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
-	struct sched_info sched_info; 		// 参见用于调度器统计进程的运行信息节
+	struct sched_info sched_info; 		// 参见[7.1.1.18 用于调度器统计进程的运行信息]节
 #endif
 
-	struct list_head tasks; 		// 参见进程链表节
+	struct list_head tasks; 		// 参见[7.1.1.19 进程链表]节
 #ifdef CONFIG_SMP
-	struct plist_node pushable_tasks; 	// 参见进程链表节
+	struct plist_node pushable_tasks; 	// 参见[7.1.1.19 进程链表]节
 #endif
 
 	// mm field points to the memory descriptor owned by the process;
@@ -22734,33 +22738,33 @@ struct task_struct {
 	// Kernel threads don’t own any memory descriptor, thus their mm field is always NULL.
 	// When a kernel thread is selected for execution, its active_mm field is initialized
 	// to the value of the active_mm of the previously running process.
-	struct mm_struct *mm, *active_mm; 	// 参见进程地址空间节和[6.2.6 struct mm_struct]节
+	struct mm_struct *mm, *active_mm; 	// 参见[7.1.1.9 进程地址空间]节和[6.2.6 struct mm_struct]节
 #ifdef CONFIG_COMPAT_BRK
-	unsigned brk_randomized:1; 		// 参见进程地址空间节
+	unsigned brk_randomized:1; 		// 参见[7.1.1.9 进程地址空间]节
 #endif
 #if defined(SPLIT_RSS_COUNTING)
-	struct task_rss_stat rss_stat; 		// 参见进程地址空间节
+	struct task_rss_stat rss_stat; 		// 参见[7.1.1.9 进程地址空间]节
 #endif
 	/* task state */
-	int exit_state; 			// 其取值参见进程状态节
-	int exit_code, exit_signal; 		// 参见判断标志节
-	int pdeath_signal;    			/* The signal sent when the parent dies */ // 参见判断标志节
-	unsigned int jobctl;  			/* JOBCTL_*, siglock protected */ // 参见判断标志节
-	unsigned int personality; 		// 参见判断标志节
-	unsigned did_exec:1; 			// 参见判断标志节
-	unsigned in_execve:1;			/* Tell the LSMs that the process is doing an execve */ // 参见判断标志节
-	unsigned in_iowait:1; 			// 参见判断标志节
+	int exit_state; 			// 其取值参见[7.1.1.1 进程状态]节
+	int exit_code, exit_signal; 		// 参见[7.1.1.10 判断标志]节
+	int pdeath_signal;    			/* The signal sent when the parent dies */ // 参见[7.1.1.10 判断标志]节
+	unsigned int jobctl;  			/* JOBCTL_*, siglock protected */ // 参见[7.1.1.10 判断标志]节
+	unsigned int personality; 		// 参见[7.1.1.10 判断标志]节
+	unsigned did_exec:1; 			// 参见[7.1.1.10 判断标志]节
+	unsigned in_execve:1;			/* Tell the LSMs that the process is doing an execve */ // 参见[7.1.1.10 判断标志]节
+	unsigned in_iowait:1; 			// 参见[7.1.1.10 判断标志]节
 
 	/* Revert to default priority/policy when forking */
-	unsigned sched_reset_on_fork:1; 	// 参见判断标志节
+	unsigned sched_reset_on_fork:1; 	// 参见[7.1.1.10 判断标志]节
 	unsigned sched_contributes_to_load:1;
 
-	pid_t pid; 				// 参见进程标识符节
-	pid_t tgid; 				// 参见进程标识符节
+	pid_t pid; 				// 参见[7.1.1.2 进程标识符]节
+	pid_t tgid; 				// 参见[7.1.1.2 进程标识符]节
 
 #ifdef CONFIG_CC_STACKPROTECTOR
 	/* Canary value for the -fstack-protector gcc feature */
-	unsigned long stack_canary; 		// 参见防止内核堆栈溢出节
+	unsigned long stack_canary; 		// 参见[7.1.1.20 防止内核堆栈溢出]节
 #endif
 
 	/*
@@ -22768,46 +22772,46 @@ struct task_struct {
 	 * older sibling, respectively.  (p->father can be replaced with
 	 * p->real_parent->pid)
 	 */
-	struct task_struct *real_parent; 	/* real parent process */ // 参见进程的亲属关系节
-	struct task_struct *parent; 		/* recipient of SIGCHLD, wait4() reports */ // 参见进程的亲属关系节
+	struct task_struct *real_parent; 	/* real parent process */ 			// 参见[7.1.1.5 进程的亲属关系]节
+	struct task_struct *parent; 		/* recipient of SIGCHLD, wait4() reports */	// 参见[7.1.1.5 进程的亲属关系]节
 	/*
 	 * children/sibling forms the list of my natural children
 	 */
-	struct list_head children;		/* list of my children */ // 参见进程的亲属关系节
-	struct list_head sibling;		/* linkage in my parent's children list */ // 参见进程的亲属关系节
-	struct task_struct *group_leader;	/* threadgroup leader */ // 参见进程的亲属关系节
+	struct list_head children;		/* list of my children */			// 参见[7.1.1.5 进程的亲属关系]节
+	struct list_head sibling;		/* linkage in my parent's children list */	// 参见[7.1.1.5 进程的亲属关系]节
+	struct task_struct *group_leader;	/* threadgroup leader */			// 参见[7.1.1.5 进程的亲属关系]节
 
 	/*
 	 * ptraced is the list of tasks this task is using ptrace on.
 	 * This includes both natural children and PTRACE_ATTACH targets.
 	 * p->ptrace_entry is p's link on the p->parent->ptraced list.
 	 */
-	struct list_head ptraced; 		// 参见ptrace系统调用节
-	struct list_head ptrace_entry; 		// 参见ptrace系统调用节
+	struct list_head ptraced; 		// 参见[7.1.1.6 ptrace系统调用]节
+	struct list_head ptrace_entry; 		// 参见[7.1.1.6 ptrace系统调用]节
 
 	/* PID/PID hash table linkage. */
-	struct pid_link pids[PIDTYPE_MAX];	// 参见PID散列表和链表节
-	struct list_head thread_group; 		// 参见PID散列表和链表节
+	struct pid_link pids[PIDTYPE_MAX];	// 参见[7.1.1.21 PID散列表和链表]节
+	struct list_head thread_group; 		// 参见[7.1.1.21 PID散列表和链表]节
 
-	struct completion *vfork_done;		/* for vfork() */ // 参见do_fork函数节
-	int __user *set_child_tid;	 	/* CLONE_CHILD_SETTID */ // 参见do_fork函数节
-	int __user *clear_child_tid;    	/* CLONE_CHILD_CLEARTID */ // 参见do_fork函数节
+	struct completion *vfork_done;		/* for vfork() */		// 参见[7.1.1.22 do_fork函数]节
+	int __user *set_child_tid;	 	/* CLONE_CHILD_SETTID */	// 参见[7.1.1.22 do_fork函数]节
+	int __user *clear_child_tid;    	/* CLONE_CHILD_CLEARTID */	// 参见[7.1.1.22 do_fork函数]节
 
-	cputime_t utime, stime, utimescaled, stimescaled;	// 参见时间节
-	cputime_t gtime; 					// 参见时间节
+	cputime_t utime, stime, utimescaled, stimescaled;			// 参见[7.1.1.11 时间]节
+	cputime_t gtime; 							// 参见[7.1.1.11 时间]节
 #ifndef CONFIG_VIRT_CPU_ACCOUNTING
-	cputime_t prev_utime, prev_stime; 			// 参见时间节
+	cputime_t prev_utime, prev_stime; 					// 参见[7.1.1.11 时间]节
 #endif
-	unsigned long nvcsw, nivcsw;		/* context switch counts */ // 参见时间节
-	struct timespec start_time;		/* monotonic time */ // 参见时间节
-	struct timespec real_start_time; 	/* boot based time */ // 参见时间节
+	unsigned long nvcsw, nivcsw;		/* context switch counts */	// 参见[7.1.1.11 时间]节
+	struct timespec start_time;		/* monotonic time */		// 参见[7.1.1.11 时间]节
+	struct timespec real_start_time; 	/* boot based time */		// 参见[7.1.1.11 时间]节
 	/* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific */
-	unsigned long min_flt, maj_flt; 	// 参见缺页统计节和Page Fault/do_page_fault()节
+	unsigned long min_flt, maj_flt; 	// 参见[7.1.1.23 缺页统计]节和[6.9 Page Fault/do_page_fault()]节
 
-	struct task_cputime cputime_expires; 	// 参见时间节
-	struct list_head cpu_timers[3]; 	// 参见时间节
+	struct task_cputime cputime_expires; 	// 参见[7.1.1.11 时间]节
+	struct list_head cpu_timers[3]; 	// 参见[7.1.1.11 时间]节
 
-	/* process credentials */			// 参见进程权能节
+	/* process credentials */		// 参见[7.1.1.24 进程权能]节
 	const struct cred __rcu *real_cred;	/* objective and real subjective task credentials (COW) */
 	const struct cred __rcu *cred;		/* effective (overridable) subjective task credentials (COW) */
 	struct cred *replacement_session_keyring; /* for KEYCTL_SESSION_TO_PARENT */
@@ -22817,56 +22821,56 @@ struct task_struct {
 				  - access with [gs]et_task_comm (which lock it with task_lock())
 				  - initialized normally by setup_new_exec */
 	/* file system info */
-	int link_count, total_link_count; 	// 参见文件系统节
+	int link_count, total_link_count; 	// 参见[7.1.1.26 文件系统]节
 #ifdef CONFIG_SYSVIPC
 	/* ipc stuff */
-	struct sysv_sem sysvsem; 		// 参见进程通信/SYSVIPC节
+	struct sysv_sem sysvsem; 		// 参见[7.1.1.27 进程通信/SYSVIPC]节
 #endif
 #ifdef CONFIG_DETECT_HUNG_TASK
 	/* hung task detection */
-	unsigned long last_switch_count; 	// 参见时间节
+	unsigned long last_switch_count; 	// 参见[7.1.1.11 时间]节
 #endif
 	/* CPU-specific state of this task */
-	struct thread_struct thread; 		// 参加处理器特有数据节
+	struct thread_struct thread; 		// 参加[7.1.1.28 处理器特有数据]节
 	/* filesystem information */
-	struct fs_struct *fs; 			// 参见文件系统节和struct fs_struct节
+	struct fs_struct *fs; 			// 参见[7.1.1.26 文件系统]节和[11.2.1.7.2 struct fs_struct]节
 	/* open file information */
-	struct files_struct *files; 		// 参见文件系统节和struct files_struct节
+	struct files_struct *files; 		// 参见[7.1.1.26 文件系统]节和[11.2.1.7.1 struct files_struct]节
 	/* namespaces */
-	struct nsproxy *nsproxy; 		// 参见命名空间节
+	struct nsproxy *nsproxy; 		// 参见[7.1.1.29 命名空间]节
 	/* signal handlers */
-	struct signal_struct *signal; 		// 参见信号处理节
-	struct sighand_struct *sighand; 	// 参见信号处理节
+	struct signal_struct *signal; 		// 参见[7.1.1.12 信号处理]节
+	struct sighand_struct *sighand; 	// 参见[7.1.1.12 信号处理]节
 
 	sigset_t blocked, real_blocked;
 	sigset_t saved_sigmask;			/* restored if set_restore_sigmask() was used */
-	struct sigpending pending; 			// 参见信号处理节
+	struct sigpending pending; 		// 参见[7.1.1.12 信号处理]节
 
 	unsigned long sas_ss_sp;
 	size_t sas_ss_size;
 	int (*notifier)(void *priv);
 	void *notifier_data;
 	sigset_t *notifier_mask;
-	struct audit_context *audit_context; 	// 参见进程审计节
+	struct audit_context *audit_context; 	// 参见[7.1.1.30 进程审计]节
 #ifdef CONFIG_AUDITSYSCALL
-	uid_t loginuid; 			// 参见进程审计节
-	unsigned int sessionid; 		// 参见进程审计节
+	uid_t loginuid; 			// 参见[7.1.1.30 进程审计]节
+	unsigned int sessionid; 		// 参见[7.1.1.30 进程审计]节
 #endif
-	seccomp_t seccomp; 			// 参见安全计算节
+	seccomp_t seccomp; 			// 参见[7.1.1.31 安全计算]节
 
    	/* Thread group tracking */
-   	u32 parent_exec_id; 			// 参见用于copy_process函数使用CLONE_PARENT标记时节
-   	u32 self_exec_id; 			// 参见用于copy_process函数使用CLONE_PARENT标记时节
+   	u32 parent_exec_id; 			// 参见[7.1.1.32 用于copy_process函数使用CLONE_PARENT标记时]节
+   	u32 self_exec_id; 			// 参见[7.1.1.32 用于copy_process函数使用CLONE_PARENT标记时]节
    	/* Protection of (de-)allocation: mm, files, fs, tty, keyrings, mems_allowed, mempolicy */
-   	spinlock_t alloc_lock; 			// 参见保护资源分配或释放的自旋锁节
+   	spinlock_t alloc_lock; 			// 参见[7.1.1.13 保护资源分配或释放的自旋锁]节
 
 #ifdef CONFIG_GENERIC_HARDIRQS
 	/* IRQ handler threads */
-	struct irqaction *irqaction; 		// 参见中断节
+	struct irqaction *irqaction; 		// 参见[7.1.1.33 中断]节
 #endif
 
 	/* Protection of the PI data structures: */
-	raw_spinlock_t pi_lock; 		// 参见task_rq_lock函数所使用的锁节
+	raw_spinlock_t pi_lock; 		// 参见[7.1.1.34 task_rq_lock函数所使用的锁]节
 
 #ifdef CONFIG_RT_MUTEXES			// 参见基于PI协议的等待互斥锁节
 	/* PI waiters blocked on a rt_mutex held by this task */
@@ -22877,9 +22881,9 @@ struct task_struct {
 
 #ifdef CONFIG_DEBUG_MUTEXES
 	/* mutex deadlock detection */
-	struct mutex_waiter *blocked_on; 	// 参见死锁检测节
+	struct mutex_waiter *blocked_on; 	// 参见[7.1.1.36 死锁检测]节
 #endif
-#ifdef CONFIG_TRACE_IRQFLAGS			// 参见中断节
+#ifdef CONFIG_TRACE_IRQFLAGS			// 参见[7.1.1.33 中断]节
 	unsigned int irq_events;
 	unsigned long hardirq_enable_ip;
 	unsigned long hardirq_disable_ip;
@@ -22894,7 +22898,7 @@ struct task_struct {
 	int softirqs_enabled;
 	int softirq_context;
 #endif
-#ifdef CONFIG_LOCKDEP				// 参见lockdep节
+#ifdef CONFIG_LOCKDEP				// 参见[7.1.1.37 lockdep]节
 # define MAX_LOCK_DEPTH 48UL
 	u64 curr_chain_key;
 	int lockdep_depth;
@@ -22904,10 +22908,10 @@ struct task_struct {
 #endif
 
 	/* journalling filesystem info */
-	void *journal_info; 			// 参见JFS文件系统节
+	void *journal_info; 			// 参见[7.1.1.39 JFS文件系统]节
 
 	/* stacked block device info */
-	struct bio_list *bio_list; 		// 参见块设备链表节
+	struct bio_list *bio_list; 		// 参见[7.1.1.40 块设备链表]节
 
 #ifdef CONFIG_BLOCK
 	/* stack plugging */
@@ -22915,31 +22919,31 @@ struct task_struct {
 #endif
 
 	/* VM state */
-	struct reclaim_state *reclaim_state; 	// 参见内存回收节
-	struct backing_dev_info *backing_dev_info; 	// 参见存放块设备I/O数据流量信息节
-	struct io_context *io_context; 		// 参见I/O调度器所使用的信息节
+	struct reclaim_state *reclaim_state; 		// 参见[7.1.1.41 内存回收]节
+	struct backing_dev_info *backing_dev_info; 	// 参见[7.1.1.42 存放块设备I/O数据流量信息]节
+	struct io_context *io_context; 			// 参见[7.1.1.43 I/O调度器所使用的信息]节
 
-	unsigned long ptrace_message; 		// 参见ptrace系统调用节
-	siginfo_t *last_siginfo;		/* For ptrace use.  */ // 参见ptrace系统调用节
-	struct task_io_accounting ioac; 	// 参见记录进程的I/O计数节
-#if defined(CONFIG_TASK_XACCT) 			// 参见记录进程的I/O计数节
-	u64 acct_rss_mem1;		/* accumulated rss usage */
-	u64 acct_vm_mem1;		/* accumulated virtual memory usage */
-	cputime_t acct_timexpd;	/* stime + utime since last update */
+	unsigned long ptrace_message; 		// 参见[7.1.1.6 ptrace系统调用]节
+	siginfo_t *last_siginfo;		/* For ptrace use.  */ // 参见[7.1.1.6 ptrace系统调用]节
+	struct task_io_accounting ioac; 	// 参见[7.1.1.44 记录进程的I/O计数]节
+#if defined(CONFIG_TASK_XACCT) 			// 参见[7.1.1.44 记录进程的I/O计数]节
+	u64 acct_rss_mem1;			/* accumulated rss usage */
+	u64 acct_vm_mem1;			/* accumulated virtual memory usage */
+	cputime_t acct_timexpd;			/* stime + utime since last update */
 #endif
-#ifdef CONFIG_CPUSETS			// 参见CPUSET功能节
-	nodemask_t mems_allowed;	/* Protected by alloc_lock */
+#ifdef CONFIG_CPUSETS				// 参见[7.1.1.45 CPUSET功能]节
+	nodemask_t mems_allowed;		/* Protected by alloc_lock */
 	int mems_allowed_change_disable;
 	int cpuset_mem_spread_rotor;
 	int cpuset_slab_spread_rotor;
 #endif
-#ifdef CONFIG_CGROUPS			// 参见Control Groups节
+#ifdef CONFIG_CGROUPS				// 参见[7.1.1.46 Control Groups]节
 	/* Control Group info protected by css_set_lock */
 	struct css_set __rcu *cgroups;
 	/* cg_list protected by css_set_lock and tsk->alloc_lock */
 	struct list_head cg_list;
 #endif
-#ifdef CONFIG_FUTEX			// 参见Futex同步机制节
+#ifdef CONFIG_FUTEX				// 参见[7.1.1.47 Futex同步机制]节
 	struct robust_list_head __user *robust_list;
 #ifdef CONFIG_COMPAT
 	struct compat_robust_list_head __user *compat_robust_list;
@@ -22947,27 +22951,27 @@ struct task_struct {
 	struct list_head pi_state_list;
 	struct futex_pi_state *pi_state_cache;
 #endif
-#ifdef CONFIG_PERF_EVENTS		// 参见Performance Event节
+#ifdef CONFIG_PERF_EVENTS			// 参见[7.1.1.7 Performance Event]节
 	struct perf_event_context *perf_event_ctxp[perf_nr_task_contexts];
 	struct mutex perf_event_mutex;
 	struct list_head perf_event_list;
 #endif
-#ifdef CONFIG_NUMA			// 参见非一致内存访问(NUMA)节
-	struct mempolicy *mempolicy;	/* Protected by alloc_lock */
+#ifdef CONFIG_NUMA				// 参见[7.1.1.48 非一致内存访问(NUMA)]节
+	struct mempolicy *mempolicy;		/* Protected by alloc_lock */
 	short il_next;
 	short pref_node_fork;
 #endif
-	struct rcu_head rcu; 		// 参见RCU链表节
+	struct rcu_head rcu; 			// 参见[7.1.1.49 RCU链表]节
 
 	/*
 	 * cache last used pipe for splice
 	 */
 	struct pipe_inode_info *splice_pipe;
 #ifdef	CONFIG_TASK_DELAY_ACCT
-	struct task_delay_info *delays; 	// 参见延迟计数节
+	struct task_delay_info *delays; 	// 参见[7.1.1.51 延迟计数]节
 #endif
 #ifdef CONFIG_FAULT_INJECTION
-	int make_it_fail; 			// 参见Fault Injection节
+	int make_it_fail; 			// 参见[7.1.1.52 Fault Injection]节
 #endif
 	/*
 	 * when (nr_dirtied >= nr_dirtied_pause), it's time to call
@@ -22976,7 +22980,7 @@ struct task_struct {
 	int nr_dirtied;
 	int nr_dirtied_pause;
 
-// 参见Infrastructure for displaying latency节
+// 参见[7.1.1.53 Infrastructure for displaying latency]节
 #ifdef CONFIG_LATENCYTOP
 	int latency_record_count;
 	struct latency_record latency_record[LT_SAVECOUNT];
@@ -22985,11 +22989,11 @@ struct task_struct {
 	 * time slack values; these are used to round up poll() and
 	 * select() etc timeout values. These are in nanoseconds.
 	 */
-	unsigned long timer_slack_ns; 		// 参见Time slack values节
-	unsigned long default_timer_slack_ns; 	// 参见Time slack values节
+	unsigned long timer_slack_ns; 		// 参见[7.1.1.54 Time slack values]节
+	unsigned long default_timer_slack_ns; 	// 参见[7.1.1.54 Time slack values]节
 
-	struct list_head *scm_work_list; 	// 参见socket控制消息节
-#ifdef CONFIG_FUNCTION_GRAPH_TRACER		// 参见ftrace跟踪器节
+	struct list_head *scm_work_list; 	// 参见[7.1.1.55 socket控制消息]节
+#ifdef CONFIG_FUNCTION_GRAPH_TRACER		// 参见[7.1.1.56 ftrace跟踪器]节
 	/* Index of current stored address in ret_stack */
 	int curr_ret_stack;
 	/* Stack of return addresses for return function tracing */
@@ -23004,14 +23008,14 @@ struct task_struct {
 	/* Pause for the tracing */
 	atomic_t tracing_graph_pause;
 #endif
-#ifdef CONFIG_TRACING				// 参见ftrace跟踪器节
+#ifdef CONFIG_TRACING				// 参见[7.1.1.56 ftrace跟踪器]节
 	/* state flags for use by tracers */
 	unsigned long trace;
 	/* bitmask and counter of trace recursion */
 	unsigned long trace_recursion;
 #endif /* CONFIG_TRACING */
 
-// 参见Control Groups节
+// 参见[7.1.1.46 Control Groups]节
 #ifdef CONFIG_CGROUP_MEM_RES_CTLR		/* memcg uses this to do batch job */
 	struct memcg_batch_info {
 		int do_batch;			/* incremented when batch uncharge started */
@@ -23021,7 +23025,7 @@ struct task_struct {
 	} memcg_batch;
 #endif
 #ifdef CONFIG_HAVE_HW_BREAKPOINT
-	atomic_t ptrace_bp_refcnt;		// 参见ptrace系统调用节
+	atomic_t ptrace_bp_refcnt;		// 参见[7.1.1.6 ptrace系统调用]节
 #endif
 };
 ```
@@ -23093,7 +23097,7 @@ struct task_struct中与进程状态有关的域包括：
 
 | 进程状态 | 备注 |
 | :------ | :--- |
-| TASK_RUNNING | 无论进程是否正在占用CPU，只要具备运行条件，都处于该状态。Linux把所有TASK_RUNNING状态的task_struct组成一个可运行队列run queue，调度程序从这个队列中选择进程运行。参见进程调度节。 |
+| TASK_RUNNING | 无论进程是否正在占用CPU，只要具备运行条件，都处于该状态。Linux把所有TASK_RUNNING状态的task_struct组成一个可运行队列run queue，调度程序从这个队列中选择进程运行。参见[7.4 进程调度](#7-4-)节。 |
 | TASK_INTERRUPTIBLE | Linux将阻塞状态划分成TASK_INTERRUPTIBLE, TASK_UNINTERRUPTIBLE, TASK_STOPPED三种状态。处于TASK_INTERRUPTIBLE状态的进程在资源有效时被唤醒，也可以通过信号或定时中断唤醒。 |
 | TASK_UNINTERRUPTIBLE | 处于该状态的进程只有当资源有效时被唤醒，不能通过信号或定时中断唤醒。 |
 | TASK_STOPPED | Process execution has been stopped; the process enters this state after receiving a SIGSTOP, SIGTSTP, SIGTTIN, or SIGTTOU signal. 处于该状态的进程只能通过其他进程的信号才能唤醒。 |
@@ -23245,10 +23249,10 @@ struct thread_info {
 		struct exec_domain		*exec_domain; 	/* execution domain */
 		// 其取值为TIF_xxx，参见arch/x86/include/asm/thread_info.h
 		__u32				flags; 		/* low level flags */
-		__u32				status; 		/* thread synchronous flags */
+		__u32				status; 	/* thread synchronous flags */
 		// 本进程所在的CPU ID
-		__u32				cpu; 			/* current CPU */
-		// 参见struct thread_info->preempt_count节
+		__u32				cpu; 		/* current CPU */
+		// 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 		int				preempt_count; 	/* 0 => preemptable, <0 => BUG */
 		mm_segment_t			addr_limit;
 		struct restart_block		restart_block;
@@ -23343,7 +23347,7 @@ Specifies the number of nested interrupt handlers on the local CPU (the value is
 
 ![thread_info](/assets/thread_info.jpg)
 
-注：do_fork() -> copy_process() -> dup_task_struct()在end_of_stack()处填充了一个魔数STACK_END_MAGIC，其取值为0x57AC6E9D，参见dup_task_struct()节。
+注：do_fork() -> copy_process() -> dup_task_struct()在end_of_stack()处填充了一个魔数STACK_END_MAGIC，其取值为0x57AC6E9D，参见[7.2.2.2.1 dup_task_struct()](#7-2-2-2-1-dup-task-struct-)节。
 
 ###### 7.1.1.3.1.3 alloc_thread_info_node() / free_thread_info()
 
@@ -23415,7 +23419,7 @@ static inline void free_thread_info(struct thread_info *ti)
 #endif
 ```
 
-函数alloc_thread_info()通过调用__get_free_pages()分配2个页的内存，它的首地址是8192字节对齐的。
+函数```alloc_thread_info()```通过调用```__get_free_pages()```分配2个页的内存，它的首地址是8192字节对齐的。
 
 #### 7.1.1.4 标志
 
@@ -23497,7 +23501,7 @@ struct task_struct *group_leader;
 
 Process descriptor pointer of the group leader of P.
 
-可以通过双向循环链表节的宏查询其他进程描述符的信息。
+可以通过[7.1.2.1 双向循环链表](#7-1-2-1-)节的宏查询其他进程描述符的信息。
 
 #### 7.1.1.6 ptrace系统调用
 
@@ -23568,11 +23572,11 @@ task_struct结构中包含如下与进程调度有关的成员：
 ```
 int prio, static_prio, normal_prio;
 unsigned int rt_priority;
-const struct sched_class *sched_class;	// 参见进程的调度类/struct sched_class节
+const struct sched_class *sched_class;	// 参见[7.4.4 进程的调度类/struct sched_class]节
 struct sched_entity se;
 struct sched_rt_entity rt;
 
-unsigned int policy;			// 参见进程的调度策略节
+unsigned int policy;			// 参见[7.4.3 进程的调度策略/policy]节
 cpumask_t cpus_allowed;			// 用于控制进程可以在哪个CPU上运行
 ```
 
@@ -23786,7 +23790,7 @@ sigset_t *notifier_mask;
 
 设备驱动程序常用notifier指向的函数来阻塞进程的某些信号(notifier_mask是这些信号的位掩码)，notifier_data指的是notifier所指向的函数可能使用的数据。
 
-参见信号/signal节。
+参见[8.3 信号/signal](#8-3-signal)节。
 
 #### 7.1.1.13 保护资源分配或释放的自旋锁
 
@@ -23901,7 +23905,7 @@ struct pid_link
 };
 ```
 
-pids[i]组成的哈希链表结构参见哈希链表/struct hlist_head/struct hlist_node节。
+pids[i]组成的哈希链表结构参见[15.2 哈希链表/struct hlist_head/struct hlist_node](#15-2-struct-hlist-head-struct-hlist-node)节。
 
 哈希链表头保存在数组pid_hash中，其定义于kernel/pid.c:
 
@@ -23983,9 +23987,9 @@ struct cred *replacement_session_keyring;	/* for KEYCTL_SESSION_TO_PARENT */
 	int link_count, total_link_count;
 
 	/* filesystem information */
-	struct fs_struct *fs; 		// 参见struct fs_struct节
+	struct fs_struct *fs; 		// 参见[11.2.1.7.2 struct fs_struct]节
 	/* open file information */
-	struct files_struct *files; 	// 参见struct files_struct节
+	struct files_struct *files; 	// 参见[11.2.1.7.1 struct files_struct]节
 ```
 
 * fs用来表示进程与文件系统的联系，包括当前目录和根目录。
@@ -24397,7 +24401,7 @@ default:
 
 #### 7.1.2.2 哈希表
 
-参见PID散列表和链表节。
+参见[7.1.1.21 PID散列表和链表](#7-1-1-21-pid-)节。
 
 ### 7.1.3 进程与线程
 
@@ -24417,14 +24421,14 @@ Instead, a thread is merely a process that shares certain resources with other p
 
 一个现有进程(父进程)调用sys_fork() / sys_vfork()函数是Linux内核创建一个新进程(子进程)的唯一方法。注意：这种方法并不适用于交换进程、init进程和页守护进程，因为这些进程是由内核作为自举过程的一部分而以特殊方式创建的。
 
-使用sys_fork() / fork()时，子进程复制父进程的全部资源。由于要复制父进程的进程描述符task_struct给子进程，而进程描述符的结构体很大(参见进程描述符/struct task_struct节)，因此这一过程的开销很大。Linux采用了“写时复制技术”(copy-on-write，COW)，使子进程先共享父进程的物理页，只有当子进程进行写操作时，再复制对应的物理页，避免了无用的复制开销，从而提高了系统性能。
+使用sys_fork() / fork()时，子进程复制父进程的全部资源。由于要复制父进程的进程描述符task_struct给子进程，而进程描述符的结构体很大(参见[7.1 进程描述符/struct task_struct](#7-1-struct-task-struct)节)，因此这一过程的开销很大。Linux采用了“写时复制技术”(copy-on-write，COW)，使子进程先共享父进程的物理页，只有当子进程进行写操作时，再复制对应的物理页，避免了无用的复制开销，从而提高了系统性能。
 
 系统调用```sys_fork()```的定义参见arch/x86/kernel/process.c:
 
 ```
 int sys_fork(struct pt_regs *regs)
 {
-	// do_fork()参见do_fork()节，SIGCHLD参见Cloning Flags节
+	// do_fork()参见[7.2.2 do_fork()]节，SIGCHLD参见[7.2.2.1 Cloning Flags]节
 	return do_fork(SIGCHLD, regs->sp, regs, 0, NULL, NULL);
 }
 ```
@@ -24571,7 +24575,7 @@ int main(void)
  */
 int sys_vfork(struct pt_regs *regs)
 {
-	// do_fork()参见do_fork()节，CLONE_VFORK, CLONE_VM, SIGCHLD参见Cloning Flags节
+	// do_fork()参见[7.2.2 do_fork()]节，CLONE_VFORK, CLONE_VM, SIGCHLD参见[7.2.2.1 Cloning Flags]节
 	return do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD, regs->sp, regs, 0, NULL, NULL);
 }
 ```
@@ -24600,7 +24604,7 @@ long sys_clone(unsigned long clone_flags, unsigned long newsp,
 {
 	if (!newsp)
 		newsp = regs->sp;
-	// do_fork()参见do_fork()节，clone_flags参见Cloning Flags节
+	// do_fork()参见[7.2.2 do_fork()]节，clone_flags参见[7.2.2.1 Cloning Flags]节
 	return do_fork(clone_flags, newsp, regs, 0, parent_tid, child_tid);
 }
 ```
@@ -24614,7 +24618,7 @@ sys_clone() is a system call in the Linux kernel that creates a child process th
 int clone(int (*fn) (void *), void *child_stack, int flags, void *arg);
 ```
 
-clone() creates a new thread that starts with the function pointed to by the fn argument (as opposed to fork() which continues with the next command after fork()). The child_stack argument is a pointer to a memory space to be used as the stack for the new thread (which must be malloc'ed before that; on most architectures stack grows down, so the pointer should point at the end of the space), flags specify what gets inherited from the parent process (see section Cloning Flags), and arg is the argument passed to the function. It returns the process ID of the child process or -1 on failure.
+clone() creates a new thread that starts with the function pointed to by the fn argument (as opposed to fork() which continues with the next command after fork()). The child_stack argument is a pointer to a memory space to be used as the stack for the new thread (which must be malloc'ed before that; on most architectures stack grows down, so the pointer should point at the end of the space), flags specify what gets inherited from the parent process (see section [7.2.2.1 Cloning Flags](#7-2-2-1-cloning-flags)), and arg is the argument passed to the function. It returns the process ID of the child process or -1 on failure.
 
 #### 7.2.1.4 kernel_thread()
 
@@ -24651,12 +24655,12 @@ int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 	regs.di = (unsigned long) arg; 		// 函数fn的入参
 
 #ifdef CONFIG_X86_32
-	regs.ds = __USER_DS; 			// 参见全局描述符表GDT节
-	regs.es = __USER_DS; 			// 参见全局描述符表GDT节
-	regs.fs = __KERNEL_PERCPU; 		// 参见全局描述符表GDT节
-	regs.gs = __KERNEL_STACK_CANARY; 	// 参见全局描述符表GDT节
+	regs.ds = __USER_DS; 			// 参见[6.1.1.2.1 全局描述符表GDT]节
+	regs.es = __USER_DS; 			// 参见[6.1.1.2.1 全局描述符表GDT]节
+	regs.fs = __KERNEL_PERCPU; 		// 参见[6.1.1.2.1 全局描述符表GDT]节
+	regs.gs = __KERNEL_STACK_CANARY; 	// 参见[6.1.1.2.1 全局描述符表GDT]节
 #else
-	regs.ss = __KERNEL_DS;			// 参见全局描述符表GDT节
+	regs.ss = __KERNEL_DS;			// 参见[6.1.1.2.1 全局描述符表GDT]节
 #endif
 
 	regs.orig_ax = -1;
@@ -24666,7 +24670,7 @@ int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 
 	/* Ok, create the new process.. */
 	/*
-	 * do_fork()参见do_fork()节，flags参见Cloning Flags节;
+	 * do_fork()参见[7.2.2 do_fork()]节，flags参见[7.2.2.1 Cloning Flags]节;
 	 * The CLONE_VM flag avoids the duplication of the page
 	 * tables of the calling process: this duplication would
 	 * be a waste of time and memory, because the new kernel
@@ -24707,7 +24711,7 @@ long sys_execve(const char __user *name,
 	error = PTR_ERR(filename);
 	if (IS_ERR(filename))
 		return error;
-	error = do_execve(filename, argv, envp, regs);	// 参见do_execve()节
+	error = do_execve(filename, argv, envp, regs);	// 参见[7.2.3 do_execve()]节
 
 #ifdef CONFIG_X86_32
 	if (error == 0) {
@@ -24825,7 +24829,7 @@ int system(const char *command);
 system() executes a command specified in command by calling /bin/sh -c command, and returns after the command has been completed. During execution of the command, SIGCHLD will be blocked, and SIGINT and SIGQUIT will be ignored.
 
 该函数的执行过程分为三个步骤：
-* 1) fork一个子进程，参见sys_fork()/fork()节；
+* 1) fork一个子进程，参见[7.2.1.1 sys_fork()/fork()](#7-2-1-1-sys-fork-fork-)节；
 * 2) 在子进程中调用exec函数去执行command命令，参见[7.2.1.5 sys_execve()/exec()](#7-2-1-5-sys-execve-exec-)节；
 * 3) 在父进程中调用wait去等待子进程结束。NOTE: system() does not affect the wait status of any other children.
 
@@ -24842,22 +24846,22 @@ If the value of command is NULL, system() returns nonzero if the shell is availa
 函数do_fork()会被下列系统调用调用：
 
 ```
-int sys_fork(struct pt_regs *regs);		// 参见sys_fork()/fork()节
-int sys_vfork(struct pt_regs *regs); 		// 参见sys_vfork()/vfork()节
+int sys_fork(struct pt_regs *regs);		// 参见[7.2.1.1 sys_fork()/fork()]节
+int sys_vfork(struct pt_regs *regs); 		// 参见[7.2.1.2 sys_vfork()/vfork()]节
 long sys_clone(unsigned long clone_flags,
                unsigned long newsp,
                void __user *parent_tid,
                void __user *child_tid,
-               struct pt_regs *regs);		// 参见sys_clone()/clone()节
+               struct pt_regs *regs);		// 参见[7.2.1.3 sys_clone()/clone()]节
 ```
 
-函数do_fork()也会被下列函数调用：
+函数```do_fork()```也会被下列函数调用：
 
 ```
 int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
 ```
 
-函数do_fork()定义于kernel/fork.c：
+函数```do_fork()```定义于kernel/fork.c：
 
 ```
 /*
@@ -24866,7 +24870,7 @@ int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
  * It copies the process, and if successful kick-starts
  * it and waits for it to finish using the VM if required.
  */
-/* clone_flags: See section Cloning Flags
+/* clone_flags: See section [7.2.2.1 Cloning Flags]
  * stack_start: specifies the User Mode stack pointer to be assigned to
  * 			the esp register of the child process.
  * regs: Pointer to the values of the general purpose registers saved into
@@ -24924,7 +24928,7 @@ long do_fork(unsigned long clone_flags, unsigned long stack_start,
 
 	/*
 	 * 调用copy_process()创建进程。在系统资源允许的情况下，
-	 * 拷贝进程描述符，当然进程号是不同的, 参见copy_process()节
+	 * 拷贝进程描述符，当然进程号是不同的, 参见[7.2.2.2 copy_process()]节
 	 */
 	p = copy_process(clone_flags, stack_start, regs, stack_size, child_tidptr, NULL, trace);
 	/*
@@ -24969,7 +24973,7 @@ long do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 */
 		p->flags &= ~PF_STARTING;
 
-		// 将进程加入到运行队列中，参见wake_up_new_task()节
+		// 将进程加入到运行队列中，参见[7.2.2.3 wake_up_new_task()]节
 		wake_up_new_task(p);
 
 		/* forking complete and child started to run, tell ptracer */
@@ -25022,7 +25026,7 @@ long do_fork(unsigned long clone_flags, unsigned long stack_start,
 #define CLONE_UNTRACED		0x00800000	/* set if the tracing process can't force CLONE_PTRACE on this clone */
 #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
 /* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state)
-    and is now available for re-use. */
+   and is now available for re-use. */
 #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
 #define CLONE_NEWIPC		0x08000000	/* New ipcs */
 #define CLONE_NEWUSER		0x10000000	/* New user namespace */
@@ -25106,7 +25110,7 @@ static struct task_struct *copy_process(unsigned long clone_flags, unsigned long
 	/*
 	 * 该函数为子进程创建一个新的内核栈，并分配一个新的进程描述符和thread_info
 	 * 结构，然后把父进程的进程描述符和thread_info拷贝进去。此处是完全拷贝，即
-	 * 子进程和父进程的进程描述符/thread_info完全相同。参见dup_task_struct()节
+	 * 子进程和父进程的进程描述符/thread_info完全相同。参见[7.2.2.2.1 dup_task_struct()]节
 	 */
 	p = dup_task_struct(current);
 	if (!p)
@@ -25249,7 +25253,7 @@ static struct task_struct *copy_process(unsigned long clone_flags, unsigned long
 #endif
 
 	/* Perform scheduler related setup. Assign this task to a CPU. */
-	sched_fork(p);	// 参见ched_fork()节
+	sched_fork(p);	// 参见[7.2.2.2.2 sched_fork()]节
 
 	retval = perf_event_init_task(p);
 	if (retval)
@@ -25274,7 +25278,7 @@ static struct task_struct *copy_process(unsigned long clone_flags, unsigned long
 	retval = copy_signal(clone_flags, p);
 	if (retval)
 		goto bad_fork_cleanup_sighand;
-	// 参见copy_mm()节
+	// 参见[7.2.2.2.3 copy_mm()]节
 	retval = copy_mm(clone_flags, p);
 	if (retval)
 		goto bad_fork_cleanup_signal;
@@ -25492,7 +25496,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
 	if (!tsk)
 		return NULL;
 
-	// 创建进程内核栈thread_info，参见进程内核栈的分配与释放节
+	// 创建进程内核栈thread_info，参见[7.1.1.3.2 进程内核栈的分配与释放]节
 	ti = alloc_thread_info_node(tsk, node);
 	if (!ti) {
 		free_task_struct(tsk);
@@ -25506,12 +25510,12 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
 
 	/*
 	 * 使子进程的进程描述符中的stack域指向子进程的内核栈
-	 * thread_info，参见进程内核栈节
+	 * thread_info，参见[7.1.1.3 进程内核栈]节
 	 */
 	tsk->stack = ti;
 	/*
 	 * 复制父进程的内核栈thread_info到子进程，但其task
-	 * 域指向子进程的进程描述符tsk，参见进程内核栈节
+	 * 域指向子进程的进程描述符tsk，参见[7.1.1.3 进程内核栈]节
 	 */
 	setup_thread_stack(tsk, orig);
 	clear_user_return_notifier(tsk);
@@ -25538,7 +25542,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
 	return tsk;
 
 out:
-	// 释放分配的进程内核栈，参见进程内核栈的分配与释放节
+	// 释放分配的进程内核栈，参见[7.1.1.3.2 进程内核栈的分配与释放]节
 	free_thread_info(ti);
 	free_task_struct(tsk);
 	return NULL;
@@ -25615,7 +25619,7 @@ void sched_fork(struct task_struct *p)
 #endif
 #ifdef CONFIG_PREEMPT_COUNT
 	/* Want to start with kernel preemption disabled. */
-	// 参见struct thread_info->preempt_count节
+	// 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	task_thread_info(p)->preempt_count = 1;
 #endif
 #ifdef CONFIG_SMP
@@ -25874,7 +25878,7 @@ static int do_execve_common(const char *filename, struct user_arg_ptr argv,
 	 * 其中包含如下语句：
 	 *	/* Get the exec-header */
 	 *	loc->elf_ex = *((struct elfhdr *)bprm->buf);
-	 * 参见search_binary_handler()节
+	 * 参见[7.2.3.1 search_binary_handler()]节
 	 */
 	retval = search_binary_handler(bprm, regs);
 	if (retval < 0)
@@ -25951,13 +25955,13 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs)
 		read_lock(&binfmt_lock);
 		/*
 		 * 变量formats是保存注册到系统中的可执行文件格式信息的链表，
-		 * 参见Binary Handler的注册和取消节
+		 * 参见[7.2.3.2 Binary Handler的注册和取消]节
 		 */
 		list_for_each_entry(fmt, &formats, lh) {
 			/*
 			 * 获取该可执行文件所对应的处理程序。不同可执行文件对应不同的处理程序：
 			 * 由register_binfmt(), insert_binfmt(), unregister_binfmt()
-			 * 注册和取消，参见Binary Handler的注册和取消节
+			 * 注册和取消，参见[7.2.3.2 Binary Handler的注册和取消]节
 			 */
 			int (*fn)(struct linux_binprm *, struct pt_regs *) = fmt->load_binary;
 			if (!fn)
@@ -26056,7 +26060,7 @@ static inline int insert_binfmt(struct linux_binfmt *fmt)
 /*
  * formats保存了注册到系统中的可执行文件格式信息的链表。
  * search_binary_handler()查询该链表以得到对应的处理
- * 程序，参见search_binary_handler()节
+ * 程序，参见[7.2.3.1 search_binary_handler()]节
  */
 static LIST_HEAD(formats);
 static DEFINE_RWLOCK(binfmt_lock);
@@ -26095,21 +26099,21 @@ static struct linux_binfmt elf_format = {
 
 static int __init init_elf_binfmt(void)
 {
-	return register_binfmt(&elf_format);	// 参见Binary Handler的注册和取消节
+	return register_binfmt(&elf_format);	// 参见[7.2.3.2 Binary Handler的注册和取消]节
 }
 
 static void __exit exit_elf_binfmt(void)
 {
 	/* Remove the COFF and ELF loaders. */
-	unregister_binfmt(&elf_format);		// 参见Binary Handler的注册和取消节
+	unregister_binfmt(&elf_format);		// 参见[7.2.3.2 Binary Handler的注册和取消]节
 }
 
 /*
  * 若module被编译进内核，其初始化函数在系统启动时被调用，
  * 其清理函数将不会被调用，参见[13.5.1.1 module被编译进内核时的初始化过程]节；
  * 若module被编译成独立模块，其初始化函数在执行insmod时调用，
- * 参见insmod调用sys_init_module()节；其清理函数在执行rmmod时
- * 调用，参见rmmod调用sys_delete_module()节
+ * 参见[13.5.1.2 insmod调用sys_init_module()]节；其清理函数在执行rmmod时
+ * 调用，参见[13.5.1.3 rmmod调用sys_delete_module()]节
  */
 core_initcall(init_elf_binfmt);
 module_exit(exit_elf_binfmt);
@@ -26132,9 +26136,9 @@ Linux系统中，只有进程0(idle process, or swapper process)是静态分配�
 struct task_struct init_task = INIT_TASK(init_task);
 ```
 
-通过宏INIT_TASK填充init_task中的各个域，其定义于include/linux/init_task.h。在系统启动时，start_kernel()会初始化或填充init_task的域，参见start_kernel()节。
+通过宏INIT_TASK填充init_task中的各个域，其定义于include/linux/init_task.h。在系统启动时，start_kernel()会初始化或填充init_task的域，参见[4.3.4.1.4.3 start_kernel()](#4-3-4-1-4-3-start-kernel-)节。
 
-每个CPU存在一个进程0(idle进程)。若只有一个CPU，则该CPU对应的进程0的名字(struct task_struct中的comm域)为swapper；若存在多个CPU，则对应与CPU n的进程0的名字为swapper/n。参见sched_init()节，其调用关系为：
+每个CPU存在一个进程0(idle进程)。若只有一个CPU，则该CPU对应的进程0的名字(struct task_struct中的comm域)为swapper；若存在多个CPU，则对应与CPU n的进程0的名字为swapper/n。参见[4.3.4.1.4.3.7 sched_init()](#4-3-4-1-4-3-7-sched-init-)节，其调用关系为：
 
 ```
 start_kernel() -> sched_init() -> init_idle():
@@ -26190,7 +26194,7 @@ struct task_struct *idle_task(int cpu)
 
 #### 7.2.4.2 进程1/init
 
-内核通过start_kernel() -> rest_init()中的如下语句创建进程1，参见[4.3.4.1.4.3.13 rest_init()](#4-3-4-1-4-3-13-rest-init-)节和[4.3.4.1.4.3.13.1 kernel_init()]节。
+内核通过start_kernel() -> rest_init()中的如下语句创建进程1，参见[4.3.4.1.4.3.13 rest_init()](#4-3-4-1-4-3-13-rest-init-)节和[4.3.4.1.4.3.13.1 kernel_init()](#4-3-4-1-4-3-13-1-kernel-init-)节。
 
 ```
 kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
@@ -26212,7 +26216,7 @@ kthreadd进程用于创建链表kthread_create_list中指定的内核线程。
 
 Q: 链表kthread_create_list中的线程信息是如何添加进去的？
 
-A: 通过宏kthread_run()向链表kthread_create_list中添加想要创建的进程，参见通过链表kthread_create_list创建节和kthread_run()节。
+A: 通过宏kthread_run()向链表kthread_create_list中添加想要创建的进程，参见[7.2.4.4 通过链表kthread_create_list创建内核线程](#7-2-4-4-kthread-create-list-)节和[7.2.4.4.1 kthread_run()](#7-2-4-4-1-kthread-run-)节。
 
 #### 7.2.4.4 通过链表kthread_create_list创建内核线程
 
@@ -26406,14 +26410,14 @@ int kthread_should_stop(void)
  */
 SYSCALL_DEFINE1(exit_group, int, error_code)
 {
-	do_group_exit((error_code & 0xff) << 8);	// 参见do_group_exit()节
+	do_group_exit((error_code & 0xff) << 8);	// 参见[7.3.2 do_group_exit()]节
 	/* NOTREACHED */
 	return 0;
 }
 
 SYSCALL_DEFINE1(exit, int, error_code)
 {
-	do_exit((error_code & 0xff) << 8);		// 参见do_exit()节
+	do_exit((error_code & 0xff) << 8);		// 参见[7.3.3 do_exit()]节
 }
 ```
 
@@ -26480,7 +26484,7 @@ NORET_TYPE void do_group_exit(int exit_code)
 		spin_unlock_irq(&sighand->siglock);
 	}
 
-	do_exit(exit_code);	// 参见do_exit()节
+	do_exit(exit_code);	// 参见[7.3.3 do_exit()]节
 	/* NOTREACHED */
 }
 ```
@@ -26535,7 +26539,7 @@ NORET_TYPE void do_exit(long code)
 		 */
 		tsk->flags |= PF_EXITPIDONE;
 		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule();	// 调度其他进程运行，参见schedule()节
+		schedule();	// 调度其他进程运行，参见[7.4.5 schedule()]节
 	}
 
 	exit_irq_thread();
@@ -26566,7 +26570,7 @@ NORET_TYPE void do_exit(long code)
 	if (group_dead) {
 		/*
 		 * 取消tsk->signal->real_timer定时器，
-		 * 参见取消定时器/hrtimer_cancel()节
+		 * 参见[7.8.3.3 取消定时器/hrtimer_cancel()]节
 		 */
 		hrtimer_cancel(&tsk->signal->real_timer);
 		exit_itimers(tsk->signal);
@@ -26630,7 +26634,7 @@ NORET_TYPE void do_exit(long code)
 	 * task’s children to another thread in their thread group
 	 * or the init process, and sets the task’s exit state,
 	 * stored in exit_state in the task_struct structure, to
-	 * EXIT_ZOMBIE. 参见exit_notify()节
+	 * EXIT_ZOMBIE. 参见[7.3.3.1 exit_notify()]节
 	 */
 	exit_notify(tsk, group_dead);
 #ifdef CONFIG_NUMA
@@ -26667,7 +26671,7 @@ NORET_TYPE void do_exit(long code)
 	/* causes final put_task_struct in finish_task_switch(). */
 	tsk->state = TASK_DEAD;
 	/*
-	 * 调度其他进程运行，参见schedule()节；
+	 * 调度其他进程运行，参见[7.4.5 schedule()]节；
 	 * Because the process is now not schedulable, this is
 	 * the last code the task will ever execute. The only
 	 * memory it occupies is its kernel stack, the structure
@@ -26711,7 +26715,7 @@ static void exit_notify(struct task_struct *tsk, int group_dead)
 	 *	  as a result of our exiting, and if they have any stopped
 	 *	  jobs, send them a SIGHUP and then a SIGCONT. (POSIX 3.2.2.2)
 	 */
-	forget_original_parent(tsk);	// 参见forget_original_parent()节
+	forget_original_parent(tsk);	// 参见[7.3.3.1.1 forget_original_parent()]节
 	exit_task_namespaces(tsk);
 
 	write_lock_irq(&tasklist_lock);
@@ -26773,7 +26777,7 @@ static void exit_notify(struct task_struct *tsk, int group_dead)
 
 	/* If the process is dead, release it - nobody will wait for it */
 	if (autoreap)
-		release_task(tsk);	// 参见release_task()节
+		release_task(tsk);	// 参见[7.3.3.1.2 release_task()]节
 }
 ```
 
@@ -26825,7 +26829,7 @@ static void forget_original_parent(struct task_struct *father)
 
 	list_for_each_entry_safe(p, n, &dead_children, sibling) {
 		list_del_init(&p->sibling);
-		release_task(p);		// 参见release_task()节
+		release_task(p);		// 参见[7.3.3.1.2 release_task()]节
 	}
 }
 ```
@@ -26898,7 +26902,7 @@ repeat:
 
 ### 7.4.1 进程调度的初始化
 
-系统启动时的进程调度初始化，参见sched_init()节。
+系统启动时的进程调度初始化，参见[4.3.4.1.4.3.7 sched_init()](#4-3-4-1-4-3-7-sched-init-)节。
 
 ### 7.4.2 与进程调度有关的数据结构
 
@@ -26920,7 +26924,7 @@ struct rq {
 	/*
 	 * CPU load factor based on the average number of processes
 	 * in the runqueue.
-	 * 在每次触发scheduler_tick()时(参见scheduler_tick()节)，会调用函数
+	 * 在每次触发scheduler_tick()时(参见[7.4.6 scheduler_tick()]节)，会调用函数
 	 * update_cpu_load()更新cpu_load数组； 在系统初始化时，sched_init()
 	 * 把rq的cpu_load数组初始化为0；可以通过函数update_cpu_load()更新
 	 * cpu_load数组，公式如下：
@@ -26961,13 +26965,13 @@ struct rq {
 	/*
 	 * 完全公平调度CFS运行队列。其初始化过程参见start_kernel()
 	 * -> sched_init() -> init_cfs_rq()
-	 * 参见完全公平调度(CFS)运行队列结构/struct cfs_rq节
+	 * 参见[7.4.2.1.1 完全公平调度(CFS)运行队列结构/struct cfs_rq]节
 	 */
 	struct cfs_rq cfs;
 	/*
 	 * 实时任务运行队列。其初始化过程参见start_kernel()
 	 * -> sched_init() -> init_rt_rq()
-	 * 参见实时调度运行队列结构/struct rt_rq节
+	 * 参见[7.4.2.1.2 实时调度运行队列结构/struct rt_rq]节
 	 */
 	struct rt_rq rt;
 
@@ -26997,7 +27001,7 @@ struct rq {
 	 * curr：指向本CPU上的当前运行进程的进程描述符，即current。schedule()
 	 * 	-> __schedule() –> rq->curr = next;
 	 * idle：指向本CPU上的idle进程；start_kernel() -> sched_init()
-	 * 	-> init_idle()，参见sched_init()节
+	 * 	-> init_idle()，参见[4.3.4.1.4.3.7 sched_init()]节
 	 * stop：指向本CPU上的stop进程；cpu_stop_init() -> cpu_stop_cpu_callback()
 	 *	-> sched_set_stop_task()
 	 */
@@ -27214,9 +27218,9 @@ __percpu __attribute__((section(".data..percpu" "..shared_aligned"))) __typeof__
 
 #### 7.4.2.3 增加/删除运行队列中的进程描述符
 
-在执行```fork()```时，将新创建的进程描述符增加到运行队列中，参见activate_task()节。
+在执行```fork()```时，将新创建的进程描述符增加到运行队列中，参见[7.2.2.3.1 activate_task()]节。
 
-在执行```schedule()```时，将指定的进程描述符从运行队列中删除，参见deactivate_task()节。
+在执行```schedule()```时，将指定的进程描述符从运行队列中删除，参见[7.4.5.2.1 deactivate_task()]节。
 
 #### 7.4.2.4 等待队列/wait_queue_head_t/wait_queue_t
 
@@ -27671,8 +27675,8 @@ asmlinkage void __sched schedule(void)
 {
 	struct task_struct *tsk = current;
 
-	sched_submit_work(tsk); 	// 参见sched_submit_work()节
-	__schedule();			// 参见__schedule()节
+	sched_submit_work(tsk); 	// 参见[7.4.5.1 sched_submit_work()]节
+	__schedule();			// 参见[7.4.5.2 __schedule()]节
 }
 ```
 
@@ -27717,7 +27721,7 @@ static void __sched __schedule(void)
 need_resched:
 	preempt_disable();		// 参见[16.10.2 preempt_disable()]节
 	cpu = smp_processor_id();	// 获得当前CPU的标示符
-	rq = cpu_rq(cpu); 		// 获得当前CPU的变量runqueues，参见运行队列变量/runqueues节
+	rq = cpu_rq(cpu); 		// 获得当前CPU的变量runqueues，参见[7.4.2.2 运行队列变量/runqueues]节
 	rcu_note_context_switch(cpu);
 	prev = rq->curr; 		// prev用于保存当前进程的进程描述符
 
@@ -27728,18 +27732,18 @@ need_resched:
 	 * 用于判断变量sysctl_sched_features中的标志位__SCHED_FEAT_HRTICK
 	 * 是否置位，参见kernel/sched_features.h
 	 * 若置位，则调用hrtick_clear()->hrtimer_cancel()取消rq->hrtick_timer
-	 * 定时器，参见取消定时器/hrtimer_cancel()节
+	 * 定时器，参见[7.8.3.3 取消定时器/hrtimer_cancel()]节
 	 */
 	if (sched_feat(HRTICK))
 		hrtick_clear(rq);
 
 	raw_spin_lock_irq(&rq->lock);
 
-	// 非自愿的上下文切换计数，参见时间节
+	// 非自愿的上下文切换计数，参见[7.1.1.11 时间]节
 	switch_count = &prev->nivcsw;
 	/*
 	 * 若当前进程不在运行状态，内核态没有被抢占，且内核抢占有效，
-	 * 参见struct thread_info->preempt_count节
+	 * 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	 */
 	// state: -1 unrunnable, 0 runnable, >0 stopped
 	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
@@ -27753,7 +27757,7 @@ need_resched:
 			/*
 			 * 否则，将当前进程从runqueues中删除:
 			 * 通过调用属于自己调度类的dequeue_task()方法，
-			 * 参见deactivate_task()节
+			 * 参见[7.4.5.2.1 deactivate_task()]节
 			 */
 			deactivate_task(rq, prev, DEQUEUE_SLEEP);
 			prev->on_rq = 0; // 标识当前进程不在runqueues中
@@ -27797,8 +27801,8 @@ need_resched:
 		rq->curr = next; 		// 用所选进程代替当前进程
 		++*switch_count; 		// 增加非自愿上下文切换计数，或者自愿上下文却换计数
 
-		// 切换进程上下文，参见context_switch()节
-		context_switch(rq, prev, next); 	/* unlocks the rq */
+		// 切换进程上下文，参见[7.4.5.2.3 context_switch()]节
+		context_switch(rq, prev, next); /* unlocks the rq */
 		/*
 		 * The context switch have flipped the stack from under us
 		 * and restored the local variables which were saved when
@@ -27813,7 +27817,7 @@ need_resched:
 	// 调用对应调度类的post_schedule()
 	post_schedule(rq);
 
-	// 参见preempt_enable()/preempt_enable_no_resched()节
+	// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 	preempt_enable_no_resched();
 	/*
 	 * 测试current->stack->flags中的标志位TIF_NEED_RESCHED
@@ -27908,7 +27912,7 @@ static inline struct task_struct *pick_next_task(struct rq *rq)
 	 * -> fair_sched_class -> idle_sched_class。在调度过程中，
 	 * p永远不会返回NULL，因为至少存在idle进程的进程描述符；
 	 * idle进程的进程描述符是由idle_sched_class返回，idle进程的
-	 * 进程描述符的初始化参见sched_init()节
+	 * 进程描述符的初始化参见[4.3.4.1.4.3.7 sched_init()]节
 	 */
 	for_each_class(class) {
 		p = class->pick_next_task(rq);
@@ -27951,7 +27955,7 @@ static inline void context_switch(struct rq *rq, struct task_struct *prev, struc
 	} else
 		/*
 		 * Switch the virtual memory mapping from the previous
-		 * process’s to that of the new process. 参见switch_mm()节
+		 * process’s to that of the new process. 参见[7.4.5.2.3.1 switch_mm()]节
 		 */
 		switch_mm(oldmm, mm, next);
 
@@ -27975,7 +27979,7 @@ static inline void context_switch(struct rq *rq, struct task_struct *prev, struc
 	 * to the current’s. This involves saving and restoring
 	 * stack information and the processor registers and any
 	 * other architecture-specific state that must be managed
-	 * and restored on a per-process basis. 参见switch_to()节
+	 * and restored on a per-process basis. 参见[7.4.5.2.3.2 switch_to()]节
 	 */
 	switch_to(prev, next, prev);
 
@@ -28007,8 +28011,8 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, str
 
 		/* Re-load page tables */
 		/*
-		 * 重新加载页表，即修改CR3寄存器的值。参见[6.1.2 分页机制](#6-1-2-)节
-		 * 切换地址空间发生在切换堆栈(参见switch_to()节)之前，
+		 * 重新加载页表，即修改CR3寄存器的值。参见[6.1.2 分页机制]节
+		 * 切换地址空间发生在切换堆栈(参见[7.4.5.2.3.2 switch_to()]节)之前，
 		 * 不会影响后续代码执行，因为进程的切换发生在内核态，内核
 		 * 态地址空间是共用的。没有修改堆栈指针及其他寄存器的值，
 		 * 即堆栈没有变，栈内值未发生改变。
@@ -28120,7 +28124,7 @@ Saves the address labeled 1 (shown later in **NOTE 3**) in prev->thread.eip. Whe
 
 **NOTE 3:**
 
-调用arch/x86/kernel/process_32.c或arch/x86/kernel/process_64.c中的函数__switch_to()，参见_switch_to()节。
+调用arch/x86/kernel/process_32.c或arch/x86/kernel/process_64.c中的函数```__switch_to()```，参见[7.4.5.2.3.2.1 __switch_to()](#7-4-5-2-3-2-1-switch-to-)节。
 
 ###### 7.4.5.2.3.2.1 \__switch_to()
 
@@ -28260,11 +28264,11 @@ tick_handle_periodic()				// 参见[7.6.4.2.1.1 Architecture-dependent routine /
    -> update_process_times()
       -> scheduler_tick()
 
-run_timer_softirq()				// 参见定时器的超时处理/run_timer_softirq()节
+run_timer_softirq()				// 参见[7.7.4 定时器的超时处理/run_timer_softirq()]节
 -> hrtimer_run_pending()
    -> hrtimer_switch_to_hres()
-      -> tick_setup_sched_timer()		// 设置hrtimer定时器，参见tick_setup_sched_timer()节
-         -> tick_sched_timer()			// hrtimer定时器超时后调用该函数，参见tick_sched_timer()节
+      -> tick_setup_sched_timer()		// 设置hrtimer定时器，参见[7.8.5.2.1.2 tick_setup_sched_timer()]节
+         -> tick_sched_timer()			// hrtimer定时器超时后调用该函数，参见[7.8.5.2.1.2.1 tick_sched_timer()]节
             -> update_process_times()
                -> scheduler_tick()
 ```
@@ -28333,7 +28337,7 @@ signed long __sched schedule_timeout(signed long timeout)
 		 * but I'd like to return a valid offset (>=0) to allow
 		 * the caller to do everything it want with the retval.
 		 */
-		schedule();	// 参见schedule()节
+		schedule();	// 参见[7.4.5 schedule()]节
 		goto out;
 	default:
 		/*
@@ -28355,13 +28359,13 @@ signed long __sched schedule_timeout(signed long timeout)
 
 	/*
 	 * 设置定时器timer，超时处理函数为process_timeout()，其入参
-	 * 为当前进程的进程描述符current，参见process_timeout()节
+	 * 为当前进程的进程描述符current，参见[7.4.7.1 process_timeout()]节
 	 */
 	setup_timer_on_stack(&timer, process_timeout, (unsigned long)current);
-	/* 将定时器参见__mod_timer()节 */
+	/* 将定时器参见[7.7.2.1.1.2.2 __mod_timer()]节 */
 	__mod_timer(&timer, expire, false, TIMER_NOT_PINNED);
 	/*
-	 * 调度其他进程运行，参见schedule()节；调用本函数前，当前进程
+	 * 调度其他进程运行，参见[7.4.5 schedule()]节；调用本函数前，当前进程
 	 * 状态被设置为TASK_INTERRUPTIBLE/TASK_UNINTERRUPTIBLE，
 	 * 故当前进程进入休眠状态，并等待定时器超时；
 	 */
@@ -28391,7 +28395,7 @@ out:
 ```
 static void process_timeout(unsigned long __data)
 {
-	// 入参__data为进程描述符，唤醒该进程，参见wake_up_process()节
+	// 入参__data为进程描述符，唤醒该进程，参见[7.4.10.2.3 wake_up_process()]节
 	wake_up_process((struct task_struct *)__data);
 }
 ```
@@ -28461,8 +28465,8 @@ static inline int should_resched(void)
 {
 	/*
 	 * 若需要重新调度进程且允许进程抢占，则返回True；否则，返回False
-	 * preempt_count()参见preempt_count()节和
-	 * struct thread_info->preempt_count节
+	 * preempt_count()参见[16.10.1 preempt_count()]节和
+	 * [7.1.1.3.1.1 struct thread_info->preempt_count]节
 	 */
 	return need_resched() && !(preempt_count() & PREEMPT_ACTIVE);
 }
@@ -28493,14 +28497,14 @@ static void __cond_resched(void)
 {
 	/*
 	 * 不允许进程抢占，即preempt_count() += val，
-	 * 参见struct thread_info->preempt_count节
+	 * 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	 */
 	add_preempt_count(PREEMPT_ACTIVE);
-	// 调度其他进程运行，参见__schedule()节
+	// 调度其他进程运行，参见[7.4.5.2 __schedule()]节
 	__schedule();
 	/*
 	 * 允许进程抢占，即preempt_count() -= val，
-	 * 参见struct thread_info->preempt_count节
+	 * 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	 */
 	sub_preempt_count(PREEMPT_ACTIVE);
 }
@@ -28602,7 +28606,7 @@ long __sched interruptible_sleep_on_timeout(wait_queue_head_t *q, long timeout)
 }
 ```
 
-这些函数均通过调用```sleep_on_common()```实现其功能，仅入参不同而已，参见sleep_on_common()节。
+这些函数均通过调用```sleep_on_common()```实现其功能，仅入参不同而已，参见[7.4.9.2.1 sleep_on_common()](#7-4-9-2-1-sleep-on-common-)节。
 
 As you might expect, these functions unconditionally put the current process to sleep on the given queue. These functions are strongly deprecated, however, and you should never use them. The problem is obvious if you think about it: sleep_on offers no way to protect against race conditions. There is always a window between when your code decides it must sleep and when sleep_on actually effects that sleep. A wakeup that arrives during that window is missed. For this reason, code that calls sleep_on is never entirely safe.
 
@@ -28655,7 +28659,7 @@ static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeou
 	wait_queue_t wait;
 
 	/*
-	 * 参见定义/初始化等待队列/wait_queue_t节，为当前进程创建等待队列，
+	 * 参见[7.4.2.4.2 定义/初始化等待队列/wait_queue_t]节，为当前进程创建等待队列，
 	 * 其唤醒函数为default_wake_function()，参见[7.4.10.2.2 default_wake_function()]节
 	 */
 	init_waitqueue_entry(&wait, current);
@@ -28666,7 +28670,7 @@ static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeou
 	spin_lock_irqsave(&q->lock, flags);
 	/*
 	 * 将等待队列wait添加到链表q中，
-	 * 参见add_wait_queue()/__add_wait_queue_exclusive()节
+	 * 参见[7.4.9.1.1 add_wait_queue()/__add_wait_queue_exclusive()]节
 	 */
 	__add_wait_queue(q, &wait);
 	spin_unlock(&q->lock);
@@ -28680,7 +28684,7 @@ static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeou
 	spin_lock_irq(&q->lock);
 	/*
 	 * 当前进程被唤醒后，将等待队列wait从链表q中移出，
-	 * 参见remove_wait_queue()节
+	 * 参见[7.4.9.5.1 remove_wait_queue()]节
 	 */
 	__remove_wait_queue(q, &wait);
 	spin_unlock_irqrestore(&q->lock, flags);
@@ -28694,7 +28698,7 @@ static long __sched sleep_on_common(wait_queue_head_t *q, int state, long timeou
 Those methods offer yet another way to put the current process to sleep in a wait queue. Typically, they are used as follows:
 
 ```
-DEFINE_WAIT(wait);	// 参见7.4.2.4.2 定义/初始化等待队列/wait_queue_t节
+DEFINE_WAIT(wait);	// 参见[7.4.2.4.2 定义/初始化等待队列/wait_queue_t]节
 prepare_to_wait_exclusive(&wq, &wait, TASK_INTERRUPTIBLE); /* wq is the head of the wait queue */
 
 /* ... */
@@ -28837,7 +28841,7 @@ do {											\
 		prepare_to_wait(&wq, &__wait, TASK_UNINTERRUPTIBLE);			\
 		if (condition)								\
 			break;								\
-		schedule();								\	// 参见schedule()节
+		schedule();								\	// 参见[7.4.5 schedule()]节
 	}										\
 	finish_wait(&wq, &__wait);							\
 } while (0)
@@ -28878,7 +28882,7 @@ do {											\
 		if (condition)								\
 			break;								\
 		if (!signal_pending(current)) {						\
-			schedule();							\	// 参见schedule()节
+			schedule();							\	// 参见[7.4.5 schedule()]节
 			continue;							\
 		}									\
 		ret = -ERESTARTSYS;							\
@@ -29111,8 +29115,8 @@ static void __wake_up_common(wait_queue_head_t *q, unsigned int mode,
 		unsigned flags = curr->flags;
 
 		/*
-		 * 由定义/初始化等待队列/wait_queue_t节可知，等待队列curr的唤醒函数
-		 * 包含如下几个，参见唤醒函数节
+		 * 由[7.4.2.4.2 定义/初始化等待队列/wait_queue_t]节可知，等待队列curr的唤醒函数
+		 * 包含如下几个，参见[7.4.10.2 唤醒函数]节
 		 * autoremove_wake_function(), default_wake_function(), ...
 		 */
 		if (curr->func(curr, mode, wake_flags, key) &&
@@ -29147,7 +29151,7 @@ int autoremove_wake_function(wait_queue_t *wait, unsigned mode, int sync, void *
 ```
 int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags, void *key)
 {
-	// 唤醒等待队列中的进程curr->private，参见try_to_wake_up()节
+	// 唤醒等待队列中的进程curr->private，参见[7.4.10.2.2.1 try_to_wake_up()]节
 	return try_to_wake_up(curr->private, mode, wake_flags);
 }
 ```
@@ -29171,7 +29175,7 @@ static int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_fl
 	// 获取进程p所在的CPU，即p->stack->cpu
 	cpu = task_cpu(p);
 
-	// 参见ttwu_remote()节
+	// 参见[7.4.10.2.2.1.1 ttwu_remote()]节
 	if (p->on_rq && ttwu_remote(p, wake_flags))
 		goto stat;
 
@@ -29205,12 +29209,12 @@ static int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_fl
 
 	/*
 	 * 调用对应调度类的task_waking()，
-	 * 参见进程的调度类/struct sched_class节
+	 * 参见[7.4.4 进程的调度类/struct sched_class]节
 	 */
 	if (p->sched_class->task_waking)
 		p->sched_class->task_waking(p);
 
-	// 参见select_task_rq()节
+	// 参见[7.4.10.2.2.1.2 select_task_rq()]节
 	cpu = select_task_rq(p, SD_BALANCE_WAKE, wake_flags);
 	if (task_cpu(p) != cpu) {
 		wake_flags |= WF_MIGRATED;
@@ -29267,7 +29271,7 @@ static void ttwu_do_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
 #ifdef CONFIG_SMP
 	/*
 	 * 调用对应调度类的task_woken()，
-	 * 参见进程的调度类/struct sched_class节
+	 * 参见[7.4.4 进程的调度类/struct sched_class]节
 	 */
 	if (p->sched_class->task_woken)
 		p->sched_class->task_woken(rq, p);
@@ -29298,7 +29302,7 @@ static inline int select_task_rq(struct task_struct *p, int sd_flags, int wake_f
 {
 	/*
 	 * 调用对应调度类的select_task_rq()，
-	 * 参见进程的调度类/struct sched_class节
+	 * 参见[7.4.4 进程的调度类/struct sched_class]节
 	 */
 	int cpu = p->sched_class->select_task_rq(p, sd_flags, wake_flags);
 
@@ -29327,7 +29331,7 @@ static inline int select_task_rq(struct task_struct *p, int sd_flags, int wake_f
 int wake_up_process(struct task_struct *p)
 {
 	/*
-	 * 参见try_to_wake_up()节，唤醒满足状态TASK_ALL的进程p，其中TASK_ALL为：
+	 * 参见[7.4.10.2.2.1 try_to_wake_up()]节，唤醒满足状态TASK_ALL的进程p，其中TASK_ALL为：
 	 * TASK_INTERRUPTIBLE | TASK_UNINTERRUPTIBLE | __TASK_STOPPED | __TASK_TRACED
 	 */
 	return try_to_wake_up(p, TASK_ALL, 0);
@@ -29398,7 +29402,7 @@ Refer to kernel/sched.c. Writes the default timeslice value of a given process i
 
 工作队列和定时器函数处理有些类似，都是执行回调函数，但和定时器处理函数不同的是：定时器回调函数只执行一次，且执行定时器回调函数时是在时钟中断中，限制比较多，因此回调程序不能太复杂；而工作队列是通过内核线程实现，一直有效，可重复执行，由于执行时降低了线程的优先级，执行时可能休眠，因此工作队列用于处理那些不是很紧急的任务，如垃圾回收等，通常在系统空闲时执行。在xfrm库中就广泛使用了workqueue。使用时，只需要定义work_struct结构，然后调用函数schedule_work()/schedule_delayed_work()即可。
 
-此外，workqueue是中断处理中Bottom Half的一种实现方式，参见irq_exit()节。
+此外，workqueue是中断处理中Bottom Half的一种实现方式，参见[9.3.1.3 irq_exit()](#9-3-1-3-irq-exit-)节。
 
 ### 7.5.1 与workqueue有关的数据结构
 
@@ -29408,7 +29412,7 @@ Refer to kernel/sched.c. Writes the default timeslice value of a given process i
 
 ```
 /*
- * A worker thread executes this function (see process_one_work()),
+ * A worker thread executes this function (see [7.5.5.1.1.1.1 process_one_work()]),
  * and thus, the function runs in process context. By default,
  * interrupts are enabled and no locks are held. If needed, the
  * function can sleep.
@@ -29545,7 +29549,7 @@ data域的结构如下图所示：
 
 ```
 struct delayed_work {
-	struct work_struct work;	// 参见struct work_struct节
+	struct work_struct work;	// 参见[7.5.1.1 struct work_struct]节
 	struct timer_list timer;	// 定时器
 };
 ```
@@ -29553,31 +29557,31 @@ struct delayed_work {
 可以通过如下宏定义并初始化struct work_struct类型的对象，参见include/linux/workqueue.h:
 
 ```
-#define DECLARE_DELAYED_WORK(n, f)						\
+#define DECLARE_DELAYED_WORK(n, f)					\
 	struct delayed_work n = __DELAYED_WORK_INITIALIZER(n, f)
 
-#define DECLARE_DEFERRED_WORK(n, f)						\
+#define DECLARE_DEFERRED_WORK(n, f)					\
 	struct delayed_work n = __DEFERRED_WORK_INITIALIZER(n, f)
 
-#define PREPARE_DELAYED_WORK(_work, _func)					\
+#define PREPARE_DELAYED_WORK(_work, _func)				\
 	PREPARE_WORK(&(_work)->work, (_func))
 
-#define INIT_DELAYED_WORK(_work, _func)						\
-	do {									\
-		INIT_WORK(&(_work)->work, (_func));				\
-		init_timer(&(_work)->timer);					\
+#define INIT_DELAYED_WORK(_work, _func)					\
+	do {								\
+		INIT_WORK(&(_work)->work, (_func));			\
+		init_timer(&(_work)->timer);				\
 	} while (0)
 
-#define INIT_DELAYED_WORK_ONSTACK(_work, _func)					\
-	do {									\
-		INIT_WORK_ONSTACK(&(_work)->work, (_func));			\
-		init_timer_on_stack(&(_work)->timer);				\
+#define INIT_DELAYED_WORK_ONSTACK(_work, _func)				\
+	do {								\
+		INIT_WORK_ONSTACK(&(_work)->work, (_func));		\
+		init_timer_on_stack(&(_work)->timer);			\
 	} while (0)
 
-#define INIT_DELAYED_WORK_DEFERRABLE(_work, _func)				\
-	do {									\
-		INIT_WORK(&(_work)->work, (_func));				\
-		init_timer_deferrable(&(_work)->timer);				\
+#define INIT_DELAYED_WORK_DEFERRABLE(_work, _func)			\
+	do {								\
+		INIT_WORK(&(_work)->work, (_func));			\
+		init_timer_deferrable(&(_work)->timer);			\
 	} while (0)
 ```
 
@@ -29656,7 +29660,7 @@ static DEFINE_SPINLOCK(workqueue_lock);
 static LIST_HEAD(workqueues);
 ```
 
-新创建的工作队列(通过wq->list域)会被链接到workqueues的头部，参见alloc_workqueue()节。
+新创建的工作队列(通过wq->list域)会被链接到workqueues的头部，参见[7.5.2.1 alloc_workqueue()](#7-5-2-1-alloc-workqueue-)节。
 
 struct workqueue_struct, struct cpu_workqueue_struct, struct global_cwq, struct work_struct各结构之间的关系:
 
@@ -29742,7 +29746,7 @@ struct worker {
 	struct work_struct		*current_work;	/* L: work being processed */
 	struct cpu_workqueue_struct	*current_cwq; 	/* L: current_work's cwq */
 	struct list_head		scheduled;	/* L: scheduled works */
-	// 该内核线程由函数alloc_worker()创建，参见alloc_workqueue()节
+	// 该内核线程由函数alloc_worker()创建，参见[7.5.2.1 alloc_workqueue()]节
 	struct task_struct		*task;		/* I: worker task */
 	// 参见错误：引用源未找到
 	struct global_cwq		*gcwq;		/* I: the associated gcwq */
@@ -29753,7 +29757,7 @@ struct worker {
 	/*
 	 * 函数alloc_worker()为之赋值：
 	 * rebind_work.func = worker_rebind_fn，
-	 * 参见alloc_workqueue()节
+	 * 参见[7.5.2.1 alloc_workqueue()]节
 	 */
 	struct work_struct		rebind_work;	/* L: rebind worker to cpu */
 };
@@ -29793,7 +29797,7 @@ static struct worker *alloc_worker(void)
 	alloc_workqueue((name), WQ_UNBOUND | WQ_MEM_RECLAIM, 1)
 ```
 
-The parameter name is used to name the kernel threads (参见workqueue的初始化/init_workqueues()节的```init_workqueues()```). For example, the default events queue is created via
+The parameter name is used to name the kernel threads (参见[7.5.5 workqueue的初始化/init_workqueues()]节的```init_workqueues()```). For example, the default events queue is created via
 
 ```
 struct workqueue_struct *keventd_wq;
@@ -29841,7 +29845,8 @@ static struct global_cwq unbound_global_cwq;		// 全局变量
 
 ...
 struct workqueue_struct *__alloc_workqueue_key(const char *name, unsigned int flags,
-					int max_active, struct lock_class_key *key, const char *lock_name)
+					       int max_active, struct lock_class_key *key,
+					       const char *lock_name)
 {
 	struct workqueue_struct *wq;
 	unsigned int cpu;
@@ -29902,7 +29907,7 @@ struct workqueue_struct *__alloc_workqueue_key(const char *name, unsigned int fl
 
 		/*
 		 * 为wq->mayday_mask赋值，该值在rescuer_thread()使用，
-		 * 参见rescuer_thread()节
+		 * 参见[7.5.2.1.1 rescuer_thread()]节
 		 */
 		if (!alloc_mayday_mask(&wq->mayday_mask, GFP_KERNEL))
 			goto err;
@@ -29914,8 +29919,8 @@ struct workqueue_struct *__alloc_workqueue_key(const char *name, unsigned int fl
 
 		/*
 		 * 调用kthread_create()为该工作队列创建内核线程，
-		 * 参见kthread_run()节；该线程将执行函数rescuer_thread()，
-		 * 参见rescuer_thread()节，其入参为新创建的工作队列wq
+		 * 参见[7.2.4.4.1 kthread_run()]节；该线程将执行函数rescuer_thread()，
+		 * 参见[7.5.2.1.1 rescuer_thread()]节，其入参为新创建的工作队列wq
 		 */
 		rescuer->task = kthread_create(rescuer_thread, wq, "%s", name);
 		if (IS_ERR(rescuer->task))
@@ -29939,7 +29944,7 @@ struct workqueue_struct *__alloc_workqueue_key(const char *name, unsigned int fl
 
 	/*
 	 * 将新创建的工作队列wq添加到链表workqueues头部，
-	 * 参见struct workqueue_struct节
+	 * 参见[7.5.1.3 struct workqueue_struct]节
 	 */
 	list_add(&wq->list, &workqueues);
 
@@ -29985,7 +29990,7 @@ repeat:
 	 */
 	/*
 	 * 在函数alloc_workqueue() -> alloc_mayday_mask()中
-	 * 为变量wq->mayday_mask赋值，参见alloc_workqueue()节
+	 * 为变量wq->mayday_mask赋值，参见[7.5.2.1 alloc_workqueue()]节
 	 */
 	for_each_mayday_cpu(cpu, wq->mayday_mask) {
 		unsigned int tcpu = is_unbound ? WORK_CPU_UNBOUND : cpu;
@@ -30017,7 +30022,7 @@ repeat:
 
 		/*
 		 * 处理链表rescuer->scheduled中的各work元素，
-		 * 参见process_scheduled_works()节
+		 * 参见[7.5.5.1.1.1 process_scheduled_works()]节
 		 */
 		process_scheduled_works(rescuer);
 
@@ -30027,12 +30032,12 @@ repeat:
 		 * and stalling the execution.
 		 */
 		if (keep_working(gcwq))
-			wake_up_worker(gcwq);	// 参见wake_up_worker()节
+			wake_up_worker(gcwq);	// 参见[7.5.2.1.1.2 wake_up_worker()]节
 
 		spin_unlock_irq(&gcwq->lock);
 	}
 
-	// 调度进程运行，参见schedule()节
+	// 调度进程运行，参见[7.4.5 schedule()]节
 	schedule();
 	goto repeat;
 }
@@ -30199,7 +30204,7 @@ static void wake_up_worker(struct global_cwq *gcwq)
 
 	/*
 	 * 唤醒worker所在的内核线程，该线程执行函数worker_thread()，
-	 * 参见worker_thread()节
+	 * 参见[7.5.5.1.1 worker_thread()]节
 	 */
 	if (likely(worker))
 		wake_up_process(worker->task);
@@ -30273,7 +30278,7 @@ void destroy_workqueue(struct workqueue_struct *wq)
 ```
 /*
  * system_wq由初始化函数init_workqueues()创建，
- * 参见workqueue的初始化/init_workqueues()节
+ * 参见[7.5.5 workqueue的初始化/init_workqueues()]节
  */
 struct workqueue_struct *system_wq __read_mostly;
 
@@ -30339,7 +30344,7 @@ int queue_work_on(int cpu, struct workqueue_struct *wq, struct work_struct *work
 	 * 则设置该标志位，并链接到workqueue中
 	 */
 	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))) {
-		// 参见__queue_work()节
+		// 参见[7.5.4.1.1.1 __queue_work()]节
 		__queue_work(cpu, wq, work);
 		ret = 1;
 	}
@@ -30431,7 +30436,7 @@ static void __queue_work(unsigned int cpu, struct workqueue_struct *wq, struct w
 		worklist = &cwq->delayed_works;
 	}
 
-	// 将该work插入到链表worklist的尾部，参见nsert_work()节
+	// 将该work插入到链表worklist的尾部，参见[7.5.4.1.1.1.1 insert_work()]节
 	insert_work(cwq, work, worklist, work_flags);
 
 	spin_unlock_irqrestore(&gcwq->lock, flags);
@@ -30457,8 +30462,8 @@ static void __queue_work(unsigned int cpu, struct workqueue_struct *wq, struct w
  * spin_lock_irq(gcwq->lock).
  */
 static void insert_work(struct cpu_workqueue_struct *cwq,
-				 struct work_struct *work, struct list_head *head,
-				 unsigned int extra_flags)
+			struct work_struct *work, struct list_head *head,
+			unsigned int extra_flags)
 {
 	struct global_cwq *gcwq = cwq->gcwq;
 
@@ -30495,7 +30500,7 @@ static void insert_work(struct cpu_workqueue_struct *cwq,
 ```
 /*
  * system_wq由初始化函数init_workqueues()创建，
- * 参见workqueue的初始化/init_workqueues()节
+ * 参见[7.5.5 workqueue的初始化/init_workqueues()]节
  */
 struct workqueue_struct *system_wq __read_mostly;
 
@@ -30523,9 +30528,9 @@ int schedule_delayed_work(struct delayed_work *dwork, unsigned long delay)
 int queue_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork, unsigned long delay)
 {
 	if (delay == 0)
-		return queue_work(wq, &dwork->work);		// 参见queue_work()节
+		return queue_work(wq, &dwork->work);		// 参见[7.5.4.1.1 queue_work()]节
 
-	return queue_delayed_work_on(-1, wq, dwork, delay);	// 参见queue_delayed_work_on()节
+	return queue_delayed_work_on(-1, wq, dwork, delay);	// 参见[7.5.4.2.1 queue_delayed_work_on()]节
 }
 ```
 
@@ -30544,7 +30549,7 @@ int queue_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork, 
  * Returns 0 if @work was already on a queue, non-zero otherwise.
  */
 int queue_delayed_work_on(int cpu, struct workqueue_struct *wq,
-							    struct delayed_work *dwork, unsigned long delay)
+			  struct delayed_work *dwork, unsigned long delay)
 {
 	int ret = 0;
 	struct timer_list *timer = &dwork->timer;
@@ -30587,13 +30592,13 @@ int queue_delayed_work_on(int cpu, struct workqueue_struct *wq,
 		timer->expires = jiffies + delay;
 		// 函数delayed_work_timer_fn()的入参
 		timer->data = (unsigned long)dwork;
-		// 定时器处理函数，参见delayed_work_timer_fn()节
+		// 定时器处理函数，参见[7.5.4.2.1.1 delayed_work_timer_fn()]节
 		timer->function = delayed_work_timer_fn;
 
 		if (unlikely(cpu >= 0))
-			add_timer_on(timer, cpu);	// 参见add_timer_on()节
+			add_timer_on(timer, cpu);	// 参见[7.7.2.1.2 add_timer_on()]节
 		else
-			add_timer(timer); 		// 参见add_timer()节
+			add_timer(timer); 		// 参见[7.7.2.1.1 add_timer()]节
 		ret = 1;
 	}
 	return ret;
@@ -30610,7 +30615,7 @@ static void delayed_work_timer_fn(unsigned long __data)
 	struct delayed_work *dwork = (struct delayed_work *)__data;
 	struct cpu_workqueue_struct *cwq = get_work_cwq(&dwork->work);
 
-	// 参见__queue_work()节
+	// 参见[7.5.4.1.1.1 __queue_work()]节
 	__queue_work(smp_processor_id(), cwq->wq, &dwork->work);
 }
 ```
@@ -30679,7 +30684,7 @@ static int __init init_workqueues(void)
 
 		setup_timer(&gcwq->mayday_timer, gcwq_mayday_timeout, (unsigned long)gcwq);
 
-		// 初始化数据结构，参见struct ida节
+		// 初始化数据结构，参见[15.5.1.2 struct ida]节
 		ida_init(&gcwq->worker_ida);
 
 		gcwq->trustee_state = TRUSTEE_DONE;
@@ -30694,7 +30699,7 @@ static int __init init_workqueues(void)
 
 		if (cpu != WORK_CPU_UNBOUND)
 			gcwq->flags &= ~GCWQ_DISASSOCIATED;
-		// 为每个CPU创建一个内核线程worker，参见create_worker()节
+		// 为每个CPU创建一个内核线程worker，参见[7.5.5.1 create_worker()]节
 		worker = create_worker(gcwq, true);
 		BUG_ON(!worker);
 		spin_lock_irq(&gcwq->lock);
@@ -30702,7 +30707,7 @@ static int __init init_workqueues(void)
 		spin_unlock_irq(&gcwq->lock);
 	}
 
-	// 调用alloc_workqueue()创建多个工作队列，参见alloc_workqueue()节
+	// 调用alloc_workqueue()创建多个工作队列，参见[7.5.2.1 alloc_workqueue()]节
 	system_wq = alloc_workqueue("events", 0, 0);
 	system_long_wq = alloc_workqueue("events_long", 0, 0);
 	system_nrt_wq = alloc_workqueue("events_nrt", WQ_NON_REENTRANT, 0);
@@ -30769,7 +30774,7 @@ static struct worker *create_worker(struct global_cwq *gcwq, bool bind)
 	int id = -1;
 
 	spin_lock_irq(&gcwq->lock);
-	// 调用ida_get_new()分配新的worker ID，参见struct ida节
+	// 调用ida_get_new()分配新的worker ID，参见[15.5.1.2 struct ida]节
 	while (ida_get_new(&gcwq->worker_ida, &id)) {
 		spin_unlock_irq(&gcwq->lock);
 		if (!ida_pre_get(&gcwq->worker_ida, GFP_KERNEL))
@@ -30778,7 +30783,7 @@ static struct worker *create_worker(struct global_cwq *gcwq, bool bind)
 	}
 	spin_unlock_irq(&gcwq->lock);
 
-	// 分配并初始化worker，参见struct worker节
+	// 分配并初始化worker，参见[7.5.1.6 struct worker]节
 	worker = alloc_worker();
 	if (!worker)
 		goto fail;
@@ -30787,8 +30792,8 @@ static struct worker *create_worker(struct global_cwq *gcwq, bool bind)
 	worker->id = id;
 
 	/*
-	 * 创建worker内核线程(参见kthread_run()节)，该线程
-	 * 执行函数worker_thread()，参见worker_thread()节
+	 * 创建worker内核线程(参见[7.2.4.4.1 kthread_run()]节)，该线程
+	 * 执行函数worker_thread()，参见[7.5.5.1.1 worker_thread()]节
 	 */
 	if (!on_unbound_cpu)
 		worker->task = kthread_create_on_node(worker_thread, worker, cpu_to_node(gcwq->cpu),
@@ -30825,7 +30830,7 @@ fail:
 
 ##### 7.5.5.1.1 worker_thread()
 
-线程worker被函数```wake_up_worker()```唤醒(参见wake_up_worker()节)，并执行函数```worker_thread()```，其定义于kernel/workqueue.c:
+线程worker被函数```wake_up_worker()```唤醒(参见[7.5.2.1.1.2 wake_up_worker()](#7-5-2-1-1-2-wake-up-worker-)节)，并执行函数```worker_thread()```，其定义于kernel/workqueue.c:
 
 ```
 /**
@@ -30885,12 +30890,12 @@ recheck:
 
 		if (likely(!(*work_data_bits(work) & WORK_STRUCT_LINKED))) {
 			/* optimization path, not strictly necessary */
-			process_one_work(worker, work);			// 参见process_one_work()节
+			process_one_work(worker, work);			// 参见[7.5.5.1.1.1.1 process_one_work()]节
 			if (unlikely(!list_empty(&worker->scheduled)))
-				process_scheduled_works(worker);	// 参见process_scheduled_works()节
+				process_scheduled_works(worker);	// 参见[7.5.5.1.1.1 process_scheduled_works()]节
 		} else {
 			move_linked_works(work, &worker->scheduled, NULL);
-			process_scheduled_works(worker);		// 参见process_scheduled_works()节
+			process_scheduled_works(worker);		// 参见[7.5.5.1.1.1 process_scheduled_works()]节
 		}
 	} while (keep_working(gcwq));
 
@@ -30935,7 +30940,7 @@ static void process_scheduled_works(struct worker *worker)
 {
 	while (!list_empty(&worker->scheduled)) {
 		struct work_struct *work = list_first_entry(&worker->scheduled, struct work_struct, entry);
-		process_one_work(worker, work);	// 参见process_one_work()节
+		process_one_work(worker, work);		// 参见[7.5.5.1.1.1.1 process_one_work()]节
 	}
 }
 ```
@@ -31186,7 +31191,7 @@ Processor type and features  --->
 
 The global variable jiffies holds the number of ticks that have occurred since the system booted. On boot, the kernel initializes the variable to zero, and it is incremented by one during each timer interrupt. Thus, because there are HZ timer interrupts in a second, there are HZ jiffies in a second. The system uptime (see /proc/uptime) is therefore jiffies/HZ seconds.
 
-在函数do_timer()中更新jiffies，参见do_timer()节。
+在函数do_timer()中更新jiffies，参见[7.6.4.2.1.2.1 do_timer()](#7-6-4-2-1-2-1-do-timer-)节。
 
 在include/linux/jiffies.h中，包含如下变量声明：
 
@@ -31294,9 +31299,9 @@ u64 get_jiffies_64(void)
 	u64 ret;
 
 	do {
-		seq = read_seqbegin(&xtime_lock);	// 参见read_seqbegin()节
+		seq = read_seqbegin(&xtime_lock);	// 参见[16.5.3.1 read_seqbegin()]节
 		ret = jiffies_64;
-	} while (read_seqretry(&xtime_lock, seq));	// 参见read_seqretry()节
+	} while (read_seqretry(&xtime_lock, seq));	// 参见[16.5.3.2 read_seqretry()]节
 	return ret;
 }
 #endif
@@ -31421,7 +31426,7 @@ __cacheline_aligned_in_smp DEFINE_SEQLOCK(xtime_lock);
 static struct timespec xtime __attribute__ ((aligned (16)));
 ```
 
-变量xtime由函数```update_wall_time()```更新，参见do_timer()节。
+变量xtime由函数```update_wall_time()```更新，参见[7.6.4.2.1.2.1 do_timer()](#7-6-4-2-1-2-1-do-timer-)节。
 
 The current time is also available (though with jiffy granularity) from the xtime variable, a struct timespec value. Direct use of this variable is discouraged because it is difficult to atomically access both the fields. Therefore, the kernel offers the utility function:
 
@@ -31511,7 +31516,7 @@ The timer interrupt is broken into two pieces: an architecture-dependent and an 
 
 PIT: Programmable Interrupt Timer
 
-在x86体系架构下，通过tick_init()节至late_time_init()节将PIT的处理函数设置为tick_handle_periodic()。通过timer_interrupt()节执行该函数。
+在x86体系架构下，通过[7.6.4.2.1.1.1 tick_init()](#7-6-4-2-1-1-1-tick-init-)节至[7.6.4.2.1.1.3 late_time_init()](#7-6-4-2-1-1-3-late-time-init-)节将PIT的处理函数设置为tick_handle_periodic()。通过[7.6.4.2.1.1.4 timer_interrupt()](#7-6-4-2-1-1-4-timer-interrupt-)节执行该函数。
 
 在系统启动时，函数start_kernel()通过调用如下函数设置PIT的处理函数：
 
@@ -31519,12 +31524,12 @@ PIT: Programmable Interrupt Timer
 asmlinkage void __init start_kernel(void)
 {
 	...
-	tick_init();			// 参见tick_init()节
+	tick_init();			// 参见[7.6.4.2.1.1.1 tick_init()]节
 	...
-	time_init();			// 参见time_init()节
+	time_init();			// 参见[7.6.4.2.1.1.2 time_init()]节
 	...
 	if (late_time_init)
-		late_time_init();	// 参见late_time_init()节
+		late_time_init();	// 参见[7.6.4.2.1.1.3 late_time_init()]节
 	...
 }
 ```
@@ -31563,14 +31568,14 @@ void (*__initdata late_time_init)(void);
 
 void __init time_init(void)
 {
-	// 在late_time_init()节调用late_time_init()，即调用x86_late_time_init()
+	// 在[7.6.4.2.1.1.3 late_time_init()]节调用late_time_init()，即调用x86_late_time_init()
 	late_time_init = x86_late_time_init;
 }
 ```
 
 ###### 7.6.4.2.1.1.3 late_time_init()
 
-由time_init()节可知，late_time_init被设置为x86_late_time_init()，而该函数定义于arch/x86/kernel/time.c:
+由[7.6.4.2.1.1.2 time_init()](#7-6-4-2-1-1-2-time-init-)节可知，late_time_init被设置为x86_late_time_init()，而该函数定义于arch/x86/kernel/time.c:
 
 ```
 static __init void x86_late_time_init(void)
@@ -31601,8 +31606,8 @@ struct x86_init_ops x86_init __initdata = {
 void __init hpet_time_init(void)
 {
 	if (!hpet_enable())		// 此处，假设没有启用High Precision Event Timer (HPET)
-		setup_pit_timer();	// 参见setup_pit_timer()节
-	setup_default_timer_irq();	// 参见setup_default_timer_irq()节
+		setup_pit_timer();	// 参见[7.6.4.2.1.1.3.1 setup_pit_timer()]节
+	setup_default_timer_irq();	// 参见[7.6.4.2.1.1.3.2 setup_default_timer_irq()]节
 }
 ```
 
@@ -31617,12 +31622,12 @@ void __init setup_pit_timer(void)
 {
 	/*
 	 * 将i8253_clockevent.event_handler设置为tick_handle_periodic，
-	 * 参见clockevent_i8253_init()节
+	 * 参见[7.6.4.2.1.1.3.1.1 clockevent_i8253_init()]节
 	 */
 	clockevent_i8253_init(true);
 	/*
 	 * 在timer_interrupt()中，通过变量global_clock_event调用函数
-	 * tick_handle_periodic()，参见timer_interrupt()节
+	 * tick_handle_periodic()，参见[7.6.4.2.1.1.4 timer_interrupt()]节
 	 */
 	global_clock_event = &i8253_clockevent;
 }
@@ -31658,7 +31663,7 @@ clockevents_do_notify(CLOCK_EVT_NOTIFY_ADD, dev);			// dev = &i8253_clockevent
          -> nb->notifier_call(nb, val, v)
 ```
 
-由于tick_init()节可知，链表clockevents_chain中的第一个元素为tick_notifier，且：
+由于[7.6.4.2.1.1.1 tick_init()](#7-6-4-2-1-1-1-tick-init-)节可知，链表clockevents_chain中的第一个元素为tick_notifier，且：
 
 ```
 tick_notifier->notifier_call = tick_notify;
@@ -31709,9 +31714,9 @@ void __init setup_default_timer_irq(void)
 {
 	/*
 	 * 将IRQ0 (参见[9.1 中断处理简介](#9-1-)节表格中的0x30，即Timer)的中断处理函数设
-	 * 置为timer_interrupt()，参见9.4.1.2 setup_irq()/__setup_irq()节;
+	 * 置为timer_interrupt()，参见[9.4.1.2 setup_irq()/__setup_irq()]节;
 	 * 当接收到Timer中断时，系统将调用其处理函数timer_interrupt()，
-	 * 参见timer_interrupt()节
+	 * 参见[7.6.4.2.1.1.4 timer_interrupt()]节
 	 */
 	setup_irq(0, &irq0);
 }
@@ -31728,13 +31733,13 @@ void __init setup_default_timer_irq(void)
 static irqreturn_t timer_interrupt(int irq, void *dev_id)
 {
 	/* Keep nmi watchdog up to date */
-	// 增加irq_stat.irq0_irqs的计数，参见irq_stat[]节。NMI watchdog参见下文
+	// 增加irq_stat.irq0_irqs的计数，参见[9.2.3 irq_stat[]]节。NMI watchdog参见下文
 	inc_irq_stat(irq0_irqs);
 
 	/*
-	 * 由setup_pit_timer()节可知，global_clock_event = &i8253_clockevent;
-	 * 由clockevent_i8253_init()节可知，i8253_clockevent.event_handler = tick_handle_periodic;
-	 * 故此处调用函数tick_handle_periodic()，参见tick_handle_periodic()节
+	 * 由[7.6.4.2.1.1.3.1 setup_pit_timer()]节可知，global_clock_event = &i8253_clockevent;
+	 * 由[7.6.4.2.1.1.3.1.1 clockevent_i8253_init()]节可知，i8253_clockevent.event_handler = tick_handle_periodic;
+	 * 故此处调用函数tick_handle_periodic()，参见[7.6.4.2.1.1.4.1 tick_handle_periodic()]节
 	 */
 	global_clock_event->event_handler(global_clock_event);
 
@@ -31752,7 +31757,7 @@ In multiprocessor systems, Linux offers yet another feature to kernel developers
 
 The watchdog is based on a clever hardware feature of local and I/O APICs: they can generate periodic NMI interrupts on every CPU. Because NMI interrupts are not masked by thecliassembly language instruction, the watchdog can detect deadlocks even when interrupts are disabled.
 
-As a consequence, once every tick, all CPUs, regardless of what they are doing, start executing the NMI interrupt handler; in turn, the handler invokes do_nmi(). This function gets the logical number n of the CPU, and then checks the apic_timer_irqs field of the nth entry of irq_stat(see section irq_stat[]). If the CPU is working properly, the value must be different from the value read at the previous NMI interrupt. When the CPU is running properly, the nth entry of the apic_timer_irqs field is increased by the local timer interrupt handler; if the counter is not increased, the local timer interrupt handler has not been executed in a whole tick. Not a good thing, you know.
+As a consequence, once every tick, all CPUs, regardless of what they are doing, start executing the NMI interrupt handler; in turn, the handler invokes do_nmi(). This function gets the logical number n of the CPU, and then checks the apic_timer_irqs field of the nth entry of irq_stat(see section [9.2.3 irq_stat[]](#9-2-3-irq-stat-)). If the CPU is working properly, the value must be different from the value read at the previous NMI interrupt. When the CPU is running properly, the nth entry of the apic_timer_irqs field is increased by the local timer interrupt handler; if the counter is not increased, the local timer interrupt handler has not been executed in a whole tick. Not a good thing, you know.
 
 When the NMI interrupt handler detects a CPU freeze, it rings all the bells: it logs scary messages in the system logfiles, dumps the contents of the CPU registers and of the kernel stack (kernel oops), and finally kills the current process. This gives kernel developers a chance to discover what’s gone wrong.
 
@@ -31771,7 +31776,7 @@ void tick_handle_periodic(struct clock_event_device *dev)
 
 	/*
 	 * 调用与体系架构无关的处理函数，
-	 * 参见Architecture-independent routine/tick_periodic()节
+	 * 参见[7.6.4.2.1.2 Architecture-independent routine/tick_periodic()]节
 	 */
 	tick_periodic(cpu);
 
@@ -31796,7 +31801,7 @@ void tick_handle_periodic(struct clock_event_device *dev)
 		 */
 		/*
 		 * 调用与体系架构无关的处理函数，
-		 * 参见Architecture-independent routine/tick_periodic()节
+		 * 参见[7.6.4.2.1.2 Architecture-independent routine/tick_periodic()]节
 		 */
 		if (timekeeping_valid_for_hres())
 			tick_periodic(cpu);
@@ -31807,7 +31812,7 @@ void tick_handle_periodic(struct clock_event_device *dev)
 
 ###### 7.6.4.2.1.2 Architecture-independent routine/tick_periodic()
 
-由tick_handle_periodic()节可知，函数tick_handle_periodic()调用与体系架构无关的函数tick_periodic()。该函数定义于kernel/time/tick-common.c:
+由[7.6.4.2.1.1.4.1 tick_handle_periodic()](#7-6-4-2-1-1-4-1-tick-handle-periodic-)节可知，函数tick_handle_periodic()调用与体系架构无关的函数tick_periodic()。该函数定义于kernel/time/tick-common.c:
 
 ```
 static void tick_periodic(int cpu)
@@ -31818,12 +31823,12 @@ static void tick_periodic(int cpu)
 		/* Keep track of the next tick event */
 		tick_next_period = ktime_add(tick_next_period, tick_period);
 
-		// 参见do_timer()节
+		// 参见[7.6.4.2.1.2.1 do_timer()]节
 		do_timer(1);
 		write_sequnlock(&xtime_lock);
 	}
 
-	// 参见update_process_times()节
+	// 参见[7.6.4.2.1.2.2 update_process_times()]节
 	update_process_times(user_mode(get_irq_regs()));
 	profile_tick(CPU_PROFILING);
 }
@@ -31846,7 +31851,7 @@ void do_timer(unsigned long ticks)
 
 	/*
 	 * Updates the wall time (xtime) in accordance
-	 * with the elapsed ticks. 参见xtime节
+	 * with the elapsed ticks. 参见[7.6.3 xtime]节
 	 */
 	update_wall_time();
 
@@ -31872,7 +31877,7 @@ void update_process_times(int user_tick)
 	/* Note: this timer irq context must be accounted for as well. */
 	// does the actual updating of the process’s times
 	account_process_tick(p, user_tick);
-	run_local_timers();	// 参见run_local_timers()节
+	run_local_timers();	// 参见[7.6.4.2.1.2.2.1 run_local_timers()]节
 	rcu_check_callbacks(cpu, user_tick);
 	printk_tick();
 #ifdef CONFIG_IRQ_WORK
@@ -31883,7 +31888,7 @@ void update_process_times(int user_tick)
 	 * Decrements the currently running process’s timeslice
 	 * and sets need_resched if needed. On SMP machines, it
 	 * also balances the perprocessor runqueues as needed.
-	 * 参见scheduler_tick()节
+	 * 参见[7.4.6 scheduler_tick()]节
 	 */
 	scheduler_tick();
 	run_posix_cpu_timers(p);
@@ -31900,8 +31905,8 @@ The run_local_timers() function marks a softirq to handle the execution of any e
  */
 void run_local_timers(void)
 {
-	hrtimer_run_queues();		// 参见低精度模式/hrtimer_run_queues()节
-	raise_softirq(TIMER_SOFTIRQ);	// 参见定时器的超时处理/run_timer_softirq()节
+	hrtimer_run_queues();		// 参见[7.8.5.1 低精度模式/hrtimer_run_queues()]节
+	raise_softirq(TIMER_SOFTIRQ);	// 参见[7.7.4 定时器的超时处理/run_timer_softirq()]节
 }
 ```
 
@@ -31914,8 +31919,8 @@ There is a kernel function that turns a wallclock time into a jiffies value in i
  * Deprecated. Use mktime64().
  */
 static inline unsigned long mktime(const unsigned int year, const unsigned int mon,
-				const unsigned int day, const unsigned int hour,
-				const unsigned int min, const unsigned int sec)
+				   const unsigned int day, const unsigned int hour,
+				   const unsigned int min, const unsigned int sec)
 {
 	return mktime64(year, mon, day, hour, min, sec);
 }
@@ -32064,7 +32069,7 @@ struct tvec_root {
 ```
 struct tvec_base {
 	spinlock_t lock;
-	// 指向当前正在运行的定时器，在__run_timers()中设置，参见__run_timers()节
+	// 指向当前正在运行的定时器，在__run_timers()中设置，参见[7.7.4.1 __run_timers()]节
 	struct timer_list *running_timer;
 	/*
 	 * Represents the earliest expiration time of the dynamic timers
@@ -32099,7 +32104,7 @@ static DEFINE_PER_CPU(struct tvec_base *, tvec_bases) = &boot_tvec_bases;
 
 ![Timer](/assets/Timer.jpg)
 
-新增一个定时器t时，t被链接到tv1.vec[x]至tv5.vec[x]中的哪个链表是根据idx = (t.expires – base.timer_jiffies)的取值来确定的，其中base.timer_jiffies代表定时器系统的当前时刻，参见internal_add_timer()节。
+新增一个定时器t时，t被链接到tv1.vec[x]至tv5.vec[x]中的哪个链表是根据idx = (t.expires – base.timer_jiffies)的取值来确定的，其中base.timer_jiffies代表定时器系统的当前时刻，参见[7.7.2.1.1.2.2.1 internal_add_timer()](#7-7-2-1-1-2-2-1-internal-add-timer-)节。
 
 确定定时器t所在的链表，参见上图。
 
@@ -32140,8 +32145,8 @@ static DEFINE_PER_CPU(struct tvec_base *, tvec_bases) = &boot_tvec_bases;
  */
 void add_timer(struct timer_list *timer)
 {
-	BUG_ON(timer_pending(timer));		// 参见timer_pending()节
-	mod_timer(timer, timer->expires);	// 参见mod_timer()节
+	BUG_ON(timer_pending(timer));		// 参见[7.7.2.1.1.1 timer_pending()]节
+	mod_timer(timer, timer->expires);	// 参见[7.7.2.1.1.2 mod_timer()]节
 }
 ```
 
@@ -32163,17 +32168,17 @@ static inline int timer_pending(const struct timer_list * timer)
 ```
 int mod_timer(struct timer_list *timer, unsigned long expires)
 {
-	expires = apply_slack(timer, expires);				// 参见apply_slack()节
+	expires = apply_slack(timer, expires);				// 参见[7.7.2.1.1.2.1 apply_slack()]节
 
 	/*
 	 * This is a common optimization triggered by the
 	 * networking code - if the timer is re-modified
 	 * to be the same thing then just return:
 	 */
-	if (timer_pending(timer) && timer->expires == expires)		// 参见timer_pending()节
+	if (timer_pending(timer) && timer->expires == expires)		// 参见[7.7.2.1.1.1 timer_pending()]节
 		return 1;
 
-	return __mod_timer(timer, expires, false, TIMER_NOT_PINNED);	// 参见__mod_timer()节
+	return __mod_timer(timer, expires, false, TIMER_NOT_PINNED);	// 参见[7.7.2.1.1.2.2 __mod_timer()]节
 }
 ```
 
@@ -32278,12 +32283,12 @@ static inline int __mod_timer(struct timer_list *timer, unsigned long expires,
 	}
 
 	timer->expires = expires;
-	// time_before()参见比较Jiffies节
+	// time_before()参见[7.6.2.2 比较Jiffies的大小]节
 	if (time_before(timer->expires, base->next_timer) && !tbase_get_deferrable(timer->base))
 		base->next_timer = timer->expires;
 	/*
-	 * 将定时器timer插入到定时器链表(参见struct tvec_base节)中，
-	 * 参见internal_add_timer()节; internal_add_timer() adds
+	 * 将定时器timer插入到定时器链表(参见[7.7.1.3 struct tvec_base]节)中，
+	 * 参见[7.7.2.1.1.2.2.1 internal_add_timer()]节; internal_add_timer() adds
 	 * the new timer to a double-linked list of timers within
 	 * a "cascading table" associated to the current CPU.
 	 */
@@ -32311,7 +32316,7 @@ static void internal_add_timer(struct tvec_base *base, struct timer_list *timer)
 	unsigned long idx = expires - base->timer_jiffies;
 	struct list_head *vec;
 
-	// 定时器timer插入到定时器链表中，参见struct tvec_base节，错误：引用源未找到，
+	// 定时器timer插入到定时器链表中，参见[7.7.1.3 struct tvec_base]节，错误：引用源未找到，
 	if (idx < TVR_SIZE) {
 		int i = expires & TVR_MASK;
 		vec = base->tv1.vec + i;
@@ -32374,7 +32379,9 @@ void add_timer_on(struct timer_list *timer, int cpu)
 	if (time_before(timer->expires, base->next_timer) &&
 	     !tbase_get_deferrable(timer->base))
 		base->next_timer = timer->expires;
-	internal_add_timer(base, timer);	// 参见internal_add_timer()节
+
+	// 参见[7.7.2.1.1.2.2.1 internal_add_timer()]节
+	internal_add_timer(base, timer);
 	/*
 	 * Check whether the other CPU is idle and needs to be
 	 * triggered to reevaluate the timer wheel when nohz is
@@ -32392,7 +32399,7 @@ void add_timer_on(struct timer_list *timer, int cpu)
 
 ##### 7.7.2.2.1 mod_timer()
 
-参见mod_timer()节。
+参见[7.7.2.1.1.2 mod_timer()](#7-7-2-1-1-2-mod-timer-)节。
 
 ##### 7.7.2.2.2 mod_timer_pending()
 
@@ -32411,7 +32418,7 @@ void add_timer_on(struct timer_list *timer, int cpu)
  */
 int mod_timer_pending(struct timer_list *timer, unsigned long expires)
 {
-	// 参见__mod_timer()节
+	// 参见[7.7.2.1.1.2.2 __mod_timer()]节
 	return __mod_timer(timer, expires, true, TIMER_NOT_PINNED);
 }
 ```
@@ -32496,7 +32503,7 @@ int del_timer_sync(struct timer_list *timer)
 	 */
 	WARN_ON(in_irq());
 	for (;;) {
-		// 参见try_to_del_timer_sync(timer)节
+		// 参见[7.7.2.3.2.1 try_to_del_timer_sync(timer)]节
 		int ret = try_to_del_timer_sync(timer);
 		if (ret >= 0)
 			return ret;
@@ -32549,7 +32556,7 @@ out:
 该宏定义于include/linux/timer.h:
 
 ```
-#define del_singleshot_timer_sync(t)	del_timer_sync(t)	// 参见del_timer_sync()节
+#define del_singleshot_timer_sync(t)	del_timer_sync(t)	// 参见[7.7.2.3.2 del_timer_sync()]节
 ```
 
 ### 7.7.3 定时器模块的编译及初始化
@@ -32571,7 +32578,7 @@ obj-y  = sched.o fork.o exec_domain.o panic.o printk.o				\
 在系统启动时调用定时器初始化函数init_timers():
 
 ```
-start_kernel()		// 参见start_kernel()节
+start_kernel()		// 参见[4.3.4.1.4.3 start_kernel()]节
 -> init_timers()
 ```
 
@@ -32580,7 +32587,7 @@ start_kernel()		// 参见start_kernel()节
 ```
 void __init init_timers(void)
 {
-	// 参见timer_cpu_notify()节
+	// 参见[7.7.3.1 timer_cpu_notify()]节
 	int err = timer_cpu_notify(&timers_nb, (unsigned long)CPU_UP_PREPARE, (void *)(long)smp_processor_id());
 
 	init_timer_stats();
@@ -32588,10 +32595,10 @@ void __init init_timers(void)
 	BUG_ON(err != NOTIFY_OK);
 	register_cpu_notifier(&timers_nb);
 	/*
-	 * 设置软中断TIMER_SOFTIRQ的处理程序为run_timer_softirq()，参见struct softirq_节；
-	 * 该处理程序在函数__do_softirq()中被调用，参见__do_softirq()节；由此可知，定时器超时
+	 * 设置软中断TIMER_SOFTIRQ的处理程序为run_timer_softirq()，参见[9.2.2 struct softirq_action/softirq_vec[]]节；
+	 * 该处理程序在函数__do_softirq()中被调用，参见[9.3.1.3.1.1.1 __do_softirq()]节；由此可知，定时器超时
 	 * 处理函数是在软中断上下文中执行的；
-	 * 处理程序run_timer_softirq()参见定时器的超时处理/run_timer_softirq()节
+	 * 处理程序run_timer_softirq()参见[7.7.4 定时器的超时处理/run_timer_softirq()]节
 	 */
 	open_softirq(TIMER_SOFTIRQ, run_timer_softirq);
 }
@@ -32611,7 +32618,7 @@ static int __cpuinit timer_cpu_notify(struct notifier_block *self,
 	switch(action) {
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
-		err = init_timers_cpu(cpu);	// 参见init_timers_cpu()节
+		err = init_timers_cpu(cpu);	// 参见[7.7.3.1.1 init_timers_cpu()]节
 		if (err < 0)
 			return notifier_from_errno(err);
 		break;
@@ -32691,7 +32698,7 @@ static int __cpuinit init_timers_cpu(int cpu)
 
 ### 7.7.4 定时器的超时处理/run_timer_softirq()
 
-该函数被软中断处理函数__do_softirq()调用，参见__do_softirq()节和错误：引用源未找到，其定义于kernel/timer.c:
+该函数被软中断处理函数```__do_softirq()```调用，参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节和错误：引用源未找到，其定义于kernel/timer.c:
 
 ```
 /*
@@ -32701,10 +32708,10 @@ static void run_timer_softirq(struct softirq_action *h)
 {
 	struct tvec_base *base = __this_cpu_read(tvec_bases);
 
-	hrtimer_run_pending();					// 参见切换到高精度模式节
+	hrtimer_run_pending();					// 参见[7.8.5.2.1 切换到高精度模式]节
 
-	if (time_after_eq(jiffies, base->timer_jiffies))	// 参见比较Jiffies节
-		__run_timers(base);				// 参见__run_timers()节
+	if (time_after_eq(jiffies, base->timer_jiffies))	// 参见[7.6.2.2 比较Jiffies的大小]节
+		__run_timers(base);				// 参见[7.7.4.1 __run_timers()]节
 }
 ```
 
@@ -32754,7 +32761,7 @@ static inline void __run_timers(struct tvec_base *base)
 			 (!cascade(base, &base->tv2, INDEX(0))) &&
 			 (!cascade(base, &base->tv3, INDEX(1))) &&
 			 !cascade(base, &base->tv4, INDEX(2)))
-			cascade(base, &base->tv5, INDEX(3));	// 参见cascade()节
+			cascade(base, &base->tv5, INDEX(3));	// 参见[7.7.4.1.1 cascade()]节
 		// 调整时钟滴答计数
 		++base->timer_jiffies;
 		// 将链表base->tv1.vec[index]中的元素转移到链表work_list中，并循环处理
@@ -32805,7 +32812,7 @@ static int cascade(struct tvec_base *base, struct tvec *tv, int index)
 		BUG_ON(tbase_get_base(timer->base) != base);
 		/*
 		 * 将定时器timer重新加入定时器链表中，实际上会迁移到下一级
-		 * 的tv数组中，参见internal_add_timer()节
+		 * 的tv数组中，参见[7.7.2.1.1.2.2.1 internal_add_timer()]节
 		 */
 		internal_add_timer(base, timer);
 	}
@@ -32917,7 +32924,7 @@ chenwx@chenwx ~/alex/timer $ dmesg | tail
 阅读如下文档：
 * Documentation/timers
 
-内核使用红黑树rbtree(参见Red-Black Tree (rbtree节)来组织hrtimer。
+内核使用红黑树rbtree(参见[15.6 Red-Black Tree (rbtree)](#15-6-red-black-tree-rbtree-)节)来组织hrtimer。
 
 ### 7.8.2 与hrtimer有关的数据结构
 
@@ -33349,17 +33356,17 @@ static struct notifier_block __cpuinitdata hrtimers_nb = {
 ...
 void __init hrtimers_init(void)
 {
-	// 参见hrtimer_cpu_notify()节
+	// 参见[7.8.4.1 hrtimer_cpu_notify()]节
 	hrtimer_cpu_notify(&hrtimers_nb, (unsigned long)CPU_UP_PREPARE,
-				  (void *)(long)smp_processor_id());
+			   (void *)(long)smp_processor_id());
 	register_cpu_notifier(&hrtimers_nb);
 #ifdef CONFIG_HIGH_RES_TIMERS
 	/*
 	 * 设置软中断HRTIMER_SOFTIRQ的处理程序为run_hrtimer_softirq()，
-	 * 参见struct softirq_节；该处理程序在函数__do_softirq()中被调用，
-	 * 参见__do_softirq()节；由此可知，定时器超时处理函数是在软中断上下文
+	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节；该处理程序在函数__do_softirq()中被调用，
+	 * 参见[9.3.1.3.1.1.1 __do_softirq()]节；由此可知，定时器超时处理函数是在软中断上下文
 	 * 中执行的；处理程序run_hrtimer_softirq()
-	 * 参见HRTIMER_SOFTIRQ软中断/run_hrtimer_softirq()节
+	 * 参见[7.8.5.3 HRTIMER_SOFTIRQ软中断/run_hrtimer_softirq()]节
 	 */
 	open_softirq(HRTIMER_SOFTIRQ, run_hrtimer_softirq);
 #endif
@@ -33369,7 +33376,7 @@ void __init hrtimers_init(void)
 hrtimers_init()的调用关系如下：
 
 ```
-start_kernel()		// 参见start_kernel()节
+start_kernel()		// 参见[4.3.4.1.4.3 start_kernel()]节
 -> hrtimers_init()
 ```
 
@@ -33444,7 +33451,7 @@ static void __cpuinit init_hrtimers_cpu(int cpu)
 
 系统并不是一开始就会支持高精度模式，而是在系统启动后的某个阶段，等所有的条件都满足后，才会切换到高精度模式。当系统还没有切换到高精度模式时，所有的高精度定时器运行在低精度模式下，在每个jiffie的tick事件中断中进行超时定时器的查询和处理，显然此时的精度和低分辨率定时器是一样的(HZ级别)。
 
-低精度模式下，每个tick事件中断中，函数```hrtimer_run_queues()```会被调用，由它完成定时器的超时处理，参见run_local_timers()节。该函数定义于kernel/hrtimer.c:
+低精度模式下，每个tick事件中断中，函数```hrtimer_run_queues()```会被调用，由它完成定时器的超时处理，参见[7.6.4.2.1.2.2.1 run_local_timers()](#7-6-4-2-1-2-2-1-run-local-timers-)节。该函数定义于kernel/hrtimer.c:
 
 ```
 void hrtimer_run_queues(void)
@@ -33477,7 +33484,7 @@ void hrtimer_run_queues(void)
 		 * 函数timerqueue_getnext()返回base->active->next，
 		 * 即红黑树中的左下节点(最早超时的定时器)；之所以能在
 		 * while循环中使用该函数，是因为__run_hrtimer()会在移除
-		 * 旧的左下节点时，	新的左下节点会被更新到base->active->next
+		 * 旧的左下节点时，新的左下节点会被更新到base->active->next
 		 * 域中，使得循环可以继续执行，直到没有新的超时定时器为止
 		 */
 		while ((node = timerqueue_getnext(&base->active))) {
@@ -33487,7 +33494,7 @@ void hrtimer_run_queues(void)
 			// 若最早超时的定时器还未超时，则无需处理，直接返回；
 			if (base->softirq_time.tv64 <= hrtimer_get_expires_tv64(timer))
 				break;
-			// 否则，调用该超时定时器的处理函数，参见__run_hrtimer()节
+			// 否则，调用该超时定时器的处理函数，参见[7.8.5.1.1 __run_hrtimer()]节
 			__run_hrtimer(timer, &base->softirq_time);
 		}
 		raw_spin_unlock(&cpu_base->lock);
@@ -33678,7 +33685,7 @@ retry:
 ```
 /*
  * 该函数被run_timer_softirq()调用，
- * 参见定时器的超时处理/run_timer_softirq()节
+ * 参见[7.7.4 定时器的超时处理/run_timer_softirq()]节
  */
 void hrtimer_run_pending(void)
 {
@@ -33719,7 +33726,7 @@ static int hrtimer_switch_to_hres(void)
 
 	/*
 	 * 设置tick_cpu_device->evtdev->event_handler = hrtimer_interrupt，
-	 * 参见tick_init_highres()节。在高精度模式下，调用hrtimer_interrupt()
+	 * 参见[7.8.5.2.1.1 tick_init_highres()]节。在高精度模式下，调用hrtimer_interrupt()
 	 * 进行处理
 	 */
 	if (tick_init_highres()) {
@@ -33732,7 +33739,7 @@ static int hrtimer_switch_to_hres(void)
 	for (i = 0; i < HRTIMER_MAX_CLOCK_BASES; i++)
 		base->clock_base[i].resolution = KTIME_HIGH_RES;
 
-	// 创建模拟tick事件的定时器，参见tick_setup_sched_timer()节
+	// 创建模拟tick事件的定时器，参见[7.8.5.2.1.2 tick_setup_sched_timer()]节
 	tick_setup_sched_timer();
 
 	/* "Retrigger" the interrupt to get things going */
@@ -33807,7 +33814,7 @@ void tick_setup_sched_timer(void)
 	hrtimer_init(&ts->sched_timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 	/*
 	 * 定时器超时处理函数设为tick_sched_timer()，
-	 * 入参为ts->sched_timer，参见tick_sched_timer()节
+	 * 入参为ts->sched_timer，参见[7.8.5.2.1.2.1 tick_sched_timer()]节
 	 */
 	ts->sched_timer.function = tick_sched_timer;
 
@@ -33916,18 +33923,18 @@ static void __hrtimer_peek_ahead_timers(void)
 	/*
 	 * 若当前未处于高精度模式，则直接返回；在低精度模式下，
 	 * 调用hrtimer_run_queues()进行处理，
-	 * 参见低精度模式/hrtimer_run_queues()节
+	 * 参见[7.8.5.1 低精度模式/hrtimer_run_queues()]节
 	 */
 	if (!hrtimer_hres_active())
 		return;
 
 	/*
 	 * 若处于高精度模式，则调用hrtimer_interrupt()进行处理，
-	 * 参见高精度模式/hrtimer_interrupt()节
+	 * 参见[7.8.5.2 高精度模式/hrtimer_interrupt()]节
 	 */
 	td = &__get_cpu_var(tick_cpu_device);
 
-	// 参见切换到高精度模式节
+	// 参见[7.8.5.2.1 切换到高精度模式]节
 	if (td && td->evtdev)
 		hrtimer_interrupt(td->evtdev);
 }
@@ -33971,11 +33978,11 @@ long hrtimer_nanosleep(struct timespec *rqtp, struct timespec __user *rmtp,
 	if (rt_task(current))
 		slack = 0;
 
-	// 参见hrtimer_init_on_stack()节
+	// 参见[7.8.3.1.2 hrtimer_init_on_stack()]节
 	hrtimer_init_on_stack(&t.timer, clockid, mode);
 	hrtimer_set_expires_range_ns(&t.timer, timespec_to_ktime(*rqtp), slack);
 	/*
-	 * 将当前进程休眠指定时间，参见do_nanosleep()节
+	 * 将当前进程休眠指定时间，参见[7.8.6.1.1.1 do_nanosleep()]节
 	 * 若休眠时长等于指定时间，则直接退出；否则，需要设置
 	 * current->stack->restart_block
 	 */
@@ -33998,7 +34005,7 @@ long hrtimer_nanosleep(struct timespec *rqtp, struct timespec __user *rmtp,
 	restart = &current_thread_info()->restart_block;
 	/*
 	 * 该函数在sys_restart_syscall()中被调用，
-	 * 参见hrtimer_nanosleep_restart()节和sys_restart_syscall()节
+	 * 参见[7.8.6.1.1.2 hrtimer_nanosleep_restart()]节和[8.3.4.1.3 sys_restart_syscall()]节
 	 */
 	restart->fn = hrtimer_nanosleep_restart;
 	restart->nanosleep.clockid = t.timer.base->clockid;
@@ -34006,7 +34013,7 @@ long hrtimer_nanosleep(struct timespec *rqtp, struct timespec __user *rmtp,
 	restart->nanosleep.expires = hrtimer_get_expires_tv64(&t.timer);
 
 	/*
-	 * 返回该错误码，表示要重新执行该系统调用，参见do_signal()节
+	 * 返回该错误码，表示要重新执行该系统调用，参见[8.3.4.1 do_signal()]节
 	 * 参见<<Understanding the Linux Kernel, 3rd Edition>>
 	 * Chaper 11: Reexecution of System Calls
 	 */
@@ -34076,7 +34083,7 @@ long __sched hrtimer_nanosleep_restart(struct restart_block *restart)
 	hrtimer_init_on_stack(&t.timer, restart->nanosleep.clockid, HRTIMER_MODE_ABS);
 	hrtimer_set_expires_tv64(&t.timer, restart->nanosleep.expires);
 
-	// 此处与hrtimer_nanosleep()的调用类似，参见hrtimer_nanosleep()节
+	// 此处与hrtimer_nanosleep()的调用类似，参见[7.8.6.1.1 hrtimer_nanosleep()]节
 	if (do_nanosleep(&t, HRTIMER_MODE_ABS))
 		goto out;
 
@@ -34440,7 +34447,7 @@ static int __init init_pipe_fs(void)
 
 static void __exit exit_pipe_fs(void)
 {
-	// 参见卸载文件系统(1)/kern_unmount()节
+	// 参见[11.2.2.3 卸载文件系统(1)/kern_unmount()]节
 	kern_unmount(pipe_mnt);
 	unregister_filesystem(&pipe_fs_type);
 }
@@ -34470,7 +34477,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 * 第二种方法：忽略某个信号，对该信号不做任何处理，就象未发生过一样。
 * 第三种方法：对该信号的处理保留系统的默认值，这是缺省操作。注意，SIGKILL和SIGSTOP信号不能被忽略，不能被阻塞，也不能使用用户自定义的函数处理，所以总是执行它们的默认行为。
 
-在进程表的表项中有一个软中断信号域(struct sigpending pending –> signal，参见信号处理节)，该域中每一位对应一个信号，当有信号发送给该进程时，对应位被置位。由此可知，进程对不同的信号可以同时保留，但对于同一个信号，进程并不知道在处理之前来过多少个。
+在进程表的表项中有一个软中断信号域(struct sigpending pending –> signal，参见[7.1.1.12 信号处理]节)，该域中每一位对应一个信号，当有信号发送给该进程时，对应位被置位。由此可知，进程对不同的信号可以同时保留，但对于同一个信号，进程并不知道在处理之前来过多少个。
 
 有两个特殊情况需要注意：
 * 1) 任何进程都不能给进程0(即swapper进程)发送信号；
@@ -34478,7 +34485,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 ### 8.3.2 与信号有关的数据结构
 
-struct task_struct包含与信号有关的域参见信号处理节:
+struct task_struct包含与信号有关的域参见[7.1.1.12 信号处理]节:
 
 ![IPC_02](/assets/IPC_02.jpg)
 
@@ -34488,7 +34495,7 @@ struct task_struct包含与信号有关的域参见信号处理节:
 * 非实时信号：信号取值范围为[1, 31]
 * 实时信号：信号取值范围为[32, 64]
 
-注：0不是有效的信号值，只用于检查是当前进程否有发送信号的权限，并不真正发送，参见group_send_sig_info()节。
+注：0不是有效的信号值，只用于检查是当前进程否有发送信号的权限，并不真正发送，参见[8.3.3.7 group_send_sig_info()](#8-3-3-7-group-send-sig-info-)节。
 
 POSIX定义的信号，参见<<IEEE Std 1003.1-2008 POSIX.Base Specifications, Issue 7>> 第Vol. 2: System Interfaces卷第Chapter 3: System Interfaces章第signal节。
 
@@ -34673,18 +34680,21 @@ typedef unsigned long		sigset_t;
 #### 8.3.2.3 sigpending
 
 该结构定义于include/linux/signal.h:
-struct sigpending {
-	struct list_head list;
-	sigset_t signal; 	// 参见sigset_t节
-};
 
-8.3.2.4 siginfo_t
+```
+struct sigpending {
+	struct list_head	list;
+	sigset_t		signal; 	// 参见[8.3.2.2 sigset_t]节
+};
+```
+
+#### 8.3.2.4 siginfo_t
 
 siginfo_t结构定义于include/asm-generic/siginfo.h:
 
 ```
 typedef struct siginfo {
-	int si_signo; 	// signal ID，参见信号的种类及取值节
+	int si_signo; 	// signal ID，参见[8.3.2.1 信号的种类及取值]节
 	int si_errno; 	// 导致该信号被发出的错误码，0：不是因为错误才发出该信号
 	int si_code; 	// 标识谁发出了该信号，其取值参见下文
 
@@ -34747,17 +34757,17 @@ si_code的可能取值参见include/asm-generic/siginfo.h:
  * si_code values
  * Digital reserves positive values for kernel-generated signals.
  */
-#define SI_USER			0	/* sent by kill, sigsend, raise */
-#define SI_KERNEL		0x80	/* sent by the kernel from somewhere */
-#define SI_QUEUE		-1	/* sent by sigqueue */
+#define SI_USER			0				/* sent by kill, sigsend, raise */
+#define SI_KERNEL		0x80				/* sent by the kernel from somewhere */
+#define SI_QUEUE		-1				/* sent by sigqueue */
 #define SI_TIMER		__SI_CODE(__SI_TIMER,-2) 	/* sent by timer expiration */
 #define SI_MESGQ		__SI_CODE(__SI_MESGQ,-3) 	/* sent by real time mesq state change */
-#define SI_ASYNCIO		-4	/* sent by AIO completion */
-#define SI_SIGIO		-5	/* sent by queued SIGIO */
-#define SI_TKILL		-6	/* sent by tkill, tgkill system call */
-#define SI_DETHREAD		-7	/* sent by execve() killing subsidiary threads */
+#define SI_ASYNCIO		-4				/* sent by AIO completion */
+#define SI_SIGIO		-5				/* sent by queued SIGIO */
+#define SI_TKILL		-6				/* sent by tkill, tgkill system call */
+#define SI_DETHREAD		-7				/* sent by execve() killing subsidiary threads */
 
-#define SI_FROMUSER(siptr)		((siptr)->si_code <= 0)
+#define SI_FROMUSER(siptr)	((siptr)->si_code <= 0)
 #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 ```
 
@@ -34772,7 +34782,7 @@ si_code的可能取值参见include/asm-generic/siginfo.h:
 struct sigqueue {
 	struct list_head	list; 	// 信号链表
 	int			flags;
-	siginfo_t 		info; 	// 参见siginfo_t节
+	siginfo_t 		info; 	// 参见[8.3.2.2 sigset_t]节
 	struct user_struct	*user;
 };
 ```
@@ -34877,7 +34887,7 @@ sa_flags取值参见arch/x86/include/asm/signal.h：
 
 ### 8.3.3 信号的发送
 
-无论信号从内核还是从另外一个进程被发送给另一个线程(目标进程)，内核会调用下列函数之一来发送信号，参见sys_tkill()/sys_tgkill()节至force_sig()/force_sig_info()节。
+无论信号从内核还是从另外一个进程被发送给另一个线程(目标进程)，内核会调用下列函数之一来发送信号，参见[8.3.3.1 sys_tkill()/sys_tgkill()]节至[8.3.3.3 force_sig()/force_sig_info()]节。
 
 Kernel functions that generate a signal for a process
 
@@ -34892,7 +34902,7 @@ Kernel functions that generate a signal for a process
 
 <p/>
 
-无论信号从内核还是从另外一个进程被发送给另一个线程组(目标进程)，内核会调用下列函数之一来发送信号，参见sys_kill()节至group_send_sig_info()节。
+无论信号从内核还是从另外一个进程被发送给另一个线程组(目标进程)，内核会调用下列函数之一来发送信号，参见[8.3.3.4 sys_kill()]节至[8.3.3.7 group_send_sig_info()](#8-3-3-7-group-send-sig-info-)节。
 
 Kernel functions that generate a signal for a thread group
 
@@ -34915,8 +34925,8 @@ Kernel functions that generate a signal for a thread group
 sys_tkill() / sys_tgkill()
 -> do_tkill()
    -> do_send_specific()
-      -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
-         -> send_signal()		// 参见send_signal()节
+      -> do_send_sig_info()		// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
+         -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -34971,7 +34981,7 @@ static int do_tkill(pid_t tgid, pid_t pid, int sig)
 	info.si_pid = task_tgid_vnr(current);
 	info.si_uid = current_uid();
 
-	// 参见do_send_specific()节
+	// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
 	return do_send_specific(tgid, pid, sig, &info);
 }
 ```
@@ -35020,7 +35030,7 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p, bool 
 	int ret = -ESRCH;
 
 	if (lock_task_sighand(p, &flags)) {
-		ret = send_signal(sig, info, p, group);	// 参见send_signal()节
+		ret = send_signal(sig, info, p, group);	// 参见[8.3.3.8 send_signal()]节
 		unlock_task_sighand(p, &flags);
 	}
 
@@ -35035,8 +35045,8 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p, bool 
 ```
 send_sig()
 -> send_sig_info()	
-   -> do_send_sig_info()	// 参见do_send_specific()/do_send_sig_info()节
-      -> send_signal()		// 参见send_signal()节
+   -> do_send_sig_info()	// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
+      -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -35056,7 +35066,7 @@ int send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
 	if (!valid_signal(sig))
 		return -EINVAL;
 
-	// 参见do_send_specific()/do_send_sig_info()节
+	// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
 	return do_send_sig_info(sig, info, p, false);
 }
 ```
@@ -35071,7 +35081,7 @@ int send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
 force_sig()
 -> force_sig_info()
    -> specific_send_sig_info()
-      -> send_signal()		// 参见send_signal()节
+      -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -35124,7 +35134,7 @@ int force_sig_info(int sig, struct siginfo *info, struct task_struct *t)
 ```
 static int specific_send_sig_info(int sig, struct siginfo *info, struct task_struct *t)
 {
-	return send_signal(sig, info, t, 0);	// 参见send_signal()节
+	return send_signal(sig, info, t, 0);	// 参见[8.3.3.8 send_signal()]节
 }
 ```
 
@@ -35136,8 +35146,8 @@ static int specific_send_sig_info(int sig, struct siginfo *info, struct task_str
 sys_kill()
 -> kill_something_info()
    -> group_send_sig_info()
-      -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
-         -> send_signal()		// 参见send_signal()节
+      -> do_send_sig_info()		// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
+         -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -35193,7 +35203,7 @@ static int kill_something_info(int sig, struct siginfo *info, pid_t pid)
 
 		for_each_process(p) {
 			if (task_pid_vnr(p) > 1 && !same_thread_group(p, current)) {
-				// 参见group_send_sig_info()节
+				// 参见[8.3.3.7 group_send_sig_info()]节
 				int err = group_send_sig_info(sig, info, p);
 				++count;
 				if (err != -EPERM)
@@ -35214,11 +35224,11 @@ static int kill_something_info(int sig, struct siginfo *info, pid_t pid)
 
 ```
 sys_rt_sigqueueinfo()
--> kill_proc_info()			// 参见kill_pid()/kill_proc_info()/kill_pid_info()节
-   -> kill_pid_info()			// 参见kill_pid()/kill_proc_info()/kill_pid_info()节
-      -> group_send_sig_info()		// 参见group_send_sig_info()节
-         -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
-            -> send_signal()		// 参见send_signal()节
+-> kill_proc_info()			// 参见[8.3.3.6 kill_pid()/kill_proc_info()/kill_pid_info()]节
+   -> kill_pid_info()			// 参见[8.3.3.6 kill_pid()/kill_proc_info()/kill_pid_info()]节
+      -> group_send_sig_info()		// 参见[8.3.3.7 group_send_sig_info()]节
+         -> do_send_sig_info()		// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
+            -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -35248,7 +35258,7 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, pid, int, sig, siginfo_t __user *, uinfo
 	info.si_signo = sig;
 
 	/* POSIX.1b doesn't mention process groups.  */
-	// 参见kill_pid()/kill_proc_info()/kill_pid_info()节
+	// 参见[8.3.3.6 kill_pid()/kill_proc_info()/kill_pid_info()]节
 	return kill_proc_info(sig, &info, pid);
 }
 ```
@@ -35260,9 +35270,9 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, pid, int, sig, siginfo_t __user *, uinfo
 ```
 kill_pid() / kill_proc_info()
 -> kill_pid_info()
-   -> group_send_sig_info()		// 参见group_send_sig_info()节
-      -> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
-         -> send_signal()		// 参见send_signal()节
+   -> group_send_sig_info()		// 参见[8.3.3.7 group_send_sig_info()]节
+      -> do_send_sig_info()		// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
+         -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -35291,7 +35301,7 @@ int kill_pid_info(int sig, struct siginfo *info, struct pid *pid)
 retry:
 	p = pid_task(pid, PIDTYPE_PID);
 	if (p) {
-		// 参见group_send_sig_info()节
+		// 参见[8.3.3.7 group_send_sig_info()]节
 		error = group_send_sig_info(sig, info, p);
 		if (unlikely(error == -ESRCH))
 			/*
@@ -35315,8 +35325,8 @@ retry:
 ```
 group_send_sig_info()
 -> check_kill_permission()
--> do_send_sig_info()		// 参见do_send_specific()/do_send_sig_info()节
-   -> send_signal()		// 参见send_signal()节
+-> do_send_sig_info()		// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
+   -> send_signal()		// 参见[8.3.3.8 send_signal()]节
 ```
 
 该函数定义于kernel/signal.c:
@@ -35335,7 +35345,7 @@ int group_send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
 
 	// 0不是有效的信号取值，不会发送
 	if (!ret && sig)
-		// 参见do_send_specific()/do_send_sig_info()节
+		// 参见[8.3.3.1.1 do_send_specific()/do_send_sig_info()]节
 		ret = do_send_sig_info(sig, info, p, true);
 
 	return ret;
@@ -35359,7 +35369,7 @@ static int send_signal(int sig, struct siginfo *info, struct task_struct *t, int
 }
 ```
 
-其中，函数__send_signal()定义于kernel/signal.c:
+其中，函数```__send_signal()```定义于kernel/signal.c:
 
 ```
 static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
@@ -35377,7 +35387,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
 	if (!prepare_signal(sig, t, from_ancestor_ns))
 		return 0;
 
-	// 根据入参group来选择pending signal queue，参见与信号有关的数据结构节中的图
+	// 根据入参group来选择pending signal queue，参见[8.3.2 与信号有关的数据结构]节中的图
 	pending = group ? &t->signal->shared_pending : &t->pending;
 	/*
 	 * Short-circuit ignored signals and support queuing
@@ -35455,7 +35465,7 @@ out_set:
 	signalfd_notify(t, sig);
 	// Sets the bit corresponding to the signal in the bit mask of the queue
 	sigaddset(&pending->signal, sig);
-	complete_signal(sig, t, group); 	// 参见通知目标进程接收信号节
+	complete_signal(sig, t, group); 	// 参见[8.3.3.8.1 通知目标进程接收信号/complete_signal()]节
 	return 0;
 }
 ```
@@ -35583,7 +35593,7 @@ void signal_wake_up(struct task_struct *t, int resume)
 ```
 int wake_up_state(struct task_struct *p, unsigned int state)
 {
-	return try_to_wake_up(p, state, 0);	// 参见try_to_wake_up()节
+	return try_to_wake_up(p, state, 0);	// 参见[7.4.10.2.2.1 try_to_wake_up()]节
 }
 ```
 
@@ -35611,8 +35621,8 @@ void do_notify_resume(struct pt_regs *regs, void *unused, __u32 thread_info_flag
 #endif /* CONFIG_X86_64 && CONFIG_X86_MCE */
 
 	/* deal with pending signal delivery */
-	if (thread_info_flags & _TIF_SIGPENDING) 	// 该标志为的设置参见通知目标进程接收信号节
-		do_signal(regs);			// 参见do_signal()节
+	if (thread_info_flags & _TIF_SIGPENDING) 	// 该标志为的设置参见[8.3.3.8.1 通知目标进程接收信号/complete_signal()]节
+		do_signal(regs);			// 参见[8.3.4.1 do_signal()]节
 
 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
 		clear_thread_flag(TIF_NOTIFY_RESUME);
@@ -35656,14 +35666,14 @@ static void do_signal(struct pt_regs *regs)
 		return;
 
 	/*
-	 * 参见get_signal_to_deliver()节，信号处理方式1(忽略)
+	 * 参见[8.3.4.1.1 get_signal_to_deliver()]节，信号处理方式1(忽略)
 	 * 和信号处理方式3(使用默认处理函数)在该函数中实现
 	 */
 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
 	if (signr > 0) {
 		/* Whee! Actually deliver the signal.  */
 		/*
-		 * 参见handle_signal()节，信号处理方式2(使用用户
+		 * 参见[8.3.4.1.2 handle_signal()]节，信号处理方式2(使用用户
 		 * 指定的信号处理函数)在该函数中实现
 		 */
 		handle_signal(signr, &info, &ka, regs); 
@@ -35683,14 +35693,14 @@ static void do_signal(struct pt_regs *regs)
 
 		/*
 		 * 若系统调用返回错误码为ERESTART_RESTARTBLOCK，则需要
-		 * 重新执行该系统调用。例子参见hrtimer_nanosleep()节；
+		 * 重新执行该系统调用。例子参见[7.8.6.1.1 hrtimer_nanosleep()]节；
 		 * 另参见<<Understanding Linux Kernel, 3rd Edition>>
 		 * Chaper 11: Reexecution of System Calls
 		 */
 		case -ERESTART_RESTARTBLOCK:
 			/*
 			 * 执行系统调用sys_restart_syscall()，
-			 * 参见sys_restart_syscall()节
+			 * 参见[8.3.4.1.3 sys_restart_syscall()]节
 			 */
 			regs->ax = NR_restart_syscall;
 			regs->ip -= 2;
@@ -35779,7 +35789,7 @@ relock:
 
 		/*
 		 * 从Private pending signal queue或Shared pending
-		 * signal queue中取出一个信号，参见dequeue_signal()节
+		 * signal queue中取出一个信号，参见[8.3.4.1.1.1 dequeue_signal()]节
 		 */
 		signr = dequeue_signal(current, &current->blocked, info);
 
@@ -36010,7 +36020,7 @@ int dequeue_signal(struct task_struct *tsk, sigset_t *mask, siginfo_t *info)
 
 ##### 8.3.4.1.2 handle_signal()
 
-下图描述了信号处理函数的执行流程。假设一个非阻塞的信号发给目标进程。当一个中断或异常发生后，目标进程从用户态(U1)进入核心态，在它切换回用户态(U1)之前，内核调用do_signal()逐一处理悬挂的非阻塞信号(参见do_signal()节)。而如果目标进程设置了对信号的处理函数，那么它会调用handle_signal()来调用自定义的信号处理函数(使用setup_rt_frame()来为信号处理函数设置栈)，此时当切换到用户态时，目标进程执行的是信号处理函数而不是U1。当信号处理函数结束后，位于setup_rt_frame()栈上的返回代码(return code)被执行，该返回代码会执行rt_sigreturn，从而把U1的上下文从setup_rt_frame栈中拷贝到核心栈。此后，内核可以切换回U1。
+下图描述了信号处理函数的执行流程。假设一个非阻塞的信号发给目标进程。当一个中断或异常发生后，目标进程从用户态(U1)进入核心态，在它切换回用户态(U1)之前，内核调用do_signal()逐一处理悬挂的非阻塞信号(参见[8.3.4.1 do_signal()](#8-3-4-1-do-signal-)节)。而如果目标进程设置了对信号的处理函数，那么它会调用handle_signal()来调用自定义的信号处理函数(使用setup_rt_frame()来为信号处理函数设置栈)，此时当切换到用户态时，目标进程执行的是信号处理函数而不是U1。当信号处理函数结束后，位于setup_rt_frame()栈上的返回代码(return code)被执行，该返回代码会执行rt_sigreturn，从而把U1的上下文从setup_rt_frame栈中拷贝到核心栈。此后，内核可以切换回U1。
 
 注意：在信号的三种处理方式中，只有使用自定义的信号处理函数才需要这样麻烦。
 
@@ -36053,7 +36063,7 @@ static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction 
 	if (unlikely(regs->flags & X86_EFLAGS_TF) && likely(test_and_clear_thread_flag(TIF_FORCED_TF)))
 		regs->flags &= ~X86_EFLAGS_TF;
 
-	ret = setup_rt_frame(sig, ka, info, regs);	// 参见setup_rt_frame()节
+	ret = setup_rt_frame(sig, ka, info, regs);	// 参见[8.3.4.1.2.1 setup_rt_frame()]节
 
 	if (ret)
 		return ret;
@@ -36310,7 +36320,7 @@ asmlinkage int sys_sigaction(int sig, const struct old_sigaction __user *act,
 		siginitset(&new_ka.sa.sa_mask, mask);
 	}
 
-	// 参见do_sigaction()节
+	// 参见[8.3.4.2.1 do_sigaction()]节
 	ret = do_sigaction(sig, act ? &new_ka : NULL, oact ? &old_ka : NULL);
 
 	// oact用来保存该信号原来的信号处理函数，后续可能需要恢复原来的信号处理函数
@@ -36358,7 +36368,7 @@ SYSCALL_DEFINE4(rt_sigaction, int, sig, const struct sigaction __user *, act,
 			return -EFAULT;
 	}
 
-	// 参见do_sigaction()节
+	// 参见[8.3.4.2.1 do_sigaction()]节
 	ret = do_sigaction(sig, act ? &new_sa : NULL, oact ? &old_sa : NULL); 
 
 	if (!ret && oact) {
@@ -36385,7 +36395,8 @@ SYSCALL_DEFINE2(signal, int, sig, __sighandler_t, handler)
 	new_sa.sa.sa_flags = SA_ONESHOT | SA_NOMASK;
 	sigemptyset(&new_sa.sa.sa_mask);
 
-	ret = do_sigaction(sig, &new_sa, &old_sa); 	// 参见do_sigaction()节
+	// 参见[8.3.4.2.1 do_sigaction()]节
+	ret = do_sigaction(sig, &new_sa, &old_sa);
 
 	return ret ? ret : (unsigned long)old_sa.sa.sa_handler;
 }
@@ -36642,7 +36653,7 @@ asmlinkage int sys_sigsuspend(int history0, int history1, old_sigset_t mask)
 	siginitset(&blocked, mask);
 	set_current_blocked(&blocked);
 
-	// 调度其他进程来运行，参见schedule()节
+	// 调度其他进程来运行，参见[7.4.5 schedule()]节
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
 
@@ -36675,7 +36686,7 @@ SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
 	current->saved_sigmask = current->blocked;
 	set_current_blocked(&newset);
 
-	// 调度其他进程来运行，参见schedule()节
+	// 调度其他进程来运行，参见[7.4.5 schedule()]节
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
 	set_restore_sigmask();
@@ -36685,7 +36696,7 @@ SYSCALL_DEFINE2(rt_sigsuspend, sigset_t __user *, unewset, size_t, sigsetsize)
 
 ### 8.3.5 信号的初始化
 
-在系统启动时，start_kernel()调用signals_init()对信号进行初始化，参见start_kernel()节。
+在系统启动时，start_kernel()调用signals_init()对信号进行初始化，参见[4.3.4.1.4.3 start_kernel()](#4-3-4-1-4-3-start-kernel-)节。
 
 函数signals_init()定义于kernel/signal.c:
 
@@ -36716,7 +36727,7 @@ void __init signals_init(void)
  */
 /*
  * 函数调用关系：send_signal() -> __send_signal() -> __sigqueue_alloc()，
- * 参见send_signal()节
+ * 参见[8.3.3.8 send_signal()]节
  */
 static struct sigqueue *__sigqueue_alloc(int sig, struct task_struct *t, gfp_t flags, int override_rlimit)
 {
@@ -36734,7 +36745,7 @@ static struct sigqueue *__sigqueue_alloc(int sig, struct task_struct *t, gfp_t f
 
 	if (override_rlimit ||
 		 atomic_read(&user->sigpending) <= task_rlimit(t, RLIMIT_SIGPENDING)) {
-		// 参见kmem_cache_zalloc()节
+		// 参见[6.5.1.1.3.1 kmem_cache_zalloc()]节
 		q = kmem_cache_alloc(sigqueue_cachep, flags);
 	} else {
 		print_dropped_signal(sig);
@@ -36780,7 +36791,7 @@ struct idr可通过进程描述符引用到，参见：
 
 ![IPC_03](/assets/IPC_03.jpg)
 
-idr结构中的id_free链表由idr_pre_get()创建的，参见分配节点空间/idr_pre_get()节。
+idr结构中的id_free链表由idr_pre_get()创建的，参见[15.5.3.1 分配节点空间/idr_pre_get()](#15-5-3-1-idr-pre-get-)节。
 
 idr结构中的top域是指向一个32叉树的树根，其结构参见：
 
@@ -37690,7 +37701,9 @@ key        msqid      owner      perms      used-bytes   messages
 
 #### 8.5.2.2 struct shmid_kernel
 
-其定义于include/linux/shm.h，参见Subjects/Chapter08_IPC/Figures/IPC_07.jpg
+其定义于include/linux/shm.h，参见:
+
+![IPC_07](/assets/IPC_07.jpg)
 
 ### 8.5.3 创建/打开共享内存
 
@@ -38978,14 +38991,14 @@ static const struct net_proto_family inet_family_ops = {
 	.family	= PF_INET,
 	/*
 	 * 该函数用于创建对应协议族的socket，被sock_create()/__sock_create()调用，
-	 * 参见sock_create()/__sock_create()节。同时，该函数还会为sock->ops赋值，
-	 * 用于实现struct proto_ops中与本协议族有关的接口，参见sys_bind()节至
-	 * sys_shutdown()/sys_close()节
+	 * 参见[8.7.3.1.1 sock_create()/__sock_create()]节。同时，该函数还会为sock->ops赋值，
+	 * 用于实现struct proto_ops中与本协议族有关的接口，参见[8.7.3.2 sys_bind()]节至
+	 * [8.7.3.8 sys_shutdown()/sys_close()]节
 	 */
 	.create	= inet_create,
 	/*
 	 * 指定包含本协议族的模块，被sock_create()/__sock_create()调用，
-	 * 参见sock_create()/__sock_create()节
+	 * 参见[8.7.3.1.1 sock_create()/__sock_create()]节
 	 */
 	.owner	= THIS_MODULE,
 };
@@ -39147,7 +39160,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	/* Now protected by module ref count */
 	rcu_read_unlock();
 
-	// 调用对应协议族的创建函数，参见网络协议族的注册与取消节
+	// 调用对应协议族的创建函数，参见[8.7.2.4.1 网络协议族的注册与取消]节
 	err = pf->create(net, sock, protocol, kern);
 	if (err < 0)
 		goto out_module_put;
@@ -39220,7 +39233,7 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 			// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 			err = security_socket_bind(sock, (struct sockaddr *)&address, addrlen);
 
-			// 参见网络协议族的注册与取消节
+			// 参见[8.7.2.4.1 网络协议族的注册与取消]节
 			if (!err)
 				err = sock->ops->bind(sock, (struct sockaddr *)&address, addrlen);
 		}
@@ -39266,7 +39279,7 @@ SYSCALL_DEFINE2(listen, int, fd, int, backlog)
 		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_socket_listen(sock, backlog);
 
-		// 参见网络协议族的注册与取消节
+		// 参见[8.7.2.4.1 网络协议族的注册与取消]节
 		if (!err)
 			err = sock->ops->listen(sock, backlog);
 
@@ -39311,7 +39324,7 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr, int, addr
 	if (err)
 		goto out_put;
 
-	// 参见网络协议族的注册与取消节
+	// 参见[8.7.2.4.1 网络协议族的注册与取消]节
 	err = sock->ops->connect(sock, (struct sockaddr *)&address, addrlen, sock->file->f_flags);
 out_put:
 	fput_light(sock->file, fput_needed);
@@ -39388,7 +39401,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
 	if (err)
 		goto out_fd;
 
-	// 参见网络协议族的注册与取消节
+	// 参见[8.7.2.4.1 网络协议族的注册与取消]节
 	err = sock->ops->accept(sock, newsock, sock->file->f_flags);
 	if (err < 0)
 		goto out_fd;
@@ -39459,7 +39472,7 @@ SYSCALL_DEFINE2(shutdown, int, fd, int, how)
 		// 调用变量security_ops中的对应函数，参见[14.4.2 security_xxx()]节
 		err = security_socket_shutdown(sock, how);
 
-		// 参见网络协议族的注册与取消节
+		// 参见[8.7.2.4.1 网络协议族的注册与取消]节
 		if (!err)
 			err = sock->ops->shutdown(sock, how);
 		fput_light(sock->file, fput_needed);
@@ -39547,8 +39560,8 @@ Intel x86系列处理器共支持256种向量中断，为了使处理器较容�
 
 | 中断分类 | 原因 | 异/同步 | 返回行为 | 备注 |
 | :----- | :--- | :----- | :----- | :--- |
-| 陷阱(Trap) | 有意的异常 | 同步 | 总是返回到下一条指令 | 既不使用中断控制器，又不能被屏蔽。参见异常(Exception)/非屏蔽中断(NMI节 |
-| 故障(Fault) | 潜在可恢复的错误 | 同步 | 返回到当前指令 | 既不使用中断控制器，又不能被屏蔽。参见异常(Exception)/非屏蔽中断(NMI节 |
+| 陷阱(Trap) | 有意的异常 | 同步 | 总是返回到下一条指令 | 既不使用中断控制器，又不能被屏蔽。参见[9.1.2 异常(Exception)/非屏蔽中断(NMI)](#9-1-2-exception-nmi-)节 |
+| 故障(Fault) | 潜在可恢复的错误 | 同步 | 返回到当前指令 | 既不使用中断控制器，又不能被屏蔽。参见[9.1.2 异常(Exception)/非屏蔽中断(NMI)](#9-1-2-exception-nmi-)节 |
 | 终止(Abort) | 不可恢复的错误 | 同步 | 不会返回 | |
 
 <p/>
@@ -39558,7 +39571,7 @@ Intel x86系列处理器共支持256种向量中断，为了使处理器较容�
 | 中断分类 | 原因 | 异/同步 | 返回行为 | 备注 |
 | :----- | :--- | :----- | :----- | :--- |
 | 可屏蔽中断(INTR) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断。参见节 |
-| 非屏蔽中断(NMI) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 紧急的事件(如硬件故障)引起非屏蔽中断。参见异常(Exception)/非屏蔽中断(NMI)节 |
+| 非屏蔽中断(NMI) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 紧急的事件(如硬件故障)引起非屏蔽中断。参见[9.1.2 异常(Exception)/非屏蔽中断(NMI)](#9-1-2-exception-nmi-)节 |
 
 <p/>
 
@@ -39639,7 +39652,7 @@ Intel x86通过两片中断控制器8259A来响应15个外中断源，每个8259
 
 #### 9.1.1.2 高级可编程中断控制器(APIC)
 
-8259A可编程中断控制器只适合单CPU的情况，为了充分挖掘SMP体系结构的并行性，能够把中断传递给系统中的每个CPU是至关重要的。基于此，Intel引入了一种名为I/O高级可编程控制器(APIC)的新组件来替代老式的8259A可编程中断控制器。参见中断处理节。
+8259A可编程中断控制器只适合单CPU的情况，为了充分挖掘SMP体系结构的并行性，能够把中断传递给系统中的每个CPU是至关重要的。基于此，Intel引入了一种名为I/O高级可编程控制器(APIC)的新组件来替代老式的8259A可编程中断控制器。参见[9 中断处理](#9-)节。
 
 ### 9.1.2 异常(Exception)/非屏蔽中断(NMI)
 
@@ -39738,9 +39751,9 @@ char *softirq_to_name[NR_SOFTIRQS] = {
 };
 ```
 
-该数组是个全局变量，系统中每个CPU所看到的是同一个数组，不过每个CPU均有自己的“软中断控制/状态”结构，这些数据结构形成一个以CPU编号为下标的数组irq_stat[]，参见irq_stat[]节。
+该数组是个全局变量，系统中每个CPU所看到的是同一个数组，不过每个CPU均有自己的“软中断控制/状态”结构，这些数据结构形成一个以CPU编号为下标的数组irq_stat[]，参见[9.2.3 irq_stat[]](#9-2-3-irq-stat-)节。
 
-**NOTE**: The index of the softirq_vec[] determines its priority: a lower index means higher priority because softirq functions will be executed starting from index 0. 参见__do_softirq()节的函数__do_softirq()。
+**NOTE**: The index of the softirq_vec[] determines its priority: a lower index means higher priority because softirq functions will be executed starting from index 0. 参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节的函数```__do_softirq()```。
 
 #### 9.2.2.1 注册软中断处理函数/open_softirq()
 
@@ -39753,21 +39766,21 @@ void open_softirq(int nr, void (*action)(struct softirq_action *))
 }
 ```
 
-函数softirq_init()(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)和各相关模块的初始化函数为数组softirq_vec[]赋值，其结果参见下表。这些软中断处理函数在__do_softirq()中被调用，参见__do_softirq()节。
+函数softirq_init()(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)和各相关模块的初始化函数为数组softirq_vec[]赋值，其结果参见下表。这些软中断处理函数在```__do_softirq()```中被调用，参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节。
 
 软中断处理函数
 
 | i | softirq_vec[i].action | 赋值函数 | 调用关系 |
-| HI_SOFTIRQ | tasklet_hi_action()，参见Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
-| TIMER_SOFTIRQ | run_timer_softirq()，参见定时器的超时处理/run_timer_softirq()节和run_local_timers()节 | kernel/timer.c: init_timers() | start_kernel() -> init_timers() |
+| HI_SOFTIRQ | tasklet_hi_action()，参见[9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()](#9-2-5-5-tasklet-tasklet-action-tasklet-hi-action-)节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
+| TIMER_SOFTIRQ | run_timer_softirq()，参见[7.7.4 定时器的超时处理/run_timer_softirq()](#7-7-4-run-timer-softirq-)节和[7.6.4.2.1.2.2.1 run_local_timers()](#7-6-4-2-1-2-2-1-run-local-timers-)节 | kernel/timer.c: init_timers() | start_kernel() -> init_timers() |
 | NET_TX_SOFTIRQ | net_tx_action() | net/core/dev.c: net_dev_init() | net模块加载到系统中时 |
 | NET_RX_SOFTIRQ | net_rx_action() | net/core/dev.c: net_dev_init() | net模块加载到系统中时 |
 | BLOCK_SOFTIRQ | blk_done_softirq() | block/blk-softirq.c: blk_softirq_init() | block模块加载到系统中时 |
 | BLOCK_IOPOLL_SOFTIRQ | blk_iopoll_softirq() | block/blk-iopoll.c: blk_iopoll_setup() | block模块加载到系统中时 |
-| TASKLET_SOFTIRQ | tasklet_action()，参见Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
+| TASKLET_SOFTIRQ | tasklet_action()，参见[9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()](#9-2-5-5-tasklet-tasklet-action-tasklet-hi-action-)节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
 | SCHED_SOFTIRQ | run_rebalance_domains() | kernel/sched.c: sched_init() | start_kernel() -> sched_init() |
 | HRTIMER_SOFTIRQ | run_hrtimer_softirq() | kernel/hrtimer.c: hrtimers_init() | start_kernel() -> hrtimers_init() |
-| RCU_SOFTIRQ | rcu_process_callbacks()，参见RCU的初始化节 | kernel/rcutiny_plugin.h, kernel/rcutree.c: rcu_init() | start_kernel() -> rcu_init() |
+| RCU_SOFTIRQ | rcu_process_callbacks()，参见[16.12.3 RCU的初始化](16-12-3-rcu-)节 | kernel/rcutiny_plugin.h, kernel/rcutree.c: rcu_init() | start_kernel() -> rcu_init() |
 
 <p/>
 
@@ -39796,7 +39809,7 @@ irq_cpustat_t irq_stat[NR_CPUS] ____cacheline_aligned;
 
 Q: 数组irq_stat[]是如何初始化和赋值的？
 
-A: irq_stat[cpu]. __softirq_pending表示在cpu上存在待处理的软中断，即若irq_stat[cpu]. __softirq_pending的nr比特位置位，则表示存在类型为softirq_vec[nr]的软中断等待处理，参见struct softirq_节。
+A: irq_stat[cpu]. __softirq_pending表示在cpu上存在待处理的软中断，即若irq_stat[cpu]. __softirq_pending的nr比特位置位，则表示存在类型为softirq_vec[nr]的软中断等待处理，参见[9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)节。
 
 **NOTE**: In Symmetric Multiprocessing model (SMP), when a hardware device raises an IRQ signal, the multi-APIC system selects one of the CPUs and delivers the signal to the corresponding local APIC, which in turn interrupts its CPU. No other CPUs are notified of the event.
 
@@ -39830,15 +39843,15 @@ inline void raise_softirq_irqoff(unsigned int nr)
 	 * Otherwise we wake up ksoftirqd to make sure we
 	 * schedule the softirq soon.
 	 */
-	if (!in_interrupt())		// 参见struct thread_info->preempt_count节
-		wakeup_softirqd();	// 参见ksoftirqd节
+	if (!in_interrupt())		// 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
+		wakeup_softirqd();	// 参见[9.3.1.3.1.2 ksoftirqd]节
 }
 ```
 
 其中函数__raise_softirq_irqoff()定义于include/linux/interrupt.h:
 
 ```
-// nr表示哪种类型的软中断，参见struct softirq_节中的宏xxx_SOFTIRQ
+// nr表示哪种类型的软中断，参见[9.2.2 struct softirq_action/softirq_vec[]]节中的宏xxx_SOFTIRQ
 static inline void __raise_softirq_irqoff(unsigned int nr)
 {
 	trace_softirq_raise(nr);
@@ -40071,7 +40084,7 @@ void __tasklet_schedule(struct tasklet_struct *t)
 	t->next = NULL;
 	*__this_cpu_read(tasklet_vec.tail) = t;
 	__this_cpu_write(tasklet_vec.tail, &(t->next));
-	// 激活该Tasklet，参见激活软中断/raise_softirq()/raise_softirq_irqoff()节
+	// 激活该Tasklet，参见[9.2.3.1 激活软中断/raise_softirq()/raise_softirq_irqoff()]节
 	raise_softirq_irqoff(TASKLET_SOFTIRQ);
 	local_irq_restore(flags);
 }
@@ -40084,7 +40097,7 @@ void __tasklet_hi_schedule(struct tasklet_struct *t)
 	t->next = NULL;
 	*__this_cpu_read(tasklet_hi_vec.tail) = t;
 	__this_cpu_write(tasklet_hi_vec.tail,  &(t->next));
-	// 激活该Tasklet，参见激活软中断/raise_softirq()/raise_softirq_irqoff()节
+	// 激活该Tasklet，参见[9.2.3.1 激活软中断/raise_softirq()/raise_softirq_irqoff()]节
 	raise_softirq_irqoff(HI_SOFTIRQ);
 	local_irq_restore(flags);
 }
@@ -40102,7 +40115,7 @@ void tasklet_kill(struct tasklet_struct *t)
 
 	/*
 	 * 标志位TASKLET_STATE_SCHED是通过函数task_schedule()设置的，
-	 * 参见Tasklet的调度 / tasklet_schedule(), tasklet_hi_schedule()节
+	 * 参见[9.2.5.3 Tasklet的调度 / tasklet_schedule(), tasklet_hi_schedule()]节
 	 */
 	while (test_and_set_bit(TASKLET_STATE_SCHED, &t->state)) {
 		do {
@@ -40148,7 +40161,7 @@ void tasklet_kill_immediate(struct tasklet_struct *t, unsigned int cpu)
 
 #### 9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()
 
-链表tasklet_vec和tasklet_hi_vec的处理函数分别为```tasklet_action()```和```tasklet_hi_action()```。这两个处理函数是由```softirq_init()```设置的(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)，由```__do_softirq()```调用的(参见__do_softirq()节)。
+链表tasklet_vec和tasklet_hi_vec的处理函数分别为```tasklet_action()```和```tasklet_hi_action()```。这两个处理函数是由```softirq_init()```设置的(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)，由```__do_softirq()```调用的(参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节)。
 
 函数tasklet_action()和tasklet_hi_action()定义于kernel/softirq.c:
 
@@ -40270,7 +40283,7 @@ static void tasklet_hi_action(struct softirq_action *a)
 
 ## 9.3 异常/中断处理流程
 
-当异常/中断发生后，首先根据中断号和IDTR(参见中断描述符表寄存器IDTR节)在IDT(参见[6.1.1.3.1 中断描述符表IDT](#6-1-1-3-1-idt)节)中查找对应项(假设为SS1)，并从该项中取出段选择子，由该段选择子和GDTR(参见[6.1.1.2.2 全局描述符表寄存器GDTR](#6-1-1-2-2-gdtr)节)在GDT(参见全局描述符表GDT节)中查找对应项(假设为SS2)。SS1中的DPL域表示中断处理程序应该在哪个级别下运行(一般是0级，即内核态下运行中断处理程序)。如果当前进程的CS中的低两位比中断处理程序的DPL还小(数值越小，级别越高，kernel的数值为0)，那么就直接出现异常，因为不可能会有某个进程的运行级别会被中断还低。经过此步骤的确认后，CS和EIP分别被赋值予SS1中的段选择子和偏移量，这意味着下一个执行的指令是：
+当异常/中断发生后，首先根据中断号和IDTR(参见[6.1.1.3.2 中断描述符表寄存器IDTR](#6-1-1-3-2-idtr)节)在IDT(参见[6.1.1.3.1 中断描述符表IDT](#6-1-1-3-1-idt)节)中查找对应项(假设为SS1)，并从该项中取出段选择子，由该段选择子和GDTR(参见[6.1.1.2.2 全局描述符表寄存器GDTR](#6-1-1-2-2-gdtr)节)在GDT(参见[6.1.1.2.1 全局描述符表GDT](#6-1-1-2-1-gdt)节)中查找对应项(假设为SS2)。SS1中的DPL域表示中断处理程序应该在哪个级别下运行(一般是0级，即内核态下运行中断处理程序)。如果当前进程的CS中的低两位比中断处理程序的DPL还小(数值越小，级别越高，kernel的数值为0)，那么就直接出现异常，因为不可能会有某个进程的运行级别会被中断还低。经过此步骤的确认后，CS和EIP分别被赋值予SS1中的段选择子和偏移量，这意味着下一个执行的指令是：
 * 若中断号在[0, 31]范围内(即异常)，则执行trap_init()函数中指定的中断处理函数，参见[4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节；
 * 若中断号在[32, 255]范围内(即中断)，则执行init_IRQ()函数中指定的中断处理函数(参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节)，即interrupt数组中对应项(参见[4.3.4.1.4.3.9.2.3 interrupt[]](#4-3-4-1-4-3-9-2-3-interrupt-)节)，也就是跳转到common_interrupt处，并开始执行do_IRQ()进行中断处理(参见[9.3.1 do_IRQ()](#9-3-1-do-irq-)节)，完成后，执行ret_from_intr(参见[9.3.2 ret_from_intr](#9-3-2-ret-from-intr)节)从中断中返回。
 
@@ -40308,14 +40321,14 @@ unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
 	 * Increases a counter representing the number of nested
 	 * interrupt handlers. The counter is stored in the
 	 * preempt_count field of the thread_info structure of the
-	 * current process. 参见struct thread_info->preempt_count节
+	 * current process. 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	 */
 	irq_enter();
 
 	// 数组vector_irq[]参见[9.3.1.1 vector_irq[]]节
 	irq = __this_cpu_read(vector_irq[vector]);
 
-	// 参见handle_irq()节
+	// 参见[9.3.1.2 handle_irq()]节
 	if (!handle_irq(irq, regs)) {
 		ack_APIC_irq();
 
@@ -40326,7 +40339,7 @@ unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
 
 	/*
 	 * Exit an interrupt context. Process softirqs
-	 * if needed and possible. 参见irq_exit()节
+	 * if needed and possible. 参见[9.3.1.3 irq_exit()]节
 	 */
 	irq_exit();
 
@@ -40377,7 +40390,7 @@ bool handle_irq(unsigned irq, struct pt_regs *regs)
 	if (!execute_on_irq_stack(overflow, desc, irq)) {
 		if (unlikely(overflow))
 			print_stack_overflow();
-		desc->handle_irq(irq, desc); // 参见desc->handle_irq()节
+		desc->handle_irq(irq, desc); 		// 参见[9.3.1.2.1 desc->handle_irq()/handle_level_irq()]节
 	}
 
 	return true;
@@ -40409,7 +40422,7 @@ static inline int execute_on_irq_stack(int overflow, struct irq_desc *desc, int 
 	 * Copy the softirq bits in preempt_count so that the
 	 * softirq checks work in the hardirq context.
 	 */
-	// 参见struct thread_info->preempt_count节
+	// 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	irqctx->tinfo.preempt_count =
 		(irqctx->tinfo.preempt_count & ~SOFTIRQ_MASK) |
 		(curctx->tinfo.preempt_count & SOFTIRQ_MASK);
@@ -40422,7 +40435,7 @@ static inline int execute_on_irq_stack(int overflow, struct irq_desc *desc, int 
 			  "movl	%%ebx,%%esp	\n"
 			  : "=a" (arg1), "=d" (arg2), "=b" (isp)
 			  :  "0" (irq),   "1" (desc),  "2" (isp),
-			  "D" (desc->handle_irq) // 参见desc->handle_irq()节
+			  "D" (desc->handle_irq) 	// 参见[9.3.1.2.1 desc->handle_irq()/handle_level_irq()]节
 			  : "memory", "cc", "ecx");
 	return 1;
 }
@@ -40430,7 +40443,7 @@ static inline int execute_on_irq_stack(int overflow, struct irq_desc *desc, int 
 
 ##### 9.3.1.2.1 desc->handle_irq()/handle_level_irq()
 
-在handle_irq()节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
+在[9.3.1.2 handle_irq()](#9-3-1-2-handle-irq-)节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
 
 ```
 /**
@@ -40463,7 +40476,7 @@ void handle_level_irq(unsigned int irq, struct irq_desc *desc)
 	if (unlikely(!desc->action || irqd_irq_disabled(&desc->irq_data)))
 		goto out_unlock;
 
-	// 进行中断处理，参见handle_irq_event()节
+	// 进行中断处理，参见[9.3.1.2.1.1 handle_irq_event()]节
 	handle_irq_event(desc);
 
 	if (!irqd_irq_disabled(&desc->irq_data) && !(desc->istate & IRQS_ONESHOT))
@@ -40487,7 +40500,7 @@ irqreturn_t handle_irq_event(struct irq_desc *desc)
 	irqd_set(&desc->irq_data, IRQD_IRQ_INPROGRESS);
 	raw_spin_unlock(&desc->lock);
 
-	// 参见handle_irq_event_percpu()节
+	// 参见[9.3.1.2.1.1.1 handle_irq_event_percpu()]节
 	ret = handle_irq_event_percpu(desc, action);
 
 	raw_spin_lock(&desc->lock);
@@ -40512,9 +40525,9 @@ irqreturn_t handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *act
 		trace_irq_handler_entry(irq, action);
 		/*
 		 * 依次调用用户在desc->action链表中注册的处理函数，
-		 * 参见[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节的该结构体定义于include/linux/irqdesc.h:;
+		 * 参见[9.2.1 struct irq_desc/irq_desc[]]节的该结构体定义于include/linux/irqdesc.h:;
 		 * 该handler是通过__setup_irq()设置的，直接或间接调用__setup_irq()的函数，
-		 * 	参见中断处理函数的注册/注销节：
+		 * 	参见[9.4 中断处理函数的注册/注销]节：
 		 * 	* native_init_IRQ()		-> setup_irq()
 		 * 	* setup_irq()			-> __setup_irq()
 		 * 	* request_percpu_irq()		-> __setup_irq()
@@ -40583,9 +40596,9 @@ A：中断服务程序一般都是在中断请求关闭的条件下执行的，�
 A: 参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第8. Bottom Halves and Deferring Work章第Bottom Halves节：
 
 Currently, three methods exist for deferring work:
-* softirqs (Refer to section struct softirq_action/softirq_vec[])
+* softirqs (Refer to section [9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-))
 * tasklets (Refer to section [9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-))
-* work queues (Refer to section 工作队列/workqueue)
+* work queues (Refer to section [7.5 工作队列/workqueue](#7-5-workqueue))
 Tasklets are built on softirqs and, therefore, both are similar. The work queue mechanism is an entirely different creature and is built on kernel threads.
 
 **Q: Which Bottom Half Should I Use?**
@@ -40602,9 +40615,9 @@ Bottom Half Comparison:
 
 | Bottom Half | Context | Inherent Serialization | Reference |
 | :---------- | :------ | :--------------------- | :-------- |
-| Softirq     | Interrupt context | None | Section struct softirq_action/softirq_vec[] |
+| Softirq     | Interrupt context | None | Section [9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-) |
 | Tasklet     | Interrupt context | Against the same tasklet | Section [9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-) |
-| Work queues | Process context | None (scheduled as process context) | Section 工作队列/workqueue |
+| Work queues | Process context | None (scheduled as process context) | Section [7.5 工作队列/workqueue](#7-5-workqueue) |
 
 <p/>
 
@@ -40626,15 +40639,15 @@ void irq_exit(void)
 	 */
 	sub_preempt_count(IRQ_EXIT_OFFSET);
 	/*
-	 * in_interrupt()：参见tatus of the Interrupt System节，限制了软中断
+	 * in_interrupt()：参见[9.5.3 Status of the Interrupt System]节，限制了软中断
 	 * 服务程序既不能在一个硬中断服务程序内部执行，也不能在一个软中断服务程序内部
 	 * 执行(即不能嵌套);
 	 * local_softirq_pending()：检查irq_stat[cpu].__softirq_pending，
 	 * 查看是否有软中断请求在等待执行。其中，irq_stat[cpu].__softirq_pending
-	 * 是通过函数__raise_softirq_irqoff()来置位的，参见irq_stat[]节
+	 * 是通过函数__raise_softirq_irqoff()来置位的，参见[9.2.3 irq_stat[]]节
 	 */
 	if (!in_interrupt() && local_softirq_pending())
-		invoke_softirq();		// 参见invoke_softirq()节
+		invoke_softirq();		// 参见[9.3.1.3.1 invoke_softirq()]节
 
 	rcu_irq_exit();
 #ifdef CONFIG_NO_HZ
@@ -40642,7 +40655,7 @@ void irq_exit(void)
 	if (idle_cpu(smp_processor_id()) && !in_interrupt() && !need_resched())
 		tick_nohz_stop_sched_tick(0);
 #endif
-	// 参见preempt_enable()/preempt_enable_no_resched()节
+	// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 	preempt_enable_no_resched();
 }
 ```
@@ -40656,10 +40669,10 @@ void irq_exit(void)
 static inline void invoke_softirq(void)
 {
 	if (!force_irqthreads)
-		__do_softirq();		// 参见__do_softirq()节
+		__do_softirq();		// 参见[9.3.1.3.1.1.1 __do_softirq()]节
 	else {
 		__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_OFFSET);
-		wakeup_softirqd();	// 唤醒内核线程ksoftirqd，参见ksoftirqd节
+		wakeup_softirqd();	// 唤醒内核线程ksoftirqd，参见[9.3.1.3.1.2 ksoftirqd]节
 		__local_bh_enable(SOFTIRQ_OFFSET);
 	}
 }
@@ -40667,10 +40680,10 @@ static inline void invoke_softirq(void)
 static inline void invoke_softirq(void)
 {
 	if (!force_irqthreads)
-		do_softirq();		// 参见do_softirq()节
+		do_softirq();		// 参见[9.3.1.3.1.1 do_softirq()]节
 	else {
 		__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_OFFSET);
-		wakeup_softirqd();	// 唤醒内核线程ksoftirqd，参见ksoftirqd节
+		wakeup_softirqd();	// 唤醒内核线程ksoftirqd，参见[9.3.1.3.1.2 ksoftirqd]节
 		__local_bh_enable(SOFTIRQ_OFFSET);
 	}
 }
@@ -40690,7 +40703,7 @@ asmlinkage void do_softirq(void)
 	__u32 pending;
 	unsigned long flags;
 
-	// 不在中断上下文中，才处理软中断，参见tatus of the Interrupt System节
+	// 不在中断上下文中，才处理软中断，参见[9.5.3 Status of the Interrupt System]节
 	if (in_interrupt())
 		/*
 		 * This situation indicates either that do_softirq()
@@ -40701,10 +40714,10 @@ asmlinkage void do_softirq(void)
 
 	local_irq_save(flags);
 
-	// 查询当前CPU是否存在待处理的软中断，参见irq_stat[]节
+	// 查询当前CPU是否存在待处理的软中断，参见[9.2.3 irq_stat[]]节
 	pending = local_softirq_pending();
 
-	// 若存在待处理的软中断，则调用对应的软中断处理函数，参见__do_softirq()节
+	// 若存在待处理的软中断，则调用对应的软中断处理函数，参见[9.3.1.3.1.1.1 __do_softirq()]节
 	if (pending)
 		__do_softirq();
 
@@ -40737,11 +40750,11 @@ asmlinkage void __do_softirq(void)
 	int max_restart = MAX_SOFTIRQ_RESTART;
 	int cpu;
 
-	// 获取当前CPU是否存在待处理的软中断(参见irq_stat[]节)，并保存到变量pending中
+	// 获取当前CPU是否存在待处理的软中断(参见[9.2.3 irq_stat[]]节)，并保存到变量pending中
 	pending = local_softirq_pending();
 	account_system_vtime(current);
 
-	// Disable Bottom Half，参见Disable Bottom Half节
+	// Disable Bottom Half，参见[9.3.1.3.1.1.1.1 Disable Bottom Half]节
 	__local_bh_disable((unsigned long)__builtin_return_address(0), SOFTIRQ_OFFSET);
 	// 增加软中断计数，即current->softirq_context++
 	lockdep_softirq_enter();
@@ -40760,7 +40773,7 @@ restart:
 	do {
 		/*
 		 * 依次查询softirq_vec[]中的每种软中断，若置位，
-		 * 则调用对应的处理函数，参见struct softirq_节；
+		 * 则调用对应的处理函数，参见[9.2.2 struct softirq_action/softirq_vec[]]节；
 		 */
 		if (pending & 1) {
 			unsigned int vec_nr = h - softirq_vec;
@@ -40774,7 +40787,7 @@ restart:
 			trace_softirq_exit(vec_nr);
 			if (unlikely(prev_count != preempt_count())) {
 				printk(KERN_ERR "huh, entered softirq %u %s %p with preempt_count %08x, exited with %08x?\n",
-						 vec_nr, softirq_to_name[vec_nr], h->action, prev_count, preempt_count());
+					vec_nr, softirq_to_name[vec_nr], h->action, prev_count, preempt_count());
 				preempt_count() = prev_count;
 			}
 
@@ -40783,7 +40796,7 @@ restart:
 		h++;
 		/*
 		 * 右移，故低位对应的软中断具有高优先级，
-		 * 参见struct softirq_action/softirq_vec[]节
+		 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节
 		 */
 		pending >>= 1;
 	} while (pending);
@@ -40801,7 +40814,7 @@ restart:
 
 	/*
 	 * 若存在且查询次数超过了10次，则唤醒内核线程ksoftirqd，
-	 * 由其来处理软中断，参见ksoftirqd节；
+	 * 由其来处理软中断，参见[9.3.1.3.1.2 ksoftirqd]节；
 	 */
 	if (pending)
 		wakeup_softirqd();
@@ -40810,18 +40823,18 @@ restart:
 	lockdep_softirq_exit();
 
 	account_system_vtime(current);
-	// Enable Bottom Half，参见Enable Bottom Half节
+	// Enable Bottom Half，参见[9.3.1.3.1.1.1.2 Enable Bottom Half]节
 	__local_bh_enable(SOFTIRQ_OFFSET);
 }
 ```
 
-Q: Why repeat MAX_SOFTIRQ_RESTART times in __do_softirq()?
+Q: Why repeat MAX_SOFTIRQ_RESTART times in ```__do_softirq()```?
 
-A: While executing a softirq function, new pending softirqs might pop up; in order to ensure a low latency time for the deferrable funtions, __do_softirq() keeps running until all pending softirqs have been executed. This mechanism, however, could force __do_softirq() to run for long periods of time, thus considerably delaying User Mode processes. For that reason, __do_softirq() performs a fixed number of iterations and then returns. The remaining pending softirqs, if any, will be handled in due time by the ksoftirqd kernel thread.
+A: While executing a softirq function, new pending softirqs might pop up; in order to ensure a low latency time for the deferrable funtions, ```__do_softirq()``` keeps running until all pending softirqs have been executed. This mechanism, however, could force ```__do_softirq()``` to run for long periods of time, thus considerably delaying User Mode processes. For that reason, ```__do_softirq()``` performs a fixed number of iterations and then returns. The remaining pending softirqs, if any, will be handled in due time by the ksoftirqd kernel thread.
 
 ###### 9.3.1.3.1.1.1.1 Disable Bottom Half
 
-函数local_bh_disable() / \__local_bh_disable()用于禁用Bottom Half，其定义于kernel/softirq.c:
+函数```local_bh_disable()```和```__local_bh_disable()```用于禁用Bottom Half，其定义于kernel/softirq.c:
 
 ```
 void local_bh_disable(void)
@@ -40846,7 +40859,7 @@ static void __local_bh_disable(unsigned long ip, unsigned int cnt)
 	 */
 	/*
 	 * current_thread_info()->preempt_count += cnt，
-	 * 参见struct thread_info->preempt_count节
+	 * 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 	 */
 	preempt_count() += cnt;
 	/*
@@ -40922,7 +40935,7 @@ static inline void _local_bh_enable_ip(unsigned long ip)
 	sub_preempt_count(SOFTIRQ_DISABLE_OFFSET - 1);
 
 	if (unlikely(!in_interrupt() && local_softirq_pending()))
-		do_softirq();	// 参见do_softirq()节
+		do_softirq();	// 参见[9.3.1.3.1.1 do_softirq()]节
 
 	dec_preempt_count();
 #ifdef CONFIG_TRACE_IRQFLAGS
@@ -40952,7 +40965,7 @@ static int run_ksoftirqd(void * __bind_cpu)
 		preempt_disable();
 		// 若没有待处理的软中断，则调度其他进程运行
 		if (!local_softirq_pending()) {
-			// 参见preempt_enable()/preempt_enable_no_resched()节
+			// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 			preempt_enable_no_resched();
 			schedule();
 			preempt_disable();
@@ -40969,15 +40982,15 @@ static int run_ksoftirqd(void * __bind_cpu)
 				goto wait_to_die;
 			local_irq_disable();
 			if (local_softirq_pending())
-				__do_softirq();	// 参见__do_softirq()节
+				__do_softirq();	// 参见[9.3.1.3.1.1.1 __do_softirq()]节
 			local_irq_enable();
-			// 参见preempt_enable()/preempt_enable_no_resched()节
+			// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 			preempt_enable_no_resched();
-			cond_resched();		// 参见cond_resched()节
+			cond_resched();		// 参见[7.4.8 cond_resched()]节
 			preempt_disable();
 			rcu_note_context_switch((long)__bind_cpu);
 		}
-		// 参见preempt_enable()/preempt_enable_no_resched()节
+		// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 		preempt_enable();
 		set_current_state(TASK_INTERRUPTIBLE);
 	}
@@ -40985,7 +40998,7 @@ static int run_ksoftirqd(void * __bind_cpu)
 	return 0;
 
 wait_to_die:
-	// 参见preempt_enable()/preempt_enable_no_resched()节
+	// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 	preempt_enable();
 	/* Wait for kthread_stop */
 	set_current_state(TASK_INTERRUPTIBLE);
@@ -41010,7 +41023,7 @@ static int __cpuinit cpu_callback(struct notifier_block *nfb, unsigned long acti
 		 * The threads are each named ksoftirqd/n where n is the
 		 * processor number. Having a thread on each processor
 		 * ensures an idle processor, if available, can always
-		 * service softirqs. 参见kthread_run()节
+		 * service softirqs. 参见[7.2.4.4.1 kthread_run()]节
 		 */
 		p = kthread_create_on_node(run_ksoftirqd, hcpu, cpu_to_node(hotcpu),
 				"ksoftirqd/%d", hotcpu);
@@ -41024,7 +41037,7 @@ static int __cpuinit cpu_callback(struct notifier_block *nfb, unsigned long acti
  		break;
 	case CPU_ONLINE:
 	case CPU_ONLINE_FROZEN:
-		// 唤醒内核线程ksoftirqd，参见wake_up_process()节
+		// 唤醒内核线程ksoftirqd，参见[7.4.10.2.3 wake_up_process()]节
 		wake_up_process(per_cpu(ksoftirqd, hotcpu));
 		break;
 #ifdef CONFIG_HOTPLUG_CPU
@@ -41234,7 +41247,7 @@ work_notifysig_v86:
 	movl %esp, %eax
 #endif
 	xorl %edx, %edx
-	call do_notify_resume			// 参见信号的接收与处理节
+	call do_notify_resume			// 参见[8.3.4 信号的接收与处理]节
 	jmp resume_userspace_sig		// 转移至check_userspace或resume_userspace处执行
 END(work_pending)
 ```
@@ -41257,7 +41270,7 @@ Before activating a device that is going to use an IRQ line, the corresponding d
 
 ```
 #ifdef CONFIG_GENERIC_HARDIRQS
-// 参见request_threaded_irq()节
+// 参见[9.4.1.1 request_threaded_irq()]节
 extern int __must_check
 request_threaded_irq(unsigned int irq, irq_handler_t handler,
 		     irq_handler_t thread_fn,
@@ -41272,7 +41285,7 @@ request_threaded_irq(unsigned int irq, irq_handler_t handler,
  */
 static inline int __must_check
 request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
-			   const char *name, void *dev)
+	    const char *name, void *dev)
 {
 	return request_threaded_irq(irq, handler, NULL, flags, name, dev);
 }
@@ -41290,7 +41303,7 @@ request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
  */
 extern int __must_check
 request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
-			   const char *name, void *dev);
+	    const char *name, void *dev);
 
 /*
  * Special function to avoid ifdeffery in kernel/irq/devres.c which
@@ -41314,7 +41327,7 @@ request_threaded_irq(unsigned int irq, irq_handler_t handler,
 
 | request_irq()函数入参 | 含义 |
 | unsigned int irq | 要分配的中断号。对于某些设备，如传统PC上的系统时钟或键盘等设备，中断号是提前确定的。而对于其它设备要么事动态探测获取，要么是编程动态确定 |
-| irq_handler_t handler | 中断处理函数指针，其定义于<br>include/linux/interrupt.h:<br>typedef irqreturn_t (*irq_handler_t)(int, void *);<br>中断处理函数的编写参见编写中断处理函数节 |
+| irq_handler_t handler | 中断处理函数指针，其定义于<br>include/linux/interrupt.h:<br>typedef irqreturn_t (*irq_handler_t)(int, void *);<br>中断处理函数的编写参见[9.6 编写中断处理函数](#9-6-)节 |
 | unsigned long flags | 标志位，参见include/linux/interrupt.h中以IRQF_开头的宏，如下图 |
 | const char *name | 设备描述信息 |
 | void *dev | 用于识别共享中断线(参见标志位IRQF_SHARED)的众多设备驱动程序的某一个设备 |
@@ -41380,7 +41393,7 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 	chip_bus_lock(desc);
 	/*
 	 * 将action结构加入到desc->action链表中，
-	 * 参见[9.2.1 struct irq_desc/irq_desc[]]节和__setup_irq()节
+	 * 参见[9.2.1 struct irq_desc/irq_desc[]]节和[9.4.1.2 setup_irq()/__setup_irq()]节
 	 */
 	retval = __setup_irq(irq, desc, action);
 	chip_bus_sync_unlock(desc);
@@ -41520,7 +41533,7 @@ static int __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction
 		struct task_struct *t;
 
 		/*
-		 * 创建内核线程，参见kthread_run()节。
+		 * 创建内核线程，参见[7.2.4.4.1 kthread_run()]节。
 		 * 函数irq_thread()定义于kernel/irq/manage.c
 		 */
 		t = kthread_create(irq_thread, new, "irq/%d-%s", irq, new->name);
@@ -41637,7 +41650,7 @@ static int __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction
 	/*
 	 * 将新的action结构加入到desc->action链表中。
 	 * 该处理函数在handle_irq_event_percpu()被调用，
-	 * 参见handle_irq_event_percpu()节
+	 * 参见[9.3.1.2.1.1.1 handle_irq_event_percpu()]节
 	 */
 	new->irq = irq;
 	*old_ptr = new; 
@@ -41784,7 +41797,7 @@ void free_irq(unsigned int irq, void *dev_id)
 
 	// 调用desc->irq_data.chip->irq_bus_lock()
 	chip_bus_lock(desc);
-	// 释放__free_irq()返回的irqaction结构，参见__free_irq()节
+	// 释放__free_irq()返回的irqaction结构，参见[9.4.2.1 __free_irq()]节
 	kfree(__free_irq(irq, dev_id));
 	// 调用desc->irq_data.chip->irq_bus_sync_unlock()
 	chip_bus_sync_unlock(desc);
@@ -41990,7 +42003,7 @@ More often, you want to check whether you are in process context. That is, you w
 
 The macro in_irq() returns nonzero only if the kernel is specifically executing an interrupt handler.
 
-另参见struct thread_info->preempt_count节。
+另参见[7.1.1.3.1.1 struct thread_info->preempt_count](#7-1-1-3-1-1-struct-thread-info-gt-preempt-count)节。
 
 ## 9.6 编写中断处理函数
 
@@ -42087,8 +42100,8 @@ static irqreturn_t rtc_interrupt(int irq, void *dev_id)
 ## 9.7 中断的初始化
 
 在系统启动时，需要初始化中断，参见： 
-* 中断描述符表的初步初始化节
-* 中断描述符表的最终初始化节
+* [6.1.1.3.1.1 中断描述符表的初步初始化](#6-1-1-3-1-1-)节
+* [6.1.1.3.1.2 中断描述符表的最终初始化](#6-1-1-3-1-2-)节
 * [4.3.4.1.4.3.5 trap_init()](#4-3-4-1-4-3-5-trap-init-)节
 * [4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节
 * [4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节
@@ -42325,7 +42338,7 @@ chenwx@chenwx ~/linux $ git diff --shortstat v3.13 v3.14
 * Block Drivers
 * Network Drivers
 
-Most device drivers represent physical hardware. However, some device drivers are virtual, providing access to kernel functionality. 参见10.3.4.1 内存设备节. Some of the most common Pseudo devices are:
+Most device drivers represent physical hardware. However, some device drivers are virtual, providing access to kernel functionality. 参见[10.3.4.1 内存设备](#10-3-4-1-)节. Some of the most common Pseudo devices are:
 * the kernel random number generator (accessible at /dev/random and /dev/urandom),
 * the null device (accessible at /dev/null)
 * the zero device (accessible at /dev/zero)
@@ -42420,7 +42433,7 @@ drwxr-xr-x  2 root root          60 Nov 15 02:42 cpu
 设备驱动程序的初始化函数为driver_init()，其调用关系如下：
 
 ```
-start_kernel()				// 参见start_kernel()节
+start_kernel()				// 参见[4.3.4.1.4.3 start_kernel()]节
 -> rest_init()				// 参见[4.3.4.1.4.3.13 rest_init()]节
    -> kernel_init()			// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
       -> do_basic_setup()		// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
@@ -42439,20 +42452,20 @@ start_kernel()				// 参见start_kernel()节
 void __init driver_init(void)
 {
 	/* These are the core pieces */
-	devtmpfs_init();		// 参见11.3.10.2 Devtmpfs的编译及初始化节
-	devices_init();			// 参见10.2.1.1 devices_init()节
-	buses_init();			// 参见10.2.1.2 buses_init()节
-	classes_init();			// 参见10.2.1.3 classes_init()节
-	firmware_init();		// 参见10.2.1.4 firmware_init()节
-	hypervisor_init();		// 参见10.2.1.5 hypervisor_init()节
+	devtmpfs_init();		// 参见[11.3.10.2 Devtmpfs的编译及初始化]节
+	devices_init();			// 参见[10.2.1.1 devices_init()]节
+	buses_init();			// 参见[10.2.1.2 buses_init()]节
+	classes_init();			// 参见[10.2.1.3 classes_init()]节
+	firmware_init();		// 参见[10.2.1.4 firmware_init()]节
+	hypervisor_init();		// 参见[10.2.1.5 hypervisor_init()]节
 
 	/* These are also core pieces, but must come after the
 	 * core core pieces.
 	 */
-	platform_bus_init();		// 参见10.2.1.6 platform_bus_init()节
-	system_bus_init();		// 参见10.2.1.7 system_bus_init()节
-	cpu_dev_init();			// 参见10.2.1.8 cpu_dev_init()节
-	memory_dev_init();		// 参见10.2.1.9 memory_dev_init()节
+	platform_bus_init();		// 参见[10.2.1.6 platform_bus_init()]节
+	system_bus_init();		// 参见[10.2.1.7 system_bus_init()]节
+	cpu_dev_init();			// 参见[10.2.1.8 cpu_dev_init()]节
+	memory_dev_init();		// 参见[10.2.1.9 memory_dev_init()]节
 }
 ```
 
@@ -42464,8 +42477,8 @@ void __init driver_init(void)
 int __init devices_init(void)
 {
 	/*
-	 * 创建目录/sys/devices，参见15.7.4.1 kset_create_and_add()节
-	 * 变量device_uevent_ops，参见15.7.5.1 device_uevent_ops节
+	 * 创建目录/sys/devices，参见[15.7.4.1 kset_create_and_add()]节
+	 * 变量device_uevent_ops，参见[15.7.5.1 device_uevent_ops]节
 	 */
 	devices_kset = kset_create_and_add("devices", &device_uevent_ops, NULL);
 	if (!devices_kset)
@@ -42505,7 +42518,7 @@ dev_kobj_err:
 ```
 int __init buses_init(void)
 {
-	// 创建目录/sys/bus，参见15.7.4.1 kset_create_and_add()节
+	// 创建目录/sys/bus，参见[15.7.4.1 kset_create_and_add()]节
 	bus_kset = kset_create_and_add("bus", &bus_uevent_ops, NULL);
 	if (!bus_kset)
 		return -ENOMEM;
@@ -42520,7 +42533,7 @@ int __init buses_init(void)
 ```
 int __init classes_init(void)
 {
-	// 创建目录/sys/class，参见15.7.4.1 kset_create_and_add()节
+	// 创建目录/sys/class，参见[15.7.4.1 kset_create_and_add()]节
 	class_kset = kset_create_and_add("class", NULL, NULL);
 	if (!class_kset)
 		return -ENOMEM;
@@ -42583,9 +42596,9 @@ int __init platform_bus_init(void)
 	early_platform_cleanup();
 
 	/*
-	 * 注册platform_bus设备，参见10.2.3.3 注册设备/device_register()节;
+	 * 注册platform_bus设备，参见[10.2.3.3 注册设备/device_register()]节;
 	 * 变量platform_bus用于platform_bus_register()，
-	 * 参见10.2.5.1 注册平台设备/platform_device_register()节
+	 * 参见[10.2.5.1 注册平台设备/platform_device_register()]节
 	 */
 	error = device_register(&platform_bus);
 	if (error)
@@ -42608,7 +42621,7 @@ int __init system_bus_init(void)
 {
 	/*
 	 * 创建目录/sys/devices/system
-	 * 参见15.7.4.1 kset_create_and_add()节和10.2.1.1 devices_init()节
+	 * 参见[15.7.4.1 kset_create_and_add()]节和[10.2.1.1 devices_init()]节
 	 */
 	system_kset = kset_create_and_add("system", NULL, &devices_kset->kobj);
 	if (!system_kset)
@@ -42631,7 +42644,7 @@ int __init cpu_dev_init(void)
 {
 	int err;
 
-	// 参见10.2.1.8.1 sysdev_class_register()节
+	// 参见[10.2.1.8.1 sysdev_class_register()]节
 	err = sysdev_class_register(&cpu_sysdev_class);
 
 #if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
@@ -42657,7 +42670,7 @@ int sysdev_class_register(struct sysdev_class *cls)
 	INIT_LIST_HEAD(&cls->drivers);
 	memset(&cls->kset.kobj, 0x00, sizeof(struct kobject));
 
-	// 设置父节点为/sys/devices/system，参见10.2.1.7 system_bus_init()节
+	// 设置父节点为/sys/devices/system，参见[10.2.1.7 system_bus_init()]节
 	cls->kset.kobj.parent = &system_kset->kobj;
 	cls->kset.kobj.ktype = &ktype_sysdev_class;
 	cls->kset.kobj.kset = system_kset;
@@ -42672,7 +42685,7 @@ int sysdev_class_register(struct sysdev_class *cls)
 
 	/*
 	 * 在/sys/devices/system/cpu目录下创建 cls->attrs包含的文件，
-	 * 参见11.3.5.6.1 sysfs_create_files()节
+	 * 参见[11.3.5.6.1 sysfs_create_files()]节
 	 */
 	if (!retval && cls->attrs)
 		retval = sysfs_create_files(&cls->kset.kobj, (const struct attribute **)cls->attrs);
@@ -42702,7 +42715,7 @@ int __init memory_dev_init(void)
 
 	memory_sysdev_class.kset.uevent_ops = &memory_uevent_ops;
 
-	// 创建目录/sys/devices/system/memory，参见10.2.1.8.1 sysdev_class_register()节
+	// 创建目录/sys/devices/system/memory，参见[10.2.1.8.1 sysdev_class_register()]节
 	ret = sysdev_class_register(&memory_sysdev_class);
 	if (ret)
 		goto out;
@@ -42850,14 +42863,14 @@ int bus_register(struct bus_type *bus)
 	if (retval)
 		goto out;
 
-	// 设置该bus的父目录为/sys/bus，参见10.2.1.2 buses_init()节
+	// 设置该bus的父目录为/sys/bus，参见[10.2.1.2 buses_init()]节
 	priv->subsys.kobj.kset = bus_kset;
 	priv->subsys.kobj.ktype = &bus_ktype;
 
 	/*
 	 * 设置自动匹配驱动程序，如下函数会判断该字段：
-	 * - bus_probe_device()，参见10.2.3.3.2.3 bus_probe_device()节
-	 * - bus_add_driver()，参见10.2.4.1.1 添加设备驱动程序/bus_add_driver()节
+	 * - bus_probe_device()，参见[10.2.3.3.2.3 bus_probe_device()]节
+	 * - bus_add_driver()，参见[10.2.4.1.1 添加设备驱动程序/bus_add_driver()]节
 	 */
 	priv->drivers_autoprobe = 1;
 
@@ -42876,7 +42889,7 @@ int bus_register(struct bus_type *bus)
 
 	/*
 	 * 创建目录/sys/bus/XXX/devices，该目录下的每个子目录对应于一个设备，
-	 * 参见15.7.4.1 kset_create_and_add()节
+	 * 参见[15.7.4.1 kset_create_and_add()]节
 	 */
 	priv->devices_kset = kset_create_and_add("devices", NULL, &priv->subsys.kobj);
 	if (!priv->devices_kset) {
@@ -42886,7 +42899,7 @@ int bus_register(struct bus_type *bus)
 
 	/*
 	 * 创建目录/sys/bus/XXX/drivers，该目录下的每个子目录对应于一个设备驱动程序，
-	 * 参见15.7.4.1 kset_create_and_add()节
+	 * 参见[15.7.4.1 kset_create_and_add()]节
 	 */
 	priv->drivers_kset = kset_create_and_add("drivers", NULL, &priv->subsys.kobj);
 	if (!priv->drivers_kset) {
@@ -42894,7 +42907,7 @@ int bus_register(struct bus_type *bus)
 		goto bus_drivers_fail;
 	}
 
-	// 初始化链表，参见15.1.13 双向循环链表的封装/struct klist节
+	// 初始化链表，参见[15.1.13 双向循环链表的封装/struct klist]节
 	klist_init(&priv->klist_devices, klist_devices_get, klist_devices_put);
 	klist_init(&priv->klist_drivers, NULL, NULL);
 
@@ -43250,7 +43263,7 @@ struct device *device_create_vargs(struct class *class, struct device *parent,
 	 * 其中，NOTE (1)处t->release()是通过下面的函数赋值的:
 	 * device_create()			// 参见本节
 	 * -> device_create_vargs()
-	 *    -> device_register()		// 参见10.2.3.3 注册设备/device_register()节
+	 *    -> device_register()		// 参见[10.2.3.3 注册设备/device_register()]节
 	 *       -> device_initialize(struct device *dev)
 	 *          -> kobject_init(&dev->kobj, &device_ktype)
 	 *             -> dev->kobj->ktype = device_ktype
@@ -43265,7 +43278,7 @@ struct device *device_create_vargs(struct class *class, struct device *parent,
 	if (retval)
 		goto error;
 
-	// 注册设备，参见10.2.3.3 注册设备/device_register()节
+	// 注册设备，参见[10.2.3.3 注册设备/device_register()]节
 	retval = device_register(dev);
 	if (retval)
 		goto error;
@@ -43300,7 +43313,7 @@ void device_destroy(struct class *class, dev_t devt)
 	if (dev) {
 		put_device(dev);
 
-		// 参见10.2.3.4 注销设备/device_unregister()节
+		// 参见[10.2.3.4 注销设备/device_unregister()]节
 		device_unregister(dev);
 	}
 }
@@ -43328,8 +43341,8 @@ void device_destroy(struct class *class, dev_t devt)
  */
 int device_register(struct device *dev)
 {
-	device_initialize(dev);	// 参见10.2.3.3.1 设备初始化/device_initialize()节
-	return device_add(dev);	// 参见10.2.3.3.2 添加设备/device_add()节
+	device_initialize(dev);	// 参见[10.2.3.3.1 设备初始化/device_initialize()]节
+	return device_add(dev);	// 参见[10.2.3.3.2 添加设备/device_add()]节
 }
 ```
 
@@ -43363,7 +43376,7 @@ void device_initialize(struct device *dev)
 {
 	/*
 	 * 设置该device的父目录为/sys/devices，
-	 * 参见10.2.1.1 devices_init()节
+	 * 参见[10.2.1.1 devices_init()]节
 	 */
 	dev->kobj.kset = devices_kset;
 
@@ -43446,7 +43459,7 @@ int device_add(struct device *dev)
 	/*
 	 * 增加父设备的索引计数，即dev->parent->kobj->kref->refcount
 	 * 并将dev->kobj.parent设置为parent->kobj
-	 * 参见10.2.3.3.2.1 setup_parent()节
+	 * 参见[10.2.3.3.2.1 setup_parent()]节
 	 */
 	parent = get_device(dev->parent);
 	setup_parent(dev, parent);
@@ -43470,14 +43483,14 @@ int device_add(struct device *dev)
 		platform_notify(dev);
 
 	// 创建文件/sys/devices/XXX/uevent
-	// 参见10.2.3.3.2.2.2 创建设备属性/device_create_file()节
+	// 参见[10.2.3.3.2.2.2 创建设备属性/device_create_file()]节
 	error = device_create_file(dev, &uevent_attr);
 	if (error)
 		goto attrError;
 
 	if (MAJOR(dev->devt)) {
 		// 创建文件/sys/devices/XXX/dev
-		// 参见10.2.3.3.2.2.2 创建设备属性/device_create_file()节
+		// 参见[10.2.3.3.2.2.2 创建设备属性/device_create_file()]节
 		error = device_create_file(dev, &devt_attr);
 		if (error)
 			goto ueventattrError;
@@ -43493,11 +43506,11 @@ int device_add(struct device *dev)
 		/*
 		 * 目录/dev被挂载为devtmpfs文件系统，故可通过向线程
 		 * devtmpfsd发送request来创建设备文件/dev/DevName，
-		 * 参见11.3.10.2.2.1 devtmpfs_create_node()节；
+		 * 参见[11.3.10.2.2.1 devtmpfs_create_node()]节；
 		 *
 		 * 文件名/dev/DevName是通过如下函数获得的，
 		 * devtmpfs_create_node()->device_get_devnode()
-		 * 参见11.3.10.2.2.1.1 device_get_devnode()节
+		 * 参见[11.3.10.2.2.1.1 device_get_devnode()]节
 		 */
 		devtmpfs_create_node(dev);
 	}
@@ -43540,12 +43553,12 @@ int device_add(struct device *dev)
 	if (dev->bus)
 		blocking_notifier_call_chain(&dev->bus->p->bus_notifier, BUS_NOTIFY_ADD_DEVICE, dev);
 
-	// 参见15.7.5 kobject_uevent()节
+	// 参见[15.7.5 kobject_uevent()]节
 	kobject_uevent(&dev->kobj, KOBJ_ADD);
 
 	/*
 	 * 为该新设备查找对应的驱动程序(probe drivers for a new device)
-	 * 参见10.2.3.3.2.3 bus_probe_device()节
+	 * 参见[10.2.3.3.2.3 bus_probe_device()]节
 	 */
 	bus_probe_device(dev);
 
@@ -43594,7 +43607,7 @@ ueventattrError:
 	device_remove_file(dev, &uevent_attr);
 attrError:
 	kobject_uevent(&dev->kobj, KOBJ_REMOVE);
-	// 参见15.7.2.2.1.1 kobject_del()节
+	// 参见[15.7.2.2.1.1 kobject_del()]节
 	kobject_del(&dev->kobj);
 Error:
 	cleanup_device_parent(dev);
@@ -43718,34 +43731,34 @@ struct dev_ext_attribute {
 如下宏用来定义设备属性，其定义于include/linux/device.h:
 
 ```
-#define DEVICE_ATTR(_name, _mode, _show, _store) \
+#define DEVICE_ATTR(_name, _mode, _show, _store)			\
 	struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)
 
-#define DEVICE_ATTR_RO(_name) \
+#define DEVICE_ATTR_RO(_name)						\
 	struct device_attribute dev_attr_##_name = __ATTR_RO(_name)
 
 /* kernel v3.10 */
-#define DEVICE_ATTR_WO(_name) \
+#define DEVICE_ATTR_WO(_name) 						\
 	struct device_attribute dev_attr_##_name = __ATTR_WO(_name)
 
 /* kernel v3.10 */
-#define DEVICE_ATTR_RW(_name) \
+#define DEVICE_ATTR_RW(_name) 						\
 	struct device_attribute dev_attr_##_name = __ATTR_RW(_name)
 
-#define DEVICE_ATTR_IGNORE_LOCKDEP(_name, _mode, _show, _store)	\
-	struct device_attribute dev_attr_##_name =		\
+#define DEVICE_ATTR_IGNORE_LOCKDEP(_name, _mode, _show, _store)		\
+	struct device_attribute dev_attr_##_name =			\
 		__ATTR_IGNORE_LOCKDEP(_name, _mode, _show, _store)
 
-#define DEVICE_ULONG_ATTR(_name, _mode, _var) 	\
-	struct dev_ext_attribute dev_attr_##_name =	\
+#define DEVICE_ULONG_ATTR(_name, _mode, _var) 				\
+	struct dev_ext_attribute dev_attr_##_name =			\
 		{ __ATTR(_name, _mode, device_show_ulong, device_store_ulong), &(_var) }
 
-#define DEVICE_INT_ATTR(_name, _mode, _var) 	\
-	struct dev_ext_attribute dev_attr_##_name =	\
+#define DEVICE_INT_ATTR(_name, _mode, _var) 				\
+	struct dev_ext_attribute dev_attr_##_name =			\
 		{ __ATTR(_name, _mode, device_show_int, device_store_int), &(_var) }
-
-#define DEVICE_BOOL_ATTR(_name, _mode, _var)	\
-	struct dev_ext_attribute dev_attr_##_name =	\
+	
+#define DEVICE_BOOL_ATTR(_name, _mode, _var)				\
+	struct dev_ext_attribute dev_attr_##_name =			\
 		{ __ATTR(_name, _mode, device_show_bool, device_store_bool), &(_var) }
 ```
 
@@ -43824,7 +43837,7 @@ int device_create_file(struct device *dev, const struct device_attribute *attr)
 			"Attribute %s: read permission without 'show'\n",
 			attr->attr.name);
 
-		// 参见11.3.5.6.2 sysfs_create_file()节
+		// 参见[11.3.5.6.2 sysfs_create_file()]节
 		error = sysfs_create_file(&dev->kobj, &attr->attr);
 	}
 
@@ -43844,7 +43857,7 @@ int device_create_file(struct device *dev, const struct device_attribute *attr)
  */
 void device_remove_file(struct device *dev, const struct device_attribute *attr)
 {
-	// 参见11.3.5.6.3 sysfs_remove_file()节
+	// 参见[11.3.5.6.3 sysfs_remove_file()]节
 	if (dev)
 		sysfs_remove_file(&dev->kobj, &attr->attr);
 }
@@ -43867,7 +43880,7 @@ void bus_probe_device(struct device *dev)
 	int ret;
 
 	/*
-	 * 若支持自动匹配(参见10.2.2.1 bus_register()节)，
+	 * 若支持自动匹配(参见[10.2.2.1 bus_register()]节)，
 	 * 则自动匹配注册到同一bus的device和driver (参见下文)
 	 */
 	if (bus && bus->p->drivers_autoprobe) {
@@ -43953,7 +43966,7 @@ static int __device_attach(struct device_driver *drv, void *data)
 	/*
 	 * 若该device和driver匹配，且该device还未指定匹配的driver，
 	 * 则调用driver_probe_device()->really_probe()来绑定该device和driver
-	 * 参见10.2.3.3.2.3.1 driver_probe_device()节
+	 * 参见[10.2.3.3.2.3.1 driver_probe_device()]节
 	 */
 	return driver_probe_device(drv, dev);
 }
@@ -43983,7 +43996,7 @@ int driver_probe_device(struct device_driver *drv, struct device *dev)
 		return -ENODEV;
 
 	pr_debug("bus: '%s': %s: matched device %s with driver %s\n",
-				drv->bus->name, __func__, dev_name(dev), drv->name);
+		 drv->bus->name, __func__, dev_name(dev), drv->name);
 
 	pm_runtime_get_noresume(dev);
 	pm_runtime_barrier(dev);
@@ -43999,7 +44012,7 @@ static int really_probe(struct device *dev, struct device_driver *drv)
 
 	atomic_inc(&probe_count);
 	pr_debug("bus: '%s': %s: probing driver %s with device %s\n",
-			  drv->bus->name, __func__, drv->name, dev_name(dev));
+		 drv->bus->name, __func__, drv->name, dev_name(dev));
 	WARN_ON(!list_empty(&dev->devres_head));
 
 	// 将dev的驱动程序设置为drv，并创建dev->driver->p->kobj和dev->kobj之间的相互链接文件
@@ -44078,7 +44091,7 @@ void device_unregister(struct device *dev)
 
 	/*
 	 * delete device from system.
-	 * 参见10.2.3.4.1 删除设备/device_del()节
+	 * 参见[10.2.3.4.1 删除设备/device_del()]节
 	 */
 	device_del(dev);
 
@@ -44191,7 +44204,7 @@ struct device_driver {
 
 	const struct of_device_id	*of_match_table;
 
-	// 参见13.1.2.2 MODULE_DEVICE_TABLE()节
+	// 参见[13.1.2.2 MODULE_DEVICE_TABLE()]节
 	int	(*probe) (struct device *dev);
 	int	(*remove) (struct device *dev);
 	void	(*shutdown) (struct device *dev);
@@ -44275,7 +44288,7 @@ int driver_register(struct device_driver *drv)
 		return -EBUSY;
 	}
 
-	// 添加设备驱动程序到bus，参见10.2.4.1.1 添加设备驱动程序/bus_add_driver()节
+	// 添加设备驱动程序到bus，参见[10.2.4.1.1 添加设备驱动程序/bus_add_driver()]节
 	ret = bus_add_driver(drv);
 	if (ret)
 		return ret;
@@ -44337,9 +44350,9 @@ int bus_add_driver(struct device_driver *drv)
 		goto out_unregister;
 
 	/*
-	 * 若支持自动匹配(参见10.2.2.1 bus_register()节)，
+	 * 若支持自动匹配(参见[10.2.2.1 bus_register()]节)，
 	 * 则自动匹配注册到同一bus的device和driver，
-	 * 参见10.2.4.1.1.1 driver_attach()节
+	 * 参见[10.2.4.1.1.1 driver_attach()]节
 	 */
 	if (drv->bus->p->drivers_autoprobe) {
 		error = driver_attach(drv);
@@ -44357,7 +44370,7 @@ int bus_add_driver(struct device_driver *drv)
 	 */
 	module_add_driver(drv->owner, drv);
 
-	// 参见10.2.4.1.1.2.2 创建设备驱动属性/driver_create_file()节
+	// 参见[10.2.4.1.1.2.2 创建设备驱动属性/driver_create_file()]节
 	error = driver_create_file(drv, &driver_attr_uevent);
 	if (error) {
 		printk(KERN_ERR "%s: uevent attr (%s) failed\n", __func__, drv->name);
@@ -44379,13 +44392,13 @@ int bus_add_driver(struct device_driver *drv)
 
 	/*
 	 * notify userspace by sending an uevent
-	 * 参见15.7.5 kobject_uevent()节
+	 * 参见[15.7.5 kobject_uevent()]节
 	 */
 	kobject_uevent(&priv->kobj, KOBJ_ADD);
 	return 0;
 
 out_unregister:
-	kobject_put(&priv->kobj);	// 参见15.7.2.2 kobject_put()节
+	kobject_put(&priv->kobj);	// 参见[15.7.2.2 kobject_put()]节
 	kfree(drv->p);
 	drv->p = NULL;
 out_put_bus:
@@ -44447,7 +44460,7 @@ static int __driver_attach(struct device *dev, void *data)
 	/*
 	 * 若该device和driver匹配，且该device还未指定匹配的driver，
 	 * 则调用driver_probe_device()->really_probe()来绑定该device
-	 * 和driver。参见10.2.3.3.2.3.1 driver_probe_device()节
+	 * 和driver。参见[10.2.3.3.2.3.1 driver_probe_device()]节
 	 */
 	if (!dev->driver)
 		driver_probe_device(drv, dev);
@@ -44539,7 +44552,7 @@ int driver_create_file(struct device_driver *drv,
 {
 	int error;
 
-	// 参见11.3.5.6.2 sysfs_create_file()节
+	// 参见[11.3.5.6.2 sysfs_create_file()]节
 	if (drv)
 		error = sysfs_create_file(&drv->p->kobj, &attr->attr);
 	else
@@ -44562,7 +44575,7 @@ int driver_create_file(struct device_driver *drv,
 void driver_remove_file(struct device_driver *drv,
 			const struct driver_attribute *attr)
 {
-	// 参见11.3.5.6.3 sysfs_remove_file()节
+	// 参见[11.3.5.6.3 sysfs_remove_file()]节
 	if (drv)
 		sysfs_remove_file(&drv->p->kobj, &attr->attr);
 }
@@ -44607,19 +44620,19 @@ void bus_remove_driver(struct device_driver *drv)
 		remove_bind_files(drv);
 	driver_remove_attrs(drv->bus, drv);
 
-	// 参见10.2.4.1.1.2.3 删除设备驱动属性/driver_remove_file()节
+	// 参见[10.2.4.1.1.2.3 删除设备驱动属性/driver_remove_file()]节
 	driver_remove_file(drv, &driver_attr_uevent);
 	klist_remove(&drv->p->knode_bus);
 	pr_debug("bus: '%s': remove driver %s\n", drv->bus->name, drv->name);
 
 	/*
 	 * detach driver from all devices it controls
-	 * 参见10.2.4.2.1 driver_detach()节
+	 * 参见[10.2.4.2.1 driver_detach()]节
 	 */
 	driver_detach(drv);
 
 	module_remove_driver(drv);
-	// 参见15.7.2.2 kobject_put()节
+	// 参见[15.7.2.2 kobject_put()]节
 	kobject_put(&drv->p->kobj);
 	bus_put(drv->bus);
 }
@@ -44716,7 +44729,7 @@ struct device_driver中函数probe()的调用时机如下：
 (1) 将struct device类型的变量注册到内核中时自动触发，如device_register(), device_add(), device_create_vargs(), device_create()等
 
 ```
-device_register()			// 参见10.2.3.3 注册设备/device_register()节
+device_register()			// 参见[10.2.3.3 注册设备/device_register()]节
 -> device_add()
    -> bus_probe_device()
       -> device_attach()
@@ -44733,7 +44746,7 @@ device_register()			// 参见10.2.3.3 注册设备/device_register()节
 (2) 将struct device_driver类型的变量注册到内核中时自动触发，如driver_register()
 
 ```
-driver_register()			// 参见10.2.4.1 注册驱动程序/driver_register()节
+driver_register()			// 参见[10.2.4.1 注册驱动程序/driver_register()]节
 -> bus_add_driver()
    -> driver_attach()
       -> bus_for_each_dev(.., __driver_attach)
@@ -44804,7 +44817,7 @@ int platform_add_devices(struct platform_device **devs, int num)
  */
 int platform_device_register(struct platform_device *pdev)
 {
-	// 参见10.2.3.3.1 设备初始化/device_initialize()节
+	// 参见[10.2.3.3.1 设备初始化/device_initialize()]节
 	device_initialize(&pdev->dev);
 	arch_setup_pdev_archdata(pdev);
 
@@ -44826,7 +44839,7 @@ int platform_device_add(struct platform_device *pdev)
 	if (!pdev)
 		return -EINVAL;
 
-	// 设置本设备的父节点，参见10.2.1.6 platform_bus_init()节
+	// 设置本设备的父节点，参见[10.2.1.6 platform_bus_init()]节
 	if (!pdev->dev.parent)
 		pdev->dev.parent = &platform_bus;
 
@@ -44863,7 +44876,7 @@ int platform_device_add(struct platform_device *pdev)
 	pr_debug("Registering platform device '%s'. Parent at %s\n",
 				dev_name(&pdev->dev), dev_name(pdev->dev.parent));
 
-	// 参见10.2.3.3.2 添加设备/device_add()节
+	// 参见[10.2.3.3.2 添加设备/device_add()]节
 	ret = device_add(&pdev->dev);
 	if (ret == 0)
 		return ret;
@@ -44959,7 +44972,7 @@ struct platform_driver {
  */
 int platform_driver_register(struct platform_driver *drv)
 {
-	// 参见10.2.1.6 platform_bus_init()节
+	// 参见[10.2.1.6 platform_bus_init()]节
 	drv->driver.bus = &platform_bus_type;
 
 	if (drv->probe)
@@ -44969,7 +44982,7 @@ int platform_driver_register(struct platform_driver *drv)
 	if (drv->shutdown)
 		drv->driver.shutdown = platform_drv_shutdown;
 
-	// 参见10.2.4.1 注册驱动程序/driver_register()节
+	// 参见[10.2.4.1 注册驱动程序/driver_register()]节
 	return driver_register(&drv->driver);
 }
 ```
@@ -44985,7 +44998,7 @@ int platform_driver_register(struct platform_driver *drv)
  */
 void platform_driver_unregister(struct platform_driver *drv)
 {
-	// 参见10.2.4.2 注销驱动程序/driver_unregister()节
+	// 参见[10.2.4.2 注销驱动程序/driver_unregister()]节
 	driver_unregister(&drv->driver);
 }
 ```
@@ -44994,7 +45007,7 @@ void platform_driver_unregister(struct platform_driver *drv)
 
 内核中定义了struct class结构体，顾名思义，一个struct class结构体类型变量对应一个类，内核同时提供了函数 class_create()来创建一个类，这个类存放于sysfs(即/sys/class/)下面，一旦创建好了这个类，再调用函数device_create()在/dev目录下创建相应的设备节点。这样，加载模块时，用户空间中的udev会自动响应device_create()函数，去/sysfs下寻找对应的类从而创建设备节点。
 
-对struct class的初始化，参见10.2.1.3 classes_init()节。
+对struct class的初始化，参见[10.2.1.3 classes_init()](#10-2-1-3-classes-init-)节。
 
 该结构定义于include/linux/device.h：
 
@@ -45111,7 +45124,7 @@ struct class *__class_create(struct module *owner, const char *name,
 	cls->owner = owner;
 	cls->class_release = class_create_release;
 
-	// 参见10.2.7.1.1 class_register()/__class_register()节
+	// 参见[10.2.7.1.1 class_register()/__class_register()]节
 	retval = __class_register(cls, key);
 	if (retval)
 		goto error;
@@ -45165,7 +45178,7 @@ int __class_register(struct class *cls, struct lock_class_key *key)
 
 	/* set the default /sys/dev directory for devices of this class */
 	/*
-	 * 变量sysfs_dev_char_kobj参见10.2.1.1 devices_init()节；
+	 * 变量sysfs_dev_char_kobj参见[10.2.1.1 devices_init()]节；
 	 * 函数调用genhd_device_init()->class_register()时，不进入
 	 * 此条件分支，参见[10.4.2 块设备的初始化/genhd_device_init()]节
 	 */
@@ -45173,7 +45186,7 @@ int __class_register(struct class *cls, struct lock_class_key *key)
 		cls->dev_kobj = sysfs_dev_char_kobj;
 
 	/*
-	 * 变量class_kset参见10.2.1.3 classes_init()节
+	 * 变量class_kset参见[10.2.1.3 classes_init()]节
 	 */
 #if defined(CONFIG_BLOCK)
 	/* let the block class directory show up in the root of sysfs */
@@ -45187,7 +45200,7 @@ int __class_register(struct class *cls, struct lock_class_key *key)
 	cp->class = cls;
 	cls->p = cp;
 
-	// 参见15.7.4 kset节
+	// 参见[15.7.4 kset]节
 	error = kset_register(&cp->subsys);
 	if (error) {
 		kfree(cp);
@@ -45225,7 +45238,7 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
 	if (error)
 		goto out_fput;
 
-	// 参见10.2A.1.1 do_vfs_ioctl()节
+	// 参见[10.2A.1.1 do_vfs_ioctl()]节
 	error = do_vfs_ioctl(filp, fd, cmd, arg);
 
 out_fput:
@@ -45255,7 +45268,7 @@ int do_vfs_ioctl(struct file *filp, unsigned int fd, unsigned int cmd, unsigned 
 
 	/*
 	 * 1) These predefined commands are recognized by the kernel.
-	 *    参见10.2A.1.3 Predefined ioctl commands节；
+	 *    参见[10.2A.1.3 Predefined ioctl commands]节；
 	 *    其宏定义于include/asm-generic/ioctls.h
 	 */
 	switch (cmd) {
@@ -45310,10 +45323,10 @@ int do_vfs_ioctl(struct file *filp, unsigned int fd, unsigned int cmd, unsigned 
 	 */
 	default:
 		if (S_ISREG(inode->i_mode))
-			// 该函数调用vfs_ioctl()，参见10.2A.1.1.1 vfs_ioctl()节
+			// 该函数调用vfs_ioctl()，参见[10.2A.1.1.1 vfs_ioctl()]节
 			error = file_ioctl(filp, cmd, arg);
 		else
-			// 参见10.2A.1.1.1 vfs_ioctl()节
+			// 参见[10.2A.1.1.1 vfs_ioctl()]节
 			error = vfs_ioctl(filp, cmd, arg);
 		break;
 	}
@@ -45346,10 +45359,10 @@ static long vfs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	/*
 	 * 函数unlocked_ioctl()定义于struct file_operations，
-	 * 参见11.2.1.5.1 文件操作/struct file_operations节；
+	 * 参见[11.2.1.5.1 文件操作/struct file_operations]节；
 	 * 该函数是由设备驱动程序定义，并由函数register_chrdev()
 	 * 注册到struct cdev->ops->unlocked_ioctl，
-	 * 参见10.3.3.1 register_chrdev()节
+	 * 参见[10.3.3.1 register_chrdev()]节
 	 */
 	error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 	if (error == -ENOIOCTLCMD)
@@ -45481,10 +45494,10 @@ asmlinkage long compat_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned lon
 		if (filp->f_op && filp->f_op->compat_ioctl) {
 			/*
 			 * 函数compat_ioctl()定义于struct file_operations，
-			 * 参见11.2.1.5.1 文件操作/struct file_operations节；
+			 * 参见[11.2.1.5.1 文件操作/struct file_operations]节；
 			 * 该函数是由设备驱动程序定义，并由函数register_chrdev()
 			 * 注册到struct cdev->ops->unlocked_ioctl，
-			 * 参见10.3.3.1 register_chrdev()节
+			 * 参见[10.3.3.1 register_chrdev()]节
 			 */
 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
 			if (error != -ENOIOCTLCMD)
@@ -45514,7 +45527,7 @@ asmlinkage long compat_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned lon
 found_handler:
 	arg = (unsigned long)compat_ptr(arg);
 do_ioctl:
-	// 参见10.2A.1.1 do_vfs_ioctl()节
+	// 参见[10.2A.1.1 do_vfs_ioctl()]节
 	error = do_vfs_ioctl(filp, fd, cmd, arg);
 out_fput:
 	fput_light(filp, fput_needed);
@@ -45529,7 +45542,7 @@ Linux通过如下步骤自动加载硬件设备所对应的驱动程序:
 
 ### 10.2B.1 驱动程序声明其支持的硬件设备版本
 
-驱动程序开发人员在驱动程序中通过宏MODULE_DEVICE_TABLE(参见13.1.2.2 MODULE_DEVICE_TABLE()节)声明该驱动程序所支持的硬件设备版本，以driver/net/ethernet/intel/e1000e/netdev.c为例：
+驱动程序开发人员在驱动程序中通过宏MODULE_DEVICE_TABLE(参见[13.1.2.2 MODULE_DEVICE_TABLE()]节)声明该驱动程序所支持的硬件设备版本，以driver/net/ethernet/intel/e1000e/netdev.c为例：
 
 ```
 static const struct pci_device_id e1000_pci_tbl[] = {
@@ -45738,8 +45751,8 @@ kernel_init()
                                        -> device_add(&dev->dev)
                                           /*
                                            * 向用户空间广播netlink uevent，进程udevd负责加载模块，参见:
-                                           * 15.7.5 kobject_uevent()节和
-                                           * 10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序节
+                                           * [15.7.5 kobject_uevent()]节和
+                                           * [10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序]节
                                            */
                                           -> kobject_uevent(&dev->kobj, KOBJ_ADD)
                                              -> kobject_uevent_env(&dev->kobj, KOBJ_ADD, NULL)
@@ -46236,7 +46249,7 @@ LABEL="drivers_end"
 
 Character devices, or char devices, are accessed as a stream of sequential data, one byte after another. Example character devices are serial ports, keyboards, mice, printers and most pseudo-devices. If the hardware device is accessed as a stream of data, it is implemented as a character device. On the other hand, if the device is accessed randomly (nonsequentially), it is a block device.
 
-下列命令输出结果中的第一列为c，则该设备为字符设备，另参见10.3.4.0 字符设备列表节：
+下列命令输出结果中的第一列为c，则该设备为字符设备，另参见[10.3.4.0 字符设备列表](#10-3-4-0-)节：
 
 ```
 chenwx@chenwx ~ $ ll /dev
@@ -46254,8 +46267,8 @@ crw-rw-rw-  1 root root      1,   5 Nov 27 20:51 zero
 ```
 # tty/ comes before char/ so that the VT console is the boot-time
 # default.
-obj-y				+= tty/
-obj-y				+= char/
+obj-y		+= tty/
+obj-y		+= char/
 ```
 
 ### 10.3.1 描述字符设备的数据结构
@@ -46264,12 +46277,12 @@ obj-y				+= char/
 
 ```
 static struct char_device_struct {
-	struct char_device_struct		*next;		// 指向单链表中的下一项
-	unsigned int				major;		// 主设备号
-	unsigned int				baseminor;	// 起始次设备号
-	int					minorct;	// 次设备号的范围
-	char					name[64];	// 处理该设备编号范围内的设备驱动的名称
-	struct cdev				*cdev; /* will die */ // 指向字符设备驱动程序描述符的指针
+	struct char_device_struct	*next;		// 指向单链表中的下一项
+	unsigned int			major;		// 主设备号
+	unsigned int			baseminor;	// 起始次设备号
+	int				minorct;	// 次设备号的范围
+	char				name[64];	// 处理该设备编号范围内的设备驱动的名称
+	struct cdev			*cdev; /* will die */	// 指向字符设备驱动程序描述符的指针
 } *chrdevs[CHRDEV_MAJOR_HASH_SIZE];				// index可通过调用函数major_to_index(major)获得
 ```
 
@@ -46277,12 +46290,12 @@ static struct char_device_struct {
 
 ```
 struct cdev {
-	struct kobject				kobj;		// 参见15.7 kobject节
-	struct module				*owner;		// 指向提供驱动程序的模块，参见13.4.1.1 struct module节
-	const struct file_operations 		*ops;		// 一组文件操作，其实现与硬件通信的具体操作
-	struct list_head			list;		// 包含cdev的双向循环链表
-	dev_t					dev;		// 主次设备号
-	unsigned int				count;		// 表示与该设备关联的次设备的数目
+	struct kobject			kobj;		// 参见[15.7 kobject]节
+	struct module			*owner;		// 指向提供驱动程序的模块，参见[13.4.1.1 struct module]节
+	const struct file_operations 	*ops;		// 一组文件操作，其实现与硬件通信的具体操作
+	struct list_head		list;		// 包含cdev的双向循环链表
+	dev_t				dev;		// 主次设备号
+	unsigned int			count;		// 表示与该设备关联的次设备的数目
 };
 ```
 
@@ -46362,12 +46375,12 @@ static int __init chr_dev_init(void)
 
 	/*
 	 * 2) 注册字符设备/dev/mem，其主设备号为1，共占用256个次设备号；
-	 *    参见10.3.3.1 register_chrdev()节
+	 *    参见[10.3.3.1 register_chrdev()]节
 	 */
 	if (register_chrdev(MEM_MAJOR, "mem", &memory_fops))
 		printk("unable to get major %d for memory devs\n", MEM_MAJOR);
 
-	// 3) 创建目录/sys/class/mem/，参见10.2.7.1 class_create()节
+	// 3) 创建目录/sys/class/mem/，参见[10.2.7.1 class_create()]节
 	mem_class = class_create(THIS_MODULE, "mem");
 	if (IS_ERR(mem_class))
 		return PTR_ERR(mem_class);
@@ -46397,7 +46410,7 @@ static int __init chr_dev_init(void)
 		/*
 		 * 创建字符设备devlist[minor]，主设备号为1，次设备号为minor，
 		 * 并生成目录/sys/class/mem/<devlist[minor].name>，
-		 * 参见10.2.3.1 创建设备/device_create()节
+		 * 参见[10.2.3.1 创建设备/device_create()]节
 		 */
 		device_create(mem_class, NULL, MKDEV(MEM_MAJOR, minor),
 				NULL, devlist[minor].name);
@@ -46405,7 +46418,7 @@ static int __init chr_dev_init(void)
 
 	/*
 	 * 5) 注册字符设备/dev/tty和/dev/console，
-	 * 参见10.3.2.1 tty_init()节
+	 * 参见[10.3.2.1 tty_init()]节
 	 */
 	return tty_init();
 }
@@ -46438,7 +46451,7 @@ int __init tty_init(void)
 
 	/*
 	 * 1.1) 初始化变量tty_cdev，
-	 * 参见10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()节
+	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()]节
 	 */
 	cdev_init(&tty_cdev, &tty_fops);
 
@@ -46452,7 +46465,7 @@ int __init tty_init(void)
 
 	/*
 	 * 1.3) 创建字符设备/dev/tty，
-	 * 参见10.2.3.1 创建设备/device_create()节
+	 * 参见[10.2.3.1 创建设备/device_create()]节
 	 */
 	device_create(tty_class, NULL, MKDEV(TTYAUX_MAJOR, 0), NULL, "tty");
 
@@ -46462,7 +46475,7 @@ int __init tty_init(void)
 
 	/*
 	 * 2.1) 初始化变量tty_cdev，
-	 * 参见10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()节
+	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()]节
 	 */
 	cdev_init(&console_cdev, &console_fops);
 
@@ -46476,7 +46489,7 @@ int __init tty_init(void)
 
 	/*
 	 * 2.3) 创建字符设备/dev/console，
-	 * 参见10.2.3.1 创建设备/device_create()节
+	 * 参见[10.2.3.1 创建设备/device_create()]节
 	 */
 	consdev = device_create(tty_class, NULL, MKDEV(TTYAUX_MAJOR, 1), NULL, "console");
 
@@ -46497,9 +46510,9 @@ int __init tty_init(void)
 
 字符设备的注册与注销有如下两种方式：
 
-1) 通过函数register_chrdev()注册字符设备，通过函数unregister_chrdev()注销字符设备，参见10.3.3.1 register_chrdev()节和10.3.3.2 unregister_chrdev()节；
+1) 通过函数register_chrdev()注册字符设备，通过函数unregister_chrdev()注销字符设备，参见[10.3.3.1 register_chrdev()](#10-3-3-1-register-chrdev-)节和[10.3.3.2 unregister_chrdev()](#10-3-3-2-unregister-chrdev-)节；
 
-2) 分如下步骤完成字符设备的注册与注销，这种方式是register_chrdev()/unregister_chrdev()的组成步骤，参见10.3.3.3 注册/注销字符设备的分步骤节。
+2) 分如下步骤完成字符设备的注册与注销，这种方式是register_chrdev()/unregister_chrdev()的组成步骤，参见[10.3.3.3 注册/注销字符设备的分步骤](#10-3-3-3-)节。
 
 **NOTE**: If you dig through much driver code in the 2.6 kernel, you may notice that quite a few char drivers do not use the cdev interface described in section 10.3.3.3 注册/注销字符设备的分步骤. But new code should not use it; this mechanism will likely go away in a future kernel.
 
@@ -46508,7 +46521,7 @@ int __init tty_init(void)
 register_chrdev_region(): 静态申请设备号
 alloc_chrdev_region()： 动态申请设备号
 
-参见10.3.3.3.1.1 alloc_chrdev_region()节和10.3.3.3.1.2 register_chrdev_region()节。
+参见[10.3.3.3.1.1 alloc_chrdev_region()](#10-3-3-3-1-1-alloc-chrdev-region-)节和[10.3.3.3.1.2 register_chrdev_region()](#10-3-3-3-1-2-register-chrdev-region-)节。
 
 2.2) 分配和初始化cdev对象
 
@@ -46518,7 +46531,7 @@ a) 静态分配和初始化cdev对象
    cdev_init(&mycdev, &fops);
    mycdev->owner = THIS_MODULE;
 
-其中，函数cdev_init()用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()节。
+其中，函数cdev_init()用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见[10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()](#10-3-3-3-2-2-cdev-cdev-init-)节。
 
 b) 动态分配和初始化cdev对象
 
@@ -46526,7 +46539,7 @@ b) 动态分配和初始化cdev对象
    mycdev->ops = &fops;
    mycdev->owner = THIS_MODULE;
 
-其中，函数cdev_alloc()用于动态分配cdev对象，参见10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()节。
+其中，函数cdev_alloc()用于动态分配cdev对象，参见[10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()](#10-3-3-3-2-1-cdev-cdev-alloc-)节。
 
 2.3) 添加cdev对象
 
@@ -46538,19 +46551,19 @@ There are a couple of important things to keep in mind when using cdev_add(). Th
 
 2.4) 访问字符设备
 
-参见10.3.3.3.4 访问字符设备节。
+参见[10.3.3.3.4 访问字符设备](#10-3-3-3-4-)节。
 
 2.5) 删除cdev对象
 
 cdev_del(): To remove a char device from the system. Clearly, you should not access the cdev structure after passing it to cdev_del.
 
-参见10.3.3.3.3.2 cdev_del()节。
+参见[10.3.3.3.3.2 cdev_del()](#10-3-3-3-3-2-cdev-del-)节。
 
 2.6) 释放设备号
 
 unregister_chrdev_region()
 
-参见10.3.3.3.1.4 unregister_chrdev_region()节。
+参见[10.3.3.3.1.4 unregister_chrdev_region()](#10-3-3-3-1-4-unregister-chrdev-region-)节。
 
 #### 10.3.3.1 register_chrdev()
 
@@ -46607,7 +46620,7 @@ int __register_chrdev(unsigned int major, unsigned int baseminor,
 	/*
 	 * 分配/初始化struct char_device_struct类型的变量，
 	 * 并将其插入到链表chrdevs[major%255]中的适当位置，
-	 * 参见10.3.3.3.1.3 __register_chrdev_region()节
+	 * 参见[10.3.3.3.1.3 __register_chrdev_region()]节
 	 */
 	cd = __register_chrdev_region(major, baseminor, count, name);
 	if (IS_ERR(cd))
@@ -46616,7 +46629,7 @@ int __register_chrdev(unsigned int major, unsigned int baseminor,
 	/*
 	 * 动态分配/初始化struct cdev类型的对象，
 	 * 并设置cdev->kobj->ktype = &ktype_cdev_dynamic;
-	 * 参见10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()节
+	 * 参见[10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()]节
 	 */
 	cdev = cdev_alloc();
 	if (!cdev)
@@ -46641,7 +46654,7 @@ int __register_chrdev(unsigned int major, unsigned int baseminor,
 	return major ? 0 : cd->major;
 
 out:
-	// 参见15.7.2.2 kobject_put()节
+	// 参见[15.7.2.2 kobject_put()]节
 	kobject_put(&cdev->kobj);
 out2:
 	kfree(__unregister_chrdev_region(cd->major, baseminor, count));
@@ -46681,10 +46694,10 @@ void __unregister_chrdev(unsigned int major, unsigned int baseminor,
 {
 	struct char_device_struct *cd;
 
-	// 参见10.3.3.3.1.5 __unregister_chrdev_region()节
+	// 参见[10.3.3.3.1.5 __unregister_chrdev_region()]节
 	cd = __unregister_chrdev_region(major, baseminor, count);
 	if (cd && cd->cdev)
-		cdev_del(cd->cdev);	// 参见10.3.3.3.3.2 cdev_del()节
+		cdev_del(cd->cdev);	// 参见[10.3.3.3.3.2 cdev_del()]节
 	kfree(cd);
 }
 ```
@@ -46717,7 +46730,7 @@ int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count,
 	/*
 	 * 分配/初始化struct char_device_struct类型的对象，
 	 * 并将其插入到链表chrdevs[major%255]中的适当位置，
-	 * 参见10.3.3.3.1.3 __register_chrdev_region()节
+	 * 参见[10.3.3.3.1.3 __register_chrdev_region()]节
 	 */
 	cd = __register_chrdev_region(0, baseminor, count, name);
 	if (IS_ERR(cd))
@@ -46757,7 +46770,7 @@ int register_chrdev_region(dev_t from, unsigned count, const char *name)
 		/*
 		 * 分配和初始化struct char_device_struct的对象，
 		 * 并将其插入到链表chrdevs[major%255]中的适当位置，
-		 * 参见10.3.3.3.1.3 __register_chrdev_region()节
+		 * 参见[10.3.3.3.1.3 __register_chrdev_region()]节
 		 */
 		cd = __register_chrdev_region(MAJOR(n), MINOR(n), next - n, name);
 		if (IS_ERR(cd))
@@ -46910,7 +46923,7 @@ void unregister_chrdev_region(dev_t from, unsigned count)
 		next = MKDEV(MAJOR(n)+1, 0);
 		if (next > to)
 			next = to;
-		// 参见10.3.3.3.1.5 __unregister_chrdev_region()节
+		// 参见[10.3.3.3.1.5 __unregister_chrdev_region()]节
 		kfree(__unregister_chrdev_region(MAJOR(n), MINOR(n), next - n));
 	}
 }
@@ -47086,13 +47099,13 @@ int kobj_map(struct kobj_map *domain, dev_t dev, unsigned long range,
 		p->owner = module;
 
 		/*
-		 * 此函数被kobj_lookup()调用，参见10.3.3.3.4.1 kobj_lookup()节；
+		 * 此函数被kobj_lookup()调用，参见[10.3.3.3.4.1 kobj_lookup()]节；
 		 * 若本函数是通过cdev_add()->kobj_map()调用的，则p->get = exact_match;
 		 */
 		p->get = probe;
 
 		/*
-		 * 此函数被kobj_lookup()调用，参见10.3.3.3.4.1 kobj_lookup()节；
+		 * 此函数被kobj_lookup()调用，参见[10.3.3.3.4.1 kobj_lookup()]节；
 		 * 若本函数是通过cdev_add()->kobj_map()调用的，则p->lock = exact_lock;
 		 */
 		p->lock = lock;
@@ -47134,7 +47147,7 @@ int kobj_map(struct kobj_map *domain, dev_t dev, unsigned long range,
 void cdev_del(struct cdev *p)
 {
 	cdev_unmap(p->dev, p->count);
-	kobject_put(&p->kobj);	// 参见15.7.2.2 kobject_put()节
+	kobject_put(&p->kobj);	// 参见[15.7.2.2 kobject_put()]节
 }
 
 static void cdev_unmap(dev_t dev, unsigned count)
@@ -47198,8 +47211,8 @@ void init_special_inode(struct inode *inode, umode_t mode, dev_t rdev)
 		inode->i_fop = &bad_sock_fops;
 	else
 		printk(KERN_DEBUG "init_special_inode: bogus i_mode (%o) for"
-			 " inode %s:%lu\n", mode, inode->i_sb->s_id,
-			 inode->i_ino);
+		       " inode %s:%lu\n", mode, inode->i_sb->s_id,
+		       inode->i_ino);
 }
 ```
 
@@ -47247,7 +47260,7 @@ static int chrdev_open(struct inode *inode, struct file *filp)
 
 		/*
 		 * 从链表cdev_map->probes[MAJOR(inode->i_rdev)%255]中
-		 * 查找符合条件的字符设备，参见10.3.3.3.4.1 kobj_lookup()节
+		 * 查找符合条件的字符设备，参见[10.3.3.3.4.1 kobj_lookup()]节
 		 */
 		kobj = kobj_lookup(cdev_map, inode->i_rdev, &idx);
 		if (!kobj)
@@ -47298,10 +47311,10 @@ out_cdev_put:
 ```
 
 此后，read(), write()等文件操作函数将会调用cdev->ops->read(), write()等函数，参见如下章节：
-* 11.2.4.2.0 如何查找某文件所对应的文件操作函数
-* 11.2.4.2.2 read()
-* 11.2.4.2.3 write()
-* 11.2.4.2.4 close()
+* [11.2.4.2.0 如何查找某文件所对应的文件操作函数](#11-2-4-2-0-)
+* [11.2.4.2.2 read()](#11-2-4-2-2-read-)
+* [11.2.4.2.3 write()](#11-2-4-2-3-write-)
+* [11.2.4.2.4 close()](#11-2-4-2-4-close-)
 * ...
 
 ###### 10.3.3.3.4.1 kobj_lookup()
@@ -47375,14 +47388,14 @@ retry:
 
 #### 10.3.4.0 字符设备列表
 
-运行命令"ls -l /dev"来查看系统中的字符设备，另参见10.1.2 设备驱动程序的分类节：
+运行命令"ls -l /dev"来查看系统中的字符设备，另参见[10.1.2 设备驱动程序的分类](#10-1-2-)节：
 
 ```
 chenwx@chenwx ~/linux $ ls -l /dev
 
 /* (1) MEM_MAJOR = 1 */
 
-// 内存设备，参见10.3.4.1 内存设备节
+// 内存设备，参见[10.3.4.1 内存设备]节
 crw-r-----  1 root kmem      1,   1 Dec 30 08:20 mem
 crw-rw-rw-  1 root root      1,   3 Dec 30 08:20 null
 crw-r-----  1 root kmem      1,   4 Dec 30 08:20 port
@@ -47495,7 +47508,7 @@ crw-rw----  1 root dialout   4,  95 Dec 30 08:20 ttyS31
 
 /* (3) TTYAUX_MAJOR = 5 */
 
-// 参见10.3.2.1 tty_init()节
+// 参见[10.3.2.1 tty_init()]节
 crw-rw-rw-  1 root tty       5,   0 Dec 30 08:20 tty
 crw-------  1 root root      5,   1 Dec 30 08:20 console
 // 参见devpts_mount()->mknod_ptmx()
@@ -47624,7 +47637,7 @@ mmap内存镜像/dev/mem到用户空间：
 
 The file /dev/kmem is the same as /dev/mem, except that the kernel virtual memory rather than physical memory is accessed. Refer to man mem.
 
-可以用来访问kernel的变量。参见http://lwn.net/Articles/147902/
+可以用来访问kernel的变量，参见[What's the difference between /dev/kmem and /dev/mem](http://lwn.net/Articles/147902/).
 
 **/dev/port**
 
@@ -47858,7 +47871,7 @@ C:  #Ifs= 1 Cfg#= 1 Atr=a0 MxPwr=98mA
 I:  If#= 0 Alt= 0 #EPs= 1 Cls=03(HID  ) Sub=01 Prot=02 Driver=usbhid 
 ...
 
-# 参见10.3.4.2.2.1 usb_debugfs_init()节
+# 参见[10.3.4.2.2.1 usb_debugfs_init()]节
 chenwx@chenwx ~ $ sudo cat /sys/kernel/debug/usb/devices
 
 ...
@@ -47927,8 +47940,8 @@ chenwx@chenwx ~ $ usbview &
 
 ```
 struct usb_device;
-sturct usb_device_driver;	// 参见10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节
-struct usb_driver;		// 参见10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver节
+sturct usb_device_driver;	// 参见[10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver]节
+struct usb_driver;		// 参见[10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver]节
 struct usb_interface;
 struct usb_class_driver;
 ```
@@ -47950,13 +47963,13 @@ static int __init usb_init(void)
 
 	/*
 	 * 创建目录/sys/kernel/debug/usb和文件/sys/kernel/debug/usb/devices
-	 * 参见10.3.4.2.2.1 usb_debugfs_init()节
+	 * 参见[10.3.4.2.2.1 usb_debugfs_init()]节
 	 */
 	retval = usb_debugfs_init();
 	if (retval)
 		goto out;
 
-	// 创建目录/sys/bus/usb，参见10.2.2.1 bus_register()节
+	// 创建目录/sys/bus/usb，参见[10.2.2.1 bus_register()]节
 	retval = bus_register(&usb_bus_type);
 	if (retval)
 		goto bus_register_failed;
@@ -47968,7 +47981,7 @@ static int __init usb_init(void)
 
 	/*
 	 * 注册USB主设备号USB_MAJOR = 180，
-	 * 参见10.3.4.2.2.2 usb_major_init()节
+	 * 参见[10.3.4.2.2.2 usb_major_init()]节
 	 */
 	retval = usb_major_init();
 	if (retval)
@@ -47976,7 +47989,7 @@ static int __init usb_init(void)
 
 	/*
 	 * 注册USB接口驱动程序usbfs_driver
-	 * 参见10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver节
+	 * 参见[10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver]节
 	 */
 	retval = usb_register(&usbfs_driver);
 	if (retval)
@@ -47989,20 +48002,20 @@ static int __init usb_init(void)
 
 	/*
 	 * 注册文件系统usbfs，并创建目录/proc/bus/usb
-	 * 参见10.3.4.2.2.3 usbfs_init()节
+	 * 参见[10.3.4.2.2.3 usbfs_init()]节
 	 */
 	retval = usbfs_init();
 	if (retval)
 		goto fs_init_failed;
 
-	// 参见10.3.4.2.2.4 usb_hub_init()节
+	// 参见[10.3.4.2.2.4 usb_hub_init()]节
 	retval = usb_hub_init();
 	if (retval)
 		goto hub_init_failed;
 
 	/*
 	 * 注册USB子系统中唯一的设备驱动程序
-	 * 参见10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节
+	 * 参见[10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver]节
 	 */
 	retval = usb_register_device_driver(&usb_generic_driver, THIS_MODULE);
 	if (!retval)
@@ -48063,7 +48076,7 @@ int usb_major_init(void)
 {
 	int error;
 
-	// 参见10.3.3.1 register_chrdev()节
+	// 参见[10.3.3.1 register_chrdev()]节
 	error = register_chrdev(USB_MAJOR, "usb", &usb_fops);
 	if (error)
 		printk(KERN_ERR "Unable to get major %d for usb devices\n", USB_MAJOR);
@@ -48113,7 +48126,7 @@ int usb_hub_init(void)
 {
 	/*
 	 * 注册USB接口驱动程序hub_driver
-	 * 参见10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver节
+	 * 参见[10.3.4.2.4 注册/注销USB接口驱动程序/struct usb_driver]节
 	 */
 	if (usb_register(&hub_driver) < 0) {
 		printk(KERN_ERR "%s: can't register hub driver\n", usbcore_name);
@@ -48122,7 +48135,7 @@ int usb_hub_init(void)
 
 	/*
 	 * 创建内核线程khubd，该内核线程执行函数hub_thread()
-	 * 参见10.3.4.2.2.4.1 hub_thread()节
+	 * 参见[10.3.4.2.2.4.1 hub_thread()]节
 	 */
 	khubd_task = kthread_run(hub_thread, NULL, "khubd");
 	if (!IS_ERR(khubd_task))
@@ -48145,7 +48158,7 @@ int usb_hub_init(void)
  * 该链表用于链接struct usb_hub中的域event_list；
  * 由函数kick_khubd()向该链表添加元素，参见下文
  */
-static LIST_HEAD(hub_event_list);		/* List of hubs needing servicing */
+static LIST_HEAD(hub_event_list);	/* List of hubs needing servicing */
 
 static int hub_thread(void *__unused)
 {
@@ -48201,11 +48214,11 @@ static void kick_khubd(struct usb_hub *hub)
 
 ```
 subsys_initcall(usb_init)
--> usb_init()			// 参见10.3.4.2.2 USB的初始化/usb_init()节
+-> usb_init()			// 参见[10.3.4.2.2 USB的初始化/usb_init()]节
    -> usb_hub_init()
       -> khubd_task = kthread_run(hub_thread, NULL, "khubd");
 
-hub_thread()			// 参见10.3.4.2.2.4.1 hub_thread()节
+hub_thread()			// 参见[10.3.4.2.2.4.1 hub_thread()]节
 -> hub_events()
    -> hub_port_connect_change()
       -> usb_new_device()
@@ -48268,7 +48281,7 @@ struct usb_device_driver usb_generic_driver = {
 	.name			= "usb",
 
 	/*
-	 * 该函数通过如下函数调用，参见10.3.4.2.3.1.1.1 generic_probe()节：
+	 * 该函数通过如下函数调用，参见[10.3.4.2.3.1.1.1 generic_probe()]节：
 	 * driver_register()->bus_add_driver()->driver_attach()
 	 * ->__driver_attach()->driver_probe_device()->really_probe()
 	 * ->probe()->usb_probe_device()->probe()
@@ -48276,7 +48289,7 @@ struct usb_device_driver usb_generic_driver = {
 	.probe			= generic_probe,
 
 	/*
-	 * 该函数通过如下函数调用，参见10.3.4.2.3.2.1.1 generic_disconnect()节：
+	 * 该函数通过如下函数调用，参见[10.3.4.2.3.2.1.1 generic_disconnect()]节：
 	 * driver_unregister()->bus_remove_driver()->driver_detach()
 	 * ->__device_release_driver()->remove()->usb_unbind_device()
 	 * ->disconnect()
@@ -48290,7 +48303,7 @@ struct usb_device_driver usb_generic_driver = {
 
 	/*
 	 * 函数usb_probe_device()会判断此字段，
-	 * 参见10.3.4.2.3.1.1 usb_probe_device()节
+	 * 参见[10.3.4.2.3.1.1 usb_probe_device()]节
 	 */
 	.supports_autosuspend	= 1,
 };
@@ -48299,7 +48312,7 @@ struct usb_device_driver usb_generic_driver = {
 该设备驱动程序是由如下函数注册：
 
 ```
-usb_init()			// 参见10.3.4.2.2 USB的初始化/usb_init()节
+usb_init()			// 参见[10.3.4.2.2 USB的初始化/usb_init()]节
 ->  usb_register_device_driver(&usb_generic_driver, THIS_MODULE);
 ```
 
@@ -48331,14 +48344,14 @@ int usb_register_device_driver(struct usb_device_driver *new_udriver,
 	new_udriver->drvwrap.driver.bus = &usb_bus_type;
 
 	/*
-	 * 函数probe()由如下函数调用，参见10.3.4.2.3.1.1 usb_probe_device()节
+	 * 函数probe()由如下函数调用，参见[10.3.4.2.3.1.1 usb_probe_device()]节
 	 * driver_register()->bus_add_driver()->driver_attach()->__driver_attach()
 	 * ->driver_probe_device()->really_probe()->probe()->usb_probe_device()
 	 */
 	new_udriver->drvwrap.driver.probe = usb_probe_device;
 
 	/*
-	 * 函数remove()由如下函数调用，参见10.3.4.2.3.2.1 usb_unbind_device()节
+	 * 函数remove()由如下函数调用，参见[10.3.4.2.3.2.1 usb_unbind_device()]节
 	 * driver_unregister()->bus_remove_driver()->driver_detach()
 	 * ->__device_release_driver()->remove()->usb_unbind_device()
 	 */
@@ -48346,16 +48359,16 @@ int usb_register_device_driver(struct usb_device_driver *new_udriver,
 
 	new_udriver->drvwrap.driver.owner = owner;
 
-	// 参见10.2.4.1 注册驱动程序/driver_register()节
+	// 参见[10.2.4.1 注册驱动程序/driver_register()]节
 	retval = driver_register(&new_udriver->drvwrap.driver);
 
 	if (!retval) {
 		pr_info("%s: registered new device driver %s\n",
-				  usbcore_name, new_udriver->name);
+			usbcore_name, new_udriver->name);
 		usbfs_update_special();
 	} else {
 		printk(KERN_ERR "%s: error %d registering device "
-			 "	driver %s\n", usbcore_name, retval, new_udriver->name);
+			"	driver %s\n", usbcore_name, retval, new_udriver->name);
 	}
 
 	return retval;
@@ -48382,7 +48395,7 @@ static int usb_probe_device(struct device *dev)
 	 * unless the driver suports autosuspend.
 	 */
 	/*
-	 * 由10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节可知，
+	 * 由[10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver]节可知，
 	 * usb_generic_driver.supports_autosuspend = 1，故不进入此分支
 	 */
 	if (!udriver->supports_autosuspend)
@@ -48390,7 +48403,7 @@ static int usb_probe_device(struct device *dev)
 
 	/*
 	 * 调用USB设备驱动程序的probe()函数，即函数generic_probe(),
-	 * 参见10.3.4.2.3.1.1.1 generic_probe()节
+	 * 参见[10.3.4.2.3.1.1.1 generic_probe()]节
 	 */
 	if (!error)
 		error = udriver->probe(udev);
@@ -48449,7 +48462,7 @@ void usb_deregister_device_driver(struct usb_device_driver *udriver)
 	pr_info("%s: deregistering device driver %s\n",
 			  usbcore_name, udriver->name);
 
-	// 参见10.2.4.2 注销驱动程序/driver_unregister()节
+	// 参见[10.2.4.2 注销驱动程序/driver_unregister()]节
 	driver_unregister(&udriver->drvwrap.driver);
 	usbfs_update_special();
 }
@@ -48468,12 +48481,12 @@ static int usb_unbind_device(struct device *dev)
 
 	/*
 	 * 调用USB设备驱动程序的disconnect()函数，即函数generic_disconnect(),
-	 * 参见10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节
+	 * 参见[10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver]节
 	 */
 	udriver->disconnect(udev);
 
 	/*
-	 * 由10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver节可知，
+	 * 由[10.3.4.2.3 注册/注销USB设备驱动程序/struct usb_device_driver]节可知，
 	 * usb_generic_driver.supports_autosuspend = 1，故不进入此分支
 	 */
 	if (!udriver->supports_autosuspend)
@@ -48542,14 +48555,14 @@ int usb_register_driver(struct usb_driver *new_driver, struct module *owner,
 	new_driver->drvwrap.driver.bus = &usb_bus_type;
 
 	/*
-	 * 函数probe()由如下函数调用，参见10.3.4.2.4.1.1 usb_probe_interface()节
+	 * 函数probe()由如下函数调用，参见[10.3.4.2.4.1.1 usb_probe_interface()]节
 	 * driver_register()->bus_add_driver()->driver_attach()->__driver_attach()
 	 * ->driver_probe_device()->really_probe()->probe()->usb_probe_interface()
 	 */
 	new_driver->drvwrap.driver.probe = usb_probe_interface;
 
 	/*
-	 * 函数remove()由如下函数调用，参见10.3.4.2.4.2.1 usb_unbind_interface()节
+	 * 函数remove()由如下函数调用，参见[10.3.4.2.4.2.1 usb_unbind_interface()]节
 	 * driver_unregister()->bus_remove_driver()->driver_detach()
 	 * ->__device_release_driver()->remove()->usb_unbind_interface()
 	 */
@@ -48560,7 +48573,7 @@ int usb_register_driver(struct usb_driver *new_driver, struct module *owner,
 	spin_lock_init(&new_driver->dynids.lock);
 	INIT_LIST_HEAD(&new_driver->dynids.list);
 
-	// 参见10.2.4.1 注册驱动程序/driver_register()节
+	// 参见[10.2.4.1 注册驱动程序/driver_register()]节
 	retval = driver_register(&new_driver->drvwrap.driver);
 	if (retval)
 		goto out;
@@ -48699,7 +48712,7 @@ void usb_deregister(struct usb_driver *driver)
 	usb_remove_newid_file(driver);
 	usb_free_dynids(driver);
 
-	// 参见10.2.4.2 注销驱动程序/driver_unregister()节
+	// 参见[10.2.4.2 注销驱动程序/driver_unregister()]节
 	driver_unregister(&driver->drvwrap.driver);
 
 	usbfs_update_special();
@@ -48823,7 +48836,7 @@ int usb_register_dev(struct usb_interface *intf,
 	if (intf->minor >= 0)
 		return -EADDRINUSE;
 
-	// 参见10.3.4.2.5.1.1 init_usb_class()节
+	// 参见[10.3.4.2.5.1.1 init_usb_class()]节
 	retval = init_usb_class();
 	if (retval)
 		return retval;
@@ -48855,7 +48868,7 @@ int usb_register_dev(struct usb_interface *intf,
 	else
 		temp = name;
 
-	// 参见10.2.3.1 创建设备/device_create()节
+	// 参见[10.2.3.1 创建设备/device_create()]节
 	intf->usb_dev = device_create(usb_class->class, &intf->dev,
 				      MKDEV(USB_MAJOR, minor), class_driver, "%s", temp);
 	if (IS_ERR(intf->usb_dev)) {
@@ -48897,7 +48910,7 @@ static int init_usb_class(void)
 
 	kref_init(&usb_class->kref);
 
-	// 参见10.2.7.1 class_create()节
+	// 参见[10.2.7.1 class_create()]节
 	usb_class->class = class_create(THIS_MODULE, "usb");
 	if (IS_ERR(usb_class->class)) {
 		result = IS_ERR(usb_class->class);
@@ -48944,7 +48957,7 @@ void usb_deregister_dev(struct usb_interface *intf,
 	usb_minors[intf->minor] = NULL;
 	up_write(&minor_rwsem);
 
-	// 参见10.2.3.2 销毁设备/destroy_device()节
+	// 参见[10.2.3.2 销毁设备/destroy_device()]节
 	device_destroy(usb_class->class, MKDEV(USB_MAJOR, intf->minor));
 	intf->usb_dev = NULL;
 	intf->minor = -1;
@@ -49331,10 +49344,10 @@ static int __init genhd_device_init(void)
 {
 	int error;
 
-	// 变量sysfs_dev_block_kobj参见10.2.1.1 devices_init()节
+	// 变量sysfs_dev_block_kobj参见[10.2.1.1 devices_init()]节
 	block_class.dev_kobj = sysfs_dev_block_kobj;
 
-	// 参见10.2.7.1.1 class_register()/__class_register()节
+	// 参见[10.2.7.1.1 class_register()/__class_register()]节
 	error = class_register(&block_class);
 	if (unlikely(error))
 		return error;
@@ -49345,12 +49358,12 @@ static int __init genhd_device_init(void)
 	 */
 	bdev_map = kobj_map_init(base_probe, &block_class_lock);
 
-	// 参见10.4.2.1 blk_dev_init()节
+	// 参见[10.4.2.1 blk_dev_init()]节
 	blk_dev_init();
 
 	/*
 	 * 注册块设备blkext，其主设备号为259，
-	 * 参见10.4.3.1 register_blkdev()节
+	 * 参见[10.4.3.1 register_blkdev()]节
 	 */
 	register_blkdev(BLOCK_EXT_MAJOR, "blkext");
 
@@ -49376,7 +49389,7 @@ int __init blk_dev_init(void)
 	BUILD_BUG_ON(__REQ_NR_BITS > 8 * sizeof(((struct request *)0)->cmd_flags));
 
 	/* used for unplugging and affects IO latency/throughput - HIGHPRI */
-	// 创建工作队列kblockd，参见7.5.2.1 alloc_workqueue()节
+	// 创建工作队列kblockd，参见[7.5.2.1 alloc_workqueue()]节
 	kblockd_workqueue = alloc_workqueue("kblockd", WQ_MEM_RECLAIM | WQ_HIGHPRI, 0);
 	if (!kblockd_workqueue)
 		panic("Failed to create kblockd\n");
@@ -49681,7 +49694,7 @@ struct net_device {
 
 	/*
 	 * 链接至struct net -> dev_name_head，
-	 * 参见10.5.1.1.1 分配网络设备/alloc_netdev()节：
+	 * 参见[10.5.1.1.1 分配网络设备/alloc_netdev()]节：
 	 * register_netdevice() -> list_netdevice()
 	 */
 	struct hlist_node		name_hlist;
@@ -49707,7 +49720,7 @@ struct net_device {
 
 	/*
 	 * 链接至struct net -> dev_base_head，
-	 * 参见10.5.1.1.1 分配网络设备/alloc_netdev()节：
+	 * 参见[10.5.1.1.1 分配网络设备/alloc_netdev()]节：
 	 * register_netdevice() -> list_netdevice()
 	 */
 	struct list_head		dev_list;
@@ -49748,7 +49761,7 @@ struct net_device {
 	struct iw_public_data		*wireless_data;
 #endif
 
-	// 参见10.5.1.2 struct net_device_ops节
+	// 参见[10.5.1.2 struct net_device_ops]节
 	const struct net_device_ops	*netdev_ops;
 	const struct ethtool_ops	*ethtool_ops;
 #ifdef CONFIG_NET_SWITCHDEV
@@ -49853,7 +49866,7 @@ struct net_device {
 
 	/*
 	 * 链接至struct net -> dev_index_head，
-	 * 参见10.5.1.1.1 分配网络设备/alloc_netdev()节：
+	 * 参见[10.5.1.1.1 分配网络设备/alloc_netdev()]节：
 	 * register_netdevice() -> list_netdevice()
 	 */
 	struct hlist_node		index_hlist;
@@ -49931,7 +49944,7 @@ struct net_device {
 	struct garp_port __rcu		*garp_port;
 	struct mrp_port __rcu		*mrp_port;
 
-	// 参见10.2.3 struct device节
+	// 参见[10.2.3 struct device]节
 	struct device			dev;
 	const struct attribute_group	*sysfs_groups[4];
 	const struct attribute_group	*sysfs_rx_queue_group;
@@ -50273,7 +50286,7 @@ int register_netdevice(struct net_device *dev)
 	 */
 	dev->mpls_features |= NETIF_F_SG;
 
-	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 	ret = call_netdevice_notifiers(NETDEV_POST_INIT, dev);
 	ret = notifier_to_errno(ret);
 	if (ret)
@@ -50281,7 +50294,7 @@ int register_netdevice(struct net_device *dev)
 
 	/*
 	 * Create sysfs entries for network device.
-	 * 参见10.5.1.1.3.1 netdev_register_kobject()节
+	 * 参见[10.5.1.1.3.1 netdev_register_kobject()]节
 	 */
 	ret = netdev_register_kobject(dev);
 	if (ret)
@@ -50317,7 +50330,7 @@ int register_netdevice(struct net_device *dev)
 		memcpy(dev->perm_addr, dev->dev_addr, dev->addr_len);
 
 	/* Notify protocols, that a new device appeared. */
-	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 	ret = call_netdevice_notifiers(NETDEV_REGISTER, dev);
 	ret = notifier_to_errno(ret);
 	if (ret) {
@@ -50354,7 +50367,7 @@ int netdev_register_kobject(struct net_device *ndev)
 	const struct attribute_group **groups = ndev->sysfs_groups;
 	int error = 0;
 
-	// 参见10.2.3.3.1 设备初始化/device_initialize()节
+	// 参见[10.2.3.3.1 设备初始化/device_initialize()]节
 	device_initialize(dev);
 	dev->class = &net_class;
 	dev->platform_data = ndev;
@@ -50380,7 +50393,7 @@ int netdev_register_kobject(struct net_device *ndev)
 #endif
 #endif /* CONFIG_SYSFS */
 
-	// 参见10.2.3.3.2 添加设备/device_add()节
+	// 参见[10.2.3.3.2 添加设备/device_add()]节
 	error = device_add(dev);
 	if (error)
 		return error;
@@ -50420,7 +50433,7 @@ void unregister_netdev(struct net_device *dev)
 	// 获取互斥锁rtnl_mutex; 函数__rtnl_unlock()用于释放该互斥锁
 	rtnl_lock();
 	unregister_netdevice(dev);
-	rtnl_unlock();		// 参见10.5.1.1.4.2 rtnl_unlock()节
+	rtnl_unlock();		// 参见[10.5.1.1.4.2 rtnl_unlock()]节
 }
 ```
 
@@ -50455,7 +50468,7 @@ void unregister_netdevice_queue(struct net_device *dev, struct list_head *head)
 
 		/*
 		 * 将待注销的网络设备链接到net_todo_list中，并通过如下函数释放该设备:
-		 * rtnl_unlock()->netdev_run_todo()，参见10.5.1.1.4.2 rtnl_unlock()节
+		 * rtnl_unlock()->netdev_run_todo()，参见[10.5.1.1.4.2 rtnl_unlock()]节
 		 */
 		/* Finish processing unregister after unlock */
 		net_set_todo(dev);
@@ -50521,7 +50534,7 @@ void netdev_run_todo(void)
 		list_del(&dev->todo_list);
 
 		rtnl_lock();
-		// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+		// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 		call_netdevice_notifiers(NETDEV_UNREGISTER_FINAL, dev);
 		__rtnl_unlock();
 
@@ -50554,7 +50567,7 @@ void netdev_run_todo(void)
 		wake_up(&netdev_unregistering_wq);
 
 		/* Free network device */
-		kobject_put(&dev->dev.kobj);	// 参见15.7.2.2 kobject_put()节
+		kobject_put(&dev->dev.kobj);	// 参见[15.7.2.2 kobject_put()]节
 	}
 }
 ```
@@ -50589,7 +50602,7 @@ int dev_open(struct net_device *dev)
 
 	rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
 
-	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 	call_netdevice_notifiers(NETDEV_UP, dev);
 
 	return ret;
@@ -50611,7 +50624,7 @@ static int __dev_open(struct net_device *dev)
 	 */
 	netpoll_poll_disable(dev);
 
-	// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+	// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 	ret = call_netdevice_notifiers(NETDEV_PRE_UP, dev);
 	ret = notifier_to_errno(ret);
 	if (ret)
@@ -50632,7 +50645,7 @@ static int __dev_open(struct net_device *dev)
 
 	/*
 	 * 启用设备时设置标志位__LINK_STATE_START，表示设备可以传递数据；
-	 * 关闭设备时清除该标志位，参见10.5.1.1.6 禁用网络设备/dev_close()节
+	 * 关闭设备时清除该标志位，参见[10.5.1.1.6 禁用网络设备/dev_close()]节
 	 */
 	if (ret)
 		clear_bit(__LINK_STATE_START, &dev->state);
@@ -50686,7 +50699,7 @@ int dev_close_many(struct list_head *head, bool unlink)
 
 	list_for_each_entry_safe(dev, tmp, head, close_list) {
 		rtmsg_ifinfo(RTM_NEWLINK, dev, IFF_UP|IFF_RUNNING, GFP_KERNEL);
-		// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+		// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 		call_netdevice_notifiers(NETDEV_DOWN, dev);
 		if (unlink)
 			list_del_init(&dev->close_list);
@@ -50706,12 +50719,12 @@ static int __dev_close_many(struct list_head *head)
 		/* Temporarily disable netpoll until the interface is down */
 		netpoll_poll_disable(dev);
 
-		// 参见10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()节
+		// 参见[10.5.1.3.4 网络设备事件通知函数/call_netdevice_notifiers()]节
 		call_netdevice_notifiers(NETDEV_GOING_DOWN, dev);
 
 		/*
 		 * 关闭设备时清除标志位__LINK_STATE_START，表示设备禁止传递数据；
-		 * 启用设备时设置该标志位，参见10.5.1.1.5 启动网络设备/dev_open()节
+		 * 启用设备时设置该标志位，参见[10.5.1.1.5 启动网络设备/dev_open()]节
 		 */
 		clear_bit(__LINK_STATE_START, &dev->state);
 
@@ -50881,7 +50894,7 @@ struct notifier_block {
 
 /*
  * 入参action定义于include/linux/netdevice.h，
- * 参见10.5.1.3.1 网络设备通知事件节
+ * 参见[10.5.1.3.1 网络设备通知事件]节
  */
 typedef int (*notifier_fn_t)(struct notifier_block *nb, unsigned long action, void *data);
 
@@ -51647,7 +51660,7 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask, int flags, int no
 	 * 分配skb，分配的空间是struct sk_buff_fclones;
 	 * 缓冲区skbuff_head_cache和skbuff_fclone_cache是由如下函数创建的:
 	 * core_initcall(sock_init) in net/socket.c->sock_init()->skb_init()
-	 * 参见10.5.2.1 应用层(L4)的初始化: sock_init()节
+	 * 参见[10.5.2.1 应用层(L4)的初始化: sock_init()]节
 	 */
 	cache = (flags & SKB_ALLOC_FCLONE) ? skbuff_fclone_cache : skbuff_head_cache;
 
@@ -52473,10 +52486,10 @@ static int __init net_dev_init(void)
 		goto out;
 
 	/*
-	 * 分别设置如下软中断的服务服务程序，参见struct softirq_节：
+	 * 分别设置如下软中断的服务服务程序，参见[9.2.2 struct softirq_action/softirq_vec[]]节：
 	 *   - NET_TX_SOFTIRQ的服务程序为net_tx_action()
 	 *   - NET_RX_SOFTIRQ的服务程序为net_rx_action()
-	 * 该服务程序被__do_softirq()调用，参见__do_softirq()节
+	 * 该服务程序被__do_softirq()调用，参见[9.3.1.3.1.1.1 __do_softirq()]节
 	 */
 	open_softirq(NET_TX_SOFTIRQ, net_tx_action);
 	open_softirq(NET_RX_SOFTIRQ, net_rx_action);
@@ -52555,7 +52568,7 @@ PCI Standards
 
 VFS是内核的一个子系统，其它子系统只与VFS打交道，而并不与具体文件系统发生联系。对具体文件系统来说，VFS是一个管理者，而对内核的其它子系统来说，VFS是它们与具体文件系统的一个接口。Its main strength is providing a common interface to several kinds of filesystems.
 
-VFS提供一个统一的接口(即file_operatoin结构，参见文件操作/struct file_operations节)，一个具体文件系统要想被Linux支持，就必须按照这个接口编写自己的操作函数，而将自己的细节对内核其它子系统隐藏起来。因而，对内核其它子系统以及运行在操作系统之上的用户程序而言，所有的文件系统都是一样的。实际上，要支持一个新的文件系统，主要任务就是编写这些接口函数。
+VFS提供一个统一的接口(即file_operatoin结构，参见[11.2.1.5.1 文件操作/struct file_operations](#11-2-1-5-1-struct-file-operations)节)，一个具体文件系统要想被Linux支持，就必须按照这个接口编写自己的操作函数，而将自己的细节对内核其它子系统隐藏起来。因而，对内核其它子系统以及运行在操作系统之上的用户程序而言，所有的文件系统都是一样的。实际上，要支持一个新的文件系统，主要任务就是编写这些接口函数。
 
 概括来说，VFS主要有以下几个作用：
 * 对具体文件系统的数据结构进行抽象，以一种统一的数据结构进行管理。
@@ -52632,7 +52645,7 @@ struct file_system_type {
 
 	/*
 	 * Pointer to the module implementing the filesystem.
-	 * 若该文件系统被编译进内核，则该字段为NULL，参见与模块有关的结构体节
+	 * 若该文件系统被编译进内核，则该字段为NULL，参见[13.4.1 与模块有关的结构体]节
 	 */
 	struct module *owner;
 
@@ -52642,7 +52655,7 @@ struct file_system_type {
 	 * Head of a list of superblock objectshaving the same filesystem type.
 	 * 该链表是由sget()函数链接起来的，参见[11.2.2.1 注册/注销文件系统]节。
 	 * 注：在kernel v3.3中，变量fs_supers的类型改为struct hlist_head，
-	 * 参见15.2 哈希链表/struct hlist_head/struct hlist_node节
+	 * 参见[15.2 哈希链表/struct hlist_head/struct hlist_node]节
 	 */
 	struct list_head fs_supers;
 
@@ -52665,7 +52678,7 @@ struct file_system_type {
 /* public flags for file_system_type */
 #define FS_REQUIRES_DEV        1      /* 任何文件系统必须位于物理磁盘设备上 */
 #define FS_BINARY_MOUNTDATA    2      /* 文件系统使用二进制安装数据 */
-#define FS_HAS_SUBTYPE         4      /* 参见get_fs_type()节 */
+#define FS_HAS_SUBTYPE         4      /* 参见[11.2.2.4.1.2.1.1 get_fs_type()]节 */
 #define FS_REVAL_DOT	       16384  /* Check the paths ".", ".." for staleness */
 #define FS_RENAME_DOES_D_MOVE  32768  /* FS will handle d_move() during rename() internally. */
 ```
@@ -52687,13 +52700,13 @@ file_systems单链表，参见:
 
 ###### 11.2.1.1.1.1 如何向file_systems注册文件系统及其先后顺序
 
-通过函数register_filesystem()/unregister_filesystem()向单链表file_systems中注册/注销指定的文件系统，参见[11.2.2.1 注册/注销文件系统]节。其调用关系如下：
+通过函数register_filesystem()/unregister_filesystem()向单链表file_systems中注册/注销指定的文件系统，参见[11.2.2.1 注册/注销文件系统](#11-2-2-1-)节。其调用关系如下：
 
 ```
 <source-code-of-specific-filesystem>
 -> fs_install(<fs-init-func>), or			// pipefs等
    fs_install_sync(<fs-init-func>), or
-   rootfs_initcall(<fs-init-func>), or			// initramfs等，参见Initramfs编译与初始化节
+   rootfs_initcall(<fs-init-func>), or			// initramfs等，参见[11.3.3.2 Initramfs编译与初始化]节
    module_init(<fs-init-func>), or			// ext2, ext3, ext4, efs, fat等
    <fs-init-func> is called during system init		// sysfs, ramfs等
    -> <fs-init-func>
@@ -52701,7 +52714,7 @@ file_systems单链表，参见:
          -> <fs-object-ptr> is appended into list file_systems
 ```
 
-在单链表file_systems中注册的文件系统参见查看系统中注册的文件系统节，其先后顺序是如何确定的呢？由.initcall*.init节可知，宏fs_install(), fs_install_sync(), rootfs_initcall()和module_init()分别被扩展为__early_initcall_end和__initcall_end之间的*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)，如下所示(另参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]](#13-5-1-1-1-1-initcall-start-early-initcall-end-initcall-end-)节):
+在单链表file_systems中注册的文件系统参见[11.2.1.1.2 查看系统中注册的文件系统](#11-2-1-1-2-)节，其先后顺序是如何确定的呢？由[13.5.1.1.1.1.1 .initcall*.init](#13-5-1-1-1-1-1-initcall-init)节可知，宏```fs_install()```, ```fs_install_sync()```, ```rootfs_initcall()```和```module_init()```分别被扩展为```__early_initcall_end```和```__initcall_end```之间的```*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)```，如下所示(另参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]](#13-5-1-1-1-1-initcall-start-early-initcall-end-initcall-end-)节):
 
 ```
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
@@ -52931,14 +52944,14 @@ struct super_block {
 	loff_t					s_maxbytes;		/* Max file size */
 
 	/*
-	 * 本超级块所属的文件系统，参见文件系统类型/struct file_system_type节和
+	 * 本超级块所属的文件系统，参见[11.2.1.1 文件系统类型/struct file_system_type]节和
 	 * Subjects/Chapter11_Filesystem/Figures/Filesystem_15.jpg
 	 */
 	struct file_system_type			*s_type;
 
 	/*
-	 * 指向某个特定文件系统的、用于超级块操作的函数集合，参见超级块操作/struct super_operations节。
-	 * 通过11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值节的方式为s_op指针赋值
+	 * 指向某个特定文件系统的、用于超级块操作的函数集合，参见[11.2.1.2.3 超级块操作/struct super_operations]节。
+	 * 通过[11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值]节的方式为s_op指针赋值
 	 */
 	const struct super_operations		*s_op;
 	// 指向某个特定文件系统的、用于限额操作的函数集合
@@ -52958,7 +52971,7 @@ struct super_block {
 
 	/*
 	 * Dentry object of the filesystem’s root directory.
-	 * 参见目录项/struct dentry节
+	 * 参见[11.2.1.3 目录项/struct dentry]节
 	 */
 	struct dentry				*s_root;
 	struct rw_semaphore			s_umount;		// unmount semaphore
@@ -52982,7 +52995,7 @@ struct super_block {
 	struct list_head			s_inodes;		/* all inodes */
 	struct hlist_bl_head			s_anon;			/* anonymous dentries for (nfs) exporting */
 
-	// list of assigned files，参见alloc_super()节
+	// list of assigned files，参见[11.2.1.2.2.1.1 alloc_super()]节
 #ifdef CONFIG_SMP
 	struct list_head __percpu 		*s_files;
 #else
@@ -52991,7 +53004,7 @@ struct super_block {
 
 	/*
 	 * s_dentry_lru是由struct dentry->i_lru组成的链表，
-	 * s_nr_dentry_unused表示该链表中元素的个数，参见目录项/struct dentry节
+	 * s_nr_dentry_unused表示该链表中元素的个数，参见[11.2.1.3 目录项/struct dentry]节
 	 */
 	/* s_dentry_lru, s_nr_dentry_unused protected by dcache.c lru locks */
 	struct list_head			s_dentry_lru;		/* unused dentry lru */
@@ -52999,7 +53012,7 @@ struct super_block {
 
 	/*
 	 * s_inode_lru是由struct inode->d_lru组成的链表
-	 * s_nr_inodes_unused表示该链表中元素的个数，参见索引节点/struct inode节
+	 * s_nr_inodes_unused表示该链表中元素的个数，参见[11.2.1.4 索引节点/struct inode]节
 	 */
 	/* s_inode_lru_lock protects s_inode_lru and s_nr_inodes_unused */
 	spinlock_t				s_inode_lru_lock ____cacheline_aligned_in_smp;
@@ -53012,7 +53025,7 @@ struct super_block {
 
 	/*
 	 * 同一种文件系统可能存在多个超级块，并通过s_instances域链接起来，
-	 * 组成双向链表file_systems->fs_supers，参见文件系统链表/file_systems节；
+	 * 组成双向链表file_systems->fs_supers，参见[11.2.1.1.1 文件系统链表/file_systems]节；
 	 * s_instances域会被sget()函数引用，参见[11.2.2.1 注册/注销文件系统]节
 	 */
 	struct list_head			s_instances;
@@ -53021,7 +53034,7 @@ struct super_block {
 	int					s_frozen;		// frozen status
 	wait_queue_head_t			s_wait_unfrozen;	// wait queue on freeze
 
-	// 函数sget()将struct file_system_type->name拷贝到s_id[]，参见alloc_super()节
+	// 函数sget()将struct file_system_type->name拷贝到s_id[]，参见[11.2.1.2.2.1.1 alloc_super()]节
 	char 					s_id[32];		/* Informational name */
 	u8 					s_uuid[16];		/* UUID */
 
@@ -53050,7 +53063,7 @@ struct super_block {
 	char __rcu				*s_options;
 	/*
 	 * 其作为默认值赋给struct dentry->d_op，
-	 * 参见如何分配dentry并为struct dentry->d_op赋值节
+	 * 参见[11.2.1.3.2 如何分配dentry并为struct dentry->d_op赋值]节
 	 */
 	const struct dentry_operations  	*s_d_op; 		/* default d_op for dentries */
 
@@ -53117,7 +53130,7 @@ retry:
 	if (test) {
 		/*
 		 * 遍历双向链表type->fs_supers，检查该文件系统是否已存在满足条件的超级块，
-		 * 参见11.2.1.1.1 文件系统链表/file_systems节中的元素fs_supers
+		 * 参见[11.2.1.1.1 文件系统链表/file_systems]节中的元素fs_supers
 		 */
 		list_for_each_entry(old, &type->fs_supers, s_instances) {
 			/*
@@ -53137,7 +53150,7 @@ retry:
 			 */
 			if (s) {
 				up_write(&s->s_umount);
-				// 注销该超级块，参见destroy_super()节
+				// 注销该超级块，参见[11.2.1.2.2.2.1 destroy_super()]节
 				destroy_super(s);
 				s = NULL;
 			}
@@ -53154,7 +53167,7 @@ retry:
 		spin_unlock(&sb_lock);
 		/*
 		 * a) 否则，分配一个新的超级块，并进行初始化，
-		 *    参见alloc_super()节
+		 *    参见[11.2.1.2.2.1.1 alloc_super()]节
 		 */
 		s = alloc_super(type);
 		if (!s)
@@ -53174,7 +53187,7 @@ retry:
 	if (err) {
 		spin_unlock(&sb_lock);
 		up_write(&s->s_umount);
-		// 注销该超级块，参见destroy_super()节
+		// 注销该超级块，参见[11.2.1.2.2.2.1 destroy_super()]节
 		destroy_super(s);
 		return ERR_PTR(err);
 	}
@@ -53185,7 +53198,7 @@ retry:
 	spin_unlock(&sb_lock);
 	get_filesystem(type);					// 加载该文件系统所在的模块type->owner
 	/*
-	 * alloc_super()为s->s_shrink赋值，参见alloc_super()节；
+	 * alloc_super()为s->s_shrink赋值，参见[11.2.1.2.2.1.1 alloc_super()]节；
 	 * register_shrinker()初始化s->s_shrink->nr_in_batch，
 	 * 并将s->s_shrink->list链接到链表shrinker_list的末尾
 	 */
@@ -53194,7 +53207,7 @@ retry:
 }
 ```
 
-函数sget()的调用关系，参见11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值节。
+函数sget()的调用关系，参见[11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值](#11-2-1-2-3-2-super-blocks-x-gt-s-op-)节。
 
 链表shrinker_list，参见:
 
@@ -53329,10 +53342,10 @@ void __put_super(struct super_block *sb)
 	if (!--sb->s_count) {
 		/*
 		 * 将该超级块从链表super_blocks中移除并初始化，
-		 * 参见11.2.1.2.1 超级块链表/super_blocks节
+		 * 参见[11.2.1.2.1 超级块链表/super_blocks]节
 		 */
 		list_del_init(&sb->s_list);
-		// 注销该超级块，参见destroy_super()节
+		// 注销该超级块，参见[11.2.1.2.2.2.1 destroy_super()]节
 		destroy_super(sb);
 	}
 }
@@ -53502,28 +53515,28 @@ static const struct super_operations nfs_sops = {
 每种具体文件系统的struct super_operations对象是通过如下方式赋值给super_blocks[x]->s_op的:
 
 ```
-/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见文件系统的自动安装节)调用如下函数 */
+/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见[11.4 文件系统的自动安装]节)调用如下函数 */
 kern_mount() / do_kern_mount()		// 参见[11.2.2.4.1.2.1 do_kern_mount()]节
--> vfs_kern_mount()			// 参见vfs_kern_mount()节
-   -> mount_fs()			// 参见mount_fs()节
-      -> type->mount()			// 其中type为某种具体的文件系统类型，参见mount_fs()节
-         -> 方式1: 该具体文件系统的mount()函数直接或间接地调用sget()以分配超级块sb. 参见分配超级块/sget()节
+-> vfs_kern_mount()			// 参见[11.2.2.2.1 vfs_kern_mount()]节
+   -> mount_fs()			// 参见[11.2.2.2.1.2 mount_fs()]节
+      -> type->mount()			// 其中type为某种具体的文件系统类型，参见[11.2.2.2.1.2 mount_fs()]节
+         -> 方式1: 该具体文件系统的mount()函数直接或间接地调用sget()以分配超级块sb. 参见[11.2.1.2.2.1 分配超级块/sget()]节
          -> 方式2: 该具体文件系统的mount()函数直接或间接地为超级块sb->s_op赋值
 ```
 
 以EXT3为例，其调用过程如下：
 
 ```
-/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见文件系统的自动安装节)调用如下函数 */
+/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见[11.4 文件系统的自动安装]节)调用如下函数 */
 kern_mount(ext3_fs_type, ...) / do_kern_mount(ext3_fs_type, ...)
 -> vfs_kern_mount()				// 参见[11.2.2.4.1.2.1 do_kern_mount()]节
-   -> mount_fs()				// 参见mount_fs()节
+   -> mount_fs()				// 参见[11.2.2.2.1.2 mount_fs()]节
       -> &ext3_fs_type->mount()			// that’s ext3_mount()
          -> ext3_mount()			// 参见fs/ext3/super.c
             -> mount_bdev(..., ext3_fill_super)		
-               -> s = sget(...)			// 参见分配超级块/sget()节
+               -> s = sget(...)			// 参见[11.2.1.2.2.1 分配超级块/sget()]节
                -> ext3_fill_super(s, ...)
-                  -> s->s_op = &ext3_sops;	// 参见具体文件系统的struct super_operations对象节
+                  -> s->s_op = &ext3_sops;	// 参见[11.2.1.2.3.1 具体文件系统的struct super_operations对象]节
 ```
 
 #### 11.2.1.3 目录项/struct dentry
@@ -53546,7 +53559,7 @@ struct dentry {
 	/*
 	 * 链接成哈希链表dentry_hashtable，参见fs/dcache.c
 	 * 链表类型struct hlist_bl_node，
-	 * 参见加锁哈希链表/struct hlist_bl_head/struct hlist_bl_node节
+	 * 参见[15.3 加锁哈希链表/struct hlist_bl_head/struct hlist_bl_node]节
 	 */
 	struct hlist_bl_node 		d_hash;		/* lookup hash list */
 
@@ -53555,7 +53568,7 @@ struct dentry {
 
 	/*
 	 * dentry name, used by d_op->d_compare()
-	 * 参见目录项操作/struct dentry_operations节
+	 * 参见[11.2.1.3.1 目录项操作/struct dentry_operations]节
 	 */
 	struct qstr 			d_name;
 
@@ -53579,19 +53592,19 @@ struct dentry {
 	unsigned int			d_count;	/* protected by d_lock */ // usage count
 	spinlock_t			d_lock;		/* per dentry lock */
 
-	// 目录项操作，参见目录项操作/struct dentry_operations节
+	// 目录项操作，参见[11.2.1.3.1 目录项操作/struct dentry_operations]节
 	const struct dentry_operations *d_op; 
 	// 目录项树的根，即文件的超级块
 	struct super_block 		*d_sb;		/* The root of the dentry tree */
-	// 参见目录项操作/struct dentry_operations节
+	// 参见[11.2.1.3.1 目录项操作/struct dentry_operations]节
 	unsigned long 			d_time;		/* used by d_op->d_revalidate(). */
-	// 特定文件系统的数据，参见sysfs_open_file()节
+	// 特定文件系统的数据，参见[11.3.5.4.1 sysfs_open_file()]节
 	void 				*d_fsdata;	/* fs-specific data */
 
 	/*
 	 * Unused list. 各d_lru链接成链表struct super_block->s_dentry_lru，
 	 * 而struct super_block->s_nr_dentry_unused表示该链表中元素的个数；
-	 * 参见超级块结构/struct super_block节
+	 * 参见[11.2.1.2 超级块结构/struct super_block]节
 	 */
 	struct list_head 		d_lru;		/* LRU list */
 	/*
@@ -53690,7 +53703,7 @@ struct dentry *d_alloc(struct dentry * parent, const struct qstr *name)
 {
 	/*
 	 * 从缓存dentry_cache中分配dentry，并为dentry->d_op赋默认值，
-	 * 参见__d_alloc()节: dentry->d_op = parent->d_sb->s_d_op;
+	 * 参见[11.2.2.2.1.2.1.1.3 __d_alloc()]节: dentry->d_op = parent->d_sb->s_d_op;
 	 * 即: struct dentry->d_op来自于struct super_block->s_d_op
 	 */
 	struct dentry *dentry = __d_alloc(parent->d_sb, name);
@@ -53775,8 +53788,8 @@ struct inode {
 #endif
 
 	/*
-	 * 索引节点操作，参见索引节点操作/struct inode_operations节，
-	 * 其值根据i_mode的取值不同而不同，参见如何分配inode并为struct inode->i_op赋值节
+	 * 索引节点操作，参见[11.2.1.4.1 索引节点操作/struct inode_operations]节，
+	 * 其值根据i_mode的取值不同而不同，参见[11.2.1.4.2 如何分配inode并为struct inode->i_op赋值]节
 	 */
 	const struct inode_operations	*i_op;
 	/*
@@ -53787,7 +53800,7 @@ struct inode {
 	struct super_block		*i_sb;
 	/*
 	 * 链接所有可交换的页面，associated mapping.
-	 * 参见[6.2.7 struct vm_area_struct]节和struct address_space节
+	 * 参见[6.2.7 struct vm_area_struct]节和[6.2.8 struct address_space]节
 	 */
 	struct address_space		*i_mapping;
 
@@ -53840,7 +53853,7 @@ struct inode {
 	 * Unused list.
 	 * struct inode->i_lru链接成链表struct super_block->s_inode_lru;
 	 * struct super_block->s_nr_inodes_unused表示该链表中元素的个数，
-	 * 参见超级块结构/struct super_block节
+	 * 参见[11.2.1.2 超级块结构/struct super_block]节
 	 */
 	struct list_head		i_lru;		/* inode LRU list */
 
@@ -53848,7 +53861,7 @@ struct inode {
 	struct list_head		i_sb_list;
 
 	/*
-	 * 参见目录项/struct dentry节:
+	 * 参见[11.2.1.3 目录项/struct dentry]节:
 	 * struct inode->i_dentry将属于同一文件的dentry(通过struct dentry->d_alias)链接到一起;
 	 * struct dentry->d_inode指向该目录项所属的inode.
 	 */
@@ -53861,7 +53874,7 @@ struct inode {
 	u64				i_version; 	// versioning number
 	atomic_t			i_dio_count;
 	atomic_t			i_writecount;	// 写进程的引用计数
-	// 文件操作，参见文件操作/struct file_operations节
+	// 文件操作，参见[11.2.1.5.1 文件操作/struct file_operations]节
 	const struct file_operations	*i_fop;		/* former ->i_op->default_file_ops */
 	struct file_lock		*i_flock;	// file lock list
 	struct address_space		i_data;		// mapping for device
@@ -54090,16 +54103,16 @@ static void destroy_inode(struct inode *inode)
 以EXT3为例，分配inode并为struct inode->i_op赋值的过程如下：
 
 ```
-/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见文件系统的自动安装节)调用如下函数 */
+/* 手动(参见[11.2.2.4 安装文件系统(2)/sys_mount()]节)或自动(参见[11.4 文件系统的自动安装]节)调用如下函数 */
 kern_mount(ext3_fs_type, ...) / do_kern_mount(ext3_fs_type, ...)
 -> vfs_kern_mount()				// 参见[11.2.2.4.1.2.1 do_kern_mount()]节
-   -> mount_fs()				// 参见mount_fs()节
+   -> mount_fs()				// 参见[11.2.2.2.1.2 mount_fs()]节
       -> &ext3_fs_type->mount()			// that’s ext3_mount()
          -> ext3_mount()			// 参见fs/ext3/super.c
             -> mount_bdev(..., ext3_fill_super)
-               -> s = sget(...)			// 参见分配超级块/sget()节和11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值节
+               -> s = sget(...)			// 参见[11.2.1.2.2.1 分配超级块/sget()]节和[11.2.1.2.3.2 如何为super_blocks[x]->s_op赋值]节
                -> ext3_fill_super(s, ...)
-                  -> s->s_op = &ext3_sops;	// 参见具体文件系统的struct super_operations对象节
+                  -> s->s_op = &ext3_sops;	// 参见[11.2.1.2.3.1 具体文件系统的struct super_operations对象]节
                   -> root = ext3_iget(sb, EXT3_ROOT_INO);
                      /* 1) 分配ext3文件系统的inode */
                      -> inode = iget_locked(sb, ino);
@@ -54330,7 +54343,7 @@ struct file {
 #define f_dentry			f_path.dentry
 #define f_vfsmnt			f_path.mnt
 
-	// 指向文件操作集合的指针，参见文件操作/struct file_operations节
+	// 指向文件操作集合的指针，参见[11.2.1.5.1 文件操作/struct file_operations]节
 	const struct file_operations	*f_op;
 
 	/*
@@ -54531,7 +54544,7 @@ struct file_operations {
 	 * to map in a memory segment on the underlying device.
 	 */
 	unsigned long (*get_unmapped_area)(struct file *, unsigned long,
-					  unsigned long, unsigned long, unsigned long);
+					   unsigned long, unsigned long, unsigned long);
 
 	/*
 	 * Allows a module to check the flags passed to an
@@ -54606,7 +54619,7 @@ struct file *alloc_file(struct path *path, fmode_t mode,
 }
 ```
 
-当进程打开文件时，调用alloc_file()为struct file->f_op赋值，参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节。
+当进程打开文件时，调用alloc_file()为struct file->f_op赋值，参见[11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()](#11-2-4-2-1-2-1-1-1-dentry-open-dentry-open-)节。
 
 #### 11.2.1.6 虚拟文件系统安装结构/struct vfsmount
 
@@ -54686,7 +54699,7 @@ static struct kmem_cache	*mnt_cache __read_mostly;
 static struct rw_semaphore	namespace_sem;
 ```
 
-函数mnt_init()为变量mount_hashtable分配空间，参见[4.3.4.1.4.3.11.4 mnt_init()]节。
+函数mnt_init()为变量mount_hashtable分配空间，参见[4.3.4.1.4.3.11.4 mnt_init()](#4-3-4-1-4-3-11-4-mnt-init-)节。
 
 mount_hashtable哈希链表结构:
 
@@ -54711,9 +54724,9 @@ struct vfsmount类型的对象是在安装文件系统时创建的:
 
 ```
 kern_mount(type) / kern_mount_data(type, NULL)		// 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
--> mnt = vfs_kern_mount(type, MS_KERNMOUNT,		// 参见vfs_kern_mount()节
+-> mnt = vfs_kern_mount(type, MS_KERNMOUNT,		// 参见[11.2.2.2.1 vfs_kern_mount()]节
                         type->name, data);
-   -> alloc_vfsmnt(name)				// 参见alloc_vfsmnt()节
+   -> alloc_vfsmnt(name)				// 参见[11.2.2.2.1.1 alloc_vfsmnt()]节
       -> mnt = kmem_cache_zalloc(mnt_cache, GFP_KERNEL);
 ```
 
@@ -54732,7 +54745,7 @@ start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
 
 ##### 11.2.1.7.1 struct files_struct
 
-每个进程用一个struct files_struct类型的对象files(参见文件系统节)来记录文件描述符的使用情况，files_struct结构称为用户打开文件表，它是进程的私有数据，参见11.2.4.2.1 open()节以及下图:
+每个进程用一个struct files_struct类型的对象files(参见[11 文件系统/fs](#11-fs)节)来记录文件描述符的使用情况，files_struct结构称为用户打开文件表，它是进程的私有数据，参见[11.2.4.2.1 open()](#11-2-4-2-1-open-)节以及下图:
 
 ![Filesystem_2](/assets/Filesystem_2.jpg)
 
@@ -54879,7 +54892,7 @@ int register_filesystem(struct file_system_type * fs)
 	int res = 0;
 	struct file_system_type ** p;
 
-	// 文件系统的名字不能包含"."，参见11.2.2.4.1.2.1.2 fs_set_subtype()节
+	// 文件系统的名字不能包含"."，参见[11.2.2.4.1.2.1.2 fs_set_subtype()]节
 	BUG_ON(strchr(fs->name, '.'));
 
 	// 一次只能注册一个文件系统，即fs->next = NULL;
@@ -54888,14 +54901,14 @@ int register_filesystem(struct file_system_type * fs)
 
 	/*
 	 * 初始化该文件系统的超级块链表，
-	 * 参见11.2.1.1.1 文件系统链表/file_systems节
+	 * 参见[11.2.1.1.1 文件系统链表/file_systems]节
 	 */
 	INIT_LIST_HEAD(&fs->fs_supers);
 	write_lock(&file_systems_lock);
 
 	/*
 	 * 根据文件系统的名字，检查链表file_systems中是否已
-	 * 存在该文件系统，参见文件系统链表/file_systems节。
+	 * 存在该文件系统，参见[11.2.1.1.1 文件系统链表/file_systems]节。
 	 * 若链表file_systems中已存在该文件系统，则注册失败；
 	 * 否则，将该文件系统添加至链表file_systems的末尾
 	 */
@@ -54932,7 +54945,7 @@ int unregister_filesystem(struct file_system_type * fs)
 	write_lock(&file_systems_lock);
 	/*
 	 * 从链表file_systems中查找指定的文件系统并注销
-	 * 该文件系统，参见文件系统链表/file_systems节
+	 * 该文件系统，参见[11.2.1.1.1 文件系统链表/file_systems]节
 	 */
 	tmp = &file_systems;
 	while (*tmp) {
@@ -54960,7 +54973,7 @@ When a filesystem is mounted on a directory, the contents of the directory in th
 ```
 /*
  * 参数type为struct file_system_type类型，
- * 参见文件系统类型/struct file_system_type节
+ * 参见[11.2.1.1 文件系统类型/struct file_system_type]节
  */
 #define kern_mount(type) 	kern_mount_data(type, NULL)
 
@@ -54968,7 +54981,7 @@ When a filesystem is mounted on a directory, the contents of the directory in th
 struct vfsmount *kern_mount_data(struct file_system_type *type, void *data)
 {
 	struct vfsmount *mnt;
-	// 安装type类型的文件系统，并返回该文件系统的挂载点，参见vfs_kern_mount()节
+	// 安装type类型的文件系统，并返回该文件系统的挂载点，参见[11.2.2.2.1 vfs_kern_mount()]节
 	mnt = vfs_kern_mount(type, MS_KERNMOUNT, type->name, data);
 	if (!IS_ERR(mnt)) {
 		/*
@@ -54978,7 +54991,7 @@ struct vfsmount *kern_mount_data(struct file_system_type *type, void *data)
 		/*
 		 * increment atomic variable: mnt->mnt_longterm
 	 	 * 与kern_unmount()->mnt_make_shortterm()相对应，
-		 * 参见卸载文件系统(1)/kern_unmount()节
+		 * 参见[11.2.2.3 卸载文件系统(1)/kern_unmount()]节
 		 */
 		mnt_make_longterm(mnt);
 	}
@@ -55070,7 +55083,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 	 * stores its address in the mnt local variable.
 	 * 从缓存mnt_cache(由mnt_init()分配，参见[4.3.4.1.4.3.11.4 mnt_init()]节)
 	 * 中分配并初始化类型为struct vfsmount的内存，
-	 * 参见alloc_vfsmnt()节
+	 * 参见[11.2.2.2.1.1 alloc_vfsmnt()]节
 	 */
 	mnt = alloc_vfsmnt(name);
 	if (!mnt)
@@ -55085,7 +55098,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 
 	/*
 	 * 挂载指定类型的文件系统，并返回挂载后根目录的目录项dentry，
-	 * 参见mount_fs()节
+	 * 参见[11.2.2.2.1.2 mount_fs()]节
 	 */
 	root = mount_fs(type, flags, name, data);
 	if (IS_ERR(root)) {
@@ -55099,7 +55112,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 	mnt->mnt_mountpoint = mnt->mnt_root;
 	/*
 	 * 此处先将mnt_parent指向自己，当调用do_add_mount()时
-	 * 再将其指向父目录的挂载点，参见do_add_mount()节
+	 * 再将其指向父目录的挂载点，参见[11.2.2.4.1.2.2 do_add_mount()]节
 	 */
 	mnt->mnt_parent = mnt;
 	return mnt;
@@ -55117,7 +55130,7 @@ struct vfsmount *vfs_kern_mount(struct file_system_type *type, int flags,
 ```
 static struct vfsmount *alloc_vfsmnt(const char *name)
 {
-	// 从缓存mnt_cache中为mnt分配空间，参见[4.3.4.1.4.3.11.4 mnt_init()]节和kmem_cache_zalloc()节
+	// 从缓存mnt_cache中为mnt分配空间，参见[4.3.4.1.4.3.11.4 mnt_init()]节和[6.5.1.1.3.1 kmem_cache_zalloc()]节
 	struct vfsmount *mnt = kmem_cache_zalloc(mnt_cache, GFP_KERNEL);
 	if (mnt) {
 		int err;
@@ -55201,15 +55214,15 @@ struct dentry *mount_fs(struct file_system_type *type, int flags,
 	}
 
 	/*
-	 * 调用指定文件系统的安装函数(参见文件系统类型/struct file_system_type节)
+	 * 调用指定文件系统的安装函数(参见[11.2.1.1 文件系统类型/struct file_system_type]节)
 	 * 来挂载文件系统，并返回挂载后根目录的目录项。
 	 *
 	 * 根据文件系统类型的不同，其安装函数也不同:
-	 * - 若文件系统为sysfs_fs_type，则调用sysfs_mount()，参见[4.3.4.1.4.3.11.4.1 sysfs_init()]节和sysfs_mount()节；
-	 * - 若文件系统为rootfs_fs_type，则调用rootfs_mount()，参见[4.3.4.1.4.3.11.4.2 init_rootfs()]节和[11.2.2.2.1.2.2 rootfs_mount()](#11-2-2-2-1-2-2-rootfs-mount-)节；
-	 * - 若文件系统为bd_type，则调用bd_mount()，参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节和bd_mount()节；
+	 * - 若文件系统为sysfs_fs_type，则调用sysfs_mount()，参见[4.3.4.1.4.3.11.4.1 sysfs_init()]节和[11.2.2.2.1.2.1 sysfs_mount()]节；
+	 * - 若文件系统为rootfs_fs_type，则调用rootfs_mount()，参见[4.3.4.1.4.3.11.4.2 init_rootfs()]节和[11.2.2.2.1.2.2 rootfs_mount()]节；
+	 * - 若文件系统为bd_type，则调用bd_mount()，参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节和[11.2.2.2.1.2.3 bd_mount()]节；
 	 * - 若文件系统为proc，则调用proc_mount()，参见[4.3.4.1.4.3.12 proc_root_init()]节和[11.2.2.2.1.2.4 proc_mount()]节；
-	 * - 若文件系统为debugfs，则调用debug_mount()，参见Debugfs的编译及初始化节和debug_mount()节；
+	 * - 若文件系统为debugfs，则调用debug_mount()，参见[11.3.7.2 Debugfs的编译及初始化]节和[11.2.2.2.1.2.5 debug_mount()]节；
 	 * - ...
 	 * 其共同点为: 1) 分配该文件系统的超级块； 2) 分配挂载点dentry结构
 	 */
@@ -55283,7 +55296,7 @@ static struct dentry *sysfs_mount(struct file_system_type *fs_type, int flags,
 
 	/*
 	 * 创建超级块，并将其链接到super_blocks链表
-	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 * (参见[11.2.1.2.1 超级块链表/super_blocks]节)中，参见[11.2.1.2.2.1 分配超级块/sget()]节
 	 */
 	sb = sget(fs_type, sysfs_test_super, sysfs_set_super, info);
 	if (IS_ERR(sb) || sb->s_fs_info != info)
@@ -55292,7 +55305,7 @@ static struct dentry *sysfs_mount(struct file_system_type *fs_type, int flags,
 		return ERR_CAST(sb);
 	if (!sb->s_root) {
 		sb->s_flags = flags;
-		// 分配根节点sb->s_root，参见sysfs_fill_super()节
+		// 分配根节点sb->s_root，参见[11.2.2.2.1.2.1.1 sysfs_fill_super()]节
 		error = sysfs_fill_super(sb, data, flags & MS_SILENT ? 1 : 0);
 		if (error) {
 			deactivate_locked_super(sb);
@@ -55301,7 +55314,7 @@ static struct dentry *sysfs_mount(struct file_system_type *fs_type, int flags,
 		sb->s_flags |= MS_ACTIVE;
 	}
 
-	// 增加根目录的目录项的使用计数，并返回该目录项，参见dget()节
+	// 增加根目录的目录项的使用计数，并返回该目录项，参见[11.2.2.2.1.2.1.2 dget()]节
 	return dget(sb->s_root);
 }
 ```
@@ -55324,7 +55337,7 @@ static int sysfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	/* get root inode, initialize and unlock it */
 	mutex_lock(&sysfs_mutex);
-	inode = sysfs_get_inode(sb, &sysfs_root);	// 参见sysfs_get_inode()节
+	inode = sysfs_get_inode(sb, &sysfs_root);	// 参见[11.2.2.2.1.2.1.1.1 sysfs_get_inode()]节
 	mutex_unlock(&sysfs_mutex);
 	if (!inode) {
 		pr_debug("sysfs: could not get root inode\n");
@@ -55332,7 +55345,7 @@ static int sysfs_fill_super(struct super_block *sb, void *data, int silent)
 	}
 
 	/* instantiate and link root dentry */
-	root = d_alloc_root(inode);			// 参见d_alloc_root()节
+	root = d_alloc_root(inode);			// 参见[11.2.2.2.1.2.1.1.2 d_alloc_root()]节
 	if (!root) {
 		pr_debug("%s: could not get root dentry!\n",__func__);
 		iput(inode);
@@ -55383,7 +55396,7 @@ static void sysfs_init_inode(struct sysfs_dirent *sd, struct inode *inode)
 		inode->i_op = &sysfs_dir_inode_operations;
 		inode->i_fop = &sysfs_dir_operations;
 		break;
-	// 2) 设置文件操作函数，参见fs/sysfs/file.c和sysfs_file_operations节
+	// 2) 设置文件操作函数，参见fs/sysfs/file.c和[11.3.5.4 sysfs文件操作/sysfs_file_operations]节
 	case SYSFS_KOBJ_ATTR:
 		inode->i_size = PAGE_SIZE;
 		inode->i_fop = &sysfs_file_operations;
@@ -55429,11 +55442,11 @@ struct dentry * d_alloc_root(struct inode * root_inode)
 
 		/*
 		 * 从缓存dentry_cache中(参见[4.3.4.1.4.3.11.1 dcache_init()]节)分配根目录项，
-		 * 并赋值，参见__d_alloc()节
+		 * 并赋值，参见[11.2.2.2.1.2.1.1.3 __d_alloc()]节
 		 */
 		res = __d_alloc(root_inode->i_sb, &name);
 
-		// 填写根目录项对应的inode信息，参见d_instantiate()节
+		// 填写根目录项对应的inode信息，参见[11.2.2.2.1.2.1.1.4 d_instantiate()]节
 		if (res)
 			d_instantiate(res, root_inode);
 	}
@@ -55466,7 +55479,7 @@ struct dentry *__d_alloc(struct super_block *sb, const struct qstr *name)
 
 	/*
 	 * 从缓存dentry_cache中获取目录项，参见[4.3.4.1.4.3.11.1 dcache_init()]节
-	 * 和6.5.1.1.3.1 kmem_cache_zalloc()节
+	 * 和[6.5.1.1.3.1 kmem_cache_zalloc()]节
 	 */
 	dentry = kmem_cache_alloc(dentry_cache, GFP_KERNEL);
 	if (!dentry)
@@ -55621,7 +55634,7 @@ struct dentry *mount_nodev(struct file_system_type *fs_type, int flags, void *da
 	int error;
 	/*
 	 * 创建超级块，并将其链接到super_blocks链表
-	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 * (参见[11.2.1.2.1 超级块链表/super_blocks]节)中，参见[11.2.1.2.2.1 分配超级块/sget()]节
 	 */
 	struct super_block *s = sget(fs_type, NULL, set_anon_super, NULL);
 
@@ -55685,7 +55698,7 @@ int ramfs_fill_super(struct super_block *sb, void *data, int silent)
 		goto fail;
 	}
 
-	// 创建根目录项，参见d_alloc_root()节
+	// 创建根目录项，参见[11.2.2.2.1.2.1.1.2 d_alloc_root()]节
 	root = d_alloc_root(inode);
 	sb->s_root = root;
 	if (!root) {
@@ -55735,7 +55748,7 @@ struct dentry *mount_pseudo(struct file_system_type *fs_type, char *name,
 {
 	/*
 	 * 创建超级块，并将其链接到super_blocks链表
-	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 * (参见[11.2.1.2.1 超级块链表/super_blocks]节)中，参见[11.2.1.2.2.1 分配超级块/sget()]节
 	 */
 	struct super_block *s = sget(fs_type, NULL, set_anon_super, NULL);
 	struct dentry *dentry;
@@ -55763,13 +55776,13 @@ struct dentry *mount_pseudo(struct file_system_type *fs_type, char *name,
 	root->i_ino = 1;
 	root->i_mode = S_IFDIR | S_IRUSR | S_IWUSR;
 	root->i_atime = root->i_mtime = root->i_ctime = CURRENT_TIME;
-	// 创建目录项，参见__d_alloc()节
+	// 创建目录项，参见[11.2.2.2.1.2.1.1.3 __d_alloc()]节
 	dentry = __d_alloc(s, &d_name);
 	if (!dentry) {
 		iput(root);
 		goto Enomem;
 	}
-	// 填写根目录项对应的inode信息，参见d_instantiate()节
+	// 填写根目录项对应的inode信息，参见[11.2.2.2.1.2.1.1.4 d_instantiate()]节
 	d_instantiate(dentry, root);
 	s->s_root = dentry;
 	s->s_d_op = dops;
@@ -55790,9 +55803,9 @@ Enomem:
 proc_root_init()							// 参见[4.3.4.1.4.3.12 proc_root_init()]节
 -> register_filesystem(&proc_fs_type)
 -> pid_ns_prepare_proc(&init_pid_ns)					// 参见[4.3.4.1.4.3.12 proc_root_init()]节
-   -> kern_mount_data(&proc_fs_type, &init_pid_ns);			// 参见vfs_kern_mount()节
-      -> vfs_kern_mount(type, MS_KERNMOUNT, type->name, data);		// 参见vfs_kern_mount()节
-         -> mount_fs(type, flags, name, data);				// 参见mount_fs()节
+   -> kern_mount_data(&proc_fs_type, &init_pid_ns);			// 参见[11.2.2.2.1 vfs_kern_mount()]节
+      -> vfs_kern_mount(type, MS_KERNMOUNT, type->name, data);		// 参见[11.2.2.2.1 vfs_kern_mount()]节
+         -> mount_fs(type, flags, name, data);				// 参见[11.2.2.2.1.2 mount_fs()]节
             -> type->mount()						// 即proc_fs_type->proc_mount()
 ```
 
@@ -55818,7 +55831,7 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 
 	/*
 	 * 创建超级块，并将其链接到super_blocks链表
-	 * (参见超级块链表/super_blocks节)中，参见分配超级块/sget()节
+	 * (参见[11.2.1.2.1 超级块链表/super_blocks]节)中，参见[11.2.1.2.2.1 分配超级块/sget()]节
 	 */
 	sb = sget(fs_type, proc_test_super, proc_set_super, ns);
 	if (IS_ERR(sb))
@@ -55826,7 +55839,7 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 
 	if (!sb->s_root) {
 		sb->s_flags = flags;
-		err = proc_fill_super(sb);	// 参见proc_fill_super()节
+		err = proc_fill_super(sb);	// 参见[11.2.2.2.1.2.4.1 proc_fill_super()]节
 		if (err) {
 			deactivate_locked_super(sb);
 			return ERR_PTR(err);
@@ -55877,7 +55890,7 @@ int proc_fill_super(struct super_block *s)
 		goto out_no_root;
 	root_inode->i_uid = 0;
 	root_inode->i_gid = 0;
-	s->s_root = d_alloc_root(root_inode);		// 参见d_alloc_root()节
+	s->s_root = d_alloc_root(root_inode);		// 参见[11.2.2.2.1.2.1.1.2 d_alloc_root()]节
 	if (!s->s_root)
 		goto out_no_root;
 	return 0;
@@ -55949,7 +55962,7 @@ struct dentry *mount_single(struct file_system_type *fs_type, int flags, void *d
 	struct super_block *s;
 	int error;
 
-	// 分配超级块，参见分配超级块/sget()节
+	// 分配超级块，参见[11.2.1.2.2.1 分配超级块/sget()]节
 	s = sget(fs_type, compare_single, set_anon_super, NULL);
 	if (IS_ERR(s))
 		return ERR_CAST(s);
@@ -55970,7 +55983,7 @@ struct dentry *mount_single(struct file_system_type *fs_type, int flags, void *d
 		do_remount_sb(s, flags, data, 0);
 	}
 
-	// 返回debugfs的挂载点目录项，参见dget()节
+	// 返回debugfs的挂载点目录项，参见[11.2.2.2.1.2.1.2 dget()]节
 	return dget(s->s_root);
 }
 ```
@@ -55994,7 +56007,7 @@ void kern_unmount(struct vfsmount *mnt)
 		 * 参见[11.2.2.2 安装文件系统(1)/kern_mount()]节
 		 */
 		mnt_make_shortterm(mnt);
-		mntput(mnt);	// 参见mntput()节
+		mntput(mnt);	// 参见[11.2.2.3.2 mntput()]节
 	}
 }
 ```
@@ -56174,7 +56187,7 @@ SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
 		goto out_data;
 
 	/*
-	 * 安装文件系统的主函数，参见do_mount()节。示例：
+	 * 安装文件系统的主函数，参见[11.2.2.4.1 do_mount()]节。示例：
 	 * do_mount("sysfs_name", "/MySysFs", "sysfs", MS_MGC_VAL, NULL)
 	 */
 	ret = do_mount(kernel_dev, kernel_dir, kernel_type, flags, (void *) data_page);
@@ -56299,7 +56312,7 @@ long do_mount(char *dev_name, char *dir_name, char *type_page,
 	/*
 	 * ... and get the mountpoint
 	 * 获取安装目录dir_name所对应的安装点(path.mnt)和目录项(path.dentry)，
-	 * 参见kern_path()节和Subjects/Chapter11_Filesystem/Figures/Filesystem_21.jpg
+	 * 参见[11.2.2.4.1.1 kern_path()/do_path_lookup()]节和Subjects/Chapter11_Filesystem/Figures/Filesystem_21.jpg
 	 * 示例：kern_path("/MySysFs", LOOKUP_FOLLOW, &path)
 	 */
 	retval = kern_path(dir_name, LOOKUP_FOLLOW, &path);
@@ -56362,7 +56375,7 @@ long do_mount(char *dev_name, char *dir_name, char *type_page,
 	/*
 	 * 5) User asks to mount either a special filesystem or
 	 * a regular filesystem stored in a disk partition.
-	 * 参见do_new_mount()节。示例：
+	 * 参见[11.2.2.4.1.2 do_new_mount()]节。示例：
 	 * do_new_mount(&path, "sysfs", 0, MNT_RELATIME, "sysfs_name", NULL)
 	 */
 	else
@@ -56443,7 +56456,7 @@ static int path_lookupat(int dfd, const char *name,
 	 * be able to complete).
 	 */
 	/*
-	 * 初始化nd，并获取变量: nd->path, nd->inode；参见path_init()节
+	 * 初始化nd，并获取变量: nd->path, nd->inode；参见[11.2.2.4.1.1.1.1 path_init()]节
 	 * 示例：path_init(AT_FDCWD, "/MySysFs", LOOKUP_FOLLOW | LOOKUP_RCU | LOOKUP_PARENT, nd, &base)
 	 */
 	err = path_init(dfd, name, flags | LOOKUP_PARENT, nd, &base);
@@ -56460,7 +56473,7 @@ static int path_lookupat(int dfd, const char *name,
 
 	/*
 	 * 示例：link_path_walk("/MySysFs", nd)，
-	 * 参见link_path_walk()节
+	 * 参见[11.2.2.4.1.1.1.2 link_path_walk()]节
 	 */
 	err = link_path_walk(name, nd);
 
@@ -56478,7 +56491,7 @@ static int path_lookupat(int dfd, const char *name,
 	}
 
 	if (!err)
-		err = complete_walk(nd);	// 参见complete_walk()节
+		err = complete_walk(nd);	// 参见[11.2.2.4.1.1.1.3 complete_walk()]节
 
 	if (!err && nd->flags & LOOKUP_DIRECTORY) {
 		if (!nd->inode->i_op->lookup) {
@@ -56727,7 +56740,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
 
 	/*
 	 * 若路径名name解析已完成，则说明整个路径只包含一个'/'，直接返回；
-	 * 此时，变量nd->last_type的取值为LAST_ROOT，参见11.2.2.4.1.1.1.1 path_init()节
+	 * 此时，变量nd->last_type的取值为LAST_ROOT，参见[11.2.2.4.1.1.1.1 path_init()]节
 	 */
 	if (!*name)
 		return 0;
@@ -56741,7 +56754,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
 
 		/*
 		 * 1) 检查nd->inode的访问权限nd->inode是由
-		 *    函数path_init()设置的，参见path_init()节
+		 *    函数path_init()设置的，参见[11.2.2.4.1.1.1.1 path_init()]节
 		 */
 		err = may_lookup(nd);
  		if (err)
@@ -56823,7 +56836,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
 		/*
 		 * 4.2)
 		 * 若路径名name中存在后续节点，即存在子目录或文件，则继续
-		 * 查找，参见walk_component()节。通过walk_component()
+		 * 查找，参见[11.2.2.4.1.1.1.2.1 walk_component()]节。通过walk_component()
 		 * 查找本节点(this)对应的inode，并将nd->inode设置为最
 		 * 新的inode，准备继续解析后续节点。因为目录项所管理的inode
 		 * 在系统中通过hash表进行维护，因此通过hash值可以很容易
@@ -56905,7 +56918,7 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 	/*
 	 * 2) 若当前子路径为普通目录
 	 * 查找最后一次挂载到目录name上的文件系统所对应的挂载点(path->mnt)、
-	 * 目录项(path->dentry)及索引节点(inode)，参见do_lookup()节
+	 * 目录项(path->dentry)及索引节点(inode)，参见[11.2.2.4.1.1.1.2.2 do_lookup()]节
 	 */
 	err = do_lookup(nd, name, path, &inode);
 	if (unlikely(err)) {
@@ -56983,7 +56996,7 @@ static int do_lookup(struct nameidata *nd, struct qstr *name,
 			goto unlazy;
 		path->mnt = mnt;
 		path->dentry = dentry;
-		// 参见__follow_mount_rcu()节
+		// 参见[11.2.2.4.1.1.1.2.3 __follow_mount_rcu()]节
 		if (unlikely(!__follow_mount_rcu(nd, path, inode)))
 			goto unlazy;
 		if (unlikely(path->dentry->d_flags & DCACHE_NEED_AUTOMOUNT))
@@ -57098,7 +57111,7 @@ static bool __follow_mount_rcu(struct nameidata *nd, struct path *path,
 		 * 则将其更新到path->mnt, path->dentry中，并继续检
 		 * 查是否有其他文件系统挂载到新的path->dentry中，直到
 		 * 找到最后一次挂载到目录项path->dentry上的文件系统所
-		 * 对应的挂载点，参见在同一目录挂载多种文件系统节
+		 * 对应的挂载点，参见[11.5 在同一目录挂载多种文件系统]节
 		 */
 		path->mnt = mounted;
 		path->dentry = mounted->mnt_root;
@@ -57258,7 +57271,7 @@ static int do_new_mount(struct path *path, char *type, int flags,
 
 	/*
 	 * 将指定文件系统的挂载点mnt链接到安装目录所对应的安装点(path.mnt)
-	 * 和目录项(path.dentry)，参见do_add_mount()节. 示例：
+	 * 和目录项(path.dentry)，参见[11.2.2.4.1.2.2 do_add_mount()]节. 示例：
 	 * do_add_mount(mnt, path, MNT_RELATIME)
 	 */
 	err = do_add_mount(mnt, path, mnt_flags);
@@ -57281,18 +57294,18 @@ struct vfsmount *do_kern_mount(const char *fstype, int flags, const char *name, 
 {
 	/*
 	 * 从链表file_systems中查找指定的文件系统类型，
-	 * 参见文件系统类型/struct file_system_type节和get_fs_type()节
+	 * 参见[11.2.1.1 文件系统类型/struct file_system_type]节和[11.2.2.4.1.2.1.1 get_fs_type()]节
 	 */
 	struct file_system_type *type = get_fs_type(fstype);
 	struct vfsmount *mnt;
 	if (!type)
 		return ERR_PTR(-ENODEV);
 
-	// 安装type类型的文件系统，并返回挂载点mnt，参见vfs_kern_mount()节
+	// 安装type类型的文件系统，并返回挂载点mnt，参见[11.2.2.2.1 vfs_kern_mount()]节
 	mnt = vfs_kern_mount(type, flags, name, data);
 
 	/*
-	 * 设置文件系统子类型，参见get_fs_type()节和fs_set_subtype()节
+	 * 设置文件系统子类型，参见[11.2.2.4.1.2.1.1 get_fs_type()]节和[11.2.2.4.1.2.1.2 fs_set_subtype()]节
 	 * 设置该标志位的文件系统包括: fuse_fs_type, fuseblk_fs_type
 	 */
 	if (!IS_ERR(mnt) && (type->fs_flags & FS_HAS_SUBTYPE) && !mnt->mnt_sb->s_subtype)
@@ -57327,7 +57340,7 @@ struct file_system_type *get_fs_type(const char *name)
 
 	/*
 	 * 若存在下列情况之一，则调用request_module()加载包含该文件系统的模块，
-	 * 参见kerneld节和kmod节:
+	 * 参见[13.3.2.1 kerneld]节和[13.3.1.2 kmod]节:
 	 * 1) 链表file_systems中未包含该文件系统，即该文件系统未被注册到系统中；
 	 * 2) 该文件系统被编译为模块，但该模块未被加载到系统中；
 	 */
@@ -57394,7 +57407,7 @@ static struct vfsmount *fs_set_subtype(struct vfsmount *mnt, const char *fstype)
 	return mnt;
 
 err:
-	mntput(mnt);	// 参见mntput()节
+	mntput(mnt);	// 参见[11.2.2.3.2 mntput()]节
 	return ERR_PTR(err);
 }
 ```
@@ -57437,7 +57450,7 @@ static int do_add_mount(struct vfsmount *newmnt, struct path *path, int mnt_flag
 	 * Insert the new mounted filesystem object in the
 	 * namespace list, in the hash table, and in the
 	 * children list of the parent-mounted filesystem.
-	 * 参见graft_tree()节
+	 * 参见[11.2.2.4.1.2.2.1 graft_tree()]节
 	 */
 	err = graft_tree(newmnt, path);
 
@@ -57575,7 +57588,7 @@ static int attach_recursive_mnt(struct vfsmount *source_mnt,
 	 * mount 'source_mnt' under the destination 'dest_mnt'
 	 * at dentry 'dest_dentry'. And propagate that mount to
 	 * all the peer and slave mounts of 'dest_mnt'.
-	 * 参见propagate_mnt()节
+	 * 参见[11.2.2.4.1.2.2.1.1 propagate_mnt()]节
 	 */
 	err = propagate_mnt(dest_mnt, dest_dentry, source_mnt, &tree_list);
 	if (err)
@@ -57596,12 +57609,12 @@ static int attach_recursive_mnt(struct vfsmount *source_mnt,
 		touch_mnt_namespace(parent_path->mnt->mnt_ns);
 	} else {
 		mnt_set_mountpoint(dest_mnt, dest_dentry, source_mnt);
-		commit_tree(source_mnt);	// 参见commit_tree()节
+		commit_tree(source_mnt);	// 参见[11.2.2.4.1.2.2.1.2 commit_tree()]节
 	}
 
 	list_for_each_entry_safe(child, p, &tree_list, mnt_hash) {
 		list_del_init(&child->mnt_hash);
-		commit_tree(child);		// 参见commit_tree()节
+		commit_tree(child);		// 参见[11.2.2.4.1.2.2.1.2 commit_tree()]节
 	}
 	br_write_unlock(vfsmount_lock);
 
@@ -57681,10 +57694,10 @@ out:
 	br_write_lock(vfsmount_lock);
 	while (!list_empty(&tmp_list)) {
 		child = list_first_entry(&tmp_list, struct vfsmount, mnt_hash);
-		umount_tree(child, 0, &umount_list);	// 参见umount_tree()节
+		umount_tree(child, 0, &umount_list);	// 参见[11.2.2.5.2.1 umount_tree()]节
 	}
 	br_write_unlock(vfsmount_lock);
-	release_mounts(&umount_list);	// 参见release_mounts()节
+	release_mounts(&umount_list);			// 参见[11.2.2.5.2.2 release_mounts()]节
 	return ret;
 }
 ```
@@ -57785,7 +57798,7 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 
 	/*
 	 * 获取路径名name所对应的安装点(path.mnt)及其目录项(path.dentry)，
-	 * 参见user_path_at()节
+	 * 参见[11.2.2.5.1 user_path_at()]节
 	 */
 	retval = user_path_at(AT_FDCWD, name, lookup_flags, &path);
 	if (retval)
@@ -57805,7 +57818,7 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 	if (!capable(CAP_SYS_ADMIN))
 		goto dput_and_out;
 
-	// 卸载文件系统的主函数，参见do_umount()节
+	// 卸载文件系统的主函数，参见[11.2.2.5.2 do_umount()]节
 	retval = do_umount(path.mnt, flags);
 
 dput_and_out:
@@ -57847,7 +57860,7 @@ int user_path_at_empty(int dfd, const char __user *name, unsigned flags,
 
 		/*
 		 * 查找路径名tmp所对应的安装点(nd.path.mnt)及其
-		 * 目录项(nd.path.dentry)，参见kern_path()节
+		 * 目录项(nd.path.dentry)，参见[11.2.2.4.1.1 kern_path()/do_path_lookup()]节
 		 */
 		err = do_path_lookup(dfd, tmp, flags, &nd);
 		putname(tmp);
@@ -57922,7 +57935,7 @@ static int do_umount(struct vfsmount *mnt, int flags)
 	 * about for the moment.
 	 */
 	if (flags & MNT_FORCE && sb->s_op->umount_begin) {
-		// 调用指定文件系统的卸载函数，参见超级块操作/struct super_operations节
+		// 调用指定文件系统的卸载函数，参见[11.2.1.2.3 超级块操作/struct super_operations]节
 		sb->s_op->umount_begin(sb);
 	}
 
@@ -57973,7 +57986,7 @@ static int do_umount(struct vfsmount *mnt, int flags)
 	retval = -EBUSY;
 	if (flags & MNT_DETACH || !propagate_mount_busy(mnt, 2)) {
 		/*
-		 * 将mnt->mnt_list中的元素移至umount_list链表，并初始化，参见umount_tree()节
+		 * 将mnt->mnt_list中的元素移至umount_list链表，并初始化，参见[11.2.2.5.2.1 umount_tree()]节
 		 */
 		if (!list_empty(&mnt->mnt_list))
 			umount_tree(mnt, 1, &umount_list);
@@ -57982,7 +57995,7 @@ static int do_umount(struct vfsmount *mnt, int flags)
 	br_write_unlock(vfsmount_lock);
 	up_write(&namespace_sem);
 
-	// 释放链表umount_list中的struct vfsmount结构，参见release_mounts()节
+	// 释放链表umount_list中的struct vfsmount结构，参见[11.2.2.5.2.2 release_mounts()]节
 	release_mounts(&umount_list);
 	return retval;
 }
@@ -58066,8 +58079,8 @@ Why does the kernel bother to mount the rootfs filesystem before the real one? W
 虚拟文件系统的初始化流程如下：
 
 ```
-start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
--> vfs_caches_init_early()					// 参见vfs_caches_init_early()节
+start_kernel()							// 参见[4.3.4.1.4.3 start_kernel()]节
+-> vfs_caches_init_early()					// 参见[4.3.4.1.4.3.4 vfs_caches_init_early()]节
    -> dcache_init_early()					// 分配并初始化dentry_hashtable
    -> inode_init_early()					// 分配并初始化inode_hashtable
 -> vfs_caches_init(totalram_pages)				// 参见[4.3.4.1.4.3.11 vfs_caches_init()]节
@@ -58145,8 +58158,8 @@ start_kernel()							// 参见4.3.4.1.4.3 start_kernel()节
 | unlinkat   | 删除链接 | fs/namei.c | |
 | readlink   | 读符号链接的值 | fs/stat.c | |
 | readlinkat | 读符号链接的值 | fs/stat.c | |
-| mknod      | 创建索引节点 | fs/namei.c | 参见11.2.4.1.1 mknod()/mknodat()节 |
-| mknodat    | 创建索引节点 | fs/namei.c | 参见11.2.4.1.1 mknod()/mknodat()节 |
+| mknod      | 创建索引节点 | fs/namei.c | 参见[11.2.4.1.1 mknod()/mknodat()](#11-2-4-1-1-mknod-mknodat-)节 |
+| mknodat    | 创建索引节点 | fs/namei.c | 参见[11.2.4.1.1 mknod()/mknodat()](#11-2-4-1-1-mknod-mknodat-)节 |
 | mount      | 安装文件系统 | fs/namespace.h | |
 | umount     | 卸载文件系统 | fs/namespace.h | |
 | oldumount  | 卸载文件系统 | fs/namespace.c | |
@@ -58205,17 +58218,17 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, int, mode, uns
 	switch (mode & S_IFMT) {
 		case 0:
 		case S_IFREG:
-			// 创建普通文件，参见11.2.4.1.1.1 vfs_create()节
+			// 创建普通文件，参见[11.2.4.1.1.1 vfs_create()]节
 			error = vfs_create(path.dentry->d_inode, dentry, mode, NULL);
 			break;
 		case S_IFCHR:
 		case S_IFBLK:
-			// 创建字符设备/块设备文件，参见11.2.4.1.1.2 vfs_mknod()节
+			// 创建字符设备/块设备文件，参见[11.2.4.1.1.2 vfs_mknod()]节
 			error = vfs_mknod(path.dentry->d_inode, dentry, mode, new_decode_dev(dev));
 			break;
 		case S_IFIFO:
 		case S_IFSOCK:
-			// 创建网络设备文件，参见11.2.4.1.1.2 vfs_mknod()节
+			// 创建网络设备文件，参见[11.2.4.1.1.2 vfs_mknod()]节
 			error = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
 			break;
 	}
@@ -58254,7 +58267,7 @@ int vfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameid
 
 	/*
 	 * 调用父目录的create()函数，
-	 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+	 * 参见[11.2.4.2.0 如何查找某文件所对应的文件操作函数]节
 	 */
 	error = dir->i_op->create(dir, dentry, mode, nd);
 	if (!error)
@@ -58293,7 +58306,7 @@ int vfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 
 	/*
 	 * 调用父目录的mknod()函数，
-	 * 参见11.2.4.2.0 如何查找某文件所对应的文件操作函数节
+	 * 参见[11.2.4.2.0 如何查找某文件所对应的文件操作函数]节
 	 */
 	error = dir->i_op->mknod(dir, dentry, mode, dev);
 	if (!error)
@@ -58305,18 +58318,18 @@ int vfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 
 #### 11.2.4.2 文件读写操作相关系统调用
 
-文件读写操作对应的数据结构为struct file_operations，参见11.2.1.5.1 文件操作/struct file_operations节。
+文件读写操作对应的数据结构为struct file_operations，参见[11.2.1.5.1 文件操作/struct file_operations](#11-2-1-5-1-struct-file-operations)节。
 
 | 文件读写操作 | 备注  | 所在的源文件 | 备注  |
 | :--------- | :--- | :--------- | :--- |
 | creat      | 创建新文件 | fs/open.c | |
-| open       | 打开文件 | fs/open.c | 参见11.2.4.2.1 open()节 |
-| close      | 关闭文件描述符 | fs/open.c | 参见11.2.4.2.4 close()节 |
-| read       | 读文件 | fs/read_write.c | 参见11.2.4.2.1 open()节 |
+| open       | 打开文件 | fs/open.c | 参见[11.2.4.2.1 open()](#11-2-4-2-1-open-)节 |
+| close      | 关闭文件描述符 | fs/open.c | 参见[11.2.4.2.4 close()](#11-2-4-2-4-close-)节 |
+| read       | 读文件 | fs/read_write.c | 参见[11.2.4.2.1 open()](#11-2-4-2-1-open-)节 |
 | readv      | 从文件读入数据到缓冲数组中 | fs/read_write.c | |
 | pread64    | 对文件随机读 | fs/read_write.c | |
 | preadv     | 对文件随机读 | fs/read_write.c | |
-| write      | 写文件 | fs/read_write.c | 参见11.2.4.2.3 write()节 |
+| write      | 写文件 | fs/read_write.c | 参见[11.2.4.2.3 write()](#11-2-4-2-3-write-)节 |
 | writev     | 将缓冲数组里的数据写入文件 | fs/read_write.c | |
 | pwrite64   | 对文件随机写 | fs/read_write.c | |
 | pwritev    | 对文件随机写 | fs/read_write.c | |
@@ -58463,7 +58476,7 @@ struct inode *ramfs_get_inode(struct super_block *sb,
 
 Check the variables assigned to ```inode->i_fop``` with different mode, you will get file operation methods.
 
-**NOTE**: Refer to 11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open(). Also check following statements in methods ```sys_open()->do_sys_open()->do_filp_open()->path_openat()->do_last()->nameidata_to_filp()->__dentry_open()```:
+**NOTE**: Refer to [11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()](#11-2-4-2-1-2-1-1-1-dentry-open-dentry-open-). Also check following statements in methods ```sys_open()->do_sys_open()->do_filp_open()->path_openat()->do_last()->nameidata_to_filp()->__dentry_open()```:
 
 ```
 static struct file *__dentry_open(struct dentry *dentry, struct vfsmount *mnt,
@@ -58484,7 +58497,7 @@ static struct file *__dentry_open(struct dentry *dentry, struct vfsmount *mnt,
 
 ```
 /*
- * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * 参见[5.5.1 系统调用的声明与定义]节，该系统调用扩展被扩展为:
  * asmlinkage long sys_open(const char __user *filename, int flags, umode_t mode);
  *
  * Given a filename for a file, open() returns a file descriptor, a small, nonnegative
@@ -58538,7 +58551,7 @@ SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, int, mode)
 		flags |= O_LARGEFILE;
 
 	/*
-	 * 该函数返回文件描述符fd，参见do_sys_open()节
+	 * 该函数返回文件描述符fd，参见[11.2.4.2.1.1 do_sys_open()]节
 	 * AT_FDCWD: special value used to indicate openat()
 	 *           should use the current working directory
 	 *           if the filename starts with relative path.
@@ -58585,7 +58598,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, int mode)
 		if (fd >= 0) {
 			/*
 			 * 调用do_filp_open()来搜索tmp中指定的路径，
-			 * 并打开对应的文件，参见do_filp_open()节
+			 * 并打开对应的文件，参见[11.2.4.2.1.2 do_filp_open()]节
 			 */
 			struct file *f = do_filp_open(dfd, tmp, &op, lookup);
 			if (IS_ERR(f)) {
@@ -58610,8 +58623,8 @@ long do_sys_open(int dfd, const char __user *filename, int flags, int mode)
 
 	/*
 	 * 返回文件描述符fd，可用于如下系统调用的入参：
-	 * - sys_read(fd, ..)，参见11.2.4.2.2 read()节
-	 * - sys_write(fd, ..)，参见11.2.4.2.3 write()节
+	 * - sys_read(fd, ..)，参见[11.2.4.2.2 read()]节
+	 * - sys_write(fd, ..)，参见[11.2.4.2.3 write()]节
 	 *   ...
 	 */
 	return fd;
@@ -58675,7 +58688,7 @@ static struct file *path_openat(int dfd, const char *pathname, struct nameidata 
 
 	/*
 	 * path_init()是对真正遍历路径环境的初始化，即设置变量nd:
-	 * nd->path, nd->inode，参见path_init()节；nd用于存储
+	 * nd->path, nd->inode，参见[11.2.2.4.1.1.1.1 path_init()]节；nd用于存储
 	 * 遍历路径的中间结果
 	 */
 	error = path_init(dfd, pathname, flags | LOOKUP_PARENT, nd, &base);
@@ -58685,14 +58698,14 @@ static struct file *path_openat(int dfd, const char *pathname, struct nameidata 
 	/*
 	 * link_path_walk(): turn a pathname into the final dentry.
 	 * 更新变量: nd->path, nd->inode, nd->last, nd->last_type，
-	 * 参见link_path_walk()节
+	 * 参见[11.2.2.4.1.1.1.2 link_path_walk()]节
 	 */
 	current->total_link_count = 0;
 	error = link_path_walk(pathname, nd);
 	if (unlikely(error))
 		goto out_filp;
 
-	// 调用函数do_last()来处理最后一个子路径，参见do_last()节
+	// 调用函数do_last()来处理最后一个子路径，参见[11.2.4.2.1.2.1 do_last()]节
 	filp = do_last(nd, &path, op, pathname);
 	while (unlikely(!filp)) { /* trailing symlink */
 		struct path link = path;
@@ -58748,7 +58761,7 @@ static struct file *do_last(struct nameidata *nd, struct path *path,
 
 	/*
 	 * LOOKUP_PARENT是在patn_init()中设置的，因为当时的目标是
-	 * 找到最终文件的父目录，参见11.2.2.4.1.1.1.1 path_init()节。
+	 * 找到最终文件的父目录，参见[11.2.2.4.1.1.1.1 path_init()]节。
 	 * 而本函数do_last()要找的是最终文件，所以需要将该标志位清除
 	 */
 	nd->flags &= ~LOOKUP_PARENT;
@@ -58946,7 +58959,7 @@ common:
 
 	/*
 	 * Get file descriptor: filp = nd->intent.open.file;
-	 * 参见11.2.4.2.1.2.1.1 nameidata_to_filp()节
+	 * 参见[11.2.4.2.1.2.1.1 nameidata_to_filp()]节
 	 */
 	filp = nameidata_to_filp(nd);
 	if (!IS_ERR(filp)) {
@@ -59006,7 +59019,7 @@ struct file *nameidata_to_filp(struct nameidata *nd)
 	/* Has the filesystem initialised the file for us? */
 	if (filp->f_path.dentry == NULL) {
 		path_get(&nd->path);
-		// 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+		// 参见[11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()]节
 		filp = __dentry_open(nd->path.dentry, nd->path.mnt, filp, NULL, cred);
 	}
 	return filp;
@@ -59157,13 +59170,13 @@ cleanup_file:
 
 ```
 /*
- * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * 参见[5.5.1 系统调用的声明与定义]节，该系统调用扩展被扩展为:
  * asmlinkage long sys_read(unsigned int fd, char __user * buf, size_t count);
  *
  * read() attempts to read up to count bytes from file descriptor
  * fd into the buffer starting at buf.
  *
- * fd:    系统调用sys_open()返回的文件描述符，参见11.2.4.2.1 open()节
+ * fd:    系统调用sys_open()返回的文件描述符，参见[11.2.4.2.1 open()]节
  *
  * buf:   read buffer in user space.
  *
@@ -59179,7 +59192,7 @@ cleanup_file:
  */
 SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
 {
-	// 参见文件/struct file节
+	// 参见[11.2.1.5 文件/struct file]节
 	struct file *file;
 	ssize_t ret = -EBADF;
 	int fput_needed;
@@ -59192,7 +59205,7 @@ SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
 
 		/*
 		 * 从file中读出count字节到buf中，并移动pos，
-		 * 参见vfs_read()节
+		 * 参见[11.2.4.2.2.1 vfs_read()]节
 		 */
 		ret = vfs_read(file, buf, count, &pos);
 
@@ -59241,7 +59254,7 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 		 */
 		if (file->f_op->read)
 			/*
-			 * 调用file->f_op->read()，参见文件操作/struct file_operations节
+			 * 调用file->f_op->read()，参见[11.2.1.5.1 文件操作/struct file_operations]节
 			 *
 			 * 其中，函数指针file->f_op->read是由如下函数调用赋值的：
 			 * sys_open()->do_sys_open()->do_filp_open()->path_openat()
@@ -59250,13 +59263,13 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 			 *    inode = dentry->d_inode;
 			 *    f->f_op = fops_get(inode->i_fop);
 			 *    ...
-			 * 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+			 * 参见[11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()]节
 			 */
 			ret = file->f_op->read(file, buf, count, pos);
 		else
 			/*
 			 * 调用file->f_op->aio_read(..)，
-			 * 参见文件操作/struct file_operations节
+			 * 参见[11.2.1.5.1 文件操作/struct file_operations]节
 			 */
 			ret = do_sync_read(file, buf, count, pos);
 
@@ -59278,14 +59291,14 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 
 ```
 /*
- * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * 参见[5.5.1 系统调用的声明与定义]节，该系统调用扩展被扩展为:
  * asmlinkage long sys_write(unsigned int fd, char __user * buf, size_t count);
  *
  * write() writes up to count bytes from the buffer pointed buf
  * to the file referred to by the file descriptor fd.
  * fd into the buffer starting at buf.
  *
- * fd:    系统调用sys_open()返回的文件描述符，参见11.2.4.2.1 open()节
+ * fd:    系统调用sys_open()返回的文件描述符，参见[11.2.4.2.1 open()]节
  *
  * buf:   write buffer in user space.
  *
@@ -59311,7 +59324,7 @@ SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf, size_t, count
 
 		/*
 		 * 将buf中的count字节写入file并移动pos，
-		 * 参见vfs_write()节
+		 * 参见[11.2.4.2.3.1 vfs_write()]节
 		 */
 		ret = vfs_write(file, buf, count, &pos);
 
@@ -59360,7 +59373,7 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 		 */
 		if (file->f_op->write)
 			/*
-			 * 调用file->f_op->write(..)，参见文件操作/struct file_operations节
+			 * 调用file->f_op->write(..)，参见[11.2.1.5.1 文件操作/struct file_operations]节
 			 *
 			 * 其中，函数指针file->f_op->read是由如下函数调用赋值的：
 			 * sys_open()->do_sys_open()->do_filp_open()->path_openat()
@@ -59369,13 +59382,13 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 			 *    inode = dentry->d_inode;
 			 *    f->f_op = fops_get(inode->i_fop);
 			 *    ...
-			 * 参见11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()节
+			 * 参见[11.2.4.2.1.2.1.1.1 dentry_open()/__dentry_open()]节
 			 */
 			ret = file->f_op->write(file, buf, count, pos);
 		else
 			/*
 			 * 调用file->f_op->aio_write(..)，
-			 * 参见文件操作/struct file_operations节
+			 * 参见[11.2.1.5.1 文件操作/struct file_operations]节
 			 */
 			ret = do_sync_write(file, buf, count, pos);
 		if (ret > 0) {
@@ -59399,7 +59412,7 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
  * releasing the fd. This ensures that one clone task can't release
  * an fd while another clone is opening it.
  *
- * 参见5.5.1 系统调用的声明与定义节，该系统调用扩展被扩展为:
+ * 参见[5.5.1 系统调用的声明与定义]节，该系统调用扩展被扩展为:
  * asmlinkage long sys_close(unsigned int fd);
  *
  * close() closes a file descriptor, so that it no longer refers
@@ -59407,7 +59420,7 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
  * it was associated with, and owned by the process, are removed
  * (regardless of the file descriptor that was used to obtain the lock).
  *
- * fd:    系统调用sys_open()返回的文件描述符，参见11.2.4.2.1 open()节
+ * fd:    系统调用sys_open()返回的文件描述符，参见[11.2.4.2.1 open()]节
  *
  * Refer to http://man7.org/linux/man-pages/man2/close.2.html
  */
@@ -59470,7 +59483,7 @@ int filp_close(struct file *filp, fl_owner_t id)
 	}
 
 	/*
-	 * 调用filp->f_op->flush()，参见文件操作/struct file_operations节
+	 * 调用filp->f_op->flush()，参见[11.2.1.5.1 文件操作/struct file_operations]节
 	 *
 	 * 其中，函数指针file->f_op->flush是由如下函数调用赋值的：
 	 * sys_open()->do_sys_open()->do_filp_open()->path_openat()
@@ -59502,7 +59515,7 @@ int filp_close(struct file *filp, fl_owner_t id)
 
 ## 11.3 具体的文件系统
 
-可通过下列命令查看注册到当前系统中的文件系统，参见查看系统中注册的文件系统节：
+可通过下列命令查看注册到当前系统中的文件系统，参见[11.2.1.1.2 查看系统中注册的文件系统]节：
 
 ```
 # cat /proc/filesystems
@@ -59609,7 +59622,7 @@ static struct file_system_type ramfs_fs_type = {
 	 *       -> deactivate_super()
 	 *          -> deactivate_locked_super()
 	 *             -> fs->kill_sb()
-	 * 参见11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()节
+	 * 参见[11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()]节
 	 */
 	.kill_sb	= ramfs_kill_sb,
 };
@@ -59638,7 +59651,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
                                             +-- 其中的.initcall6.init
 ```
 
-由此初始化过程以及文件系统的自动安装节可知，ramfs只被注册到系统中，但并未被挂载到系统中!
+由此初始化过程以及[11.4 文件系统的自动安装](#11-4-)节可知，ramfs只被注册到系统中，但并未被挂载到系统中!
 
 #### 11.3.1.3 Ramfs的节点操作函数与文件操作函数
 
@@ -59752,7 +59765,7 @@ static struct file_system_type rootfs_fs_type = {
 Rootfs的初始化及安装过程，参见下列章节：
 * [4.3.4.1.4.3.11.4.2 init_rootfs()](#4-3-4-1-4-3-11-4-2-init-rootfs-)节
 * [4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节
-* 文件系统的自动安装节
+* [11.4 文件系统的自动安装](#11-4-)节
 
 注：由内核参数"root="指定根文件系统的位置，参见[4.3.4.1.4.3.13.1.3 prepare_namespace()](#4-3-4-1-4-3-13-1-3-prepare-namespace-)节。
 
@@ -59778,7 +59791,7 @@ endif
 mounts-$(CONFIG_BLK_DEV_INITRD)	+= do_mounts_initrd.o
 ```
 
-可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见CONFIG_BLK_DEV_INITRD=n节和[11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y](#11-3-3-2-2-config-blk-dev-initrd-y)节。
+可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见[11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n]节和[11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y](#11-3-3-2-2-config-blk-dev-initrd-y)节。
 
 ##### 11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n
 
@@ -59930,7 +59943,7 @@ static struct file_system_type proc_fs_type = {
 
 #### 11.3.4.3 Proc的安装
 
-文件系统proc的安装过程参见[11.2.2.2.1.2.4 proc_mount()](#11-2-2-2-1-2-4-proc-mount-)节和文件系统的自动安装节。
+文件系统proc的安装过程参见[11.2.2.2.1.2.4 proc_mount()](#11-2-2-2-1-2-4-proc-mount-)节和[11.4 文件系统的自动安装]节。
 
 #### 11.3.4.4 /proc目录结构
 
@@ -59993,7 +60006,7 @@ static struct file_system_type proc_fs_type = {
 ```
 /*
  * 变量proc_kmsg_operations中的函数均调用do_syslog()，
- * 参见19.2.1.5.1 do_syslog()节
+ * 参见[19.2.1.5.1 do_syslog()]节
  */
 static const struct file_operations proc_kmsg_operations = {
 	.read		= kmsg_read,
@@ -60150,7 +60163,7 @@ chenwx linux # hostname
 chenwx-pc 
 ```
 
-**NOTE**: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数节。
+**NOTE**: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见[11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数](#11-3-4-4-2-1-3-etc-sysctl-conf-)节。
 
 ###### 11.3.4.4.2.1.2 通过命令/sbin/sysctl配置内核参数
 
@@ -60282,7 +60295,7 @@ chenwx linux # sysctl -w kernel.hostname="chenwx "
 kernel.hostname = chenwx 
 ```
 
-**NOTE**: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数节。
+**NOTE**: 通过这种方式将某内核参数修改为新值后，在系统重启后，新值将无法保存；如果需要新值在重启后也可以保留，需要直接修改配置文件/etc/sysctl.conf，参见[11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数](#11-3-4-4-2-1-3-etc-sysctl-conf-)节。
 
 ###### 11.3.4.4.2.1.3 通过配置文件/etc/sysctl.conf配置内核参数
 
@@ -60356,7 +60369,7 @@ chenwx-pc-2
 
 ###### 11.3.4.4.2.2 系统启动时如何加载/etc/sysctl.conf
 
-在系统启动时，进程init将执行配置文件/etc/init/*.conf，参见4.3.5.1.3.1 upstart节。当调用脚本/etc/init/procps.conf时，将执行/etc/sysctl.conf中配置的内核参数：
+在系统启动时，进程init将执行配置文件/etc/init/*.conf，参见[4.3.5.1.3.1 upstart](#4-3-5-1-3-1-upstart)节。当调用脚本/etc/init/procps.conf时，将执行/etc/sysctl.conf中配置的内核参数：
 
 ```
 chenwx@chenwx ~ $ ll /etc/init/procps.conf 
@@ -60441,7 +60454,7 @@ struct proc_dir_entry {
 #### 11.3.4.6 创建/删除目录
 
 * 函数proc_mkdir()用于创建目录；
-* 函数remove_proc_entry()用于删除目录或文件，参见11.3.4.7.3 remove_proc_entry()节。
+* 函数remove_proc_entry()用于删除目录或文件，参见[11.3.4.7.3 remove_proc_entry()](#11-3-4-7-3-remove-proc-entry-)节。
 
 ##### 11.3.4.6.1 proc_mkdir()
 
@@ -60458,10 +60471,10 @@ struct proc_dir_entry *proc_mkdir_mode(const char *name, mode_t mode,
 {
 	struct proc_dir_entry *ent;
 
-	// 参见11.3.4.6.1.1 __proc_create()节
+	// 参见[11.3.4.6.1.1 __proc_create()]节
 	ent = __proc_create(&parent, name, S_IFDIR | mode, 2);
 	if (ent) {
-		// 参见11.3.4.6.1.2 proc_register()节
+		// 参见[11.3.4.6.1.2 proc_register()]节
 		if (proc_register(parent, ent) < 0) {
 			kfree(ent);
 			ent = NULL;
@@ -60600,19 +60613,19 @@ struct proc_dir_entry *proc_create_data(const char *name, mode_t mode,
 		nlink = 1;
 	}
 
-	// 参见11.3.4.6.1.1 __proc_create()节
+	// 参见[11.3.4.6.1.1 __proc_create()]节
 	pde = __proc_create(&parent, name, mode, nlink);
 	if (!pde)
 		goto out;
 
 	/*
 	 * 函数create_proc_entry()未为这两个域的赋值，
-	 * 参见11.3.4.7.2 create_proc_read_entry()节
+	 * 参见[11.3.4.7.2 create_proc_read_entry()]节
 	 */
 	pde->proc_fops = proc_fops;
 	pde->data = data;
 
-	// 参见11.3.4.6.1.2 proc_register()节
+	// 参见[11.3.4.6.1.2 proc_register()]节
 	if (proc_register(parent, pde) < 0)
 		goto out_free;
 	return pde;
@@ -60664,10 +60677,10 @@ struct proc_dir_entry *create_proc_entry(const char *name, mode_t mode,
 		nlink = 1;
 	}
 
-	// 参见11.3.4.6.1.1 __proc_create()节
+	// 参见[11.3.4.6.1.1 __proc_create()]节
 	ent = __proc_create(&parent, name, mode, nlink);
 	if (ent) {
-		// 参见11.3.4.6.1.2 proc_register()节
+		// 参见[11.3.4.6.1.2 proc_register()]节
 		if (proc_register(parent, ent) < 0) {
 			kfree(ent);
 			ent = NULL;
@@ -60767,7 +60780,7 @@ struct proc_dir_entry *proc_symlink(const char *name,
 {
 	struct proc_dir_entry *ent;
 
-	// 参见11.3.4.6.1.1 __proc_create()节
+	// 参见[11.3.4.6.1.1 __proc_create()]节
 	ent = __proc_create(&parent, name,
 			  (S_IFLNK | S_IRUGO | S_IWUGO | S_IXUGO),1);
 
@@ -60775,7 +60788,7 @@ struct proc_dir_entry *proc_symlink(const char *name,
 		ent->data = kmalloc((ent->size=strlen(dest))+1, GFP_KERNEL);
 		if (ent->data) {
 			strcpy((char*)ent->data,dest);
-			// 参见11.3.4.6.1.2 proc_register()节
+			// 参见[11.3.4.6.1.2 proc_register()]节
 			if (proc_register(parent, ent) < 0) {
 				kfree(ent->data);
 				kfree(ent);
@@ -60825,9 +60838,9 @@ Sysfs文件系统的内部结构与外部表现:
 
 | sysfs在内核中的组成要素 | 在用户空间的显示 |
 | :------------------- | :------------ |
-| 内核对象(kobject) | 目录(struct sysfs_direct)，参见11.3.5.5 创建/删除目录节 |
-| 对象属性(attribute) | 文件(struct attribute)，参见11.3.5.6 创建/删除文件节 |
-| 对象关系(relationship) | 链接(Symbolic Link)，参见11.3.5.7 创建/删除符号链接节 |
+| 内核对象(kobject) | 目录(struct sysfs_direct)，参见[11.3.5.5 创建/删除目录](#11-3-5-5-)节 |
+| 对象属性(attribute) | 文件(struct attribute)，参见[11.3.5.6 创建/删除文件](#11-3-5-6-)节 |
+| 对象关系(relationship) | 链接(Symbolic Link)，参见[11.3.5.7 创建/删除符号链接](#11-3-5-7-)节 |
 
 <p/>
 
@@ -60866,18 +60879,18 @@ Sysfs的初始化过程参见[4.3.4.1.4.3.11.4.1 sysfs_init()](#4-3-4-1-4-3-11-4
 static struct file_system_type sysfs_fs_type = {
 	.name		= "sysfs",
 	/*
-	 * sysfs_mount()通过如下函数被调用，参见sysfs_mount()节：
+	 * sysfs_mount()通过如下函数被调用，参见[11.2.2.2.1.2.1 sysfs_mount()]节：
 	 * sysfs_init()->kern_mount()->kern_mount_data()
 	 * ->vfs_kern_mount()->mount_fs()中的type->mount()
 	 */
-	.mount	= sysfs_mount,
+	.mount		= sysfs_mount,
 	.kill_sb	= sysfs_kill_sb,
 };
 ```
 
 #### 11.3.5.3 Sysfs的安装
 
-文件系统sysfs的安装过程参见文件系统的自动安装节。
+文件系统sysfs的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 #### 11.3.5.4 sysfs文件操作/sysfs_file_operations
 
@@ -60897,10 +60910,10 @@ const struct file_operations sysfs_file_operations = {
 该变量的引用关系如下：
 
 ```
-sysfs_mount()			// 参见sysfs_mount()节
--> sysfs_fill_super()		// 参见sysfs_fill_super()节
-   -> sysfs_get_inode()		// 参见sysfs_get_inode()节
-      -> sysfs_init_inode()	// 参见sysfs_get_inode()节
+sysfs_mount()			// 参见[11.2.2.2.1.2.1 sysfs_mount()]节
+-> sysfs_fill_super()		// 参见[11.2.2.2.1.2.1.1 sysfs_fill_super()]节
+   -> sysfs_get_inode()		// 参见[11.2.2.2.1.2.1.1.1 sysfs_get_inode()]节
+      -> sysfs_init_inode()	// 参见[11.2.2.2.1.2.1.1.1 sysfs_get_inode()]节
 ```
 
 struct sysfs_direct树形结构:
@@ -60971,14 +60984,14 @@ static int sysfs_open_file(struct inode *inode, struct file *file)
 	buffer->needs_read_fill = 1;
 	/*
 	 * buffer->ops在如下函数中被引用：
-	 * - sysfs_read_file()->fill_read_buffer()，参见sysfs_read_file()节和fill_read_buffer()节
-	 * - sysfs_write_file()->flush_write_buffer()，参见flush_write_buffer()节
+	 * - sysfs_read_file()->fill_read_buffer()，参见[11.3.5.4.2 sysfs_read_file()]节和[11.3.5.4.2.1 fill_read_buffer()]节
+	 * - sysfs_write_file()->flush_write_buffer()，参见[11.3.5.4.3.2 flush_write_buffer()]节
 	 */
 	buffer->ops = ops;
 	/*
 	 * file->private_date在如下函数中被引用：
-	 * - sysfs_read_file()，参见sysfs_read_file()节
-	 * - sysfs_write_file()，参见sysfs_write_file()节
+	 * - sysfs_read_file()，参见[11.3.5.4.2 sysfs_read_file()]节
+	 * - sysfs_write_file()，参见[11.3.5.4.3 sysfs_write_file()]节
 	 */
 	file->private_data = buffer;
 
@@ -60986,7 +60999,7 @@ static int sysfs_open_file(struct inode *inode, struct file *file)
 	 * 2) 将buffer链接到attr_sd->s_attr.open->buffers链表中
 	 */
 
-	/* make sure we have open dirent struct, 参见sysfs_get_open_dirent()节 */
+	/* make sure we have open dirent struct, 参见[11.3.5.4.1.1 sysfs_get_open_dirent()]节 */
 	error = sysfs_get_open_dirent(attr_sd, buffer);
 	if (error)
 		goto err_free;
@@ -61066,7 +61079,7 @@ static ssize_t sysfs_read_file(struct file *file, char __user *buf,
 {
 	/*
 	 * file->private_data在sysfs_open_file()中赋值，
-	 * 参见sysfs_open_file()节
+	 * 参见[11.3.5.4.1 sysfs_open_file()]节
 	 */
 	struct sysfs_buffer *buffer = file->private_data;
 	ssize_t retval = 0;
@@ -61075,7 +61088,7 @@ static ssize_t sysfs_read_file(struct file *file, char __user *buf,
 	if (buffer->needs_read_fill || *ppos == 0) {
 		/*
 		 * 1) 调用ops->show()将内核空间中的某数据(由用户定义)拷贝到
-		 *    内核空间(buffer->page)中，参见fill_read_buffer()节
+		 *    内核空间(buffer->page)中，参见[11.3.5.4.2.1 fill_read_buffer()]节
 		 */
 		retval = fill_read_buffer(file->f_path.dentry, buffer);
 		if (retval)
@@ -61085,7 +61098,7 @@ static ssize_t sysfs_read_file(struct file *file, char __user *buf,
 			   __func__, count, *ppos, buffer->page);
 	/*
 	 * 2) 将数据从内核空间(buffer->page)拷贝到用户空间(buf)，
-	 * 参见simple_read_from_buffer()节
+	 *    参见[5.5.4.3.4 simple_read_from_buffer()]节
 	 */
 	retval = simple_read_from_buffer(buf, count, ppos, buffer->page, buffer->count);
 
@@ -61105,7 +61118,7 @@ static int fill_read_buffer(struct dentry *dentry, struct sysfs_buffer *buffer)
 	// attr_sd对应于需要读取的sysfs中某节点的struct sysfs_dirent
 	struct sysfs_dirent *attr_sd = dentry->d_fsdata;
 	struct kobject *kobj = attr_sd->s_parent->s_dir.kobj;
-	// buffer->ops在sysfs_open_file()中赋值，参见sysfs_open_file()节
+	// buffer->ops在sysfs_open_file()中赋值，参见[11.3.5.4.1 sysfs_open_file()]节
 	const struct sysfs_ops *ops = buffer->ops;
 	int ret = 0;
 	ssize_t count;
@@ -61159,7 +61172,7 @@ static ssize_t sysfs_write_file(struct file *file, const char __user *buf,
 {
 	/*
 	 * file->private_date在sysfs_open_file()中赋值，
-	 * 参见sysfs_open_file()节
+	 * 参见[11.3.5.4.1 sysfs_open_file()]节
 	 */
 	struct sysfs_buffer *buffer = file->private_data;
 	ssize_t len;
@@ -61167,12 +61180,12 @@ static ssize_t sysfs_write_file(struct file *file, const char __user *buf,
 	mutex_lock(&buffer->mutex);
 	/*
 	 * 1) 将数据从用户空间(buf)拷贝到内核空间(buffer->page)中，
-	 *    参见fill_write_buffer()节
+	 *    参见[11.3.5.4.3.1 fill_write_buffer()]节
 	 */
 	len = fill_write_buffer(buffer, buf, count);
 	/*
 	 * 2) 调用ops->store()将内核空间(buffer->page)中的数据拷贝到
-	 *    内核空间中的某处(由用户定义)，参见flush_write_buffer()节
+	 *    内核空间中的某处(由用户定义)，参见[11.3.5.4.3.2 flush_write_buffer()]节
 	 */
 	if (len > 0)
 		len = flush_write_buffer(file->f_path.dentry, buffer, len);
@@ -61217,7 +61230,7 @@ static int flush_write_buffer(struct dentry * dentry, struct sysfs_buffer * buff
 {
 	struct sysfs_dirent *attr_sd = dentry->d_fsdata;
 	struct kobject *kobj = attr_sd->s_parent->s_dir.kobj;
-	// buffer->ops在sysfs_open_file()中赋值，参见sysfs_open_file()节
+	// buffer->ops在sysfs_open_file()中赋值，参见[11.3.5.4.1 sysfs_open_file()]节
 	const struct sysfs_ops *ops = buffer->ops;
 	int rc;
 
@@ -61286,7 +61299,7 @@ int sysfs_create_dir(struct kobject * kobj)
 	/*
 	 * 获取父节点parent_sd的命名空间类型，若为KOBJ_NS_TYPE_NET，则调用函数
 	 * kobj->ktype->namespace()来获取命名空间类型，该函数是由kobject_init_and_add()设置的，
-	 * 参见15.7.1.1 kobject_init_and_add()节
+	 * 参见[15.7.1.1 kobject_init_and_add()]节
 	 */
 	if (sysfs_ns_type(parent_sd))
 		ns = kobj->ktype->namespace(kobj);
@@ -61328,7 +61341,7 @@ static int create_dir(struct kobject *kobj, struct sysfs_dirent *parent_sd,
 
 	/*
 	 * link sd to its parent parent_sd (that’s sd->s_parent = parent_sd),
-	 * and its sibling list. 参见11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()节
+	 * and its sibling list. 参见[11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()]节
 	 */
 	sysfs_addrm_start(&acxt, parent_sd);
 	rc = sysfs_add_one(&acxt, sd);
@@ -61466,9 +61479,9 @@ static void sysfs_link_sibling(struct sysfs_dirent *sd)
 		}
 #undef node
 	}
-	// 参见15.6.5.1 rb_link_node()节
+	// 参见[15.6.5.1 rb_link_node()]节
 	rb_link_node(&sd->inode_node, parent, p);
-	// 参见15.6.5.2 rb_insert_color()节
+	// 参见[15.6.5.2 rb_insert_color()]节
 	rb_insert_color(&sd->inode_node, &parent_sd->s_dir.inode_tree);
 
 	// 2) 将sd->name_node链接到父目录的红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
@@ -61486,9 +61499,9 @@ static void sysfs_link_sibling(struct sysfs_dirent *sd)
 		}
 #undef node
 	}
-	// 参见15.6.5.1 rb_link_node()节
+	// 参见[15.6.5.1 rb_link_node()]节
 	rb_link_node(&sd->name_node, parent, p);
-	// 参见15.6.5.2 rb_insert_color()节
+	// 参见[15.6.5.2 rb_insert_color()]节
 	rb_insert_color(&sd->name_node, &parent_sd->s_dir.name_tree);
 }
 ```
@@ -61590,10 +61603,10 @@ int sysfs_create_files(struct kobject *kobj, const struct attribute **ptr)
 	int i;
 
 	for (i = 0; ptr[i] && !err; i++)
-		err = sysfs_create_file(kobj, ptr[i]);		// 参见11.3.5.6.2 sysfs_create_file()节
+		err = sysfs_create_file(kobj, ptr[i]);		// 参见[11.3.5.6.2 sysfs_create_file()]节
 	if (err)
 		while (--i >= 0)
-			sysfs_remove_file(kobj, ptr[i]);	// 参见11.3.5.6.3 sysfs_remove_file()节
+			sysfs_remove_file(kobj, ptr[i]);	// 参见[11.3.5.6.3 sysfs_remove_file()]节
 	return err;
 }
 ```
@@ -61613,7 +61626,7 @@ int sysfs_create_file(struct kobject * kobj, const struct attribute * attr)
 {
 	BUG_ON(!kobj || !kobj->sd || !attr);
 
-	// 参见11.3.5.6.2.1 sysfs_add_file()节
+	// 参见[11.3.5.6.2.1 sysfs_add_file()]节
 	return sysfs_add_file(kobj->sd, attr, SYSFS_KOBJ_ATTR);
 }
 ```
@@ -61657,7 +61670,7 @@ int sysfs_add_file_mode(struct sysfs_dirent *dir_sd,
 	sysfs_dirent_init_lockdep(sd);
 
 	sysfs_addrm_start(&acxt, dir_sd);
-	// 参见11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()节
+	// 参见[11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()]节
 	rc = sysfs_add_one(&acxt, sd);
 	sysfs_addrm_finish(&acxt);
 
@@ -61745,7 +61758,7 @@ int sysfs_create_bin_file(struct kobject *kobj, const struct bin_attribute *attr
 {
 	BUG_ON(!kobj || !kobj->sd || !attr);
 
-	// 参见11.3.5.6.2.1 sysfs_add_file()节
+	// 参见[11.3.5.6.2.1 sysfs_add_file()]节
 	return sysfs_add_file(kobj->sd, &attr->attr, SYSFS_KOBJ_BIN_ATTR);
 }
 ```
@@ -61777,7 +61790,7 @@ const struct file_operations bin_fops = {
  */
 void sysfs_remove_bin_file(struct kobject *kobj, const struct bin_attribute *attr)
 {
-	// 参见11.3.5.6.3 sysfs_remove_file()节
+	// 参见[11.3.5.6.3 sysfs_remove_file()]节
 	sysfs_hash_and_remove(kobj->sd, NULL, attr->attr.name);
 }
 ```
@@ -61858,7 +61871,7 @@ static int sysfs_do_create_link(struct kobject *kobj, struct kobject *target, co
 
 	sysfs_addrm_start(&acxt, parent_sd);
 
-	// 参见11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()节
+	// 参见[11.3.5.5.1.1 sysfs_add_one()/__sysfs_add_one()]节
 	/* Symlinks must be between directories with the same ns_type */
 	if (!ns_type ||
 	    (ns_type == sysfs_ns_type(sd->s_symlink.target_sd->s_parent))) {
@@ -61908,7 +61921,7 @@ void sysfs_remove_link(struct kobject * kobj, const char * name)
 	else
 		parent_sd = kobj->sd;
 
-	// 参见11.3.5.6.3 sysfs_remove_file()节
+	// 参见[11.3.5.6.3 sysfs_remove_file()]节
 	sysfs_hash_and_remove(parent_sd, NULL, name);
 }
 ```
@@ -61949,25 +61962,25 @@ static int __init fuse_init(void)
 
 	INIT_LIST_HEAD(&fuse_conn_list);
 
-	// 注册fuseblk和fuse文件系统，参见fuse_fs_init()节
+	// 注册fuseblk和fuse文件系统，参见[11.3.6.2.1 fuse_fs_init()]节
 	res = fuse_fs_init();
 	if (res)
 		goto err;
 
-	// 参见fuse_dev_init()节
+	// 参见[11.3.6.2.2 fuse_dev_init()]节
 	res = fuse_dev_init();
 	if (res)
 		goto err_fs_cleanup;
 
 	/*
 	 * 创建/sys/fs/fuse和/sys/fs/fuse/connections目录，
-	 * 参见fuse_sysfs_init()节
+	 * 参见[11.3.6.2.3 fuse_sysfs_init()]节
 	 */
 	res = fuse_sysfs_init();
 	if (res)
 		goto err_dev_cleanup;
 
-	// 注册fusectl文件系统，参见fuse_ctl_init()节
+	// 注册fusectl文件系统，参见[11.3.6.2.4 fuse_ctl_init()]节
 	res = fuse_ctl_init();
 	if (res)
 		goto err_sysfs_cleanup;
@@ -62020,7 +62033,7 @@ static struct kmem_cache *fuse_inode_cachep;
 static struct file_system_type fuse_fs_type = {
 	.owner		= THIS_MODULE,
 	.name		= "fuse",
-	.fs_flags	= FS_HAS_SUBTYPE,			// 参见get_fs_type()节
+	.fs_flags	= FS_HAS_SUBTYPE,			// 参见[11.2.2.4.1.2.1.1 get_fs_type()]节
 	.mount		= fuse_mount,
 	.kill_sb	= fuse_kill_sb_anon,
 };
@@ -62031,7 +62044,7 @@ static struct file_system_type fuseblk_fs_type = {
 	.name		= "fuseblk",
 	.mount		= fuse_mount_blk,
 	.kill_sb	= fuse_kill_sb_blk,
-	.fs_flags	= FS_REQUIRES_DEV | FS_HAS_SUBTYPE,	// 参见get_fs_type()节
+	.fs_flags	= FS_REQUIRES_DEV | FS_HAS_SUBTYPE,	// 参见[11.2.2.4.1.2.1.1 get_fs_type()]节
 };
 
 static inline int register_fuseblk(void)
@@ -62148,7 +62161,7 @@ static int fuse_sysfs_init(void)
 	return 0;
 
  out_fuse_unregister:
-	// 参见15.7.2.2 kobject_put()节
+	// 参见[15.7.2.2 kobject_put()]节
 	kobject_put(fuse_kobj);
  out_err:
 	return err;
@@ -62182,7 +62195,7 @@ void fuse_ctl_cleanup(void)
 
 #### 11.3.6.3 FUSE的安装
 
-文件系统fusectl的安装过程参见文件系统的自动安装节。
+文件系统fusectl的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.7 Debugfs
 
@@ -62234,7 +62247,7 @@ static struct file_system_type debug_fs_type = {
 	.owner		= THIS_MODULE,
 	.name		= "debugfs",
 	/*
-	 * 函数debug_mount()参见debug_mount()节，其调用过程如下：
+	 * 函数debug_mount()参见[11.2.2.2.1.2.5 debug_mount()]节，其调用过程如下：
 	 * mount -t debugfs none /sys/kernel/debug
 	 * => sys_mount()->do_mount()->do_new_mount()->
 	 *    do_kern_mount()->vfs_kern_mount()->mount_fs()
@@ -62261,7 +62274,7 @@ static int __init debugfs_init(void)
 	// 注册debugfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	retval = register_filesystem(&debug_fs_type);
 	if (retval)
-		kobject_put(debug_kobj);	// 参见15.7.2.2 kobject_put()节
+		kobject_put(debug_kobj);	// 参见[15.7.2.2 kobject_put()]节
 	else
 		debugfs_registered = true;
 
@@ -62281,7 +62294,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.7.3 Debugfs的安装
 
-文件系统debugfs的安装过程参见文件系统的自动安装节。
+文件系统debugfs的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 此后，当进程init执行配置文件/etc/init/mounted-debugfs.conf时，将目录/sys/kernel/debug的执行权限被修改为0700:
 
@@ -62354,7 +62367,7 @@ static int __init securityfs_init(void)
 	// 注册securityfs文件系统，参见[11.2.2.1 注册/注销文件系统]节
 	retval = register_filesystem(&fs_type);
 	if (retval)
-		kobject_put(security_kobj);	// 参见15.7.2.2 kobject_put()节
+		kobject_put(security_kobj);	// 参见[15.7.2.2 kobject_put()]节
 	return retval;
 }
 
@@ -62371,7 +62384,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.8.3 Securityfs的安装
 
-文件系统securityfs的安装过程参见文件系统的自动安装节。
+文件系统securityfs的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.9 Tmpfs
 
@@ -62455,7 +62468,7 @@ out4:
 
 static struct file_system_type shmem_fs_type = {
 	.name		= "tmpfs",
-	.mount	= ramfs_mount,	// 参见Ramfs的编译及初始化节
+	.mount		= ramfs_mount,	// 参见[11.3.1.2 Ramfs的编译及初始化]节
 	.kill_sb	= kill_litter_super,
 };
 
@@ -62487,8 +62500,8 @@ start_kernel()
 #### 11.3.9.3 Tmpfs的安装
 
 文件系统tmpfs的安装过程有如下两种方式：
-* 在初始化的过程中调用shmem_init()来安装tmpfs，参见Tmpfs的编译及初始化节；
-* 系统启动后，在配置文件中设置tmpfs的安装路径并启动安装，参见文件系统的自动安装节。
+* 在初始化的过程中调用shmem_init()来安装tmpfs，参见[11.3.9.2 Tmpfs的编译及初始化](#11-3-9-2-tmpfs-)节；
+* 系统启动后，在配置文件中设置tmpfs的安装路径并启动安装，参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.10 Devtmpfs
 
@@ -62544,12 +62557,12 @@ int __init devtmpfs_init(void)
 	}
 
 	/*
-	 * 调用kthread_run()创建内核线程kdevtmpfs(参见kthread_run()节)，
-	 * 该内核线程将执行函数devtmpfsd()，参见devtmpfsd()节
+	 * 调用kthread_run()创建内核线程kdevtmpfs(参见[7.2.4.4.1 kthread_run()]节)，
+	 * 该内核线程将执行函数devtmpfsd()，参见[11.3.10.2.1 devtmpfsd()]节
 	 */
 	thread = kthread_run(devtmpfsd, &err, "kdevtmpfs");
 	if (!IS_ERR(thread)) {
-		// 等待内核线程kdevtmpfs完成安装工作，参见devtmpfsd()节
+		// 等待内核线程kdevtmpfs完成安装工作，参见[11.3.10.2.1 devtmpfsd()]节
 		wait_for_completion(&setup_done);
 	} else {
 		err = PTR_ERR(thread);
@@ -62570,21 +62583,21 @@ int __init devtmpfs_init(void)
 函数```devtmpfs_init()```的调用关系如下：
 
 ```
-start_kernel()								// 参见start_kernel()节
+start_kernel()								// 参见[4.3.4.1.4.3 start_kernel()]节
 -> rest_init()								// 参见[4.3.4.1.4.3.13 rest_init()]节
    -> kernel_init()							// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
       -> do_basic_setup()						// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
-         -> driver_init()						// 参见10.2.1 设备驱动程序的初始化/driver_init()节
-            -> devtmpfs_init()						// 参见11.3.10.2 Devtmpfs的编译及初始化节
-               -> devtmpfsd()						// 参见11.3.10.2.1 devtmpfsd()节
+         -> driver_init()						// 参见[10.2.1 设备驱动程序的初始化/driver_init()]节
+            -> devtmpfs_init()						// 参见[11.3.10.2 Devtmpfs的编译及初始化]节
+               -> devtmpfsd()						// 参见[11.3.10.2.1 devtmpfsd()]节
                   -> sys_mount("devtmpfs", "/", "devtmpfs", ..);	// 将devtmpfs挂载到/devtmpfs目录
-                  -> handle()						// 参见11.3.10.2.1.1 handle()节
+                  -> handle()						// 参见[11.3.10.2.1.1 handle()]节
                      -> handle_create()
                         -> kern_path_create()
                         -> vfs_mknod()					// 创建设备节点/dev/XXX，且必须是字符设备或块设备
                      -> handle_remove()
       -> prepare_namespace()
-         -> devtmpfs_mount("dev");					// 参见11.3.10.3.1 devtmpfs_mount()节
+         -> devtmpfs_mount("dev");					// 参见[11.3.10.3.1 devtmpfs_mount()]节
             -> sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", ..);	// 将devtmpfs挂载到/dev目录
 ```
 
@@ -62629,7 +62642,7 @@ static int devtmpfsd(void *p)
 	/*
 	 * 扫描requests链表，并处理其中的每个请求；
 	 * 创建设备节点时，通过device_add()->devtmpfs_create_node()向requests链表中添加请求，
-	 * 参见10.2.3.3.2 添加设备/device_add()节和11.3.10.2.2.1 devtmpfs_create_node()节
+	 * 参见[10.2.3.3.2 添加设备/device_add()]节和[11.3.10.2.2.1 devtmpfs_create_node()]节
 	 */
 	while (1) {
 		spin_lock(&req_lock);
@@ -62666,9 +62679,9 @@ out:
 static int handle(const char *name, mode_t mode, struct device *dev)
 {
 	if (mode)
-		return handle_create(name, mode, dev);		// 参见11.3.10.2.1.1.1 handle_create()节
+		return handle_create(name, mode, dev);		// 参见[11.3.10.2.1.1.1 handle_create()]节
 	else
-		return handle_remove(name, dev);		// 参见11.3.10.2.1.1.2 handle_remove()节
+		return handle_remove(name, dev);		// 参见[11.3.10.2.1.1.2 handle_remove()]节
 }
 ```
 
@@ -62697,7 +62710,7 @@ static int handle_create(const char *nodename, mode_t mode, struct device *dev)
 	if (IS_ERR(dentry))
 		return PTR_ERR(dentry);
 
-	// 创建指定的设备文件/dev/DevName，参见11.2.4.1.1 mknod()/mknodat()节
+	// 创建指定的设备文件/dev/DevName，参见[11.2.4.1.1 mknod()/mknodat()]节
 	err = vfs_mknod(path.dentry->d_inode, dentry, mode, dev->devt);
 	if (!err) {
 		struct iattr newattrs;
@@ -62791,7 +62804,7 @@ int devtmpfs_create_node(struct device *dev)
 
 	/*
 	 * 判断内核线程kdevtmpfs是否存在，该内核线程由devtmpfs_init()创建，
-	 * 参见11.3.10.2 Devtmpfs的编译及初始化节
+	 * 参见[11.3.10.2 Devtmpfs的编译及初始化]节
 	 */
 	if (!thread)
 		return 0;
@@ -62799,7 +62812,7 @@ int devtmpfs_create_node(struct device *dev)
 	req.mode = 0;
 	/*
 	 * 获取文件名，用于创建文件/dev/DevName，
-	 * 参见11.3.10.2.2.1.1 device_get_devnode()节
+	 * 参见[11.3.10.2.2.1.1 device_get_devnode()]节
 	 */
 	req.name = device_get_devnode(dev, &req.mode, &tmp);
 	if (!req.name)
@@ -62807,7 +62820,7 @@ int devtmpfs_create_node(struct device *dev)
 
 	/*
 	 * 将req.mode设置为非0，表示创建该req，
-	 * 参见11.3.10.2.1.1 handle()节
+	 * 参见[11.3.10.2.1.1 handle()]节
 	 */
 	if (req.mode == 0)
 		req.mode = 0600;
@@ -62830,7 +62843,7 @@ int devtmpfs_create_node(struct device *dev)
 
 	/*
 	 * 唤醒内核线程kdevtmpfs来处理链表requests中的请求，
-	 * 参见11.3.10.2.1 devtmpfsd()节
+	 * 参见[11.3.10.2.1 devtmpfsd()]节
 	 */
 	wake_up_process(thread);
 	wait_for_completion(&req.done);
@@ -62930,7 +62943,7 @@ int devtmpfs_delete_node(struct device *dev)
 
 	/*
 	 * 判断内核线程kdevtmpfs是否存在，该内核线程由devtmpfs_init()
-	 * 创建，参见11.3.10.2 Devtmpfs的编译及初始化节
+	 * 创建，参见[11.3.10.2 Devtmpfs的编译及初始化]节
 	 */
 	if (!thread)
 		return 0;
@@ -62941,7 +62954,7 @@ int devtmpfs_delete_node(struct device *dev)
 
 	/*
 	 * 将req.mode设置为0，表示删除该req，
-	 * 参见11.3.10.2.1.1 handle()节
+	 * 参见[11.3.10.2.1.1 handle()]节
 	 */
 	req.mode = 0;
 	req.dev = dev;
@@ -62964,16 +62977,16 @@ int devtmpfs_delete_node(struct device *dev)
 #### 11.3.10.3 Devtmpfs的安装
 
 文件系统devtmpfs的安装过程包含如下三种方式：
-* 在系统初始化的过程中调用devtmpfs_init()->devtmpfs_init()来安装devtmpfs，参见devtmpfsd()节；
-* 在系统初始化过程中调用devtmpfs_mount()来安装devtmpfs，参见devtmpfs_mount()节；
-* 系统启动后，在配置文件中设置devtmpfs的安装路径并启动安装，参见文件系统的自动安装节。
+* 在系统初始化的过程中调用devtmpfs_init()->devtmpfs_init()来安装devtmpfs，参见[11.3.10.2.1 devtmpfsd()](#11-3-10-2-1-devtmpfsd-)节；
+* 在系统初始化过程中调用devtmpfs_mount()来安装devtmpfs，参见[11.3.10.3.1 devtmpfs_mount()](#11-3-10-3-1-devtmpfs-mount-)节；
+* 系统启动后，在配置文件中设置devtmpfs的安装路径并启动安装，参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ##### 11.3.10.3.1 devtmpfs_mount()
 
 函数devtmpfs_mount()的调用过程如下：
 
 ```
-start_kernel()				// 参见start_kernel()节
+start_kernel()				// 参见[4.3.4.1.4.3 start_kernel()]节
 -> rest_init()				// 参见[4.3.4.1.4.3.13 rest_init()]节
    -> kernel_init()			// 参见[4.3.4.1.4.3.13.1 kernel_init()]节
       -> prepare_namespace()		// 参见[4.3.4.1.4.3.13.1.3 prepare_namespace()]节
@@ -62996,7 +63009,7 @@ int devtmpfs_mount(const char *mntdir)
 
 	/*
 	 * 内核线程thread是由函数devtmpfs_init()创建的，
-	 * 参见Devtmpfs的编译及初始化节
+	 * 参见[11.3.10.2 Devtmpfs的编译及初始化]节
 	 */
 	if (!thread)
 		return 0;
@@ -63067,7 +63080,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.11.3 Devpts的安装
 
-文件系统devpts的安装过程参见Devpts的编译及初始化节和文件系统的自动安装节。
+文件系统devpts的安装过程参见[11.3.11.2 Devpts的编译及初始化](#11-3-11-2-devpts-)节和[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.12 VFAT
 
@@ -63126,7 +63139,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.12.3 VFAT的安装
 
-文件系统devpts的安装过程参见文件系统的自动安装节。
+文件系统devpts的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.13 Ext2
 
@@ -63197,7 +63210,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.13.3 Ext2的安装
 
-文件系统Ext2的安装过程参见文件系统的自动安装节。
+文件系统Ext2的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.14 Ext3
 
@@ -63307,7 +63320,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.14.3 Ext3的安装
 
-文件系统Ext3的安装过程参见文件系统的自动安装节。
+文件系统Ext3的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 ### 11.3.15 Ext4
 
@@ -63434,7 +63447,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 #### 11.3.15.3 Ext4的安装
 
-文件系统ext4的安装过程参见文件系统的自动安装节。
+文件系统ext4的安装过程参见[11.4 文件系统的自动安装](#11-4-)节。
 
 #### 11.3.15.4 创建ext2/ext3/ext4文件系统的命令
 
@@ -63461,7 +63474,7 @@ SYNOPSIS
 
 ## 11.4 文件系统的自动安装
 
-在系统启动时，进程init将执行配置文件/etc/init/*.conf，参见4.3.5.1.3.1 upstart节。
+在系统启动时，进程init将执行配置文件/etc/init/*.conf，参见[4.3.5.1.3.1 upstart](#4-3-5-1-3-1-upstart)节。
 
 配置文件/etc/init/mountall.conf包含如下内容：
 
@@ -63750,21 +63763,21 @@ total 0
 其原理参见如下函数调用：
 
 ```
-kern_path()					// 参见kern_path()/do_path_lookup()节
--> do_path_lookup()				// 参见kern_path()/do_path_lookup()节
-   -> path_lookupat()				// 参见path_lookupat()节
-      -> link_path_walk()			// 参见link_path_walk()节
-         -> walk_component()			// 参见walk_component()节
-            -> do_lookup()			// 参见do_lookup()节
-               -> __follow_mount_rcu()		// 参见__follow_mount_rcu()节
-                  -> __lookup_mnt()		// 参见__lookup_mnt()节
+kern_path()					// 参见[11.2.2.4.1.1 kern_path()/do_path_lookup()]节
+-> do_path_lookup()				// 参见[11.2.2.4.1.1 kern_path()/do_path_lookup()]节
+   -> path_lookupat()				// 参见[11.2.2.4.1.1.1 path_lookupat()]节
+      -> link_path_walk()			// 参见[11.2.2.4.1.1.1.2 link_path_walk()]节
+         -> walk_component()			// 参见[11.2.2.4.1.1.1.2.1 walk_component()]节
+            -> do_lookup()			// 参见[11.2.2.4.1.1.1.2.2 do_lookup()]节
+               -> __follow_mount_rcu()		// 参见[11.2.2.4.1.1.1.2.3 __follow_mount_rcu()]节
+                  -> __lookup_mnt()		// 参见[11.2.2.4.1.1.1.2.4 __lookup_mnt()]节
 ```
 
 # 12 网络/net
 
 网络代码保存在net/目录中，大部分的include文件在include/net下，BSD套接字代码在net/socket.c中，IP第4版本的套节口代码在net/ipv4/af_inet.c。一般的协议支持代码(包括sk_buff处理例程)在net/core下，TCP/IP网络代码在net/ipv4下，网络设备驱动程序在drivers/net下。
 
-socket可以用于进程间通信，参见套接字/socket节。
+socket可以用于进程间通信，参见[8.7 套接字/socket](#8-7-socket)节。
 
 # 13 可加载内核模块/Loadable Kernel Module
 
@@ -63979,7 +63992,7 @@ This Macro is used by all USB and PCI drivers. This macro describes which device
 /*
  * 声明类型为struct type##_device_id的变量，并为之创建别名name
  * 其中，type的取值为pci, usb, ieee1394, pcmcia, ...
- * 该宏在驱动程序中的用法参见10.2B.1 驱动程序声明其支持的硬件设备版本节
+ * 该宏在驱动程序中的用法参见[10.2B.1 驱动程序声明其支持的硬件设备版本]节
  */
 #define MODULE_DEVICE_TABLE(type,name)		MODULE_GENERIC_TABLE(type##_device,name)
 
@@ -64041,7 +64054,7 @@ When the USB subsystem knows about a driver's device ID table, it's used when ch
 
 If you don't provide an id_table for your driver, then your driver may get probed for each new device; the third parameter to ```probe()``` will be null.
 
-其中，函数```probe()```参见10.2.4 struct device_driver节中struct device_driver的成员函数```probe()```。
+其中，函数```probe()```参见[10.2.4 struct device_driver](#10-2-4-struct-device-driver)节中struct device_driver的成员函数```probe()```。
 
 #### 13.1.2.3 EXPORT_SYMBOL()
 
@@ -64231,13 +64244,13 @@ __used __attribute__((section("___ksymtab" "_unused_gpl" "+" #sym), unused))
 
 由此可知，这些宏export出来的符号分别被放置到下列section中：
 
-| Macros | Sections after compiling | Sections after linking<br>(参见13.1.2.3.1 如何将符号从__ksymtab+sym段移到__ksymtab段节) |
+| Macros | Sections after compiling | Sections after linking<br>(参见[13.1.2.3.1 如何将符号从__ksymtab+sym段移到__ksymtab段](#13-1-2-3-1-ksymtab-sym-ksymtab-)节) |
 | :----- | -----------------------: | :------------|
-| EXPORT_SYMBOL(sym) | ___ksymtab+sym<br>___kcrctab+sym<br>__ksymtab_strings | __ksymtab<br>__kcrctab<br>__ksymtab_strings |
-| EXPORT_SYMBOL_GPL(sym) | ___ksymtab_gpl+sym<br>___kcrctab_gpl+sym<br>__ksymtab_strings | __ksymtab_gpl<br>__kcrctab_gpl<br>__ksymtab_strings |
-| EXPORT_SYMBOL_GPL_FUTURE(sym) | ___ksymtab_gpl_future+sym<br>___kcrctab_gpl_future+sym<br>__ksymtab_strings | __ksymtab_gpl_future<br>__kcrctab_gpl_future<br>__ksymtab_strings |
-| EXPORT_UNUSED_SYMBOL(sym) | ___ksymtab_unused+sym<br>___kcrctab_unused+sym<br>__ksymtab_strings | __ksymtab_unused<br>__kcrctab_unused<br>__ksymtab_strings |
-| EXPORT_UNUSED_SYMBOL_GPL(sym) | ___ksymtab_unused_gpl+sym<br>___kcrctab_unused_gpl+sym<br>__ksymtab_strings | __ksymtab_unused_gpl<br>__kcrctab_unused_gpl<br>__ksymtab_strings |
+| EXPORT_SYMBOL(sym) | ```___ksymtab+sym```<br>```___kcrctab+sym```<br>```__ksymtab_strings``` | ```__ksymtab```<br>```__kcrctab```<br>```__ksymtab_strings``` |
+| EXPORT_SYMBOL_GPL(sym) | ```___ksymtab_gpl+sym```<br>```___kcrctab_gpl+sym```<br>```__ksymtab_strings``` | ```__ksymtab_gpl```<br>```__kcrctab_gpl```<br>```__ksymtab_strings``` |
+| EXPORT_SYMBOL_GPL_FUTURE(sym) | ```___ksymtab_gpl_future+sym```<br>```___kcrctab_gpl_future+sym```<br>```__ksymtab_strings``` | ```__ksymtab_gpl_future```<br>```__kcrctab_gpl_future```<br>```__ksymtab_strings``` |
+| EXPORT_UNUSED_SYMBOL(sym) | ```___ksymtab_unused+sym```<br>```___kcrctab_unused+sym```<br>```__ksymtab_strings``` | ```__ksymtab_unused```<br>```__kcrctab_unused```<br>```__ksymtab_strings``` |
+| EXPORT_UNUSED_SYMBOL_GPL(sym) | ```___ksymtab_unused_gpl+sym```<br>```___kcrctab_unused_gpl+sym```<br>```__ksymtab_strings``` | ```__ksymtab_unused_gpl```<br>```__kcrctab_unused_gpl```<br>```__ksymtab_strings``` |
 
 <br>
 
@@ -64338,7 +64351,7 @@ SYMBOL TABLE:
 	}
 ```
 
-由此生成的vmlinux.lds包含如下内容，参见Annex G: vmlinux.lds节:
+由此生成的vmlinux.lds包含如下内容，参见[Appendix G: vmlinux.lds](#appendix-g-vmlinux-lds)节:
 
 ```
 __ksymtab : AT(ADDR(__ksymtab) - 0xC0000000) { __start___ksymtab = .; *(SORT(___ksymtab+*)) __stop___ksymtab = .; }
@@ -64380,7 +64393,7 @@ __ksymtab_strings : AT(ADDR(__ksymtab_strings) - 0xC0000000) { *(__ksymtab_strin
 
 2) 将模块编译成独立模块的情况
 
-在链接*.ko时，使用的链接脚本文件为scripts/module-common.lds，参见3.4.3.4.2.3 $(modules)节和Annex H: scripts/module-common.lds节。故:
+在链接*.ko时，使用的链接脚本文件为scripts/module-common.lds，参见[3.4.3.4.2.3 $(modules)](#3-4-3-4-2-3-modules-)节和[Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds)节。故:
 
 ```
 段___ksymtab+sym中的符号被移到段__ksymtab中，
@@ -64405,11 +64418,11 @@ __ksymtab_strings : AT(ADDR(__ksymtab_strings) - 0xC0000000) { *(__ksymtab_strin
 此后，这些段中的符号被如下函数使用:
 
 ```
-load_module()				// 参见13.5.1.2.1 load_module()节
--> find_module_sections()		// 参见13.5.1.2.1.1 find_module_sections()节
+load_module()				// 参见[13.5.1.2.1 load_module()]节
+-> find_module_sections()		// 参见[13.5.1.2.1.1 find_module_sections()]节
 ```
 
-Exported symbols的作用范围，参见13.4.2.0 Scope of Kernel symbols节。
+Exported symbols的作用范围，参见[13.4.2.0 Scope of Kernel symbols](#13-4-2-0-scope-of-kernel-symbols)节。
 
 #### 13.1.2.4 \__init/\__initdata, \__exit/\__exitdata
 
@@ -64421,7 +64434,7 @@ Those macros are defined in include/linux/init.h:
 
 ```
 /*
- * 对如下段的链接，参见Annex G: vmlinux.lds节:
+ * 对如下段的链接，参见[Appendix G: vmlinux.lds]节:
  * .init.text, init.data, .exit.text, .exit.data
  */
 
@@ -64534,7 +64547,7 @@ chenwx@chenwx ~ $ cat /sys/module/helloworld/parameters/helloworld.isSayHello
  * 在__param段中添加类型为struct kernel_param的元素，且这些元素可通过数组
  * [__start___param, __stop___param]来访问，参见函数param_sysfs_builtin()；
  * 当加载内核模块时，该段中的元素被函数load_module()->find_module_sections()访问，
- * 参见13.1.3.3.1 模块加载时对模块参数的处理节
+ * 参见[13.1.3.3.1 模块加载时对模块参数的处理]节
  */
 #define __module_param_call(prefix, name, ops, arg, isbool, perm)				\
 	/* Default value instead of permissions? */						\
@@ -64560,7 +64573,7 @@ chenwx@chenwx ~ $ cat /sys/module/helloworld/parameters/helloworld.isSayHello
 ```
 /*
  * 在.modinfo段中添加字符串"parmtype=name:_type"，其中，
- * 宏__MODULE_INFO()参见13.1.2.1 MODULE_INFO()/__MODULE_INFO()节
+ * 宏__MODULE_INFO()参见[13.1.2.1 MODULE_INFO()/__MODULE_INFO()]节
  */
 #define __MODULE_PARM_TYPE(name, _type)	\
 		__MODULE_INFO(parmtype, name##type, #name ":" _type)
@@ -65064,11 +65077,11 @@ If you really need a type that does not appear in the list of above sections, th
 然后，定义如下宏或者函数：
 
 * ```param_check_myType(name, p)```，可参考```param_check_byte(name, p)```的定义；
-* 函数指针param_ops_myType中的```set()```, ```get()```, ```free()```等函数，参见13.1.3.1.1 module_param_cb()/__module_param_call()节。
+* 函数指针param_ops_myType中的```set()```, ```get()```, ```free()```等函数，参见[13.1.3.1.1 module_param_cb()/__module_param_call()](#13-1-3-1-1-module-param-cb-module-param-call-)节。
 
 #### 13.1.3.2 系统启动过程时对.init.setup段模块参数的处理
 
-在系统启动过程中，处理由```early_param()```和```__setup()```定义在.init.setup段中的模块参数，参见4.3.4.1.4.3.3.2 注册内核参数的处理函数节，其函数调用关系如下：
+在系统启动过程中，处理由```early_param()```和```__setup()```定义在.init.setup段中的模块参数，参见[4.3.4.1.4.3.3.2 注册内核参数的处理函数](#4-3-4-1-4-3-3-2-)节，其函数调用关系如下：
 
 ```
 start_kernel()
@@ -65131,10 +65144,10 @@ param_sysfs_init()
 在加载模块时，由下列函数调用处理模块参数：
 
 ```
-load_module()								// 参见13.5.1.2.1 load_module()节
+load_module()								// 参见[13.5.1.2.1 load_module()]节
 -> find_module_sections(mod, &info)
    /*
-    * 获取该模块中定义的所有模块参数，参见13.1.3.1.1 module_param_cb()/__module_param_call()节
+    * 获取该模块中定义的所有模块参数，参见[13.1.3.1.1 module_param_cb()/__module_param_call()]节
     */
    -> mod->kp = section_objs(info, "__param", sizeof(*mod->kp), &mod->num_kp);
 -> mod->args = strndup_user(uargs, ~0UL >> 1)				// 获取加载模块时传入的模块参数
@@ -65148,11 +65161,11 @@ load_module()								// 参见13.5.1.2.1 load_module()节
    -> mod_sysfs_init(mod)
       /*
        * 变量module_kset是/sys/module对应的kset，由函数param_sysfs_init()为之赋值，
-       * 参见13.1.3.2 系统启动过程时对.init.setup段模块参数的处理节
+       * 参见[13.1.3.2 系统启动过程时对.init.setup段模块参数的处理]节
        */
       -> kset_find_obj(module_kset, mod->name)
       /*
-       * 创建目录/sys/module/<module-name>，参见15.7.1.1 kobject_init_and_add()节
+       * 创建目录/sys/module/<module-name>，参见[15.7.1.1 kobject_init_and_add()]节
        */
       -> kobject_init_and_add(&mod->mkobj.kobj, &module_ktype, NULL, "%s", mod->name)
    /*
@@ -65162,7 +65175,7 @@ load_module()								// 参见13.5.1.2.1 load_module()节
    -> module_param_sysfs_setup(mod, kparam, num_params)
       -> for (i = 0; i < num_params; i++) {
             /*
-             * 设置参数的处理函数，参见13.1.3.3.2 模块加载后对模块参数的处理节
+             * 设置参数的处理函数，参见[13.1.3.3.2 模块加载后对模块参数的处理]节
              */
             add_sysfs_param(&mod->mkobj, &kparam[i], kparam[i].name)
             -> sysfs_attr_init(&new->attrs[num].mattr.attr);
@@ -65199,7 +65212,7 @@ load_module()								// 参见13.5.1.2.1 load_module()节
 # echo -n <new-module-value> > /sys/module/<module-name>/parameters/<parm-name>
 ```
 
-sysfs文件系统最终调用如下函数显示/修改模块参数，参见13.1.3.3.1 模块加载时对模块参数的处理节:
+sysfs文件系统最终调用如下函数显示/修改模块参数，参见[13.1.3.3.1 模块加载时对模块参数的处理](#13-1-3-3-1-)节:
 
 ```
 param_attr_show()
@@ -65214,7 +65227,7 @@ param_attr_store()
 在卸载模块时，调用模块参数对应的free函数来释放模块参数:
 
 ```
-delete_module() 					// 参见13.5.1.3 rmmod调用sys_delete_module()节
+delete_module() 					// 参见[13.5.1.3 rmmod调用sys_delete_module()]节
 -> free_module(mod) 
    -> mod_sysfs_teardown(mod) 
    -> destroy_params(mod->kp, mod->num_kp) 
@@ -65223,7 +65236,7 @@ delete_module() 					// 参见13.5.1.3 rmmod调用sys_delete_module()节
                  params[i].ops->free(params[i].arg);
 ```
 
-由13.1.3.1.3 module_param()/module_param_named()节至13.1.3.1.5 module_param_array()/module_param_array_named()节可知，宏```module_param(.., charp, ..)```和```module_param_array()```定义的模块参数有```param[i].ops->free()```函数。
+由[13.1.3.1.3 module_param()/module_param_named()](#13-1-3-1-3-module-param-module-param-named-)节至[13.1.3.1.5 module_param_array()/module_param_array_named()](#13-1-3-1-5-module-param-array-module-param-array-named-)节可知，宏```module_param(.., charp, ..)```和```module_param_array()```定义的模块参数有```param[i].ops->free()```函数。
 
 ## 13.2 模块的编译
 
@@ -65289,7 +65302,7 @@ building external modules.
 CONFIG_MODVERSIONS is set; therefore, a full kernel build needs to be 
 executed to make module versioning work.
 
-另参见13.2.3.1 编译基于特定内核版本的模块节。
+另参见[13.2.3.1 编译基于特定内核版本的模块](#13-2-3-1-)节。
 
 ### 13.2.2 Makefile
 
@@ -65540,8 +65553,8 @@ chenwx@chenwx ~/test $ ll
 
 ### 13.2.3 模块的编译过程
 
-* 内核模块的编译，参见编译modules/$(obj-m)节；
-* 外部模块的编译，参见3.4.4 编译external modules节。
+* 内核模块的编译，参见[3.4.3 编译modules/$(obj-m)](#3-4-3-modules-obj-m-)节；
+* 外部模块的编译，参见[3.4.4 编译external modules](#3-4-4-external-modules)节。
 
 #### 13.2.3.1 编译基于特定内核版本的模块
 
@@ -65550,7 +65563,7 @@ chenwx@chenwx ~/test $ ll
 ```
 /*
  * (1) 编写待编译模块的源文件和Makefile，
- *     其中Makefile参见13.2.2.3 Makefile v3节
+ *     其中Makefile参见[13.2.2.3 Makefile v3]节
  */
 chenwx@chenwx ~/helloworld $ ll 
 total 8.0K 
@@ -65585,7 +65598,7 @@ nothing to commit, working directory clean
 
 /*
  * (2.1) 若直接编译模块，则不成功，其原因
- *       参见13.2.1.2 Prebuilt kernel with configuration and headers节
+ *       参见[13.2.1.2 Prebuilt kernel with configuration and headers]节
  *       和[NOTE1]
  */
 chenwx@chenwx ~/linux $ cd ~/helloworld/ 
@@ -65739,7 +65752,7 @@ Without getting into massive detail, that make invocation will run just enough o
 
 ### 13.2.4 测试模块
 
-下面编译并测试13.1.1 模块源文件示例节的hello.c模块：
+下面编译并测试[13.1.1 模块源文件示例](#13-1-1-)节的hello.c模块：
 
 ```
 chenwx@chenwx ~/alex/module $ modinfo hello.ko
@@ -65807,8 +65820,8 @@ The compiled modules may have following sections, you can run command "readelf -
 | ```.gnu.linkonce.this_module``` | Module structue, that's struct module. See [13.4.2.4 How to access symbols](#13-4-2-4-how-to-access-symbols) |
 | ```.modinfo``` | String-style module information (Licence, etc). See 13.1.2.1 MODULE_INFO()/\__MODULE_INFO() |
 | ```__versions``` | Expected (compile-time) versions (CRC) of the symbols that this module depends on. |
-| ```__ksymtab*``` | Table of symbols which this module exports. See 13.1.2.3 EXPORT_SYMBOL(), 13.5.1.2.1.1 find_module_sections(), and Annex H: scripts/module-common.lds |
-| ```__kcrctab*``` | Table of versions of symbols which this module exports. See 13.1.2.3 EXPORT_SYMBOL(), 13.5.1.2.1.1 find_module_sections() and Annex H: scripts/module-common.lds |
+| ```__ksymtab*``` | Table of symbols which this module exports. See [13.1.2.3 EXPORT_SYMBOL()](#13-1-2-3-export-symbol-), 13.5.1.2.1.1 find_module_sections(), and [Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds) |
+| ```__kcrctab*``` | Table of versions of symbols which this module exports. See [13.1.2.3 EXPORT_SYMBOL()](#13-1-2-3-export-symbol-), 13.5.1.2.1.1 find_module_sections() and [Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds) |
 | ```*.init``` | Sections used while initialization (```__init```). See 13.1.2.4 \__init/\__initdata, \__exit/\__exitdata and 13.5.1.1.1.1 \__initcall_start[], \__early_initcall_end[], \__initcall_end[] |
 | ```.text```, ```.data```, etc. | The code and data. |
 
@@ -66311,7 +66324,7 @@ struct subprocess_info *call_usermodehelper_setup(char *path, char **argv,
 
 	/*
 	 * 将&sub_info->work->func域赋值为函数指针__call_usermodehelper，
-	 * 参见__call_usermodehelper()节
+	 * 参见[13.3.2.2.2 __call_usermodehelper()]节
 	 */
 	INIT_WORK(&sub_info->work, __call_usermodehelper);
 	sub_info->path = path;
@@ -66341,7 +66354,7 @@ int call_usermodehelper_exec(struct subprocess_info *sub_info, enum umh_wait wai
 		goto out;
 
 	/*
-	 * 工作队列khelper_wq参见khelper_wq节;
+	 * 工作队列khelper_wq参见[13.3.2.2.1 khelper_wq]节;
 	 * 标志位usermodehelper_disabled由函数usermodehelper_enable()
 	 * 和usermodehelper_disable()控制
 	 */
@@ -66356,7 +66369,7 @@ int call_usermodehelper_exec(struct subprocess_info *sub_info, enum umh_wait wai
 	/*
 	 * 将工作&sub_info->work添加到工作队列khelper_wq中，并等待其完成；
 	 * 当执行&sub_info->work时，将调用函数__call_usermodehelper()，
-	 * 参见__call_usermodehelper()节；
+	 * 参见[13.3.2.2.2 __call_usermodehelper()]节；
 	 * 当完成&sub_info->work后，函数__call_usermodehelper()会通过
 	 * done域通知本进程工作已完成
 	 */
@@ -66400,7 +66413,7 @@ do_basic_setup()			// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
 -> usermodehelper_enable()		// 设置标志位usermodehelper_disabled = 0
 ```
 
-工作队列有关的内容，参见工作队列/workqueue节。
+工作队列有关的内容，参见[7.5 工作队列/workqueue](#7-5-workqueue)节。
 
 ##### 13.3.2.2.2 \__call_usermodehelper()
 
@@ -66411,7 +66424,7 @@ static void __call_usermodehelper(struct work_struct *work)
 {
 	/*
 	 * 由对象work获取对象sub_info的地址，sub_info是由函数
-	 * call_usermodehelper_fns()分配并初始化的，参见kmod节
+	 * call_usermodehelper_fns()分配并初始化的，参见[13.3.1.2 kmod]节
 	 */
 	struct subprocess_info *sub_info = container_of(work, struct subprocess_info, work);
 	enum umh_wait wait = sub_info->wait;
@@ -66423,7 +66436,8 @@ static void __call_usermodehelper(struct work_struct *work)
 	/*
 	 * 调用kernel_thread()创建内核线程，参见[7.2.1.4 kernel_thread()]节；
 	 * 并执行函数wait_for_helper()或____call_usermodehelper()，
-	 * 入参为sub_info，参见wait_for_helper()节和____call_usermodehelper()节
+	 * 入参为sub_info，参见[13.3.2.2.2.1 wait_for_helper()]节
+	 * 和[13.3.2.2.2.2 ____call_usermodehelper()]节
 	 */
 	if (wait == UMH_WAIT_PROC)
 		pid = kernel_thread(wait_for_helper, sub_info, CLONE_FS | CLONE_FILES | SIGCHLD);
@@ -66444,7 +66458,7 @@ static void __call_usermodehelper(struct work_struct *work)
 			sub_info->retval = pid;
 		/*
 		 * 通知函数call_usermodehelper_exec()所在的进程当前工作已完成，
-		 * 参见kmod节中的函数call_usermodehelper_exec()
+		 * 参见[13.3.1.2 kmod]节中的函数call_usermodehelper_exec()
 		 */
 		complete(sub_info->complete);
 	}
@@ -66469,7 +66483,7 @@ static int wait_for_helper(void *data)
 	/*
 	 * 调用kernel_thread()创建内核线程，参见[7.2.1.4 kernel_thread()]节；
 	 * 并执行函数____call_usermodehelper()，入参为sub_info，
-	 * 参见____call_usermodehelper()节
+	 * 参见[13.3.2.2.2.2 ____call_usermodehelper()]节
 	 */
 	pid = kernel_thread(____call_usermodehelper, sub_info, SIGCHLD);
 	if (pid < 0) {
@@ -66553,7 +66567,7 @@ static int ____call_usermodehelper(void *data)
 
 	/*
 	 * 通过调用系统调用sys_execve()来执行/sbin/modprobe，以加载指定模块；
-	 * sub_info各域由__request_module()赋值，参见kmod节
+	 * sub_info各域由__request_module()赋值，参见[13.3.1.2 kmod]节
 	 */
 	retval = kernel_execve(sub_info->path,
 			       (const char *const *)sub_info->argv,
@@ -66562,17 +66576,17 @@ static int ____call_usermodehelper(void *data)
 	/* Exec failed? */
 fail:
 	sub_info->retval = retval;
-	do_exit(0);	// 参见do_exit()节
+	do_exit(0);	// 参见[7.3.3 do_exit()]节
 }
 ```
 
 ### 13.3.3 系统启动时自动加载模块
 
-根据init程序的不同，系统启动式自动加载模块的方式也不同。init程序参见4.3.5 init节，其对应的自动加载模块的方法参见如下几节：
+根据init程序的不同，系统启动式自动加载模块的方式也不同。init程序参见[4.3.5 init](#4-3-5-init)节，其对应的自动加载模块的方法参见如下几节：
 
 #### 13.3.3.1 SysV-style init
 
-当采用SysV-style init时，系统启动时会调用/etc/rc.d/rc.sysinit进行系统初始化，参见4.3.5.1.1 SysV-style init节。在rc.sysinit中包含如下代码：
+当采用SysV-style init时，系统启动时会调用/etc/rc.d/rc.sysinit进行系统初始化，参见[4.3.5.1.1 SysV-style init](#4-3-5-1-1-sysv-style-init)节。在rc.sysinit中包含如下代码：
 
 ```
 # Load other user-defined modules
@@ -67040,7 +67054,7 @@ struct module
 
 ##### 13.3.2.1.1 modules链表
 
-链表modules包含了系统中已加载的模块，该链表的元素是由函数load_module()添加进来的，参见13.5.1.2.1 load_module()节。该链表定义于kernel/module.c:
+链表modules包含了系统中已加载的模块，该链表的元素是由函数load_module()添加进来的，参见[13.5.1.2.1 load_module()](#13-5-1-2-1-load-module-)节。该链表定义于kernel/module.c:
 
 ```
 DEFINE_MUTEX(module_mutex);
@@ -67055,7 +67069,7 @@ struct list_head *kdb_modules = &modules;	/* kdb needs the list of modules */
 
 ![Module](/assets/Module.svg]
 
-读取文件/proc/kallsyms时，会轮询modules链表以获取模块及其中的符号信息，参见13.4.2.3 How is /proc/kallsyms generated节。
+读取文件/proc/kallsyms时，会轮询modules链表以获取模块及其中的符号信息，参见[13.4.2.3 How is /proc/kallsyms generated](#13-4-2-3-how-is-proc-kallsyms-generated)节。
 
 ##### 13.3.2.1.2 THIS_MODULE
 
@@ -67092,7 +67106,7 @@ struct load_info {
 };
 ```
 
-该类型的变量是由函数```load_module()```分配的，参见13.5.1.2.1 load_module()节。
+该类型的变量是由函数```load_module()```分配的，参见[13.5.1.2.1 load_module()](#13-5-1-2-1-load-module-)节。
 
 ### 13.4.2 Kernel Symbol Table
 
@@ -67106,7 +67120,7 @@ You can think of kernel symbols (either functions or data objects) as being visi
 | :--- | :---- | :--------- |
 | static | visible only within their own source file (just like standard user space programming) | static int var;<br>static void set_flag(bool flag); |
 | external | potentially visible to any other code built into the kernel itself | In kernel/sched/proc.c:<br>	unsigned long calc_load_update;<br>In kernel/sched/sched.h:<br>	extern unsigned long calc_load_update; |
-| exported | visible and available to any loadable module | ```EXPORT_SYMBOL()``` which exports a given symbol to all loadable modules;<br>```EXPORT_SYMBOL_GPL()``` which exports a given symbol to only those modules that have a GPL-compatible license. 参见13.1.2.3 EXPORT_SYMBOL()节 |
+| exported | visible and available to any loadable module | ```EXPORT_SYMBOL()``` which exports a given symbol to all loadable modules;<br>```EXPORT_SYMBOL_GPL()``` which exports a given symbol to only those modules that have a GPL-compatible license. 参见[13.1.2.3 EXPORT_SYMBOL()](#13-1-2-3-export-symbol-)节 |
 
 <p/>
 
@@ -67287,7 +67301,7 @@ int module_get_kallsym(unsigned int symnum, unsigned long *value, char *type,
 	struct module *mod;
 
 	preempt_disable();
-	// 链表modules中包含系统内所有注册的模块，参见13.4.1.1 struct module节
+	// 链表modules中包含系统内所有注册的模块，参见[13.4.1.1 struct module]节
 	list_for_each_entry_rcu(mod, &modules, list) {
 		if (symnum < mod->num_symtab) {
 			*value = mod->symtab[symnum].st_value;
@@ -67393,9 +67407,11 @@ $ cat /proc/kallsyms
 ffffffff81a4ef00 r __ksymtab_printk
 ffffffff81a4eff0 r __ksymtab_jiffies
 ...
+```
 
 Let’s just have another look at the definition of EXPORT_SYMBOL in include/linux/export.h:
 
+```
 /* For every exported symbol, place a struct in the __ksymtab section */
 #define __EXPORT_SYMBOL(sym, sec)						\
 	extern typeof(sym) sym;							\
@@ -67408,7 +67424,7 @@ Let’s just have another look at the definition of EXPORT_SYMBOL in include/lin
 	__attribute__((section("__ksymtab" sec), unused))			\
 	= { (unsigned long)&sym, __kstrtab_##sym }
 
-// 扩展后的EXPORT_SYMBOL(sym)参见13.1.2.3 EXPORT_SYMBOL()节
+// 扩展后的EXPORT_SYMBOL(sym)参见[13.1.2.3 EXPORT_SYMBOL()]节
 #define EXPORT_SYMBOL(sym)							\
 	__EXPORT_SYMBOL(sym, "")
 ```
@@ -67437,8 +67453,8 @@ __attribute__((section(".gnu.linkonce.this_module"))) = {
 
 	/*
 	 * 函数init_module和cleanup_module参见下列章节：
-	 * 13.5.0 init_module()/cleanup_module()节
-	 * 13.5.1 module_init()/module_exit()节
+	 * [13.5.0 init_module()/cleanup_module()]节和
+	 * ]13.5.1 module_init()/module_exit()]节
 	 */
 	.init = init_module,
 #ifdef CONFIG_MODULE_UNLOAD
@@ -67562,7 +67578,7 @@ typedef int (*initcall_t)(void);
 typedef void (*exitcall_t)(void);
 
 /*
- * 当编译module时，Makefile会定义MODULE宏，参见编译modules/$(obj-m)节；
+ * 当编译module时，Makefile会定义MODULE宏，参见[3.4.3 编译modules/$(obj-m)]节；
  * 如果未定义MODULE，则表明本module被直接编译进了内核，此时module的初始化
  * 函数需要在系统启动时调用，无需执行insmod命令
  */
@@ -67578,7 +67594,7 @@ typedef void (*exitcall_t)(void);
  */
 #define module_init(x)		__initcall(x);
 #define __initcall(fn) 		device_initcall(fn)
-// module_init()被扩展到.initcall6.init段，参见.initcall*.init节
+// module_init()被扩展到.initcall6.init段，参见[13.5.1.1.1.1.1 .initcall*.init]节
 #define device_initcall(fn)	__define_initcall("6",fn,6)
 
 /**
@@ -67632,9 +67648,9 @@ typedef void (*exitcall_t)(void);
 
 宏```module_init()```所传递的参数是模块初始化函数，该函数被```do_one_initcall()```调用，而调用函数```do_one_initcall()```分为两种情况：
 * 当module被编译进内核时，其初始化函数需要在系统启动时被调用，参见[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)节；
-* 当module被编译成单独的模块时，其初始化函数在insmod时被调用，参见insmod调用sys_init_module()节。
+* 当module被编译成单独的模块时，其初始化函数在insmod时被调用，参见[13.5.1.2 insmod调用sys_init_module()](#13-5-1-2-insmod-sys-init-module-)节。
 
-宏```module_exit()```所传递的参数是模块卸载函数，该函数在delete_modules()中，或者在rmmod时调用，参见rmmod调用sys_delete_module()节。
+宏```module_exit()```所传递的参数是模块卸载函数，该函数在delete_modules()中，或者在rmmod时调用，参见[13.5.1.3 rmmod调用sys_delete_module()](#13-5-1-3-rmmod-sys-delete-module-)节。
 
 **NOTE**: If a module is compiled into the static kernel image, the exit function would not be included, and it would never be invoked because if it were not a module, the code could never be removed from memory.
 
@@ -67654,7 +67670,7 @@ kernel_init() -> do_pre_smp_initcalls() -> do_one_initcall()
 kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 ```
 
-函数```do_pre_smp_initcalls()```定义于init/main.c，参见[4.3.4.1.4.3.13.1.1 do_pre_smp_initcalls()]节。
+函数```do_pre_smp_initcalls()```定义于init/main.c，参见[4.3.4.1.4.3.13.1.1 do_pre_smp_initcalls()](#4-3-4-1-4-3-13-1-1-do-pre-smp-initcalls-)节。
 
 函数```do_basic_setup()```定义于init/main.c，参见[4.3.4.1.4.3.13.1.2 do_basic_setup()](#4-3-4-1-4-3-13-1-2-do-basic-setup-)节。
 
@@ -67743,7 +67759,7 @@ SECTIONS
   	*(.initcall7s.init)
 ```
 
-由arch/x86/kernel/vmlinux.lds.S扩展而来(参见vmlinux.lds如何生成节)的vmliux.lds(详见Annex G: vmlinux.lds节)包含了.init.data段，其中的初始化函数如下：
+由arch/x86/kernel/vmlinux.lds.S扩展而来(参见[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节)的vmliux.lds(详见[Appendix G: vmlinux.lds](#appendix-g-vmlinux-lds)节)包含了.init.data段，其中的初始化函数如下：
 
 ```
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
@@ -67925,7 +67941,7 @@ SYSCALL_DEFINE3(init_module, void __user *, umod,
 	if (!capable(CAP_SYS_MODULE) || modules_disabled)
 		return -EPERM;
 
-	/* Do all the hard work. 参见load_module()节 */
+	/* Do all the hard work. 参见[13.5.1.2.1 load_module()]节 */
 	mod = load_module(umod, len, uargs);
 
 	if (IS_ERR(mod))
@@ -68035,7 +68051,7 @@ static struct module *load_module(void __user *umod, unsigned long len,
 
 	/*
 	 * Now we've got everything in the final locations, we can find
-	 * optional sections. 参见13.5.1.2.1.1 find_module_sections()节
+	 * optional sections. 参见[13.5.1.2.1.1 find_module_sections()]节
 	 */
 	find_module_sections(mod, &info);
 
@@ -68401,8 +68417,8 @@ __attribute__((section(\".gnu.linkonce.this_module\"))) = {
 
 	/*
 	 * 函数init_module和cleanup_module参见下列章节：
-	 * 13.5.0 init_module()/cleanup_module()节
-	 * 13.5.1 module_init()/module_exit()节
+	 * [13.5.0 init_module()/cleanup_module()]节和
+	 * [13.5.1 module_init()/module_exit()]节
 	 */
 	.init = init_module,
 #ifdef CONFIG_MODULE_UNLOAD
@@ -68418,7 +68434,7 @@ __attribute__((section(\".gnu.linkonce.this_module\"))) = {
 };
 ```
 
-当```*.mod.c```被编译成```*.mod.o```后，变量```__this_module```被包含在```*.mod.o```的```.gnu.linkonce.this_module```段内，参见3.4.3.4.2.2 %.mod.c=>%.mod.o节，例如：
+当```*.mod.c```被编译成```*.mod.o```后，变量```__this_module```被包含在```*.mod.o```的```.gnu.linkonce.this_module```段内，参见[3.4.3.4.2.2 %.mod.c=>%.mod.o](#3-4-3-4-2-2-mod-c-gt-mod-o)节，例如：
 
 ```
 chenwx@chenwx ~/alex/module $ objdump -h hello.mod.o
@@ -68448,7 +68464,7 @@ Idx Name          Size      VMA       LMA       File off  Algn
 在加载module时，段.gnu.linkonce.this_module会被如下函数读取：
 
 ```
-load_module()			// 参见13.5.1.2.1 load_module()节
+load_module()			// 参见[13.5.1.2.1 load_module()]节
 -> layout_and_allocate()
    -> setup_load_info()
 
@@ -68470,7 +68486,7 @@ static struct module *setup_load_info(struct load_info *info)
 }
 ```
 
-故，此后可通过调用```mod->init()```和```mod->exit()```来调用初始化函数和清理函数了，参见rmmod调用sys_delete_module()节。
+故，此后可通过调用```mod->init()```和```mod->exit()```来调用初始化函数和清理函数了，参见[13.5.1.3 rmmod调用sys_delete_module()](#13-5-1-3-rmmod-sys-delete-module-)节。
 
 # 14 Linux Security Module/LSM
 
@@ -68810,7 +68826,7 @@ int __init security_init(void)
 	/*
 	 * 1) 设置默认的Security Module:
 	 *    若default_security_ops中的某函数指针为空，
-	 *    则设置为默认值，参见security_fixup_ops()节
+	 *    则设置为默认值，参见[14.4.1 security_fixup_ops()]节
 	 */
 	security_fixup_ops(&default_security_ops);
 	security_ops = &default_security_ops;
@@ -68819,7 +68835,7 @@ int __init security_init(void)
 	 * 2) 注册其他类型的Security Module:
 	 *    调用__security_initcall_start和__security_initcall_end
 	 *    之间的初始化函数，这些函数由宏security_initcall()设置，
-	 *    参见register_security()节
+	 *    参见[14.5.1 register_security()]节
 	 */
 	do_security_initcalls();
 
@@ -68898,7 +68914,7 @@ int __init register_security(struct security_operations *ops)
 {
 	/*
 	 * 调用security_fixup_ops()为ops中未赋值的函数指针设置默认值，
-	 * 参见security_fixup_ops()节
+	 * 参见[14.4.1 security_fixup_ops()]节
 	 */
 	if (verify(ops)) {
 		printk(KERN_DEBUG "%s could not verify "
@@ -70923,7 +70939,7 @@ struct kfifo __STRUCT_KFIFO_PTR(unsigned char, 0, void);
 struct kfifo
 {
 	union {
-		struct __kfifo		kfifo;	// 参见struct __kfifo节
+		struct __kfifo		kfifo;	// 参见[15.4.1.1 struct __kfifo]节
 		unsigned char		*type;
 		char			(*rectype)[0];
 		void			*ptr;
@@ -70989,11 +71005,11 @@ struct __kfifo {
 
 ### 15.4.2 队列的定义与初始化
 
-可以采用静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()节的方法静态创建队列，也可以采用动态创建队列/kfifo_alloc()/kfifo_init()节的方法动态创建队列。
+可以采用[15.4.2.1 静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()/DEFINE_KFIFO()](#15-4-2-1-declare-kfifo-init-kfifo-define-kfifo-)节的方法静态创建队列，也可以采用[15.4.2.2 动态创建队列/kfifo_alloc()/kfifo_init()](#15-4-2-2-kfifo-alloc-kfifo-init-)节的方法动态创建队列。
 
 若存在队列fifo，则可以通过宏```__is_kfifo_ptr(fifo)```来判断该对象是如何创建的：
-* 返回true，则说明fifo是动态创建的，参见动态创建队列/kfifo_alloc()/kfifo_init()节的图；
-* 返回false，则说明fifo是静态创建的，参见静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()节的图。
+* 返回true，则说明fifo是动态创建的，参见[15.4.2.2 动态创建队列/kfifo_alloc()/kfifo_init()](#15-4-2-2-kfifo-alloc-kfifo-init-)节的图；
+* 返回false，则说明fifo是静态创建的，参见[15.4.2.1 静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()/DEFINE_KFIFO()](#15-4-2-1-declare-kfifo-init-kfifo-define-kfifo-)节的图。
 
 #### 15.4.2.1 静态创建队列/DECLARE_KFIFO()/INIT_KFIFO()/DEFINE_KFIFO()
 
@@ -71109,9 +71125,9 @@ __kfifo_int_must_check_helper(								\
 ({											\
 	typeof((fifo) + 1) __tmp = (fifo);						\
 	struct __kfifo *__kfifo = &__tmp->kfifo;					\
-	// 若struct kfifo fifo，则__is_kfifo_ptr(&fifo)=1，参见队列结构/struct kfifo节
+	// 若struct kfifo fifo，则__is_kfifo_ptr(&fifo)=1，参见[15.4.1 队列结构/struct kfifo]节
 	__is_kfifo_ptr(__tmp) ?								\
-	// sizeof(*__tmp->type)=1，参见队列结构/struct kfifo节
+	// sizeof(*__tmp->type)=1，参见[15.4.1 队列结构/struct kfifo]节
 	__kfifo_alloc(__kfifo, size, sizeof(*__tmp->type), gfp_mask) :			\
 	-EINVAL;									\
 })											\
@@ -71187,9 +71203,9 @@ if (ret)
 ({											\
 	typeof((fifo) + 1) __tmp = (fifo);						\
 	struct __kfifo *__kfifo = &__tmp->kfifo;					\
-	// 若struct kfifo fifo，则__is_kfifo_ptr(&fifo)=1，参见队列结构/struct kfifo节
+	// 若struct kfifo fifo，则__is_kfifo_ptr(&fifo)=1，参见[15.4.1 队列结构/struct kfifo]节
 	__is_kfifo_ptr(__tmp) ?								\
-	// sizeof(*__tmp->type)=1，参见队列结构/struct kfifo节
+	// sizeof(*__tmp->type)=1，参见[15.4.1 队列结构/struct kfifo]节
 	__kfifo_init(__kfifo, buffer, size, sizeof(*__tmp->type)) :			\
 	-EINVAL;									\
 })
@@ -71242,7 +71258,7 @@ int __kfifo_init(struct __kfifo *fifo, void *buffer, unsigned int size, size_t e
 	typeof((fifo) + 1) __tmp = (fifo);					\
 	typeof((buf) + 1) __buf = (buf);					\
 	unsigned long __n = (n);						\
-	// __recsize = 0，参见队列结构/struct kfifo节
+	// __recsize = 0，参见[15.4.1 队列结构/struct kfifo]节
 	const size_t __recsize = sizeof(*__tmp→rectype);			\
 	struct __kfifo *__kfifo = &__tmp->kfifo;				\
 	if (0) {								\
@@ -71338,7 +71354,7 @@ __kfifo_uint_must_check_helper(					\
 	typeof((fifo) + 1) __tmp = (fifo);			\
 	typeof((buf) + 1) __buf = (buf);			\
 	unsigned long __n = (n);				\
-	// __recsize = 0，参见队列结构/struct kfifo节
+	// __recsize = 0，参见[15.4.1 队列结构/struct kfifo]节
 	const size_t __recsize = sizeof(*__tmp->rectype);	\
 	struct __kfifo *__kfifo = &__tmp->kfifo;		\
 	if (0) {						\
@@ -71690,7 +71706,7 @@ int idr_get_new_above(struct idr *idp, void *ptr, int starting_id, int *id)
 	int rv;
 
 	/*
-	 * 本函数与分配从0开始的最小可用的UID并关联ptr/idr_get_new()节
+	 * 本函数与[15.5.3.2 分配从0开始的最小可用的UID并关联ptr/idr_get_new()]节
 	 * 的idr_get_new()类似，区别仅在于查找id的起始点变为了starting_id而不是0
 	rv = idr_get_new_above_int(idp, ptr, starting_id);
 	/*
@@ -71767,7 +71783,7 @@ static struct kmem_cache *idr_layer_cache;
 void __init idr_init_cache(void)
 {
 	/*
-	 * 为idr分配缓存空间，用于idr_pre_get()，参见分配节点空间/idr_pre_get()节
+	 * 为idr分配缓存空间，用于idr_pre_get()，参见[15.5.3.1 分配节点空间/idr_pre_get()]节
 	 * kmem_cache_create()参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	 */
 	idr_layer_cache = kmem_cache_create("idr_layer_cache",
@@ -71775,7 +71791,7 @@ void __init idr_init_cache(void)
 }
 ```
 
-在系统启动过程中，该函数被```start_kernel()```调用，参见start_kernel()节。
+在系统启动过程中，该函数被```start_kernel()```调用，参见[4.3.4.1.4.3 start_kernel()](#4-3-4-1-4-3-start-kernel-)节。
 
 ## 15.6 Red-Black Tree (rbtree)
 
@@ -71792,7 +71808,7 @@ In addition to the requirements imposed on a binary search tree the following mu
 
 1) A node is either red or black.
 
-2) The root is black. (This rule is sometimes omitted. Since the root can always be changed from red to black, but not necessarily vice-versa, this rule has little effect on analysis.) 参见rb_insert_color()节的函数调用rb_insert_color()->rb_set_black(root->rb_node);
+2) The root is black. (This rule is sometimes omitted. Since the root can always be changed from red to black, but not necessarily vice-versa, this rule has little effect on analysis.) 参见[15.6.5.2 rb_insert_color()](#15-6-5-2-rb-insert-color-)节的函数调用rb_insert_color()->rb_set_black(root->rb_node);
 
 3) All leaves (NIL) are black. (All leaves are same color as the root.)
 
@@ -71865,7 +71881,7 @@ struct rb_root root = RB_ROOT;
 
 #### 15.6.3.2 定义并初始化struct rb_node类型的变量
 
-与struct list_head的使用方法类似(参见双向循环链表/struct list_head节)，首先要定义包含struct rb_node成员的数据类型，例如：
+与struct list_head的使用方法类似(参见[15.1 双向循环链表/struct list_head](#15-1-struct-list-head)节)，首先要定义包含struct rb_node成员的数据类型，例如：
 
 ```
 struct mytype {
@@ -71930,7 +71946,7 @@ static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
 {
 	/*
 	 * rb_parent_color包含父节点的地址和本节点的颜色，
-	 * 参见与rbtree有关的数据结构/struct rb_root/struct rb_node节
+	 * 参见[15.6.2 与rbtree有关的数据结构/struct rb_root/struct rb_node]节
 	 */
 	rb->rb_parent_color = (rb->rb_parent_color & 3) | (unsigned long)p;
 }
@@ -71972,8 +71988,8 @@ struct mytype *my_search(struct rb_root *root, char *string)
 ### 15.6.5 插入新节点
 
 插入新节点到rbtree中需要两个步骤：
-* 1) 使用类似搜索指定节点节的算法查找新节点的插入位置，并调用函数rb_link_node()将新节点插入到rbtree中，参见rb_link_node()节；
-* 2) 然后调用函数rb_insert_color()再平衡rbtree，参见rb_insert_color()节。
+* 1) 使用类似搜索指定节点节的算法查找新节点的插入位置，并调用函数rb_link_node()将新节点插入到rbtree中，参见[15.6.5.1 rb_link_node()](#15-6-5-1-rb-link-node-)节；
+* 2) 然后调用函数rb_insert_color()再平衡rbtree，参见[15.6.5.2 rb_insert_color()](#15-6-5-2-rb-insert-color-)节。
 
 例如：
 
@@ -71997,8 +72013,8 @@ int my_insert(struct rb_root *root, struct mytype *data)
 	}
 
 	/* Add new node and rebalance tree. */
-	rb_link_node(&data->node, parent, new);		// 参见rb_link_node()节
-	rb_insert_color(&data->node, root);		// 参见rb_insert_color()节
+	rb_link_node(&data->node, parent, new);		// 参见[15.6.5.1 rb_link_node()]节
+	rb_insert_color(&data->node, root);		// 参见[15.6.5.2 rb_insert_color()]节
 
 	return TRUE;
 }
@@ -72032,7 +72048,7 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
 	struct rb_node *parent, *gparent;
 
 	/*
-	 * rbtree根节点的父节点指向NULL，参见rbtree属性节图；
+	 * rbtree根节点的父节点指向NULL，参见[15.6.1 rbtree属性]节的图；
 	 * 根据node获得其父节点parent，且颜色为红色，则分情况处理：
 	 */
 	while ((parent = rb_parent(node)) && rb_is_red(parent))
@@ -72056,10 +72072,10 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
 			if (parent->rb_right == node)
 			{
 				register struct rb_node *tmp;
-				// 左旋，参见左旋/__rb_rotate_left()节
+				// 左旋，参见[15.6.5.2.1 左旋/__rb_rotate_left()]节
 				__rb_rotate_left(parent, root);
 				/*
-				 * 左旋后，父子关系颠倒，参见左旋/__rb_rotate_left()节的图；
+				 * 左旋后，父子关系颠倒，参见[15.6.5.2.1 左旋/__rb_rotate_left()]节的图；
 				 * 此处更新parent和node，使其符合左旋后的实际情况
 				 */
 				tmp = parent;
@@ -72069,7 +72085,7 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
 
 			rb_set_black(parent);
 			rb_set_red(gparent);
-			// 右旋，参见右旋/__rb_rotate_right()节
+			// 右旋，参见[15.6.5.2.2 右旋/__rb_rotate_right()]节
 			__rb_rotate_right(gparent, root);
 		} else {
 			{
@@ -72087,7 +72103,7 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
 			if (parent->rb_left == node)
 			{
 				register struct rb_node *tmp;
-				// 右旋，参见右旋/__rb_rotate_right()节
+				// 右旋，参见[15.6.5.2.2 右旋/__rb_rotate_right()]节
 				__rb_rotate_right(parent, root);
 				tmp = parent;
 				parent = node;
@@ -72096,12 +72112,12 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
 
 			rb_set_black(parent);
 			rb_set_red(gparent);
-			// 左旋，参见左旋/__rb_rotate_left()节
+			// 左旋，参见[15.6.5.2.1 左旋/__rb_rotate_left()]节
 			__rb_rotate_left(gparent, root);
 		}
 	} // end of while ((parent = ...
 
-	// 根据rbtree属性节的属性2)，将根节点设置为黑色
+	// 根据[15.6.1 rbtree属性]节的属性2)，将根节点设置为黑色
 	rb_set_black(root->rb_node);
 }
 ```
@@ -72168,7 +72184,7 @@ static void __rb_rotate_right(struct rb_node *node, struct rb_root *root)
 
 由下列图可知，执行如下语句前后的rbtree没有变化：
 
-左旋/\__rb_rotate_left()节左旋前的图 => 左旋/\__rb_rotate_left()节左旋后的图 => 右旋/\__rb_rotate_right()节右旋前的图 => 右旋/\__rb_rotate_right()节右旋后的图
+[15.6.5.2.1 左旋/__rb_rotate_left()](#15-6-5-2-1-rb-rotate-left-)节左旋前的图 => [15.6.5.2.1 左旋/__rb_rotate_left()](#15-6-5-2-1-rb-rotate-left-)节左旋后的图 => [15.6.5.2.2 右旋/__rb_rotate_right()](#15-6-5-2-2-rb-rotate-right-)节右旋前的图 => [15.6.5.2.2 右旋/__rb_rotate_right()](#15-6-5-2-2-rb-rotate-right-)节右旋后的图
 
 ```
 __rb_rotate_left(node, root);
@@ -72177,7 +72193,7 @@ __rb_rotate_right(rb_parent(node), root);
 
 由下列图可知，执行如下语句前后的rbtree没有变化：
 
-右旋/\__rb_rotate_right()节右旋前的图 => 右旋/\__rb_rotate_right()节右旋后的图 => 左旋/\__rb_rotate_left()节左旋前的图 => 左旋/\__rb_rotate_left()节左旋后的图
+[15.6.5.2.2 右旋/__rb_rotate_right()](#15-6-5-2-2-rb-rotate-right-)节右旋前的图 => [15.6.5.2.2 右旋/__rb_rotate_right()](#15-6-5-2-2-rb-rotate-right-)节右旋后的图 => [15.6.5.2.1 左旋/__rb_rotate_left()](#15-6-5-2-1-rb-rotate-left-)节左旋前的图 => [15.6.5.2.1 左旋/__rb_rotate_left()](#15-6-5-2-1-rb-rotate-left-)节左旋后的图
 
 ```
 __rb_rotate_right(node, root);
@@ -72224,7 +72240,7 @@ struct rb_node *rb_next(const struct rb_node *node)
 	struct rb_node *parent;
 
 	/*
-	 * 如果node节点刚被初始化(参见定义并初始化struct rb_node类型的变量节)，
+	 * 如果node节点刚被初始化(参见[15.6.3.2 定义并初始化struct rb_node类型的变量]节)，
 	 * 且还未被加入rbtree，则返回NULL
 	 */
 	if (rb_parent(node) == node)
@@ -72257,7 +72273,7 @@ struct rb_node *rb_prev(const struct rb_node *node)
 	struct rb_node *parent;
 
 	/*
-	 * 如果node节点刚被初始化(参见定义并初始化struct rb_node类型的变量节)，
+	 * 如果node节点刚被初始化(参见[15.6.3.2 定义并初始化struct rb_node类型的变量]节)，
 	 * 且还未被加入rbtree，则返回NULL
 	 */
 	if (rb_parent(node) == node)
@@ -72502,7 +72518,7 @@ struct rb_node *rb_augment_erase_begin(struct rb_node *node)
 void rb_augment_erase_end(struct rb_node *node, rb_augment_f func, void *data)
 {
 	if (node)
-		rb_augment_path(node, func, data);	// 参见rb_augment_insert()节
+		rb_augment_path(node, func, data);	// 参见[15.6.9.1 rb_augment_insert()]节
 }
 ```
 
@@ -72598,11 +72614,11 @@ int kobject_init_and_add(struct kobject *kobj, struct kobj_type *ktype,
 	va_list args;
 	int retval;
 
-	// 参见15.7.1.2.1.1 kobject_init()/kobject_init_internal()节
+	// 参见[15.7.1.2.1.1 kobject_init()/kobject_init_internal()]节
 	kobject_init(kobj, ktype);
 
 	va_start(args, fmt);
-	// 参见15.7.1.2.2.1 kobject_add_varg()节
+	// 参见[15.7.1.2.2.1 kobject_add_varg()]节
 	retval = kobject_add_varg(kobj, parent, fmt, args);
 	va_end(args);
 
@@ -72636,7 +72652,7 @@ struct kobject *kobject_create_and_add(const char *name, struct kobject *parent)
 
 	/*
 	 * 分配并初始化一个struct kobject类型的对象kobj，
-	 * 参见15.7.1.2.1 kobject_create()节
+	 * 参见[15.7.1.2.1 kobject_create()]节
 	 */
 	kobj = kobject_create();
 	if (!kobj)
@@ -72646,12 +72662,12 @@ struct kobject *kobject_create_and_add(const char *name, struct kobject *parent)
 	 * 示例：kobject_add(kobj, NULL, "%s", "fs");
 	 * 即在sysfs文件系统的根目录下创建fs目录，而通常sysfs
 	 * 文件系统被安装在/sys目录下，因而此处为/sys/fs目录
-	 * 参见15.7.1.2.2 kobject_add()节
+	 * 参见[15.7.1.2.2 kobject_add()]节
 	 */
 	retval = kobject_add(kobj, parent, "%s", name);
 	if (retval) {
 		printk(KERN_WARNING "%s: kobject_add error: %d\n", __func__, retval);
-		kobject_put(kobj);	// 参见15.7.2.2 kobject_put()节
+		kobject_put(kobj);	// 参见[15.7.2.2 kobject_put()]节
 		kobj = NULL;
 	}
 	return kobj;
@@ -72693,7 +72709,7 @@ struct kobject *kobject_create(void)
 		return NULL;
 
 	/*
-	 * 参见15.7.1.2.1.1 kobject_init()/kobject_init_internal()节
+	 * 参见[15.7.1.2.1.1 kobject_init()/kobject_init_internal()]节
 	 * 默认的kobj->ktype = &dynamic_kobj_ktype
 	 */
 	kobject_init(kobj, &dynamic_kobj_ktype);
@@ -72771,7 +72787,7 @@ static void kobject_init_internal(struct kobject *kobj)
  * NOTE: An initialized kobject will perform reference counting without trouble,
  * but it will not appear in sysfs. To create sysfs entries, kernel code must
  * pass the object to kobject_add(). The function kobject_del() will remove the
- * kobject from sysfs. 参见15.7.2.2.1.1 kobject_del()节
+ * kobject from sysfs. 参见[15.7.2.2.1.1 kobject_del()]节
  */
 int kobject_add(struct kobject *kobj, struct kobject *parent, const char *fmt, ...)
 {
@@ -72792,7 +72808,7 @@ int kobject_add(struct kobject *kobj, struct kobject *parent, const char *fmt, .
 	va_start(args, fmt);
 	/*
 	 * 示例：kobject_add_varg(kobj, NULL, "%s", "fs");
-	 * 参见15.7.1.2.2.1 kobject_add_varg()节
+	 * 参见[15.7.1.2.2.1 kobject_add_varg()]节
 	 */
 	retval = kobject_add_varg(kobj, parent, fmt, args);
 	va_end(args);
@@ -72812,7 +72828,7 @@ static int kobject_add_varg(struct kobject *kobj, struct kobject *parent,
 	int retval;
 
 	/*
-	 * 参见15.7.3.2.1 kobject_set_name_vargs节
+	 * 参见[15.7.3.2.1 kobject_set_name_vargs]节
 	 * 设置kobj->name，示例：kobj->name = "fs"
 	 */
 	retval = kobject_set_name_vargs(kobj, fmt, vargs);
@@ -72823,7 +72839,7 @@ static int kobject_add_varg(struct kobject *kobj, struct kobject *parent,
 
 	kobj->parent = parent;
 
-	// 参见15.7.1.2.2.2 kobject_add_internal()节
+	// 参见[15.7.1.2.2.2 kobject_add_internal()]节
 	return kobject_add_internal(kobj);
 }
 ```
@@ -72867,14 +72883,14 @@ static int kobject_add_internal(struct kobject *kobj)
 		 kobj->kset ? kobject_name(&kobj->kset->kobj) : "<NULL>");
 
 	/*
-	 * 创建kobj对应的目录，参见15.7.1.2.2.2.1 create_dir()/populate_dir()节
+	 * 创建kobj对应的目录，参见[15.7.1.2.2.2.1 create_dir()/populate_dir()]节
 	 * 1) 若目录创建失败，则打印错误信息；
 	 * 2) 若目录创建成功，则标记已经注册到sysfs中
 	 */
 	error = create_dir(kobj);
 	if (error) {
 		kobj_kset_leave(kobj);
-		kobject_put(parent);	// 参见15.7.2.2 kobject_put()节
+		kobject_put(parent);	// 参见[15.7.2.2 kobject_put()]节
 		kobj->parent = NULL;
 
 		/* be noisy on error issues */
@@ -72918,7 +72934,7 @@ static int create_dir(struct kobject *kobj)
 	 * within sysfs, which is rarely what you really want.
 	 */
 	if (kobject_name(kobj)) {
-		error = sysfs_create_dir(kobj);			// 参见11.3.5.5.1 sysfs_create_dir()节
+		error = sysfs_create_dir(kobj);			// 参见[11.3.5.5.1 sysfs_create_dir()]节
 		if (!error) {
 			error = populate_dir(kobj);		// 参见下文
 			if (error)
@@ -72950,7 +72966,7 @@ static int populate_dir(struct kobject *kobj)
 	 */
 	if (t && t->default_attrs) {
 		for (i = 0; (attr = t->default_attrs[i]) != NULL; i++) {
-			// 参见11.3.5.6.2 sysfs_create_file()节
+			// 参见[11.3.5.6.2 sysfs_create_file()]节
 			error = sysfs_create_file(kobj, attr);	
 			if (error)
 				break;
@@ -73011,7 +73027,7 @@ void kobject_put(struct kobject *kobj)
 
 		/*
 		 * 函数kobject_release()，
-		 * 参见15.7.2.2.1 kobject_release()节
+		 * 参见[15.7.2.2.1 kobject_release()]节
 		 */
 		kref_put(&kobj->kref, kobject_release);
 	}
@@ -73086,7 +73102,7 @@ static void kobject_cleanup(struct kobject *kobj)
 	if (kobj->state_in_sysfs) {
 		pr_debug("kobject: '%s' (%p): auto cleanup kobject_del\n",
 			 kobject_name(kobj), kobj);
-		// 参见15.7.2.2.1.1 kobject_del()节
+		// 参见[15.7.2.2.1.1 kobject_del()]节
 		kobject_del(kobj);
 	}
 
@@ -73117,7 +73133,7 @@ static void kobject_cleanup(struct kobject *kobj)
  * NOTE: An initialized kobject will perform reference counting
  * without trouble, but it will not appear in sysfs. To create
  * sysfs entries, kernel code must pass the object to kobject_add().
- * 参见15.7.1.2.2 kobject_add()节.
+ * 参见[15.7.1.2.2 kobject_add()]节.
  * The function kobject_del() will remove the kobject from sysfs.
  */
 void kobject_del(struct kobject *kobj)
@@ -73125,10 +73141,10 @@ void kobject_del(struct kobject *kobj)
 	if (!kobj)
 		return;
 
-	sysfs_remove_dir(kobj);		// 参见11.3.5.5.2 sysfs_remove_dir()节
+	sysfs_remove_dir(kobj);		// 参见[11.3.5.5.2 sysfs_remove_dir()]节
 	kobj->state_in_sysfs = 0;
 	kobj_kset_leave(kobj);		// remove the kobject from its kset's list
-	kobject_put(kobj->parent);	// 参见15.7.2.2 kobject_put()节
+	kobject_put(kobj->parent);	// 参见[15.7.2.2 kobject_put()]节
 	kobj->parent = NULL;
 }
 ```
@@ -73166,7 +73182,7 @@ int kobject_set_name(struct kobject *kobj, const char *fmt, ...)
 	int retval;
 
 	va_start(vargs, fmt);
-	// 参见15.7.3.2.1 kobject_set_name_vargs节
+	// 参见[15.7.3.2.1 kobject_set_name_vargs]节
 	retval = kobject_set_name_vargs(kobj, fmt, vargs);
 	va_end(vargs);
 
@@ -73266,14 +73282,14 @@ int kobject_rename(struct kobject *kobj, const char *new_name)
 	/* This function is mostly/only used for network interface.
 	 * Some hotplug package track interfaces by their name and
 	 * therefore want to know when the name is changed by the user. */
-	// 参见15.7.5 kobject_uevent()节
+	// 参见[15.7.5 kobject_uevent()]节
 	kobject_uevent_env(kobj, KOBJ_MOVE, envp);
 
 out:
 	kfree(dup_name);
 	kfree(devpath_string);
 	kfree(devpath);
-	kobject_put(kobj);	// 参见15.7.2.2 kobject_put()节
+	kobject_put(kobj);	// 参见[15.7.2.2 kobject_put()]节
 
 	return error;
 }
@@ -73360,7 +73376,7 @@ kset_create_and_add()
 -> kset_register()
 	-> kset_init()
 	-> kobject_add_internal()
-	-> kobject_uevent()		// 参见15.7.5 kobject_uevent()节
+	-> kobject_uevent()		// 参见[15.7.5 kobject_uevent()]节
 ```
 
 ### 15.7.5 kobject_uevent()
@@ -73426,7 +73442,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 	/*
 	 * 变量uevent_ops存在下列取值:
 	 *   bus_uevent_ops
-	 *   device_uevent_ops, 参见15.7.5.1 device_uevent_ops节
+	 *   device_uevent_ops, 参见[15.7.5.1 device_uevent_ops]节
 	 *   module_uevent_ops
 	 */
 	kset = top_kobj->kset;
@@ -73442,7 +73458,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 	/* skip the event, if the filter returns zero. */
 	/*
 	 * 对于device_uevent_ops, 调用dev_uevent_filter(), 
-	 * 参见15.7.5.1.1 dev_uevent_filter()节
+	 * 参见[15.7.5.1.1 dev_uevent_filter()]节
 	 */
 	if (uevent_ops && uevent_ops->filter)
 		if (!uevent_ops->filter(kset, kobj)) {
@@ -73455,7 +73471,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 	/* originating subsystem */
 	/*
 	 * 对于device_uevent_ops, 调用dev_uevent_name(), 
-	 * 参见15.7.5.1.2 dev_uevent_name()节
+	 * 参见[15.7.5.1.2 dev_uevent_name()]节
 	 */
 	if (uevent_ops && uevent_ops->name)
 		subsystem = uevent_ops->name(kset, kobj);
@@ -73502,7 +73518,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 	/* let the kset specific function add its stuff */
 	/*
 	 * 对于device_uevent_ops, 调用dev_uevent(), 
-	 * 参见15.7.5.1.3 dev_uevent()节
+	 * 参见[15.7.5.1.3 dev_uevent()]节
 	 */
 	if (uevent_ops && uevent_ops->uevent) {
 		retval = uevent_ops->uevent(kset, kobj, env);
@@ -73566,7 +73582,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 			/*
 			 * 通过netlink将该uevent广播到用户空间，用户空间通过udev监控该热插拔事件:
 			 * (通过创建一个socket描述符，将描述符绑定到接收地址，即可实现监听热拔插事件);
-			 * 参见10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序节
+			 * 参见[10.2B.3.4 守护进程udevd接收uevent并加载对应的驱动程序]节
 			 */
 			retval = netlink_broadcast_filtered(uevent_sock, skb,
 							    0, 1, GFP_KERNEL,
@@ -73597,7 +73613,7 @@ int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 
 		/*
 		 * 函数call_usermodehelper()调用函数call_usermodehelper_fns()，
-		 * 参见13.3.2.2.2 __call_usermodehelper()节
+		 * 参见[13.3.2.2.2 __call_usermodehelper()]节
 		 */
 		retval = call_usermodehelper(argv[0], argv, env->envp, UMH_WAIT_EXEC);
 	}
@@ -73614,7 +73630,7 @@ exit:
 该变量定义于driver/base/core.c:
 
 ```
-// 函数devices_init()引用该变量，参见10.2.1.1 devices_init()节
+// 函数devices_init()引用该变量，参见[10.2.1.1 devices_init()]节
 static const struct kset_uevent_ops device_uevent_ops = {
 	.filter		= dev_uevent_filter,
 	.name		= dev_uevent_name,
@@ -73744,7 +73760,7 @@ Various types of synchronization techniques used by the kernel
 
 | Technique | Description | Scope | Reference |
 | :-------- | :---------- | :---- | :-------- |
-| Per-CPU variables | Duplicate a data structure among the CPUs | All CPUs | Section Per-CPU Variables |
+| Per-CPU variables | Duplicate a data structure among the CPUs | All CPUs | Section [16.1 Per-CPU Variables](#16-1-per-cpu-variables) |
 | Atomic operation | Atomic read-modify-write instruction to a counter | All CPUs | Section Atomic Operations |
 | Spin lock | Lock with busy wait | All CPUs | Section Spin Locks/自旋锁, Reader-Writer Spin Locks |
 | Seqlocks | Lock based on an access counter | All CPUs | Section Sequential Locks |
@@ -73899,7 +73915,7 @@ per_cpu(x, 0);
  */
 #define put_cpu_var(var) do {		\
 	(void)&(var);			\
-	preempt_enable();		\	// 参见preempt_enable()/preempt_enable_no_resched()节
+	preempt_enable();		\	// 参见[16.10.3 preempt_enable()/preempt_enable_no_resched()]节
 } while (0)
 ```
 
@@ -73970,12 +73986,12 @@ extern unsigned long 		__per_cpu_offset[NR_CPUS];
 
 ### 16.1.2 Per-CPU Variables的初始化
 
-由Per-CPU Variables宏的扩展节可知，Per-CPU Variables中的关键变量为```__per_cpu_offset[NR_CPUS]```，该变量在初始化过程中赋值。
+由[16.1.1 Per-CPU Variables宏的扩展](#16-1-1-per-cpu-variables-)节可知，Per-CPU Variables中的关键变量为```__per_cpu_offset[NR_CPUS]```，该变量在初始化过程中赋值。
 
 系统启动时，对Per-CPU Variables的初始化过程如下：
 
 ```
-start_kernel()							// 参见start_kernel()节
+start_kernel()							// 参见[4.3.4.1.4.3 start_kernel()]节
 -> setup_per_cpu_areas()					// arch/x86/kernel/setup_percpu.c
    -> pcpu_embed_first_chunk()					// mm/percpu.c
       -> pcpu_setup_first_chunk()				// Init pcpu_base_addr and pcpu_unit_offsets
@@ -74621,7 +74637,7 @@ typedef struct {
 	 * data just read is not valid.
 	 */
 	unsigned	sequence;
-	spinlock_t	lock;		// 参见Spin Lock的数据结构节
+	spinlock_t	lock;		// 参见[16.3.2 Spin Lock的数据结构]节
 } seqlock_t;
 ```
 
@@ -74665,9 +74681,9 @@ seqlock_t mr_seq_lock = DEFINE_SEQLOCK(mr_seq_lock);
 unsigned long seq;
 
 do {
-	seq = read_seqbegin(&mr_seq_lock);	// 参见read_seqbegin()节
+	seq = read_seqbegin(&mr_seq_lock);	// 参见[16.5.3.1 read_seqbegin()]节
 	/* read data here ... */
-} while (read_seqretry(&mr_seq_lock, seq));	// 参见read_seqretry()节
+} while (read_seqretry(&mr_seq_lock, seq));	// 参见[16.5.3.2 read_seqretry()]节
 ```
 
 If your seqlock might be accessed from an interrupt handler, you should use the IRQ-safe versions instead:
@@ -74731,9 +74747,9 @@ Writers must obtain an exclusive lock to enter the critical section protected by
 ```
 seqlock_t mr_seq_lock = DEFINE_SEQLOCK(mr_seq_lock);
 
-write_seqlock(&mr_seq_lock);		// 参见write_seqlock()节
+write_seqlock(&mr_seq_lock);		// 参见[16.5.4.1 write_seqlock()]节
 /* write lock is obtained... */ 
-write_sequnlock(&mr_seq_lock);		// 参见write_sequnlock()节
+write_sequnlock(&mr_seq_lock);		// 参见[16.5.4.2 write_sequnlock()]节
 
 Since spinlocks are used to control write access, all of the usual variants are available:
 void write_seqlock_irqsave(seqlock_t *lock, unsigned long flags); 
@@ -74817,7 +74833,7 @@ struct semaphore定义于include/linux/semaphore.h:
 struct semaphore {
 	/*
 	 * 用于本结构中count和wait_list的自旋锁，
-	 * 故对这两个元素的操作是原子的，参见Spin Lock的数据结构节
+	 * 故对这两个元素的操作是原子的，参见[16.3.2 Spin Lock的数据结构]节
 	 */
 	raw_spinlock_t		lock;
 
@@ -74920,7 +74936,7 @@ int down_interruptible(struct semaphore *sem)
 
 static noinline int __sched __down_interruptible(struct semaphore *sem)
 {
-	// 参见__down_common()节
+	// 参见[16.6.3.1 __down_common()]节
 	return __down_common(sem, TASK_INTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
 }
 ```
@@ -74951,7 +74967,7 @@ static inline int __sched __down_common(struct semaphore *sem, long state, long 
 		// 调度其他进程运行(参见[7.4.7 schedule_timeout()]节)，当前进程进入休眠状态
 		timeout = schedule_timeout(timeout);
 		raw_spin_lock_irq(&sem->lock);
-		// 若信号量可用，函数up()会唤醒本进程，参见释放信号量/up()节
+		// 若信号量可用，函数up()会唤醒本进程，参见[16.6.4 释放信号量/up()]节
 		if (waiter.up)
 			return 0;
 	}
@@ -74998,7 +75014,7 @@ int down_killable(struct semaphore *sem)
 
 static noinline int __sched __down_killable(struct semaphore *sem)
 {
-	// 参见__down_common()节
+	// 参见[16.6.3.1 __down_common()]节
 	return __down_common(sem, TASK_KILLABLE, MAX_SCHEDULE_TIMEOUT);
 }
 ```
@@ -75035,7 +75051,7 @@ void down(struct semaphore *sem)
 
 static noinline void __sched __down(struct semaphore *sem)
 {
-	// 参见__down_common()节
+	// 参见[16.6.3.1 __down_common()]节
 	__down_common(sem, TASK_UNINTERRUPTIBLE, MAX_SCHEDULE_TIMEOUT);
 }
 ```
@@ -75143,9 +75159,9 @@ static noinline void __sched __up(struct semaphore *sem)
 	list_del(&waiter->list);
 	waiter->up = 1;
 	/*
-	 * 唤醒第一个等待进程，参见wake_up_process()节；
+	 * 唤醒第一个等待进程，参见[7.4.10.2.3 wake_up_process()]节；
 	 * 唤醒后，该进程会跳出函数__down_common()中的for(;;)
-	 * 循环，参见__down_common()节
+	 * 循环，参见[16.6.3.1 __down_common()]节
 	 */
 	wake_up_process(waiter->task);
 }
@@ -75457,7 +75473,7 @@ struct completion {
 #define DECLARE_COMPLETION(work)	\
 	struct completion work = COMPLETION_INITIALIZER(work)
 
-// 参见定义/初始化等待队列头/wait_queue_head_t节
+// 参见[7.4.2.4.1 定义/初始化等待队列头/wait_queue_head_t]节
 #define COMPLETION_INITIALIZER(work)	\
 	{ 0, __WAIT_QUEUE_HEAD_INITIALIZER((work).wait) }
 ```
@@ -75468,7 +75484,7 @@ struct completion {
 static inline void init_completion(struct completion *x)
 {
 	x->done = 0;
-	// 参见定义/初始化等待队列头/wait_queue_head_t节
+	// 参见[7.4.2.4.1 定义/初始化等待队列头/wait_queue_head_t]节
 	init_waitqueue_head(&x->wait);
 }
 ```
@@ -75529,9 +75545,9 @@ static inline long __sched do_wait_for_common(struct completion *x, long timeout
 	if (!x->done) {
 		/*
 		 * 定义等待队列元素，并设置wait->func = default_wake_function，
-		 * 参见定义/初始化等待队列/wait_queue_t节；
+		 * 参见[7.4.2.4.2 定义/初始化等待队列/wait_queue_t]节；
 		 * 该函数在complete_xxx()->__wake_up_common()中被调用，
-		 * 参见__wake_up_common()节
+		 * 参见[7.4.10.1.1 __wake_up_common()]节
 		 */
 		DECLARE_WAITQUEUE(wait, current);
 
@@ -75595,7 +75611,7 @@ static inline long __sched do_wait_for_common(struct completion *x, long timeout
 int __sched wait_for_completion_interruptible(struct completion *x)
 {
 	/*
-	 * 参见wait_for_completion()节。由于进程被设置为
+	 * 参见[16.9.3.1 wait_for_completion()]节。由于进程被设置为
 	 * TASK_INTERRUPTIBLE状态，因而中途可能会被信号打断
 	 */
 	long t = wait_for_common(x, MAX_SCHEDULE_TIMEOUT, TASK_INTERRUPTIBLE);
@@ -75622,7 +75638,7 @@ int __sched wait_for_completion_interruptible(struct completion *x)
 int __sched wait_for_completion_killable(struct completion *x)
 {
 	/*
-	 * 参见wait_for_completion()节。
+	 * 参见[16.9.3.1 wait_for_completion()]节。
 	 * TASK_KILLABLE = TASK_WAKEKILL | TASK_UNINTERRUPTIBLE
 	 */
 	long t = wait_for_common(x, MAX_SCHEDULE_TIMEOUT, TASK_KILLABLE);
@@ -75725,7 +75741,7 @@ void complete(struct completion *x)
 
 	spin_lock_irqsave(&x->wait.lock, flags);
 	x->done++;
-	// 唤醒等待队列中的第1个等待进程，参见__wake_up_common()节
+	// 唤醒等待队列中的第1个等待进程，参见[16.9.4.1.1 __wake_up_common()]节
 	__wake_up_common(&x->wait, TASK_NORMAL, 1, 0, NULL);
 	spin_unlock_irqrestore(&x->wait.lock, flags);
 }
@@ -75753,7 +75769,7 @@ static void __wake_up_common(wait_queue_head_t *q, unsigned int mode, int nr_exc
 		unsigned flags = curr->flags;
 
 		/*
-		 * ->func()在如下函数(参见do_wait_for_common()节)中被设置
+		 * ->func()在如下函数(参见[16.9.3.1.1.1 do_wait_for_common()]节)中被设置
 		 * 为default_wake_function(). 参见[7.4.10.2.2 default_wake_function()]节：
 		 * wait_for_complete_xxx()->wait_for_common()->
 		 * do_wait_for_complete()→DECLARE_WAITQUEUE()
@@ -75786,7 +75802,7 @@ void complete_all(struct completion *x)
 
 	spin_lock_irqsave(&x->wait.lock, flags);
 	x->done += UINT_MAX/2;
-	// 唤醒等待队列中的所有等待进程，参见__wake_up_common()节
+	// 唤醒等待队列中的所有等待进程，参见[16.9.4.1.1 __wake_up_common()]节
 	__wake_up_common(&x->wait, TASK_NORMAL, 0, 0, NULL);
 	spin_unlock_irqrestore(&x->wait.lock, flags);
 }
@@ -75840,7 +75856,7 @@ The preemption count stores the number of held locks and ```preempt_disable()```
 #define preempt_count()		(current_thread_info()->preempt_count)
 ```
 
-其中，preempt_count中各比特位的含义参见struct thread_info->preempt_count节。
+其中，preempt_count中各比特位的含义参见[7.1.1.3.1.1 struct thread_info->preempt_count](#7-1-1-3-1-1-struct-thread-info-gt-preempt-count)节。
 
 函数```current_thread_info()```定义于arch/x86/include/asm/thread_info.h:
 
@@ -75867,14 +75883,14 @@ static inline struct thread_info *current_thread_info(void)
 # define add_preempt_count(val)		do { preempt_count() += (val); } while (0)
 #endif
 
-// 参见struct thread_info->preempt_count节
+// 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 #define inc_preempt_count()		add_preempt_count(1)
 
 #ifdef CONFIG_PREEMPT_COUNT
 #define preempt_disable()		\
 do {					\
 	inc_preempt_count();		\
-	barrier();			\	// 参见barrier()节
+	barrier();			\	// 参见[16.11.1 barrier()]节
 } while (0)
 #else	/* !CONFIG_PREEMPT_COUNT */
 #define preempt_disable()		do { } while (0)
@@ -75892,14 +75908,14 @@ do {					\
 # define sub_preempt_count(val)		do { preempt_count() -= (val); } while (0)
 #endif
 
-// 参见struct thread_info->preempt_count节
+// 参见[7.1.1.3.1.1 struct thread_info->preempt_count]节
 #define dec_preempt_count()		sub_preempt_count(1)
 
 #ifdef CONFIG_PREEMPT
 #define preempt_check_resched()					\
 do {								\
 	if (unlikely(test_thread_flag(TIF_NEED_RESCHED)))	\
-		preempt_schedule();				\	// 参见preempt_schedule()节
+		preempt_schedule();				\	// 参见[16.10.3.1 preempt_schedule()]节
 } while (0)
 #else /* !CONFIG_PREEMPT */
 #define preempt_check_resched()		do { } while (0)
@@ -75915,7 +75931,7 @@ do {					\
 
 #define preempt_enable_no_resched()	\
 do {					\
-	barrier();			\	// 参见barrier()节
+	barrier();			\	// 参见[16.11.1 barrier()]节
 	dec_preempt_count();		\
 } while (0)
 #else	/* !CONFIG_PREEMPT_COUNT */
@@ -75947,7 +75963,7 @@ asmlinkage void __sched notrace preempt_schedule(void)
 
 	do {
 		add_preempt_count_notrace(PREEMPT_ACTIVE);
-		__schedule();		// 参见__schedule()节
+		__schedule();		// 参见[7.4.5.2 __schedule()]节
 		sub_preempt_count_notrace(PREEMPT_ACTIVE);
 
 		/*
@@ -76249,8 +76265,8 @@ void rcu_init(void)
 {
 	/*
 	 * 设置软中断RCU_SOFTIRQ的服务程序为rcu_process_callbacks()，
-	 * 参见struct softirq_节；
-	 * 该服务程序被__do_softirq()调用，参见__do_softirq()节
+	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节；
+	 * 该服务程序被__do_softirq()调用，参见[9.3.1.3.1.1.1 __do_softirq()]节
 	 */
 	open_softirq(RCU_SOFTIRQ, rcu_process_callbacks);
 }
@@ -76307,7 +76323,7 @@ static struct rcu_preempt_ctrlblk rcu_preempt_ctrlblk = {
 
 static void rcu_preempt_process_callbacks(void)
 {
-	// 参见__rcu_process_callbacks()节
+	// 参见[16.12.3.1.1 __rcu_process_callbacks()]节
 	__rcu_process_callbacks(&rcu_preempt_ctrlblk.rcb);
 }
 ```
@@ -76316,7 +76332,7 @@ static void rcu_preempt_process_callbacks(void)
 
 ![Synchronization_07](/assets/Synchronization_07.jpg)
 
-函数```__rcu_process_callbacks()```，参见__rcu_process_callbacks()节。
+函数```__rcu_process_callbacks()```，参见[16.12.3.1.1 __rcu_process_callbacks()]节。
 
 ##### 16.12.3.1.1 __rcu_process_callbacks()
 
@@ -76631,7 +76647,7 @@ start_kernel()
                -> native_smp_prepare_cpus()
                   -> smp_sanity_check()					// 若未配置CONFIG_X86_BIGSMP，最多支持8个CPU
          -> do_pre_smp_initcalls()
-            // 调用.initcallearly.init段的初始化函数，由宏early_initcall()设置，参见.initcall*.init节
+            // 调用.initcallearly.init段的初始化函数，由宏early_initcall()设置，参见[13.5.1.1.1.1.1 .initcall*.init]节
          -> smp_init()
             -> for_each_present_cpu(cpu) {				// 轮询cpu_present_bits，调度每个CPU
                -> cpu_up(cpu)						// loop every cpu
@@ -76662,7 +76678,7 @@ start_kernel()
                                   * - x86_trampoline_base是之前在setup_arch()处申请的内存；
                                   * - trampoline_data开始的代码
                                   * 参见arch/x86/kernel/trampoline_32.S
-                                  * 参见trampoline_data与trampoline_end之间的代码节
+                                  * 参见[17.3.1 trampoline_data与trampoline_end之间的代码]节
                                   *
                                   * 该函数的返回值是x86_trampoline_base所对应的物理地址！
                                   */
@@ -76673,7 +76689,7 @@ start_kernel()
                                  /*
                                   * 通过操纵APIC_ICR寄存器，BSP向目标AP发送IPI消息，
                                   * 触发目标AP以实模式从地址start_ip处开始运行，
-                                  * 参见trampoline_data与trampoline_end之间的代码节
+                                  * 参见[17.3.1 trampoline_data与trampoline_end之间的代码]节
                                   */
                }
             -> printk(KERN_INFO "Brought up %ld CPUs\n", (long)num_online_cpus());
@@ -76684,7 +76700,7 @@ start_kernel()
                      -> impress_friends()
                      -> setup_ioapic_dest()
                      -> mtrr_aps_init()					// Delayed MTRR initialization for all AP's
-                        -> set_mtrr(~0U, 0, 0, 0)			// 参见set_mtrr()节
+                        -> set_mtrr(~0U, 0, 0, 0)			// 参见[17.3.2 set_mtrr()]节
                            // Update mtrrs (Memory Type Range Register) on all processors
                            -> stop_machine(mtrr_rendezvous_handler, &data, cpu_online_mask)
                               -> __stop_machine(mtrr_rendezvous_handler, &data, cpu_online_mask)
@@ -76736,7 +76752,7 @@ r_base = .
 	xor	%ax, %ax
 	inc	%ax				# protected mode (PE) bit
 	lmsw	%ax				# into protected mode
-	# 程序段startup_32_smp定义于arch/x86/kernel/head_32.S，参见startup_32_smp节
+	# 程序段startup_32_smp定义于arch/x86/kernel/head_32.S，参见[17.3.1.1 startup_32_smp]节
 	# flush prefetch and jump to startup_32_smp in arch/i386/kernel/head.S
 	ljmpl	$__BOOT_CS, $(startup_32_smp-__PAGE_OFFSET)
 
@@ -76772,7 +76788,7 @@ ENTRY(startup_32_smp)
 	movl %eax,%es
 	movl %eax,%fs
 	movl %eax,%gs
-	# 变量stack_start定义于do_boot_cpu()，参见SMP的启动过程节
+	# 变量stack_start定义于do_boot_cpu()，参见[17.3 SMP的启动过程]节
 	movl pa(stack_start),%ecx
 	movl %eax,%ss
 	leal -__PAGE_OFFSET(%ecx),%esp
@@ -76964,7 +76980,7 @@ is386:	movl $2,%ecx				# set MP
 	pushl $0				# fake return address for unwinder
 	movb $1, ready
 	# 变量initial_code = start_secondary，其定义于do_boot_cpu()，
-	# 参见SMP的启动过程节和start_secondary()节
+	# 参见[17.3 SMP的启动过程]节和[17.3.1.1.1 start_secondary()]节
 	jmp *(initial_code)
 ```
 
@@ -77131,7 +77147,7 @@ Refer to Documentation/cputopology.txt, CPUs that are online and being scheduled
 
 **per-CPU Variables**
 
-参见Per-CPU Variables节
+参见[16.1 Per-CPU Variables](#16-1-per-cpu-variables)节。
 
 ## 17.5 与SMP有关的函数
 
@@ -77508,7 +77524,7 @@ early_param("log_buf_len", log_buf_len_setup);
 而函数```setup_log_buf()```用于重新分配长度为new_log_buf_len的缓冲区log_buf，其调用关系如下：
 
 ```
-start_kernel()			// 参见4.3.4.1.4.3 start_kernel()节
+start_kernel()			// 参见[4.3.4.1.4.3 start_kernel()]节
 -> setup_arch()
    -> setup_log_buf(1)		// 由具体的体系架构决定是否调用setup_log_buf()；X86体系架构会调用该函数
 -> setup_log_buf(0)		// 若某体系架构不调用setup_log_buf()，则在此处调用该函数；否则，该函数直接返回
@@ -77605,7 +77621,7 @@ There are eight possible loglevel strings, defined in the header include/linux/k
 #define KERN_CONT	"<c>"
 ```
 
-每种日志级别都有对应的宏来简化日志函数的使用，参见19.2.1.4.3 pr_debug()/pr_xxx()节。
+每种日志级别都有对应的宏来简化日志函数的使用，参见[19.2.1.4.3 pr_debug()/pr_xxx()](#19-2-1-4-3-pr-debug-pr-xxx-)节。
 
 **NOTE 1**: A printk statement with no specified priority defaults to ```DEFAULT_MESSAGE_LOGLEVEL```, specified in kernel/printk.c as an integer. In the 2.6.10 kernel, ```DEFAULT_MESSAGE_LOGLEVEL``` is ```KERN_WARNING```, but that has been known to change in the past.
 
@@ -77763,7 +77779,7 @@ AVAILABILITY
 
 **NOTE**: 不管console loglevel的取值为多少，dmesg始终都是可以打印出所有级别的日志信息!
 
-dmesg通过调用系统调用```sys_syslog()```(参见19.2.1.5 系统调用sys_syslog()节)来更改console_loglevel的取值：
+dmesg通过调用系统调用```sys_syslog()```(参见[19.2.1.5 系统调用sys_syslog()](#19-2-1-5-sys-syslog-)节)来更改console_loglevel的取值：
 
 ```
 chenwx@chenwx-VirtualBox ~ $ strace dmesg
@@ -77821,7 +77837,7 @@ The variable ```console_loglevel``` can be modified by ```sys_syslog``` system c
 * 1) kill klogd
 * 2) run command "klogd -c <new-loglevel>" to restart klogd 
 
-klogd参见19.2.1.7.1 klogd+syslogd节。
+klogd参见[19.2.1.7.1 klogd+syslogd](#19-2-1-7-1-klogd-syslogd)节。
 
 ##### 19.2.1.3.3 通过文件/proc/sys/kernel/printk更改console_loglevel的取值
 
@@ -78118,7 +78134,7 @@ Each kernel subsystem usually has its own printk format. So when you are using n
 
 ##### 19.2.1.4.3 pr_debug()/pr_xxx()
 
-19.2.1.2 Log levels节中的每种日志级别都有对应的宏来简化日志函数的使用，其定义于include/linux/printk.h:
+[19.2.1.2 Log levels](#19-2-1-2-log-levels)节中的每种日志级别都有对应的宏来简化日志函数的使用，其定义于include/linux/printk.h:
 
 ```
 #ifndef pr_fmt
@@ -78127,7 +78143,7 @@ Each kernel subsystem usually has its own printk format. So when you are using n
 
 /*
  * If you are writing a driver, please use dev_dbg instead.
- * 参见19.2.1.4.4 dev_dbg()/dev_xxx()节
+ * 参见[19.2.1.4.4 dev_dbg()/dev_xxx()]节
  */
 #if defined(DEBUG)
 #define pr_debug(fmt, ...)		printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__)
@@ -78354,7 +78370,7 @@ DECLARE_WAIT_QUEUE_HEAD(log_wait);
 
 /*
  * 文件/proc/kmsg所对应的文件操作函数均调用do_syslog()，
- * 参见11.3.4.4.1 /proc/kmsg节
+ * 参见[11.3.4.4.1 /proc/kmsg]节
  */
 int do_syslog(int type, char __user *buf, int len, bool from_file)
 {
@@ -78543,7 +78559,7 @@ out:
 
 ##### 19.2.1.6.1 /proc/kmsg
 
-文件```/proc/kmsg```成为一个I/O通道，它提供了从内核日志缓冲区读取日志消息的二进制接口。这个读取操作通常是由一个守护程序(klogd或rsyslogd)实现的，它会处理这些消息，然后将它们传递给rsyslog，以便(基于它的配置)转发到正确的日志文件中。参见11.3.4.4.1 /proc/kmsg节。
+文件```/proc/kmsg```成为一个I/O通道，它提供了从内核日志缓冲区读取日志消息的二进制接口。这个读取操作通常是由一个守护程序(klogd或rsyslogd)实现的，它会处理这些消息，然后将它们传递给rsyslog，以便(基于它的配置)转发到正确的日志文件中。参见[11.3.4.4.1 /proc/kmsg](#11-3-4-4-1-proc-kmsg)节。
 
 **NOTE 1**: 用户是不会用到/proc/kmsg文件的，因为守护进程用它来获取日志消息，并将其转发到/var目录内的日志文件中。
 
@@ -78640,7 +78656,7 @@ root      1241     1  0 Jul23 ?        00:00:00 /sbin/syslogd -C128
 root      1269     1  0 Jul23 ?        00:00:00 /sbin/klogd 
 ```
 
-守护进程klogd既可以从```/proc/kmsg```文件读取消息(参见/proc/kmsg节和19.2.1.6 /proc文件系统中有关内核日志系统的配置节)，也可以通过系统调用```sys_syslog()```读取消息(参见19.2.1.5 系统调用sys_syslog()节)。
+守护进程klogd既可以从```/proc/kmsg```文件读取消息(参见[11.3.4.4.1 /proc/kmsg](#11-3-4-4-1-proc-kmsg)节和[19.2.1.6 /proc文件系统中有关内核日志系统的配置](#19-2-1-6-proc-)节)，也可以通过系统调用```sys_syslog()```读取消息(参见[19.2.1.5 系统调用sys_syslog()](#19-2-1-5-sys-syslog-)节)。
 
 默认情况下，守护进程klogd通过读取/proc/kmsg方式实现。在消息缓冲区有新的消息之前，守护进程klogd一直处于阻塞状态，一旦有新内核消息，守护进程klogd被唤醒，读出内核消息并进行处理。守护进程klogd把读取的内核消息传给守护进程syslogd。守护进程syslogd把收到的内核消息写入/var/log/messages文件中，输出文件可通过配置文件来更改，参见syslogd的帮助信息：
 
@@ -78821,7 +78837,7 @@ Use by system security services daemon that manage access to remote.
 
 ### 19.2.2 BUG()/BUG_ON()
 
-当调用宏```BUG()```和```BUG_ON()```时，引发OOPS(参见OOPS节)，导致栈的回溯和错误消息的打印，因而可以把这两个宏当作断言使用。
+当调用宏```BUG()```和```BUG_ON()```时，引发OOPS(参见[19.6 OOPS](#19-6-oops)节)，导致栈的回溯和错误消息的打印，因而可以把这两个宏当作断言使用。
 
 该宏定义于include/asm-generic/bug.h:
 
@@ -78840,9 +78856,9 @@ Use by system security services daemon that manage access to remote.
  */
 #ifndef HAVE_ARCH_BUG
 #define BUG() do {								\
-	// 打印文件名、行数、函数名，参见19.2.1.4 printk()/early_printk()节
+	// 打印文件名、行数、函数名，参见[19.2.1.4 printk()/early_printk()]节
 	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__);	\
-	// Halt the system. This function never returns. 参见panic()节
+	// Halt the system. This function never returns. 参见[19.2.2.1 panic()]节
 	panic("BUG!");								\
 } while (0)
 #endif
@@ -78898,7 +78914,7 @@ NORET_TYPE void panic(const char * fmt, ...)
 	va_end(args);
 	printk(KERN_EMERG "Kernel panic - not syncing: %s\n",buf);
 #ifdef CONFIG_DEBUG_BUGVERBOSE
-	dump_stack();				// 参见dump_stack()节
+	dump_stack();				// 参见[19.2.2.1.1 dump_stack()]节
 #endif
 
 	/*
@@ -78906,7 +78922,7 @@ NORET_TYPE void panic(const char * fmt, ...)
 	 * everything else.
 	 * Do we want to call this before we try to display a message?
 	 */
-	crash_kexec(NULL);			// 参见触发kdump以完成内核转储节
+	crash_kexec(NULL);			// 参见[19.6.3.3 触发kdump以完成内核转储/crash_kexec()]节
 
 	// dump kernel log to kernel message dumpers (dump_list).
 	kmsg_dump(KMSG_DUMP_PANIC);
@@ -79336,7 +79352,7 @@ ltrace is a debugging utility in Linux, used to display the calls a userland app
 
 参见Documentation/oops-tracing.txt
 
-OOPS(也称Panic，参见panic()节)消息包含系统错误的细节，如CPU寄存器的内容等，是内核告知用户有异常发生的最常用的方式。内核只能发布OOPS，这个过程包括向终端输出错误消息，输出寄存器保存的信息，并输出可供跟踪的回溯线索。通常，发送完OOPS之后，内核会处于一种不稳定的状态。 OOPS的产生有很多可能原因，其中包括内存访问越界或非法的指令等。
+OOPS(也称Panic，参见[19.2.2.1 panic()](#19-2-2-1-panic-)节)消息包含系统错误的细节，如CPU寄存器的内容等，是内核告知用户有异常发生的最常用的方式。内核只能发布OOPS，这个过程包括向终端输出错误消息，输出寄存器保存的信息，并输出可供跟踪的回溯线索。通常，发送完OOPS之后，内核会处于一种不稳定的状态。 OOPS的产生有很多可能原因，其中包括内存访问越界或非法的指令等。
 
 * 作为内核的开发者，必定将会经常处理OOPS。
 * OOPS中包含的重要信息，对所有体系结构都是完全相同的：寄存器上下文和回溯线索(回溯线索显示了导致错误发生的函数调用链)。
@@ -79349,9 +79365,9 @@ ksymoops需要几项内容：Oops消息输出、来自正在运行的内核的Sy
 
 ### 19.6.2 kallsyms
 
-Linux Kernel v2.5引入了kallsyms特性，需启用配置选项CONFIG_KALLSYMS。该选项可以载入内核镜像所对应的内存地址的符号名称(即函数名)，所以内核可以打印解码之后的跟踪线索。相应地，解码OOPS也不再需要System.map和ksymoops工具(参见ksymoops节)了。不过，这会导致内核变大，因为地址所对应的符号名称必须始终驻留在内核所在的内存上。
+Linux Kernel v2.5引入了kallsyms特性，需启用配置选项CONFIG_KALLSYMS。该选项可以载入内核镜像所对应的内存地址的符号名称(即函数名)，所以内核可以打印解码之后的跟踪线索。相应地，解码OOPS也不再需要System.map和ksymoops工具(参见[19.6.1 ksymoops](#19-6-1-ksymoops)节)了。不过，这会导致内核变大，因为地址所对应的符号名称必须始终驻留在内核所在的内存上。
 
-参见Kernel Symbol Table节。
+参见[13.4.2 Kernel Symbol Table](#13-4-2-kernel-symbol-table)节。
 
 ### 19.6.3 kdump
 
@@ -79716,13 +79732,13 @@ chenwx@chenwx ~/linux $ cat /proc/sys/kernel/sysrq
 176
 ```
 
-Note that the value of ```/proc/sys/kernel/sysrq``` influences only the invocation via a keyboard. Invocation of any operation via ```/proc/sysrq-trigger``` is always allowed (by a user with admin privileges). See 19.7.2 SysRq键的使用方法.
+Note that the value of ```/proc/sys/kernel/sysrq``` influences only the invocation via a keyboard. Invocation of any operation via ```/proc/sysrq-trigger``` is always allowed (by a user with admin privileges). See [19.7.2 SysRq键的使用方法](#19-7-2-sysrq-).
 
 ### 19.7.2 SysRq键的使用方法
 
 #### 19.7.2.1 从键盘输入SysRq键
 
-从键盘输入SysRq键时，需要同时输入```Alt + SysRq + <command>```。其中，```<command>```参见19.7.2.2 /proc/sysrq-trigger节。
+从键盘输入SysRq键时，需要同时输入```Alt + SysRq + <command>```。其中，```<command>```参见[19.7.2.2 /proc/sysrq-trigger](#19-7-2-2-proc-sysrq-trigger)节。
 
 #### 19.7.2.2 /proc/sysrq-trigger
 
@@ -79810,8 +79826,8 @@ static int __init sysrq_init(void)
 {
 	/*
 	 * 创建文件/proc/sysrq-trigger，
-	 * 参见19.7.3.1 sysrq_init_procfs()节
-	 * 其用法参见19.7.2 SysRq键的使用方法节
+	 * 参见[19.7.3.1 sysrq_init_procfs()]节
+	 * 其用法参见[19.7.2 SysRq键的使用方法]节
 	 */
 	sysrq_init_procfs();
 
@@ -79840,7 +79856,7 @@ static void sysrq_init_procfs(void)
 }
 ```
 
-其中，函数```write_sysrq_trigger()```用于处理写入文件```/proc/sysrq-trigger```中的命令，参见19.7.2 SysRq键的使用方法节，其定义于drivers/tty/sysrq.c:
+其中，函数```write_sysrq_trigger()```用于处理写入文件```/proc/sysrq-trigger```中的命令，参见[19.7.2 SysRq键的使用方法](#19-7-2-sysrq-)节，其定义于drivers/tty/sysrq.c:
 
 ```
 /*
@@ -79955,7 +79971,7 @@ Kernel hacking  --->
 General setup  --->
 [*] Kprobes			// CONFIG_KPROBES
 Kernel hacking  --->
-[*] Magic SysRq key		// CONFIG_MAGIC_SYSRQ，参见19.7 Magic SysRq节
+[*] Magic SysRq key		// CONFIG_MAGIC_SYSRQ，参见[19.7 Magic SysRq]节
 ```
 
 # 20 内核测试/Test Kernel
@@ -79969,7 +79985,7 @@ Kernel hacking  --->
 
 ### 20.1.1 ktest
 
-参见http://elinux.org/Ktest
+* [Ktest](http://elinux.org/Ktest)
 
 ### 20.1.2 selftests
 
@@ -80193,8 +80209,8 @@ make -f scripts/Makefile.build obj=arch/x86/lib
 ```
 linux-3.2/Makefile
 +- include scripts/Kbuild.include
-|  +- build := -f $(srctree)/scripts/Makefile.build obj	// 参见下文
-+- include arch/$(SRCARCH)/Makefile					// 以x86为例，即include linux-3.2/arch/x86/Makefile
+|  +- build := -f $(srctree)/scripts/Makefile.build obj		// 参见下文
++- include arch/$(SRCARCH)/Makefile				// 以x86为例，即include linux-3.2/arch/x86/Makefile
 |  +- include $(srctree)/arch/x86/Makefile_32.cpu
 ```
 
@@ -80202,7 +80218,7 @@ linux-3.2/Makefile
 linux-3.2/scripts/Makefile.build
 +- -include include/config/auto.conf
 +- include scripts/Kbuild.include
-+- include $(kbuild-file)			// 包含指定目录下的Kbuild，或者Makefile(若不存在Kbuild的话)
++- include $(kbuild-file)					// 包含指定目录下的Kbuild，或者Makefile(若不存在Kbuild的话)
 +- include scripts/Makefile.lib
 +- include scripts/Makefile.host
 +- include $(cmd_files)
@@ -81147,7 +81163,7 @@ INIT_PER_CPU(irq_stack_union);
 
 ## Appendix G: vmlinux.lds
 
-vmlinux.lds是由vmlinux.lds.S经过预处理而生成的文件，用于链接器ld连接.o文件时的link script。该文件的生成过程参见$(vmlinux-lds)节，其具体内容如下：
+vmlinux.lds是由vmlinux.lds.S经过预处理而生成的文件，用于链接器ld连接.o文件时的link script。该文件的生成过程参见[3.4.2.2 $(vmlinux-lds)](#3-4-2-2-vmlinux-lds-)节，其具体内容如下：
 
 ```
 OUTPUT_FORMAT("elf32-i386", "elf32-i386", "elf32-i386")

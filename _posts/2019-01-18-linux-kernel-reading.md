@@ -500,7 +500,7 @@ Output directory : /home/chenwx/Downloads
 
 The output is below figure:
 
-![Linux_Kernel_Releases_20180512.svg](/assets/Linux_Kernel_Releases_20180512.svg)
+![Linux_Kernel_Releases_20180512](/assets/Linux_Kernel_Releases_20180512.svg)
 
 ### 1.4.3 Linux Kernel Release Note
 
@@ -9318,7 +9318,7 @@ struct obs_kernel_param {
 		= { __setup_str_##unique_id, fn, early }
 ```
 
-这两个宏定义并初始化了类型为struct obs_kernel_param的对象，它被编译到.init.setup段。根据[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(详见错误：引用源未找到)，其中，.init.setup段包含如下内容：
+这两个宏定义并初始化了类型为struct obs_kernel_param的对象，它被编译到.init.setup段。根据[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(参见[Appendix G: vmlinux.lds](#appendix-g-vmlinux-lds))，其中，.init.setup段包含如下内容：
 
 ```
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
@@ -9388,7 +9388,7 @@ struct kernel_param {
 	= { __param_str_##name, ops, perm, isbool ? KPARAM_ISBOOL : 0,	{ arg } }
 ```
 
-该宏定义并初始化了类型为struct kernel_param的对象，它被编译到__param段。根据[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(详见错误：引用源未找到)，其中包含如下内容：
+该宏定义并初始化了类型为struct kernel_param的对象，它被编译到__param段。根据[3.4.2.2.2 vmlinux.lds如何生成](#3-4-2-2-2-vmlinux-lds-)节，arch/x86/kernel/vmlinux.lds.S被扩展为vmliux.lds(参见[Appendix G: vmlinux.lds](#appendix-g-vmlinux-lds))，其中包含如下内容：
 
 ```
 __param : AT(ADDR(__param) - 0xC0000000) { __start___param = .; *(__param) __stop___param = .; }
@@ -10033,7 +10033,7 @@ void __init mem_init(void)
 
 	reservedpages = 0;
 	/*
-	 * max_low_pfn的含义参见错误：引用源未找到，其取值被如下函数更新：
+	 * max_low_pfn的含义参见[6.3.3 Physical Memory Layout]中的表，其取值被如下函数更新：
 	 * start_kernel() -> setup_arch() -> find_low_pfn_range()
 	 */
 	for (tmp = 0; tmp < max_low_pfn; tmp++)
@@ -10046,7 +10046,7 @@ void __init mem_init(void)
 	// 将高端内存转入Buddy Allocator System中管理，参见[4.3.4.1.4.3.6.1.2 set_highmem_pages_init()]节
 	set_highmem_pages_init();
 
-	// 各变量的含义参见错误：引用源未找到
+	// 各变量的含义参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]中的"NOTE 14"
 	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
 	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
 	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
@@ -10334,7 +10334,7 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
-	// 各调度类组成的链表参见[7.4.5.2.2 pick_next_task()]节和错误：引用源未找到节
+	// 各调度类组成的链表参见[7.4.5.2.2 pick_next_task()]节和[7.4.4.2 完全公平调度类/fair_sched_class]节
 	current->sched_class = &fair_sched_class;
 
 	...
@@ -13475,14 +13475,14 @@ struct ldttss_desc64 {
 		     ((limit) & 0xf0000) | ((base) & 0xff000000),			\
 	} } }
 
-// 用于表示desc_struct中的type字段取值，参见错误：引用源未找到
+// 用于表示desc_struct中的type字段取值，参见下表
 enum {
 	DESC_TSS = 0x9,
 	DESC_LDT = 0x2,
 	DESCTYPE_S = 0x10,		/* !system */
 };
 
-// 用于表示desc_struct中的type字段取值，参见错误：引用源未找到
+// 用于表示desc_struct中的type字段取值，参见下表
 enum {
 	GATE_INTERRUPT = 0xE, 		// 中断门
 	GATE_TRAP = 0xF, 		// 陷阱门
@@ -13792,7 +13792,7 @@ int_msg:
 
 ##### 6.1.1.4.1 局部描述符表LDT
 
-局部描述符表包含与特定任务有关的描述符，每个任务都有一个各自的局部描述符表LDT。每个任务的局部描述符表也用一个描述符来表示，称为LDT描述符，它包含了局部描述符表的信息，在全局描述符表GDT中(参见错误：引用源未找到，当S=0, TYPE=2时，该项即为LDT描述符)。
+局部描述符表包含与特定任务有关的描述符，每个任务都有一个各自的局部描述符表LDT。每个任务的局部描述符表也用一个描述符来表示，称为LDT描述符，它包含了局部描述符表的信息，在全局描述符表GDT中(参见[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节中的表，当S=0, TYPE=2时，该项即为LDT描述符)。
 
 局部描述符结构ldt_desc定义于arch/x86/include/asm/desc_defs.h，参见[6.1.1.1 段描述符/Segment Descriptor](#6-1-1-1-segment-descriptor)节。
 
@@ -13871,7 +13871,7 @@ Starting with the 80386, all 80×86 processors support paging; it is enabled by 
 
 #### 6.1.2.1 两级页表结构
 
-两级页表结构的第一级为页目录，存储在一个4KB的页中(该页的基地址保存在CR3中，参见错误：引用源未找到)。页目录表中共有1024个表项，每个表项大小为4字节并指向一个第二级表。线性地址的最高10位(即31-22位)用来产生第一级的索引，由索引得到的表项指定并选择了1K个二级表中的一个表。
+两级页表结构的第一级为页目录，存储在一个4KB的页中(该页的基地址保存在CR3中，参见[6.1.2 分页机制](#6-1-2-)节中的寄存器图)。页目录表中共有1024个表项，每个表项大小为4字节并指向一个第二级表。线性地址的最高10位(即31-22位)用来产生第一级的索引，由索引得到的表项指定并选择了1K个二级表中的一个表。
 
 两级页表结构的第二级为页表，也刚好存储在一个4KB的页中。页表中共有1024个表项，每个表项大小为4字节并包含一个页的物理基地址。线性地址的中间10位(即21-12位)用来产生第二级的索引，以获得包含页物理地址的页表项。这个物理地址的高20位与线性地址的低12位形成最后的物理地址，也就是页转化过程输出的物理地址。
 
@@ -14012,7 +14012,7 @@ Linux paging model:
 
 ![Linux_paging_model](/assets/Linux_paging_model.jpg)
 
-The Page Global Directory includes the addresses of several Page Upper Directories, which in turn include the addresses of several Page Middle Directories, which in turn include the addresses of several Page Tables. Each Page Table entry points to a page frame. Thus the linear address can be split into up to five parts. 错误：引用源未找到 does not show the bit numbers, because the size of each part depends on the computer architecture.
+The Page Global Directory includes the addresses of several Page Upper Directories, which in turn include the addresses of several Page Middle Directories, which in turn include the addresses of several Page Tables. Each Page Table entry points to a page frame. Thus the linear address can be split into up to five parts. [6.1.2 分页机制](#6-1-2-)节中的寄存器图 does not show the bit numbers, because the size of each part depends on the computer architecture.
 
 **For 32-bit architectures with no Physical Address Extension**, two paging levels are sufficient. Linux essentially eliminates the Page Upper Directory and the Page Middle Directory fields by saying that they contain zero bits. However, the positions of the Page Upper Directory and the Page Middle Directory in the sequence of pointers are kept so that the same code can work on 32-bit and 64-bit architectures. The kernel keeps a position for the Page Upper Directory and the Page Middle Directory by setting the number of entries in them to 1 and mapping these two entries into the proper entry of the Page Global Directory.
 
@@ -14393,7 +14393,7 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
 #define __va(x)		((void *)((unsigned long)(x)+PAGE_OFFSET))
 ```
 
-其中，PAGE_OFFSET参见错误：引用源未找到。
+其中，PAGE_OFFSET参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)中的"NOTE 14"。
 
 ###### 6.1.2.6.2.6 pgd_alloc()/pgd_free()
 
@@ -15161,7 +15161,7 @@ struct zone {
 } ____cacheline_internodealigned_in_smp;
 ```
 
-其结构参见错误：引用源未找到。
+其结构参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)节中的"NOTE 14"中的"变量node_data的结构"图。
 
 ### 6.2.4 pg_data_t
 
@@ -15217,7 +15217,7 @@ typedef struct pglist_data {
 } pg_data_t;
 ```
 
-其结构参见错误：引用源未找到。
+其结构参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)节中的"NOTE 14"中的"变量node_data的结构"图。。
 
 在mm/bootmem.c中定义了一个该类型的全局变量contig_page_data:
 
@@ -15491,7 +15491,7 @@ All the regions owned by a process are linked in a simple list. Regions appear i
 
 A full list of mapped regions a process has may be viewed via the proc interface at /proc/<PID>/maps where PID is the process ID of the process that is to be examined.
 
-Descriptors related to the address space of a process，seen
+Descriptors related to the address space of a process:
 
 ![Memery_Layout_25](/assets/Memery_Layout_25.jpg)
 
@@ -16360,6 +16360,10 @@ Memory layout on 64-bit kernel:
 Virtual kernel memory layout on 32-bit kernel:
 
 ![Memery_Layout_01](/assets/Memery_Layout_01.jpg)
+
+变量node_data的结构:
+
+![Memery_Layout_10](/assets/Memery_Layout_10.jpg)
 
 各段内存的用途如下：
 

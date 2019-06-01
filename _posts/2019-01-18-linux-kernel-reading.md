@@ -11337,7 +11337,7 @@ static struct kmem_cache * bdev_cachep __read_mostly;
 static struct file_system_type bd_type = {
 	.name		= "bdev",
 	/*
-	 * bd_mount()通过如下函数被调用，参见节：
+	 * bd_mount()通过如下函数被调用：
 	 * bdev_cache_init()->kern_mount()->kern_mount_data()
 	 * ->vfs_kern_mount()->mount_fs()中的type->mount()
 	 */
@@ -15474,7 +15474,7 @@ struct vm_area_struct {
 	/* Information about our backing store: */
 	/* Offset (within vm_file) in PAGE_SIZE units, *not* PAGE_CACHE_SIZE */
 	unsigned long				vm_pgoff;
-	// Pointer to the file being mapped, see 错误：引用源未找到
+	// Pointer to the file being mapped, see below figure "Address space of a process backing a file"
 	struct file				*vm_file;		/* File we map to (can be NULL). */
 	void					*vm_private_data;	/* was vm_pte (shared mem) */
 
@@ -15494,6 +15494,10 @@ A full list of mapped regions a process has may be viewed via the proc interface
 Descriptors related to the address space of a process:
 
 ![Memery_Layout_25](/assets/Memery_Layout_25.jpg)
+
+Address space of a process backing a file:
+
+![Address_Space_of_a_Process](/assets/Address_Space_of_a_Process.png)
 
 #### 6.2.7.1 struct vm_operations_struct
 
@@ -15978,7 +15982,7 @@ struct vm_struct {
 };
 ```
 
-该结构参见错误：引用源未找到.
+该结构参见[6.6.2.1.1 __vmalloc_node_range()](#6-6-2-1-1-vmalloc-node-range-)节中的图。
 
 ## 6.3 内存管理的初始化
 
@@ -16197,7 +16201,8 @@ start_kernel()
             -> sort_node_map()					// Sort early_node_map[] by ->start_pfn
             -> printk("Zone PFN ranges:\n");			// 示例参见NOTE 8
                ...
-            -> for_each_online_node(nid) {			//  Set node_data[nid], see 错误：引用源未找到
+            //  Set node_data[nid], see [6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节中的"NOTE 14"中的图"变量node_data的结构"
+            -> for_each_online_node(nid) {
                -> free_area_init_node(nid, NULL, find_min_pfn_for_node(nid), NULL)
                   // find_min_pfn_for_node(nid)从early_node_map[i].start_pfn中查找最小值
                   -> calculate_node_totalpages()
@@ -16342,7 +16347,7 @@ virtual kernel memory layout:
       .data : 0xc15d1358 - 0xc18ad6c0   (2928 kB)		// [_etext, _edata]
       .text : 0xc1000000 - 0xc15d1358   (5956 kB)		// [_text, _etext]
 => 各变量定义于vmlinux.lds
-=> Virtual Kernel Memory Layout参见错误：引用源未找到和[6.3.3 Physical Memory Layout]节。
+=> Virtual Kernel Memory Layout参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)节中的"NOTE 14"的图和[6.3.3 Physical Memory Layout]节。
 ```
 
 **NOTE 14**:
@@ -16539,7 +16544,8 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask, unsigned in
 	if (nid < 0)
 		nid = numa_node_id();
 
-	// node_zonelist()返回node_data[]->node_zonelists[]，参见错误：引用源未找到
+	// node_zonelist()返回node_data[]->node_zonelists[]，
+	// 参见[6.4.1.1.2.1 buffered_rmqueue()]节中的图"Per-CPU page frame cache"
 	return __alloc_pages(gfp_mask, order, node_zonelist(nid, gfp_mask));
 }
 ```
@@ -16783,7 +16789,7 @@ again:
 		struct list_head *list;
 
 		local_irq_save(flags);
-		// Per-CPU Page Frame Cache，参见错误：引用源未找到
+		// Per-CPU Page Frame Cache，参见[6.4.1.1.2.1 buffered_rmqueue()]节中的图"Per-CPU page frame cache"
 		pcp = &this_cpu_ptr(zone->pageset)->pcp;
 		list = &pcp->lists[migratetype];
 		if (list_empty(list)) {
@@ -16952,7 +16958,7 @@ static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int or
 		if (list_empty(&area->free_list[migratetype]))
 			continue;
 
-		// 获取第一个页面，参见错误：引用源未找到
+		// 获取第一个页面，参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节中的"NOTE 14"中的图"变量node_data的结构"
 		page = list_entry(area->free_list[migratetype].next, struct page, lru);
 		// 将该页面及其后连续的共2order个页面从列表中移出
 		list_del(&page->lru);
@@ -16966,7 +16972,7 @@ static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int or
 		 * allocates the first 2h page frames and iteratively reassigns
 		 * the last 2k–2h page frames to the free_area lists that have
 		 * indexes between h and k.
-		 * 此处，current_order >= order，示例参见错误：引用源未找到。
+		 * 此处，current_order >= order，示例参见下图"从order=4的free_area中分配1个页面"。
 		 * 另参见[6.2.3 struct zone]节中free_area[]的注释
 		 */
 		expand(zone, page, order, current_order, area, migratetype);
@@ -17606,7 +17612,7 @@ void *page_address(const struct page *page)
 
 	/*
 	 * 获取page_address_htable中page所在的表项，
-	 * 参见错误：引用源未找到
+	 * 参见下图"变量page_address_htable"
 	 */
 	pas = page_slot(page);
 	ret = NULL;
@@ -17756,7 +17762,7 @@ void free_hot_cold_page(struct page *page, int cold)
 
 	/*
 	 * 将该页面插入Per-CPU Page Frame Cache，
-	 * 参见错误：引用源未找到
+	 * 参见[6.4.1.1.2.1 buffered_rmqueue()]节中的图"Per-CPU page frame cache"
 	 */
 	pcp = &this_cpu_ptr(zone->pageset)->pcp;
 	if (cold)
@@ -20550,7 +20556,7 @@ struct vm_struct *remove_vm_area(const void *addr)
 
 	va = find_vmap_area((unsigned long)addr);
 	if (va && va->flags & VM_VM_AREA) {
-		// 将va移出链表vmlist，参见错误：引用源未找到
+		// 将va移出链表vmlist，参见[6.6.2.1.1 __vmalloc_node_range()]节中的图"函数vmalloc()的返回结果addr"
 		struct vm_struct *vm = va->private;
 
 		if (!(vm->flags & VM_UNLIST)) {
@@ -21062,7 +21068,7 @@ void __kunmap_atomic(void *kvaddr)
 
 ## 6.8 虚拟内存空间/Virtual Memory Area
 
-与Virtual Memory Area有关的数据结构参见[6.2.7 struct vm_area_struct](#6-2-7-struct-vm-area-struct)节，其结构参见错误：引用源未找到。
+与Virtual Memory Area有关的数据结构参见[6.2.7 struct vm_area_struct](#6-2-7-struct-vm-area-struct)节，其结构参见[6.2.7 struct vm_area_struct](#6-2-7-struct-vm-area-struct)节中的图"Descriptors related to the address space of a process"。
 
 ### 6.8.1 Find a Memory Regin
 
@@ -21394,7 +21400,7 @@ munmap_back:
 	 * in such a way to include the new interval.
 	 * The preceding memory region must have exactly the same flags
 	 * as those memory regions stored in vm_flags.
-	 * 参见节
+	 * 参见[6.8.2.1.1.1.1 Merge Contiguous Region/vma_merge()]节
 	 */
 	vma = vma_merge(mm, prev, addr, addr + len, vm_flags, NULL, file, pgoff, NULL);
 	if (vma)
@@ -22050,11 +22056,11 @@ Each architecture registers an architecture-specific function for the handling o
 
 Pages in the process linear address space are not necessarily resident in memory. For example, allocations made on behalf of a process are not satisfied immediately as the space is just reserved within the vm_area_struct. Other examples of non-resident pages include the page having been swapped out to backing storage or writing a read-only page.
 
-Linux, like most operating systems, has a Demand Fetch policy as its fetch policy for dealing with pages that are not resident. This states that the page is only fetched from backing storage when the hardware raises a page fault exception (see Vec=0xEC in 错误：引用源未找到) which the operating system traps and allocates a page.
+Linux, like most operating systems, has a Demand Fetch policy as its fetch policy for dealing with pages that are not resident. This states that the page is only fetched from backing storage when the hardware raises a page fault exception (see Vec=0xEC in [9.1 中断处理简介](#9-1-)节中的表"中断向量(vector)取值") which the operating system traps and allocates a page.
 
 There are two types of page fault, major and minor faults. Major page faults occur when data has to be read from disk which is an expensive operation, else the fault is referred to as a minor, or soft page fault. Linux maintains statistics on the number of these types of page faults with the task_struct->maj_flt and task_struct->min_flt fields respectively (see section [7.1 进程描述符/struct task_struct](#7-1-struct-task-struct)).
 
-The page fault handler in Linux is expected to recognise and act on a number of different types of page faults listed in 错误：引用源未找到.
+The page fault handler in Linux is expected to recognise and act on a number of different types of page faults listed in the following table.
 
 Reasons For Page Faulting:
 
@@ -22093,7 +22099,7 @@ dotraplinkage void __kprobes do_page_fault(struct pt_regs *regs, unsigned long e
 	mm = tsk->mm;
 
 	/* Get the faulting address: */
-	address = read_cr2();		// 参见错误：引用源未找到
+	address = read_cr2();		// 参见[6.1.2 分页机制]节中的图"寄存器"
 
 	/*
 	 * Detect and handle instructions that would cause a page fault for
@@ -29719,7 +29725,7 @@ struct global_cwq {
 	spinlock_t		lock;			/* the gcwq lock */
 	/*
 	 * 将struct work_struct中的entry域链接起来，
-	 * 参见错误：引用源未找到
+	 * 参见[7.5.1.3 struct workqueue_struct]节中的图
 	 */
 	struct list_head	worklist;		/* L: list of pending works */
 	unsigned int		cpu;			/* I: the associated cpu */
@@ -29765,7 +29771,7 @@ struct worker {
 	struct list_head		scheduled;	/* L: scheduled works */
 	// 该内核线程由函数alloc_worker()创建，参见[7.5.2.1 alloc_workqueue()]节
 	struct task_struct		*task;		/* I: worker task */
-	// 参见错误：引用源未找到
+	// 参见[7.5.1.3 struct workqueue_struct]节中的图
 	struct global_cwq		*gcwq;		/* I: the associated gcwq */
 	/* 64 bytes boundary on 64bit, 32 on 32bit */
 	unsigned long			last_active;	/* L: last active timestamp */
@@ -30404,7 +30410,7 @@ static void __queue_work(unsigned int cpu, struct workqueue_struct *wq, struct w
 		 */
 		/*
 		 * 获取指定CPU的、类型为struct global_cwq的变量，
-		 * 参见错误：引用源未找到
+		 * 参见[7.5.1.3 struct workqueue_struct]节中的图
 		 */
 		gcwq = get_gcwq(cpu);
 		if (wq->flags & WQ_NON_REENTRANT &&
@@ -30681,7 +30687,7 @@ static int __init init_workqueues(void)
 	/* initialize gcwqs */
 	/*
 	 * 依次获取每个CPU对应的变量global_cwq，并初始化之。
-	 * 参见错误：引用源未找到
+	 * 参见[7.5.1.3 struct workqueue_struct]节中的图
 	 */
 	for_each_gcwq_cpu(cpu) {
 		struct global_cwq *gcwq = get_gcwq(cpu);
@@ -30902,7 +30908,7 @@ recheck:
 	worker_clr_flags(worker, WORKER_PREP);
 
 	do {
-		// 取得work结构，参见错误：引用源未找到
+		// 取得work结构，参见[7.5.1.3 struct workqueue_struct]节中的图
 		struct work_struct *work = list_first_entry(&gcwq->worklist, struct work_struct, entry);
 
 		if (likely(!(*work_data_bits(work) & WORK_STRUCT_LINKED))) {
@@ -32333,7 +32339,7 @@ static void internal_add_timer(struct tvec_base *base, struct timer_list *timer)
 	unsigned long idx = expires - base->timer_jiffies;
 	struct list_head *vec;
 
-	// 定时器timer插入到定时器链表中，参见[7.7.1.3 struct tvec_base]节，错误：引用源未找到，
+	// 定时器timer插入到定时器链表中，参见[7.7.1.3 struct tvec_base]节，[7.7.1.3 struct tvec_base]节中的图和表
 	if (idx < TVR_SIZE) {
 		int i = expires & TVR_MASK;
 		vec = base->tv1.vec + i;
@@ -32715,7 +32721,7 @@ static int __cpuinit init_timers_cpu(int cpu)
 
 ### 7.7.4 定时器的超时处理/run_timer_softirq()
 
-该函数被软中断处理函数```__do_softirq()```调用，参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节和错误：引用源未找到，其定义于kernel/timer.c:
+该函数被软中断处理函数```__do_softirq()```调用，参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节和[9.2.2.1 注册软中断处理函数/open_softirq()]节中的表，其定义于kernel/timer.c:
 
 ```
 /*
@@ -32757,7 +32763,7 @@ static inline void __run_timers(struct tvec_base *base)
 		struct list_head *head = &work_list;
 		/*
 		 * 根据base->timer_jiffies的低8位(或低6位)来确定定时器所在的链表，
-		 * 参见错误：引用源未找到
+		 * 参见[7.7.1.3 struct tvec_base]节中的图
 		 * 注意：此处不是按照tv1.vec[0], tv1.vec[1], ... 的顺序来处理定时器
 		 */
 		int index = base->timer_jiffies & TVR_MASK;
@@ -32766,7 +32772,7 @@ static inline void __run_timers(struct tvec_base *base)
 		 * Cascade timers:
 		 */
 		/*
-		 * 由错误：引用源未找到可知：
+		 * 由[7.7.1.3 struct tvec_base]节中的图可知：
 		 * 若index为0，表示base->timer_jiffies的低8位有进位，
 		 * 	此时要根据其8-13位的取值，将定时器从某个tv2链表(如tv2.vec[x])
 		 * 	迁移到tv1.vec[*]；
@@ -39587,12 +39593,12 @@ Intel x86系列处理器共支持256种向量中断，为了使处理器较容�
 
 | 中断分类 | 原因 | 异/同步 | 返回行为 | 备注 |
 | :----- | :--- | :----- | :----- | :--- |
-| 可屏蔽中断(INTR) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断。参见节 |
+| 可屏蔽中断(INTR) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断。参见[9.1.1 可屏蔽中断(INTR)](#9-1-1-intr-)节 |
 | 非屏蔽中断(NMI) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 紧急的事件(如硬件故障)引起非屏蔽中断。参见[9.1.2 异常(Exception)/非屏蔽中断(NMI)](#9-1-2-exception-nmi-)节 |
 
 <p/>
 
-<Add table: 中断向量(vector)取值>
+* [中断向量(vector)取值](/docs/Interrupt_Vector.pdf)
 
 ### 9.1.1 可屏蔽中断(INTR)
 
@@ -39665,7 +39671,7 @@ Intel x86通过两片中断控制器8259A来响应15个外中断源，每个8259
 * 一种是从CPU的角度，也就是清除eflag的中断标志位(IF)。当IF=0时，禁止任何外部I/O的中断请求，即关中断；
 * 一种是从中断控制器的角度，因为中断控制器中有一个8位的中断屏蔽寄存器(IMR)，每比特位对应8259A中的一条中断线，如果要禁用某条中断线，则把IMR相应位置1，若要启用该中断线，则置0。
 
-可屏蔽中断(INTR)的取值范围为[0x30, 0xFF]，参见错误：引用源未找到。这些可屏蔽中断对应的处理程序是由init_IRQ()设置的，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
+可屏蔽中断(INTR)的取值范围为[0x30, 0xFF]，参见[9.1 中断处理简介](#9-1-)节中的表"中断向量(vector)取值"。这些可屏蔽中断对应的处理程序是由init_IRQ()设置的，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
 #### 9.1.1.2 高级可编程中断控制器(APIC)
 
@@ -39771,6 +39777,10 @@ char *softirq_to_name[NR_SOFTIRQS] = {
 该数组是个全局变量，系统中每个CPU所看到的是同一个数组，不过每个CPU均有自己的“软中断控制/状态”结构，这些数据结构形成一个以CPU编号为下标的数组irq_stat[]，参见[9.2.3 irq_stat[]](#9-2-3-irq-stat-)节。
 
 **NOTE**: The index of the softirq_vec[] determines its priority: a lower index means higher priority because softirq functions will be executed starting from index 0. 参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节的函数```__do_softirq()```。
+
+softirq_vec[]:
+
+![Interrupt_02](/assets/Interrupt_02.jpg)
 
 #### 9.2.2.1 注册软中断处理函数/open_softirq()
 
@@ -39882,7 +39892,7 @@ static inline void __raise_softirq_irqoff(unsigned int nr)
 #define or_softirq_pending(x)		percpu_or(irq_stat.__softirq_pending, (x))
 ```
 
-其中，irq_stat.__softirq_pending的每个比特位表示数组irq_desc[]相应元素的状态，参见错误：引用源未找到。
+其中，irq_stat.__softirq_pending的每个比特位表示数组irq_desc[]相应元素的状态，参见[9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)节中的图"softirq_vec[]"。
 
 #### 9.2.3.2 取消软中断/set_softirq_pending()
 
@@ -40214,7 +40224,7 @@ static void tasklet_action(struct softirq_action *a)
 			if (!atomic_read(&t->count)) {
 				if (!test_and_clear_bit(TASKLET_STATE_SCHED, &t->state))
 					BUG();
-				// 调用每个Tasklet的处理函数，参见错误：引用源未找到
+				// 调用每个Tasklet的处理函数，参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节中的图
 				t->func(t->data);
 				// Clear TASKLET_STATE_RUN flag in the tasklet’s state field
 				tasklet_unlock(t);
@@ -40274,7 +40284,7 @@ static void tasklet_hi_action(struct softirq_action *a)
 			if (!atomic_read(&t->count)) {
 				if (!test_and_clear_bit(TASKLET_STATE_SCHED, &t->state))
 					BUG();
-				// 调用每个Tasklet的处理函数，参见错误：引用源未找到
+				// 调用每个Tasklet的处理函数，参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节中的图
 				t->func(t->data);
 				// Clear TASKLET_STATE_RUN flag in the tasklet’s state field
 				tasklet_unlock(t);
@@ -40799,7 +40809,7 @@ restart:
 			kstat_incr_softirqs_this_cpu(vec_nr);
 
 			trace_softirq_entry(vec_nr);
-			// 调用指定软中断的处理程序，参见错误：引用源未找到
+			// 调用指定软中断的处理程序，参见[9.2.2.1 注册软中断处理函数/open_softirq()]节中的表
 			h->action(h);
 			trace_softirq_exit(vec_nr);
 			if (unlikely(prev_count != preempt_count())) {

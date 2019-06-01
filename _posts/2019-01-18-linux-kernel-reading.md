@@ -1569,9 +1569,9 @@ config: scripts_basic outputmakefile FORCE
 	 * $(build)定义于scripts/Kbuild.include
 	 * 扩展为 $(MAKE) -f scripts/Makefile.build obj=scripts/kconfig config
 	 */
-	$(Q)$(MAKE) $(build)=scripts/kconfig $@			
+	$(Q)$(MAKE) $(build)=scripts/kconfig $@
 
-// 编译script/basic/fixdep，参见[3.4.2.1.1.8 scripts_basic]节
+// 编译script/basic/fixdep，参见[3.3.1.1 scripts_basic]节
 scripts_basic:
 	// 扩展为 $(MAKE) -f scripts/Makefile.build obj=scripts/basic
 	$(Q)$(MAKE) $(build)=scripts/basic
@@ -1616,7 +1616,7 @@ build := -f $(if $(KBUILD_SRC),$(srctree)/)scripts/Makefile.build obj
 $(Q)$(MAKE) -f scripts/Makefile.build obj=scripts/basic
 ```
 
-该命令用于编译scripts/basic目录。由于未指定编译目标，故编译scripts/Makefile.build中的默认目标__build：
+该命令用于编译scripts/basic目录。由于未指定编译目标，故编译scripts/Makefile.build中的默认目标```__build```：
 
 ```
 PHONY := __build
@@ -2083,13 +2083,13 @@ make \*config的具体编译链接过程与[3.3.1 make config](#3-3-1-make-confi
 
 ```
 // two single quotes, no space between
-chenwx ~/linux # yes '' | make oldconfig
+chenwx@chenwx ~/linux $ yes '' | make oldconfig
 ```
 
 **NOTE 2**: Perhaps the most useful target for beginners is defconfig (short for "default config") which simply sets your .config to an established set of defaults for your system and architecture. And how can you see these defaults? Simple -- from the top of the kernel source tree, just run following command, and you'll see dozens of default config files for all of the kernel's supported architectures.
 
 ```
-chenwx ~/linux # find arch -name "*defconfig"
+chenwx@chenwx ~/linux $ find arch -name "*defconfig"
 ```
 
 #### 3.3.2.1 Use Old Existed Configure
@@ -2124,9 +2124,11 @@ I like to use the command ```make menuconfig``` to configure linux kernel becaus
 
 内核配置文件包括：
 
-* Kconfig
-* arch/$(SRCARCH)/Kconfig
-* ...
+```
+Kconfig
+arch/$(SRCARCH)/Kconfig
+...
+```
 
 其说明参见：
 
@@ -2230,7 +2232,7 @@ Kbuild Makefiles		- 内核源代码中大约有500个这样的文件(文件名�
 
 **Makefile**
 
-The top Makefile reads the .config file, which comes from the kernel configuration process. The top Makefile is responsible for building two major products: vmlinux (the resident kernel image) and modules (any module files). It builds these goals by recursively descending into the subdirectories of the kernel source tree.
+The top Makefile reads the .config file, which comes from the kernel configuration process. The top Makefile is responsible for building two major products: **vmlinux** (the resident kernel image) and **modules** (any module files). It builds these goals by recursively descending into the subdirectories of the kernel source tree.
 
 **\*/Kbuild**
 
@@ -2257,8 +2259,6 @@ Makefile.modpost
 各Makefile之间存在调用关系，这形成了一棵树，参见[Appendix A: Makefile Tree](#appendix-a-makefile-tree)节。
 
 ### 3.4.1 Makefile的Default Target
-
-【**GNU Make知识点**】
 
 根据《GNU make v3.8.2》第4.10节可知：
 
@@ -2323,10 +2323,10 @@ endif # CONFIG_MODULES
 vmlinux
 System.map
 arch/x86/boot/bzImage
-arch/i386/boot/bzImage		(link to ./arch/x86/boot/bzImage)
-oneDir/twoDir/*.ko		(modules)
-./arch/x86/lib/lib.a		(library)
-./lib/lib.a			(library)
+arch/i386/boot/bzImage		// link to ./arch/x86/boot/bzImage
+<oneDir>/<twoDir>/*.ko		// modules
+arch/x86/lib/lib.a		// library
+lib/lib.a			// library
 ```
 
 * 执行make vmlinux命令，编译顶层Makefile中的目标vmlinux，参见[3.4.2 编译bzImage/$(obj-y)](#3-4-2-bzimage-obj-y-)节。生成下列文件：
@@ -2338,7 +2338,7 @@ vmlinux
 * 执行make modules命令，编译顶层Makefile中的目标modules，参见[3.4.3 编译modules/$(obj-m)](#3-4-3-modules-obj-m-)节。生成下列文件：
 
 ```
-oneDir/twoDir/*.ko (modules)
+<oneDir>/<twoDir>/*.ko		// modules
 ```
 
 * 执行下列命令之一来编译外部模块，参见[3.4.4 编译external modules](#3-4-4-external-modules)节：
@@ -2371,7 +2371,7 @@ endif
 
 ![Targets_Tree](/assets/Targets_Tree.jpg)
 
-其中的数字表示对应目标的生成顺序。
+上图中的数字表示对应目标的生成顺序。
 
 ### 3.4.2 编译bzImage/$(obj-y)
 
@@ -2469,18 +2469,18 @@ scripts_basic:
 prepare3: include/config/kernel.release
 ifneq ($(KBUILD_SRC),)	// 当不在linux源代码目录编译(参见[3.4.2.1.1.3 outputmakefile]节)时，执行下列命令
 	@$(kecho) '  Using $(srctree) as source for kernel'
-	$(Q)if [ -f $(srctree)/.config -o -d $(srctree)/include/config ]; then \
-		echo "  $(srctree) is not clean, please run 'make mrproper'"; \
-		echo "  in the '$(srctree)' directory."; \
-		/bin/false; \
+	$(Q)if [ -f $(srctree)/.config -o -d $(srctree)/include/config ]; then	\
+		echo "  $(srctree) is not clean, please run 'make mrproper'";	\
+		echo "  in the '$(srctree)' directory.";			\
+		/bin/false;							\
 	fi;
 endif
 
 # prepare2 creates a makefile if using a separate output directory
 prepare2: prepare3 outputmakefile asm-generic
 
-prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
-                       include/config/auto.conf
+prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h	\
+                   include/config/auto.conf
 	$(cmd_crmodverdir)
 
 archprepare: prepare1 scripts_basic
@@ -2510,9 +2510,9 @@ This environment variable can be set to specify the path & name of the
 KCONFIG_CONFIG	?= .config
 
 ...
-no-dot-config-targets := clean mrproper distclean \
-                         cscope gtags TAGS tags help %docs check% coccicheck \
-                         include/linux/version.h headers_% \
+no-dot-config-targets := clean mrproper distclean				\
+                         cscope gtags TAGS tags help %docs check% coccicheck	\
+                         include/linux/version.h headers_%			\
                          kernelversion %src-pkg
 
 config-targets	:= 0
@@ -2573,12 +2573,12 @@ else # KBUILD_EXTMOD
 PHONY += include/config/auto.conf
 
 include/config/auto.conf:
-	$(Q)test -e include/generated/autoconf.h -a -e $@ || (		\
-	echo;								\
-	echo "  ERROR: Kernel configuration is invalid.";		\
-	echo "         include/generated/autoconf.h or $@ are missing.";\
+	$(Q)test -e include/generated/autoconf.h -a -e $@ || (				\
+	echo;										\
+	echo "  ERROR: Kernel configuration is invalid.";				\
+	echo "         include/generated/autoconf.h or $@ are missing.";		\
 	echo "         Run 'make oldconfig && make prepare' on kernel src to fix it.";	\
-	echo;								\
+	echo;										\
 	/bin/false)
 
 endif # KBUILD_EXTMOD
@@ -3416,22 +3416,22 @@ $(obj-m)的取值参见$(obj)指定目录下的Kbuild或Makefile。在scripts/Ma
 ```
 # When an object is listed to be built compiled-in and modular,
 # only build the compiled-in version
-obj-m			:= $(filter-out $(obj-y),$(obj-m))
+obj-m		:= $(filter-out $(obj-y),$(obj-m))
 
-__subdir-m		:= $(patsubst %/,%,$(filter %/, $(obj-m)))
+__subdir-m	:= $(patsubst %/,%,$(filter %/, $(obj-m)))
 /*
  * $(subdir-m)中包含$(obj-m)中的子目录名，
  * 其将在$(builtin-target)中编译，参见[3.4.2.1.3.1.1.1.2 编译$(obj)下的子目录]节
  */
-subdir-m		+= $(__subdir-m)
-obj-m			:= $(filter-out %/, $(obj-m))
+subdir-m	+= $(__subdir-m)
+obj-m		:= $(filter-out %/, $(obj-m))
 
 /*
  * 此时，$(obj-m)中仅包含$(obj)指定目录下的目标文件列表，不包含子目录
  * 编译$(obj-m)时，符合规则"$(obj)/%.o: $(src)/%.c $(recordmcount_source) FORCE"，
  * 参见[3.4.2.1.3.1.1.1.1 编译$(obj)目录下的目标文件]节
  */
-obj-m			:= $(addprefix $(obj)/,$(obj-m))
+obj-m		:= $(addprefix $(obj)/,$(obj-m))
 ```
 
 ###### 3.4.2.1.3.1.5 $(modorder-target)
@@ -3644,13 +3644,13 @@ endif # builtin-target
 
 ```
 $(obj-y)定义于init/Makefile中，且与.config中的配置有关：
-obj-y						:= main.o version.o mounts.o
+obj-y					:= main.o version.o mounts.o
 ifneq ($(CONFIG_BLK_DEV_INITRD),y)
-obj-y						+= noinitramfs.o
+obj-y					+= noinitramfs.o
 else
-obj-$(CONFIG_BLK_DEV_INITRD)			+= initramfs.o
+obj-$(CONFIG_BLK_DEV_INITRD)		+= initramfs.o
 endif
-obj-$(CONFIG_GENERIC_CALIBRATE_DELAY)		+= calibrate.o
+obj-$(CONFIG_GENERIC_CALIBRATE_DELAY)	+= calibrate.o
 ```
 
 **$(obj-y)中main.o和version.o的编译**
@@ -3817,16 +3817,16 @@ make -f scripts/Makefile.modpost vmlinux.o
 即执行scripts/Makefile.modpost中的vmlinux.o目标：
 
 ```
-modpost	= scripts/mod/modpost						\
-	  $(if $(CONFIG_MODVERSIONS),-m)				\
-	  $(if $(CONFIG_MODULE_SRCVERSION_ALL),-a,)			\
+modpost	= scripts/mod/modpost								\
+	  $(if $(CONFIG_MODVERSIONS),-m)						\
+	  $(if $(CONFIG_MODULE_SRCVERSION_ALL),-a,)					\
 	  // kernelsymfile := $(objtree)/Module.symvers
-	  $(if $(KBUILD_EXTMOD),-i,-o) $(kernelsymfile)			\
-	  $(if $(KBUILD_EXTMOD),-I $(modulesymfile))			\
+	  $(if $(KBUILD_EXTMOD),-i,-o) $(kernelsymfile)					\
+	  $(if $(KBUILD_EXTMOD),-I $(modulesymfile))					\
 	  $(if $(KBUILD_EXTRA_SYMBOLS), $(patsubst %, -e %,$(KBUILD_EXTRA_SYMBOLS)))	\
-	  $(if $(KBUILD_EXTMOD),-o $(modulesymfile))			\
-	  $(if $(CONFIG_DEBUG_SECTION_MISMATCH),,-S)			\
-	  $(if $(KBUILD_EXTMOD)$(KBUILD_MODPOST_WARN),-w)		\
+	  $(if $(KBUILD_EXTMOD),-o $(modulesymfile))					\
+	  $(if $(CONFIG_DEBUG_SECTION_MISMATCH),,-S)					\
+	  $(if $(KBUILD_EXTMOD)$(KBUILD_MODPOST_WARN),-w)				\
 	  $(if $(cross_build),-c)
 
 ...
@@ -4092,7 +4092,7 @@ hdr-inst	:= -rR -f $(srctree)/scripts/Makefile.headersinst obj
 hdr-dst	= $(if $(KBUILD_HEADERS), dst=include/asm-$(hdr-arch), dst=include/asm)
 
 PHONY += __headers
-// 参见include/linux/version.h，scripts_basic和asm-generic节
+// 参见include/linux/version.h，[3.4.2.1.1.8 scripts_basic]节和[3.4.2.1.1.4 asm-generic]节
 __headers: include/linux/version.h scripts_basic asm-generic FORCE
 	// 编译scripts/unifdef
 	$(Q)$(MAKE) $(build)=scripts build_unifdef
@@ -5430,7 +5430,7 @@ $(modules:.ko=.mod.o): %.mod.o: %.mod.c FORCE
 	$(call if_changed_dep,cc_o_c)
 ```
 
-调用命令cmd_cc_o_c将*.mod.c编译成*.mod.o。以arch/x86/crypto/aes-i586.mod.c为例，该命令被扩展为：
+调用命令cmd_cc_o_c将\*.mod.c编译成\*.mod.o。以arch/x86/crypto/aes-i586.mod.c为例，该命令被扩展为：
 
 ```
 gcc -Wp,-MD,arch/x86/crypto/.aes-i586.mod.o.d  -nostdinc -isystem /usr/lib/gcc/i686-linux-gnu/4.7/include -I/usr/src/linux-3.2/arch/x86/include -Iarch/x86/include/generated -Iinclude  -include /usr/src/linux-3.2/include/linux/kconfig.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -Os -m32 -msoft-float -mregparm=3 -freg-struct-return -mpreferred-stack-boundary=2 -march=i686 -maccumulate-outgoing-args -Wa,-mtune=generic32 -ffreestanding -fstack-protector -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-inline-functions-called-once -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO   -D"KBUILD_STR(s)=#s" -D"KBUILD_BASENAME=KBUILD_STR(aes_i586.mod)"  -D"KBUILD_MODNAME=KBUILD_STR(aes_i586)" -DMODULE  -c -o arch/x86/crypto/aes-i586.mod.o arch/x86/crypto/aes-i586.mod.c
@@ -5442,8 +5442,8 @@ gcc -Wp,-MD,arch/x86/crypto/.aes-i586.mod.o.d  -nostdinc -isystem /usr/lib/gcc/i
 
 ```
 quiet_cmd_ld_ko_o = LD [M]  $@
-      cmd_ld_ko_o = $(LD) -r $(LDFLAGS)							\
-                             $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE)	\
+      cmd_ld_ko_o = $(LD) -r $(LDFLAGS)						\
+                             $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE)		\
                              -o $@ $(filter-out FORCE,$^)
 
 $(modules): %.ko : %.o %.mod.o FORCE
@@ -5456,7 +5456,7 @@ $(modules): %.ko : %.o %.mod.o FORCE
 ld -r -m elf_i386 -T /usr/src/linux-3.2/scripts/module-common.lds --build-id  -o arch/x86/crypto/aes-i586.ko arch/x86/crypto/aes-i586.o arch/x86/crypto/aes-i586.mod.o
 ```
 
-**NOTE 1**: 执行make modules_install命令时，这些*.ko文件会被安装到/lib/modules/3.2.0/kernel/目录，参见[3.5.5 安装内核](#3-5-5-)节；
+**NOTE 1**: 执行make modules_install命令时，这些*.ko文件会被安装到/lib/modules/3.2.0/kernel/目录，参见[3.5.5 安装内核](#3-5-5-)节。
 
 **NOTE 2**: script/module-common.lds是生成*.ko文件的链接脚本文件，参见[Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds)节。
 
@@ -5987,13 +5987,13 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 可采用如下两种方式之一配置内核：
 
-**1) 运行下列命令配置内核，配置结果保存在~/linux-build/.config中**
+1) 运行下列命令配置内核，配置结果保存在~/linux-build/.config中
 
 ```
 # make O=../linux-build/ ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- menuconfig
 ```
 
-**2) 运行下列命令使用arch/arm/configs/目录中的默认配置文件，以acs5k_defconfig为例(参见[3.3.2 make *config](#3-3-2-make-config)节)**
+2) 运行下列命令使用arch/arm/configs/目录中的默认配置文件，以acs5k_defconfig为例(参见[3.3.2 make *config](#3-3-2-make-config)节)
 
 ```
 # make O=../linux-build/ ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- acs5k_defconfig
@@ -6213,7 +6213,6 @@ drwxr-xr-x 4 chenwx chenwx 4096 Dec 10 03:53 fs
 
 Refer to following documentations:
 
-* http://crashcourse.ca/introduction-linux-kernel-programming/intermission-lets-talk-about-header-files-free-lesson
 * [Kernel Headers](/docs/Kernel_Headers.pdf)
 * [Header Files](/docs/Header_files.pdf)
 
@@ -6376,7 +6375,7 @@ Technically, there's no actual harm in leaving in that kernel-only content since
 
 #### 3.4.6.3 Installation of Linux API Headers in LFS
 
-参见[Linux-4.18.5 API Headers (online)](http://www.linuxfromscratch.org/lfs/view/stable-systemd/chapter06/linux-headers.html) and [Linux-4.18.5 API Headers (local pdf)](/docs/Linux-4.18.5_API_Headers.pdf)。
+参见[Linux-4.18.5 API Headers (online)](http://www.linuxfromscratch.org/lfs/view/stable-systemd/chapter06/linux-headers.html)和[Linux-4.18.5 API Headers (local pdf)](/docs/Linux-4.18.5_API_Headers.pdf)。
 
 The following steps show the installation of Linux API headers in Linux From Scratch (LFS):
 
@@ -6682,12 +6681,12 @@ _modinst_:
 	@rm -rf $(MODLIB)/kernel
 	@rm -f $(MODLIB)/source
 	@mkdir -p $(MODLIB)/kernel
-	// 创建链接文件/lib/modules/3.2.0/source	至~/linux-build
+	// 创建链接文件/lib/modules/3.2.0/source至~/linux-build
 	@ln -s `cd $(srctree) && /bin/pwd` $(MODLIB)/source
 	// 创建链接文件/lib/modules/3.2.0/build至~/linux-build
-	@if [ ! $(objtree) -ef  $(MODLIB)/build ]; then \
-		rm -f $(MODLIB)/build ; \
-		ln -s $(CURDIR) $(MODLIB)/build ; \
+	@if [ ! $(objtree) -ef  $(MODLIB)/build ]; then	\
+		rm -f $(MODLIB)/build ;			\
+		ln -s $(CURDIR) $(MODLIB)/build ;	\
 	fi
 	// 安装文件~/linux-build/modules.order至/lib/modules/3.2.0/modules.order
 	@cp -f $(objtree)/modules.order $(MODLIB)/
@@ -6728,8 +6727,8 @@ endif # CONFIG_MODULES
 
 ```
 # SHELL used by kbuild
-CONFIG_SHELL		:= $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
-			     else if [ -x /bin/bash ]; then echo /bin/bash; \
+CONFIG_SHELL		:= $(shell if [ -x "$$BASH" ]; then echo $$BASH;	\
+			     else if [ -x /bin/bash ]; then echo /bin/bash;	\
 			     else echo sh; fi ; fi)
 
 // 该命令来自module-init-tools或kmod，参见[13.3.1 加载/卸载模块的命令]节
@@ -6740,7 +6739,7 @@ KERNELRELEASE	= $(shell cat include/config/kernel.release 2> /dev/null)
 
 # Run depmod only if we have System.map and depmod is executable
 quiet_cmd_depmod = DEPMOD  $(KERNELRELEASE)
-      cmd_depmod = $(CONFIG_SHELL) $(srctree)/scripts/depmod.sh $(DEPMOD) \
+      cmd_depmod = $(CONFIG_SHELL) $(srctree)/scripts/depmod.sh $(DEPMOD)	\
                    $(KERNELRELEASE) "$(patsubst y,_,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))"
 ```
 
@@ -7488,7 +7487,7 @@ These patches are not incremental, meaning that, for example the 2.6.12.3 patch 
 
 
 ```
-$ cd ~/linux-2.6.12.2					# change into the kernel source dir
+$ cd ~/linux-2.6.12.2				# change into the kernel source dir
 $ patch -p1 -R < ../patch-2.6.12.2		# revert the 2.6.12.2 patch
 $ patch -p1 < ../patch-2.6.12.3			# apply the new 2.6.12.3 patch
 $ cd ..
@@ -7505,7 +7504,7 @@ Here are 3 examples of how to apply these patches:
 
 ```
 # First an example of moving from 2.6.12 to 2.6.13-rc3
-$ cd ~/linux-2.6.12					# change into the 2.6.12 source dir
+$ cd ~/linux-2.6.12				# change into the 2.6.12 source dir
 $ patch -p1 < ../patch-2.6.13-rc3		# apply the 2.6.13-rc3 patch
 $ cd ..
 $ mv linux-2.6.12 linux-2.6.13-rc3		# rename the source dir
@@ -7535,13 +7534,13 @@ Here are some examples of how to apply these patches:
 
 ```
 # moving from 2.6.12 to 2.6.12-git1
-$ cd ~/linux-2.6.12						# change to the kernel source dir
-$ patch -p1 < ../patch-2.6.12-git1			# apply the 2.6.12-git1 patch
+$ cd ~/linux-2.6.12				# change to the kernel source dir
+$ patch -p1 < ../patch-2.6.12-git1		# apply the 2.6.12-git1 patch
 $ cd ..
-$ mv linux-2.6.12 linux-2.6.12-git1			# rename the kernel source dir
+$ mv linux-2.6.12 linux-2.6.12-git1		# rename the kernel source dir
 
 // moving from 2.6.12-git1 to 2.6.13-rc2-git3
-$ cd ~/linux-2.6.12-git1					# change to the kernel source dir
+$ cd ~/linux-2.6.12-git1			# change to the kernel source dir
 // revert the 2.6.12-git1 patch. we now have a 2.6.12 kernel
 $ patch -p1 -R < ../patch-2.6.12-git1
 // apply the 2.6.13-rc2 patch. the kernel is now 2.6.13-rc2
@@ -7564,13 +7563,13 @@ Here are some examples of applying the -mm patches:
 $ cd ~/linux-2.6.12				# change to the 2.6.12 source dir
 $ patch -p1 < ../2.6.12-mm1			# apply the 2.6.12-mm1 patch
 $ cd ..
-$ mv linux-2.6.12 linux-2.6.12-mm1	# rename the source appropriately
+$ mv linux-2.6.12 linux-2.6.12-mm1		# rename the source appropriately
 
 # moving from 2.6.12-mm1 to 2.6.13-rc3-mm3
 $ cd ~/linux-2.6.12-mm1
-$ patch -p1 -R < ../2.6.12-mm1		# revert the 2.6.12-mm1 patch. we now have a 2.6.12 source
-$ patch -p1 < ../patch-2.6.13-rc3	# apply the 2.6.13-rc3 patch. we now have a 2.6.13-rc3 source
-$ patch -p1 < ../2.6.13-rc3-mm3		# apply the 2.6.13-rc3-mm3 patch
+$ patch -p1 -R < ../2.6.12-mm1			# revert the 2.6.12-mm1 patch. we now have a 2.6.12 source
+$ patch -p1 < ../patch-2.6.13-rc3		# apply the 2.6.13-rc3 patch. we now have a 2.6.13-rc3 source
+$ patch -p1 < ../2.6.13-rc3-mm3			# apply the 2.6.13-rc3-mm3 patch
 $ cd ..
 $ mv linux-2.6.12-mm1 linux-2.6.13-rc3-mm3	# rename the source dir
 ```
@@ -7583,10 +7582,10 @@ The simplest way to generate a patch is to have two source trees, one that is th
 
 ```
 # cd /home/
-# tar xvf linux-3.2.tar.bz2				// unzip source code to /home/linux-3.2
-# mv linux-3.2 linux-3.2-vanilla			// source tree without change
-# tar xvf linux-3.2.tar.bz2				// unzip source code to /home/linux-3.2
-# vi linux-3.2/some/files				// make your changes
+# tar xvf linux-3.2.tar.bz2			// unzip source code to /home/linux-3.2
+# mv linux-3.2 linux-3.2-vanilla		// source tree without change
+# tar xvf linux-3.2.tar.bz2			// unzip source code to /home/linux-3.2
+# vi linux-3.2/some/files			// make your changes
 # diff -uprN -X linux-3.2-vanilla/Documentation/dontdiff linux-3.2-vanilla/ linux-3.2/ > my-patch
 ```
 
@@ -7594,7 +7593,7 @@ Alternatively, if you need to diff only a single file, you can do
 
 ```
 # cp linux-3.2/mm/memory.c linux-3.2/mm/memory.c.orig
-# vi linux-3.2/mm/memory.c				// make your change
+# vi linux-3.2/mm/memory.c			// make your change
 # diff -up linux-3.2/mm/memory.c{.orig,} > my-patch
 ```
 

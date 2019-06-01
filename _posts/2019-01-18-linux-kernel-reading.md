@@ -14,7 +14,7 @@ This article records my reading of Linux kernel based on Linux v3.2.
 ## 1.1 Linux Cross Reference
 
 * [Linux Cross Reference (LXR)](http://lxr.linux.no/)
-* [Cross-Referenced Linux and Device Driver Code](http://www.cs.fsu.edu/~baker/devices/)
+* [Linux Kernel & Device Driver Programming](http://www.cs.fsu.edu/~baker/devices/)
 * [Linux Syscall Reference](http://syscalls.kernelgrok.com/)
 * [FreeBSD and Linux Kernel Cross-Reference](http://fxr.watson.org/)
 
@@ -24,13 +24,10 @@ Git repositories hosted at [kernel.org](https://git.kernel.org/cgit/).
 
 Refer to chapter 6.1.3 of **Pro Git** for the Git workflow of Linux kernel:
 
-1) Regular developers work on their topic branch and rebase their work on top of master. The master branch is that of the dictator.
-
-2) Lieutenants merge the developers' topic branches into their master branch.
-
-3) The dictator merges the lieutenants' master branches into the dictator's master branch.
-
-4) The dictator pushes their master to the reference repository so the other developers can rebase on it.
+* 1) Regular developers work on their topic branch and rebase their work on top of master. The master branch is that of the dictator.
+* 2) Lieutenants merge the developers' topic branches into their master branch.
+* 3) The dictator merges the lieutenants' master branches into the dictator's master branch.
+* 4) The dictator pushes their master to the reference repository so the other developers can rebase on it.
 
 **NOTE**: For Linux kernel developers, maybe it’s better for them to rebase their work on top of **linux-next** branch, refer to [1.2.2 linux-next tree](#1-2-2-linux-next-tree).
 
@@ -73,6 +70,7 @@ chenwx@chenwx:~/git $ git tag -l --sort="v:refname" | tail
   v2.4.0-rc0
 chenwx@chenwx:~/git $ git checkout v2.3.5
 
+chenwx@chenwx:~/git $ sudo make prefix=/usr all doc info
 chenwx@chenwx:~/git $ sudo make prefix=/usr install install-doc install-html install-info
 chenwx@chenwx:~/git $ git --version
 
@@ -95,7 +93,7 @@ Materials related to **linux-next** tree:
 * [http://lwn.net/Articles/289013/](http://lwn.net/Articles/289013/)
 * [http://lwn.net/Articles/289245/](http://lwn.net/Articles/289245/)
 
-This tree, to be maintained by *Stephen Rothwell*, is intended to be a gathering point for the patches which are planned to be merged in the next development cycle.
+The **linux-next** tree, to be maintained by *Stephen Rothwell*, is intended to be a gathering point for the patches which are planned to be merged in the next development cycle.
 
 **NOTE 1**: As a kernel developer, you should send patches against **linux-next** tree, not the **mainline** tree.
 
@@ -125,11 +123,11 @@ chenwx@chenwx ~/linux $ git br -r | grep linux-next
 
 #### 1.2.2.1 How to track linux-next tree
 
-Tracking **linux-next** tree is a little bit different from usual trees. In particular, since *Stephen Rothwell* rebases it quite frequently, you shouldn't do a *git pull* on **linux-next**.
+Tracking **linux-next** tree is a little bit different from usual trees. In particular, since *Stephen Rothwell* rebases it quite frequently, you shouldn't do a *git pull* on **linux-next** tree.
 
-Note that **linux-next** tree isn't an *evolving* tree like mainline tree, it's best to see it as being a list of individual kernels released as tags, i.e. you shouldn't be merging one into another.
+Note that **linux-next** tree isn't an *evolving* tree like **mainline** tree, it's best to see it as being a list of individual kernels released as tags, i.e. you shouldn't be merging one into another.
 
-Use following commands to track **linux-next** tree:
+Use the following commands to track **linux-next** tree:
 
 ```
 # (1) Change directory to ~/linux
@@ -161,7 +159,7 @@ Switched to a new branch 'ec-task10'
 
 #### 1.2.2.2 Subsystem trees
 
-**NOTE**: Refer to file [*linux/Next/Trees*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/Trees) in **linux-next** tree for subsystem trees.
+**NOTE**: Refer to the file [*linux/Next/Trees*](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/tree/Next/Trees) in **linux-next** tree for subsystem trees.
 
 ##### 1.2.2.2.1 linux-staging tree
 
@@ -201,8 +199,6 @@ This is *Linux Torvalds*' git tree. There is only one branch, that's **master** 
 **NOTE 2**: Linux Torvalds负责维护mainline tree，在每个开发周期的merge window，新功能补丁会被合入mainline tree.
 
 ### 1.2.4 linux-stable tree
-
-Refer to [Documentataion/translations/zh_CN/stable_kernel_rules.txt](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/Documentation/translations/zh_CN/stable_kernel_rules.txt).
 
 Linux kernel stable tree:
 
@@ -390,11 +386,14 @@ lkml.org
 
 可通过下列方式查看某天的邮件：
 
-https://lkml.org/lkml/\<Year\>/\<Month\>/\<Day\>
+* https://lkml.org/lkml/\<Year\>/\<Month\>/\<Day\>
+* 例如：[https://lkml.org/lkml/2014/3/31](https://lkml.org/lkml/2014/3/31)
 
-例如：[https://lkml.org/lkml/2014/3/31](https://lkml.org/lkml/2014/3/31)
+最新的100封邮件:
 
-**NOTE**: 可以通过左侧的"Get diff 1"提取邮件中的Patch.
+* [https://lkml.org/lkml/last100/](https://lkml.org/lkml/last100/)
+
+**NOTE**: 可以通过左侧的"**Get diff 1**"来提取邮件中的Patch。
 
 ### 1.3.2 lkml.iu.edu
 
@@ -417,6 +416,7 @@ marc.info
 ```
 chenwx@chenwx ~/linux $ git tag -l v3.2
 v3.2
+
 chenwx@chenwx ~/linux $ git lc v3.2
 commit 805a6af8dba5dfdd35ec35dc52ec0122400b2610 (HEAD, tag: v3.2)
 Author:     Linus Torvalds <torvalds@linux-foundation.org>
@@ -430,11 +430,9 @@ CommitDate: Wed Jan 4 15:55:44 2012 -0800
  1 file changed, 1 insertion(+), 1 deletion(-)
 ```
 
-Refer to <a href="{{ site.base-url }}/2018/05/15/linux-kernel-releases.html">Linux Kernel Releases</a>.
-
 ### 1.4.1 Linux Versions
 
-参见 **Understanding the Linux Kernel, 3rd Edition** 第 1. Introduction章第Linux Versions 节：
+参见 **Understanding the Linux Kernel, 3rd Edition** 第 1. Introduction章 第Linux Versions 节：
 
 Up to kernel version 2.5, Linux identified kernels through a simple numbering scheme. Each version was characterized by three numbers, separated by periods. The first two numbers were used to identify the version; the third number identified the release. *The second version number identified the type of kernel: if it was even, it denoted a stable version; otherwise, it denoted a development version.*
 
@@ -524,6 +522,11 @@ The Linux kernel release notes are collected on website [Linux Kernel Newbies](h
 * [Linux v4.15](https://kernelnewbies.org/Linux_4.15)
 * [Linux v4.16](https://kernelnewbies.org/Linux_4.16)
 * [Linux v4.17](https://kernelnewbies.org/Linux_4.17)
+* [Linux v4.18](https://kernelnewbies.org/Linux_4.18)
+* [Linux v4.19](https://kernelnewbies.org/Linux_4.19)
+* [Linux v4.20](https://kernelnewbies.org/Linux_4.20)
+* [Linux v5.0](https://kernelnewbies.org/Linux_5.0)
+* [Linux v5.1](https://kernelnewbies.org/Linux_5.1)
 
 ## 1.5 Linux Kernel Bug Reporting
 
@@ -535,7 +538,7 @@ Linux内核开发者用于追踪内核Bug的网站
 
 参见下列文档：
 
-* [Documentation/process/](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/process)
+* Kernel development process in [Documentation/process/](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/process)
 * [How to Participate in the Linux Community](/docs/How_to_Participate_in_the_Linux_Community.pdf) from Linux Foundation
 
 Linux kernel development cycle:
@@ -557,24 +560,15 @@ Linux kernel code flow:
 
 ## 1.8 Linux Distributions
 
-GNU/Linux Distribution Timeline:
-
-* [http://futurist.se/gldt/](http://futurist.se/gldt/)
-
-The LWN.net Linux Distribution List:
-
-* [http://lwn.net/Distributions/](http://lwn.net/Distributions/)
+* [GNU/Linux Distribution Timeline](http://futurist.se/gldt/)
+* [The LWN.net Linux Distribution List](http://lwn.net/Distributions/)
 
 ### 1.8.1 Git trees for linux distributions
 
 Git trees for linux distributions:
 
-| Linux distributions | Git trees |
-| :------------------ | :-------- |
-| Ubuntu              | [https://wiki.ubuntu.com/Kernel/Dev/KernelGitGuide](https://wiki.ubuntu.com/Kernel/Dev/KernelGitGuide) |
-| LinuxMint           | [https://github.com/linuxmint](https://github.com/linuxmint) |
-
-<p/>
+* [Ubuntu](https://wiki.ubuntu.com/Kernel/Dev/KernelGitGuide)
+* [Linux Mint](https://github.com/linuxmint)
 
 ### 1.8.2 How to check version of linux distributions
 
@@ -739,7 +733,7 @@ linux/目录下的文件：
 | COPYING | 版权声明 |
 | CREDITS | Linux内核贡献人员列表 |
 | MAINTAINERS | Linux维护人员信息 |
-| REPORTING-BUGS | 报告Bug的流程及模板 |
+| REPORTING-BUGS | 报告Bug的流程及模板。 The document is moved to Documentation/admin-guide/reporting-bugs.rst in v4.9, see the following commit:<br>docs-rst: create an user's manual book<br>commit: 9d85025b0418163fae079c9ba8f8445212de8568 |
 
 <p/>
 
@@ -747,7 +741,7 @@ Documentation/目录下的文件：
 
 | Documentation/ | Description |
 | :------------- | :---------- |
-| 00-INDEX | Documentation/下各目录的内容 |
+| 00-INDEX | Documentation/下各目录的内容。 The document is removed in v4.19, see the following commit:<br>Drop all 00-INDEX files from Documentation/<br>commit: a7ddcea58ae22d85d94eabfdd3de75c3742e376b |
 | email-clients.txt | 使用邮件发送patch时， 需要对邮件客户端进行特殊配置。 |
 | Changes | 列出了成功编译和运行内核所需的各种软件包的最小集合。 |
 | CodingStyle | 描述了Linux内核编码风格， 和一些隐藏在背后的基本原理。 所有的想加入内核的新代码应当遵循这篇文档的指导。 绝大数的内核代码维护者只愿意接受那些符合这篇文档描述的风格的补丁， 许多内核开发者也只愿意审查那些符合Linux内核编码风格的代码。 |
@@ -767,14 +761,14 @@ Documentation/目录下的文件：
 检查内核代码风格：
 
 ```
-step 1) 运行脚本scripts/Lindent使源代码符合Linux Kernel的代码风格：
-# scripts/Lindent <file>
+// step 1) 运行脚本scripts/Lindent使源代码符合Linux Kernel的代码风格：
+$ scripts/Lindent <file>
 
-或者，运行下列命令来格式化源代码：
-# indent -kr -i8 -ts8 -sob -l80 -ss -bs -psl <file>
+// 或者，运行下列命令来格式化源代码：
+$ indent -kr -i8 -ts8 -sob -l80 -ss -bs -psl <file>
 
-step 2) 运行下列脚本来检查代码格式的合法性：
-# scripts/checkpatch.pl --terse --file <file>
+// step 2) 运行下列脚本来检查代码格式的合法性：
+$ scripts/checkpatch.pl --terse --file <file>
 ```
 
 **NOTE 1**: The style checker ```scripts/chechpatch.pl``` should be viewed as a guide not as the final word. If your code looks better with a violation then its probably best left alone.
@@ -850,7 +844,7 @@ chenwx@chenwx ~/linux $ firefox ../linux-build/Documentation/DocBook/index.html 
 | certs/ | Since Linux kernel version 3.7 onwards, support has been added for signed kernel modules. When enabled, the Linux kernel will only load kernel modules that are digitally signed with the proper key. This allows further hardening of the system by disallowing unsigned kernel modules, or kernel modules signed with the wrong key, to be loaded. Malicious kernel modules are a common method for loading rootkits on a Linux system. Refer to [Signed Kernel Module Support](/docs/signed_kernel_module_support.pdf). |
 | crypto/ | 内核本身所用的加密API，实现了常用的加密和散列算法，还有一些压缩和CRC校验算法。 |
 | drivers/ | 包含内核中所有的设备驱动程序，每种驱动程序占用一个子目录，如块设备，scsi设备驱动程序等。 |
-| firmware/ | 使用某些驱动程序而需要的设备固件。 |
+| firmware/ | 使用某些驱动程序而需要的设备固件。 The folder is moved to drivers/base/firmware_loader/builtin/ in v5.0, see the following commit:<br>firmware_loader: move firmware/ to drivers/base/firmware_loader/builtin/<br>commit: f96182e959a41e35df0adae9ae09a49ff8a618a8 |
 | fs/ | 包含所有文件系统的代码，每种文件系统占用一个子目录，如ext2、ext3、ext4等。 |
 | include/ | 包含编译内核代码时所需的大部分头文件。与体系架构无关的头文件包含在include/linux目录下。 |
 | init/ | 包含内核的初始化代码，这是内核开始工作的起点。 |
@@ -863,8 +857,7 @@ chenwx@chenwx ~/linux $ firefox ../linux-build/Documentation/DocBook/index.html 
 | scripts/ | 包含编译内核所用的脚本等文件。 |
 | security/ | 包括了不同的Linux安全模型的代码，例如: NSA Security-Enhanced Linux. |
 | sound/ | 声卡驱动以及其他声音相关的代码。 |
-| tools/ | Tools helpful for developing Linux. |
-| perf/ | 由内核维护人员Ingo Molnar等人开发的Linux内核综合性能概要分析工具。 |
+| tools/ | Tools helpful for developing Linux. 目录 tools/perf/ 中包含由内核维护人员Ingo Molnar等人开发的Linux内核综合性能概要分析工具。 |
 | usr/ | Early user-space code (called initramfs). |
 | virt/ | Virtualization infrastructure. |
 
@@ -1123,60 +1116,7 @@ chenwx@chenwx ~/linux $ ll Makefile
 
 We alway input make commands in the root directory of Linux kernel repository, that's the top Makefile is the main entry point of kbuild system.
 
-##### 3.2.1A.1.1 Makefile Tree
-
-The top Makefile includes the following Makefiles:
-
-```
-linux-3.2/Makefile
-+- include scripts/Kbuild.include
-|  +- build := -f $(srctree)/scripts/Makefile.build obj
-+- include arch/$(SRCARCH)/Makefile
-|  |  >> for x86, includes linux-3.2/arch/x86/Makefile
-|  +- include $(srctree)/arch/x86/Makefile_32.cpu
-```
-
-and where, the ```linux-3.2/scripts/Makefile.build``` includes the following scripts:
-
-```
-linux-3.2/scripts/Makefile.build
-+- -include include/config/auto.conf
-+- include scripts/Kbuild.include
-+- include $(kbuild-file)
-|  >> 包含指定目录下的Kbuild，或者Makefile(若不存在Kbuild的话)
-+- include scripts/Makefile.lib
-+- include scripts/Makefile.host
-+- include $(cmd_files)
-```
-
-Run the following commands to check the relationships between Makefile and Kbuild:
-
-```
-chenwx@chenwx ~/linux $ make -d O=../linux-build bzImage > ../linux-build/build.log
-
-chenwx@chenwx ~/linux $ grep "Reading makefile" ../linux-build/build.log
-Reading makefiles...
-Reading makefile 'Makefile'...
-Reading makefiles...
-Reading makefile '/home/chenwx/linux/Makefile'...
-Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
-Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
-Reading makefile 'include/config/auto.conf.cmd' (search path) (don't care) (no ~ expansion)...
-Reading makefile 'arch/x86/Makefile' (search path) (no ~ expansion)...
-Reading makefile 'arch/x86/Makefile_32.cpu' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.gcc-plugins' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.kasan' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.extrawarn' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.ubsan' (search path) (no ~ expansion)...
-Reading makefile '.vmlinux.cmd' (search path) (no ~ expansion)...
-Reading makefiles...
-Reading makefile '/home/chenwx/linux/scripts/Makefile.build'...
-Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
-Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
-Reading makefile '/home/chenwx/linux/arch/x86/entry/syscalls/Makefile' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.lib' (search path) (no ~ expansion)...
-...
-```
+Refer to section [Appendix A: Makefile Tree](#appendix-a-makefile-tree).
 
 #### 3.2.1A.2 Sub-Makefile
 
@@ -1222,7 +1162,7 @@ chenwx@chenwx ~/linux $ ll scripts/Makefile*
 -rw-rw-r-- 1 chenwx chenwx 1.1K Jul 22 20:39 scripts/Makefile.ubsan
 ```
 
-Those Makefile scripts are included in the top Makefile, and come into being a tree with Makefile, refer to [3.2.1A.1.1 Makefile Tree](#3-2-1a-1-1-makefile-tree).
+Those Makefile scripts are included in the top Makefile, and come into being a tree with Makefile, refer to [Appendix A: Makefile Tree](#appendix-a-makefile-tree).
 
 ### 3.2.2 Kbuild编译系统概述
 
@@ -1230,7 +1170,7 @@ Those Makefile scripts are included in the top Makefile, and come into being a t
 
 Kbuild Makefile规定所有编译进内核的目标文件都保存在$(obj-y)列表中，而该列表依赖于内核的配置。Kbuild编译$(obj-y)列表中的所有文件。然后，调用"$(LD) -r"将它们连接到*/build-in.o，该类文件会被顶层Makefile链接进vmlinux中。
 
-注意：在Documentation/kbuild/makefiles.txt中，包含下列描述：
+**NOTE**: 在Documentation/kbuild/makefiles.txt中，包含下列描述：
 
 > The order of files in $(obj-y) is significant. Duplicates in the lists are allowed: the first instance will be linked into built-in.o and succeeding instances will be ignored.
 
@@ -1240,7 +1180,7 @@ Kbuild Makefile规定所有编译进内核的目标文件都保存在$(obj-y)列
 
 可以根据下列几个方面来确定$(obj-y)中文件的顺序:
 
-1) 确定目录及其子目录的编译顺序，参见[3.2.2.4 递归访问下级目录](#3-2-2-4-)节和[Appendix A: make -f scripts/Makefile.build obj=列表](#appendix-a-make-f-scripts-makefile-build-obj-)节;
+1) 确定目录及其子目录的编译顺序，参见[3.2.2.4 递归访问下级目录](#3-2-2-4-)节和[Appendix B: make -f scripts/Makefile.build obj=列表](#appendix-b-make-f-scripts-makefile-build-obj-)节;
 
 2) 根据该目录中的Makefile及配置文件.config来确定该目录下文件的编译顺序。例如linux/fs/ext2/Makefile，根据宏CONFIG_EXT2_*的取值就可以确定文件的编译顺序了:
 
@@ -1263,15 +1203,15 @@ obj-$(CONFIG_FOO) += isdn.o
 isdn-objs := isdn_net_lib.o isdn_v110.o isdn_common.o
 ```
 
-Kbuild需要知道所编译的模块是基于哪些源文件，所以需要通过变量$(<module_name>-objs)来告诉它。在本例中，isdn是模块名，Kbuild将编译在$(isdn-objs)中列出的所有文件，然后使用"$(LD) -r"生成isdn.o。
+Kbuild需要知道所编译的模块是基于哪些源文件，所以需要通过变量```$(<module_name>-objs)```来告诉它。在本例中，isdn是模块名，Kbuild将编译在$(isdn-objs)中列出的所有文件，然后使用"$(LD) -r"生成isdn.o。
 
-注：上述语法同样适用于将源文件编译进内核。
+**NOTE**: 上述语法同样适用于将源文件编译进内核。
 
 #### 3.2.2.3 编译成库文件/$(lib-y)/$(lib-m)
 
 在$(lib-y)中列出的文件用来编译成该目录下的一个库文件lib.a，例如lib/lib.a和arch/x86/lib/lib.a。通常，$(lib-y)用于lib/和arch/\*/lib目录。
 
-在$(obj-y)与$(lib-y)中同时列出的文件，因为该文件在内核和库文件中都是可以访问的，所以该文件是不会被包含在库文件中的。在，$(lib-m)中的文件就要包含在lib.a库文件中。参见scripts/Makefile.lib:
+在$(obj-y)与$(lib-y)中同时列出的文件，因为该文件在内核和库文件中都是可以访问的，所以该文件是不会被包含在库文件中的。在$(lib-m)中的文件就要包含在lib.a库文件中。参见scripts/Makefile.lib:
 
 ```
 # Figure out what we need to build from the various variables
@@ -1288,7 +1228,7 @@ obj-m := $(filter-out $(obj-y),$(obj-m))
 lib-y := $(filter-out $(obj-y), $(sort $(lib-y) $(lib-m)))
 ```
 
-注：Kbuild Makefile可以同时列出要编译进内核的文件和要编译成库的文件。所以，在一个目录里可以同时存在built-in.o和lib.a两个文件，例如由checksum.o和delay.o两个文件创建一个库文件lib.a：
+**NOTE**: Kbuild Makefile可以同时列出要编译进内核的文件和要编译成库的文件。所以，在一个目录里可以同时存在built-in.o和lib.a两个文件，例如由checksum.o和delay.o两个文件创建一个库文件lib.a：
 
 ```
 #arch/x86/lib/Makefile
@@ -1323,6 +1263,7 @@ cmdline.o:     file format elf32-i386
 rw-r--r-- 0/0   1936 Jan  1 02:00 1970 cmdline.o
 
 ...
+
 chenwx@chenwx ～/linux $ readelf -A lib/lib.a
 
 File: lib/lib.a(argv_split.o)
@@ -1362,7 +1303,77 @@ AFLAGS_$@
 
 这些EXTRA_开头的大写字母变量都是编译标志，所有的EXTRA_变量只在所定义的Kbuild Makefile中起作用。EXTRA_变量可以在Kbuild Makefile中所有命令中使用。
 
-参见[Documentation/kbuild/makefiles.txt](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/kbuild/makefiles.txt)第3.7 Compilation flags节。
+参见[Documentation/kbuild/makefiles.txt](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/kbuild/makefiles.txt) 第3.7 Compilation flags节:
+
+```
+--- 3.7 Compilation flags
+
+    ccflags-y, asflags-y and ldflags-y
+	These three flags apply only to the kbuild makefile in which they
+	are assigned. They are used for all the normal cc, as and ld
+	invocations happening during a recursive build.
+	Note: Flags with the same behaviour were previously named:
+	EXTRA_CFLAGS, EXTRA_AFLAGS and EXTRA_LDFLAGS.
+	They are still supported but their usage is deprecated.
+
+	ccflags-y specifies options for compiling with $(CC).
+
+	Example:
+		# drivers/acpi/acpica/Makefile
+		ccflags-y			:= -Os -D_LINUX -DBUILDING_ACPICA
+		ccflags-$(CONFIG_ACPI_DEBUG)	+= -DACPI_DEBUG_OUTPUT
+
+	This variable is necessary because the top Makefile owns the
+	variable $(KBUILD_CFLAGS) and uses it for compilation flags for the
+	entire tree.
+
+	asflags-y specifies options for assembling with $(AS).
+
+	Example:
+		#arch/sparc/kernel/Makefile
+		asflags-y := -ansi
+
+	ldflags-y specifies options for linking with $(LD).
+
+	Example:
+		#arch/cris/boot/compressed/Makefile
+		ldflags-y += -T $(srctree)/$(src)/decompress_$(arch-y).lds
+
+    subdir-ccflags-y, subdir-asflags-y
+	The two flags listed above are similar to ccflags-y and asflags-y.
+	The difference is that the subdir- variants have effect for the kbuild
+	file where they are present and all subdirectories.
+	Options specified using subdir-* are added to the commandline before
+	the options specified using the non-subdir variants.
+
+	Example:
+		subdir-ccflags-y := -Werror
+
+    CFLAGS_$@, AFLAGS_$@
+
+	CFLAGS_$@ and AFLAGS_$@ only apply to commands in current
+	kbuild makefile.
+
+	$(CFLAGS_$@) specifies per-file options for $(CC).  The $@
+	part has a literal value which specifies the file that it is for.
+
+	Example:
+		# drivers/scsi/Makefile
+		CFLAGS_aha152x.o =   -DAHA152X_STAT -DAUTOCONF
+		CFLAGS_gdth.o    = # -DDEBUG_GDTH=2 -D__SERIAL__ -D__COM2__ \
+				     -DGDTH_STATISTICS
+
+	These two lines specify compilation flags for aha152x.o and gdth.o.
+
+	$(AFLAGS_$@) is a similar feature for source files in assembly
+	languages.
+
+	Example:
+		# arch/arm/kernel/Makefile
+		AFLAGS_head.o        := -DTEXT_OFFSET=$(TEXT_OFFSET)
+		AFLAGS_crunch-bits.o := -Wa,-mcpu=ep9312
+		AFLAGS_iwmmxt.o      := -Wa,-mcpu=iwmmxt
+```
 
 ### 3.2.3 Make命令
 
@@ -1681,7 +1692,7 @@ $(host-csingle): $(obj)/%: $(src)/%.c FORCE
 	$(call if_changed_dep,host-csingle)
 ```
 
-注：在linux-2.6.18中，script/basic目录中包含两个程序：fixdep, docproc
+**NOTE**: 在linux-2.6.18中，script/basic目录中包含两个程序：fixdep, docproc。
 
 #### 3.3.1.2 outputmakefile
 
@@ -1923,7 +1934,7 @@ $(host-cmulti): $(obj)/%: $(host-cobjs) $(host-cshlib) FORCE
 在scripts/kconfig/Makefile中，目标config下的规则 $< --oldaskconfig $(Kconfig) 被扩展为：
 scripts/kconfig/conf --oldaskconfig Kconfig
 
-即调用conf程序解析顶层内核配置文件Kconfig(注：顶层配置文件中又引入与体系结构有关的配置文件，参见下文)，并将用户的配置结果输出到.config文件中(通过scripts\kconfig\confdata.c中的函数conf_write())。
+即调用conf程序解析顶层内核配置文件Kconfig(NOTE: 顶层配置文件中又引入与体系结构有关的配置文件，参见下文)，并将用户的配置结果输出到.config文件中(通过scripts\kconfig\confdata.c中的函数conf_write())。
 
 ```
 config SRCARCH
@@ -1968,7 +1979,7 @@ make randconfig		// Create a ./.config file by setting symbol values to random v
 make listnewconfig	// List new options
 ```
 
-注：可通过执行命令make help，查看系统支持的Configuration Targets.
+**NOTE**: 可通过执行命令make help，查看系统支持的Configuration Targets.
 
 执行make \*config命令，会调用顶层Makefile中的目标：
 
@@ -2159,7 +2170,7 @@ $(vmlinux-dirs) <= prepare <= prepare0 <= archprepare <= prepare1 <= include/con
 
 **include/config/auto.conf**
 
-与.config文件中的配置完全相同 (注意：这两个文件中行的顺序可能不同，可通过执行下列命令来比较这两个文件的差异):
+与.config文件中的配置完全相同 (NOTE: 这两个文件中行的顺序可能不同，可通过执行下列命令来比较这两个文件的差异):
 
 ```
 chenwx@chenwx ~/linux $ cd ../linux-build
@@ -2180,7 +2191,7 @@ chenwx@chenwx ~/linux-build $
 
 本文件包含了include/config/auto.conf中的部分配置信息，且全为大写字母。
 
-由于include/config/auto.conf与.config完全相同，因此顶层Makefile通过下列语句将.config包含进编译系统中(注意：当include/config/auto.conf生成后，make会重新读取Makefile文件，因而可以通过该语句读取最新的include/config/auto.conf)：
+由于include/config/auto.conf与.config完全相同，因此顶层Makefile通过下列语句将.config包含进编译系统中(NOTE: 当include/config/auto.conf生成后，make会重新读取Makefile文件，因而可以通过该语句读取最新的include/config/auto.conf)：
 
 ```
 # Read in config
@@ -2243,7 +2254,7 @@ Makefile.modinst
 Makefile.modpost
 ```
 
-各Makefile之间存在调用关系，这形成了一棵树，参见[Appendix B: Makefile Tree](#appendix-b-makefile-tree)节。
+各Makefile之间存在调用关系，这形成了一棵树，参见[Appendix A: Makefile Tree](#appendix-a-makefile-tree)节。
 
 ### 3.4.1 Makefile的Default Target
 
@@ -2337,7 +2348,7 @@ oneDir/twoDir/*.ko (modules)
 # make -C <kernel_src_dir> SUBDIRS=$PWD modules
 ```
 
-注：KBUILD_EXTMOD称为Kbuild扩展模式，若执行命令make M=dir，则变量KBUILD_EXTMOD被置为dir，继而执行下列规则：
+**NOTE**: KBUILD_EXTMOD称为Kbuild扩展模式，若执行命令make M=dir，则变量KBUILD_EXTMOD被置为dir，继而执行下列规则：
 
 ```
 # That's our default target when none is given on the command line
@@ -2982,7 +2993,7 @@ make -f scripts/Makefile.build obj=lib
 make -f scripts/Makefile.build obj=arch/x86/lib/	// 以x86体系为例，由arch/x86/Makefile中的libs-y引入
 ```
 
-当执行这些命令时，如果这些目录下存在子目录，则make会递归调用其子目录下的Kbuild或Makefile(若不存在Kbuild文件)，详细的命令调用列表参见[Appendix A: make -f scripts/Makefile.build obj=列表](#appendix-a-make-f-scripts-makefile-build-obj-)节。
+当执行这些命令时，如果这些目录下存在子目录，则make会递归调用其子目录下的Kbuild或Makefile(若不存在Kbuild文件)，详细的命令调用列表参见[Appendix B: make -f scripts/Makefile.build obj=列表](#appendix-b-make-f-scripts-makefile-build-obj-)节。
 
 ###### 3.4.2.1.3.1 make -f scripts/Makefile.build obj=XXX命令的执行过程
 
@@ -3972,7 +3983,7 @@ cmd_.tmp_vmlinux3 := ld -m elf_i386 --build-id -o .tmp_vmlinux3 -T arch/x86/kern
 cmd_vmlinux := ld -m elf_i386 --build-id -o vmlinux -T arch/x86/kernel/vmlinux.lds arch/x86/kernel/head_32.o arch/x86/kernel/head32.o arch/x86/kernel/head.o arch/x86/kernel/init_task.o  init/built-in.o --start-group  usr/built-in.o  arch/x86/built-in.o  kernel/built-in.o  mm/built-in.o  fs/built-in.o  ipc/built-in.o  security/built-in.o  crypto/built-in.o  block/built-in.o  lib/lib.a  arch/x86/lib/lib.a  lib/built-in.o  arch/x86/lib/built-in.o  drivers/built-in.o  sound/built-in.o  firmware/built-in.o  arch/x86/math-emu/built-in.o  arch/x86/power/built-in.o  net/built-in.o --end-group .tmp_kallsyms2.o
 ```
 
-注：本命令中最后一个参数为.tmp_kallsyms2.o，也可能为.tmp_kallsyms3.o，具体取值与配置有关，参见[3.4.2.6 $(kallsyms.o)](#3-4-2-6-kallsyms-o-)节。
+**NOTE**: 本命令中最后一个参数为.tmp_kallsyms2.o，也可能为.tmp_kallsyms3.o，具体取值与配置有关，参见[3.4.2.6 $(kallsyms.o)](#3-4-2-6-kallsyms-o-)节。
 
 ##### 3.4.2.6.2 cmd_kallsyms
 
@@ -6560,7 +6571,7 @@ There is only one caution, though. Once you initially select an output directory
 # make menuconfig O=../linux-build
 
 // 建立编译时所需的从属文件。
-// 注：在linux-3.2中，已经不需要执行该命令了，执行make dep的输出为：
+// NOTE: 在linux-3.2中，已经不需要执行该命令了，执行make dep的输出为：
 // *** Warning: make dep is unnecessary now.
 # make dep
 
@@ -7107,7 +7118,7 @@ chenwx@chenwx ~/linux $ dpkg -L linux-headers-4.1.5-alex
 
 然后，比较新老内核的dmesg信息，看看新的内核有没有编译错误。
 
-使用dmesg查看隐藏的问题，对于定位新代码带来的bug是一个好方法。一般来说，dmesg不会输出新的crit, alert, emerg级别的错误信息，也不应该出现新的err级别的信息。要注意的是那些warn级别的日志信息。注意：warn级别的信息并不是坏消息，新代码带来新的警告信息，不会给内核带去严重的影响。
+使用dmesg查看隐藏的问题，对于定位新代码带来的bug是一个好方法。一般来说，dmesg不会输出新的crit, alert, emerg级别的错误信息，也不应该出现新的err级别的信息。要注意的是那些warn级别的日志信息。NOTE: warn级别的信息并不是坏消息，新代码带来新的警告信息，不会给内核带去严重的影响。
 
 运行脚本[dmesg_msg_save.sh](https://github.com/chenweixiang/scripts/blob/master/dmesg_msg_save.sh)输出日志文件：
 
@@ -7411,7 +7422,7 @@ Most recent patches are linked from the front page, but they also have specific 
 
 ### 3.6.2 如何应用内核补丁
 
-注意：安装内核补丁前，需要先进入老版本的内核源代码目录，以linux-3.2为例：
+**NOTE**: 安装内核补丁前，需要先进入老版本的内核源代码目录，以linux-3.2为例：
 
 ```
 # cd ~/linux-3.2
@@ -7792,7 +7803,7 @@ ENTRY(_start)
 
 ##### 4.3.4.1.1 arch/x86/boot/header.S
 
-注：几乎header.S中所有的代码都是在准备实模式下的C语言环境。
+**NOTE**: 几乎header.S中所有的代码都是在准备实模式下的C语言环境。
 
 ```
 /*
@@ -7972,7 +7983,7 @@ void main(void)
  * struct boot_params定义于arch/x86/include/asm/bootparam.h
  * 变量boot_params是main.c的全局变量，且未被初始化，故位于bss段。
  * GRUB把vmlinuz加载到内存后，boot_params就位于_bss_start的开始位置。
- * 此后，当启动保护模式的分页功能后，第一个页面就是从它开始的(注：不是从0x0开始)。
+ * 此后，当启动保护模式的分页功能后，第一个页面就是从它开始的(NOTE: 不是从0x0开始)。
  * 故内核注释它为zeropage，即所谓的0号页面，足见变量boot_params的重要性。
  */
 struct boot_params boot_params __attribute__((aligned(16)));
@@ -8118,7 +8129,7 @@ static void set_bios_mode(void)
 	ireg.bx = 2;
 	/*
 	 * intcall是初始化阶段的中断处理函数，此处调用0x15中断，并将BIOS的寄存器设置成ireg变量的值。
-	 * 注：初始化阶段至此，仍处于实模式阶段，Linux内核的中断系统还没有被初始化，该函数是内核编译后临时
+	 * NOTE: 初始化阶段至此，仍处于实模式阶段，Linux内核的中断系统还没有被初始化，该函数是内核编译后临时
 	 * 生成的一个BIOS服务程序，跟arch/x86/boot/header.S中的那些int指令的效果是一样的
 	 */
 	intcall(0x15, &ireg, NULL);
@@ -8400,7 +8411,7 @@ void set_video(void)
 
 当main()函数执行到go_to_protected_mode()时，系统就即将告别实模式环境，进入保护模式了。保护模式(Protected Mode，或简写为pmode)是一种80286系列及之后的x86兼容CPU操作模式。保护模式有一些新的特色，设计用来增强多功能和系统稳定度，像是内存保护，分页系统，以及硬件支持的虚拟内存。现今大部分的x86操作系统都在保护模式下运行，包含Linux、FreeBSD、微软Windows 2.0及之后版本。
 
-注意：在执行go_to_protected_mode()时，系统还处于实模式下，只不过是进入与保护模式相关的代码。
+**NOTE**: 在执行go_to_protected_mode()时，系统还处于实模式下，只不过是进入与保护模式相关的代码。
 
 该函数定义于arch/x86/boot/pm.c:
 
@@ -8532,7 +8543,7 @@ GLOBAL(in_pm32)
 ENDPROC(in_pm32)
 ```
 
-注意：从系统启动到函数protected_mode_jump()，并不是第一次进入保护模式，在bootloader阶段，GRUB已经执行过一次保护模式的命令了，即把vmlinuz第三部分的代码拷贝到内存0x100000之后。参见[4.3.3 第二阶段引导加载程序 (Stage 2 Bootloader)](#4-3-3-stage-2-bootloader-)节。
+**NOTE**: 从系统启动到函数protected_mode_jump()，并不是第一次进入保护模式，在bootloader阶段，GRUB已经执行过一次保护模式的命令了，即把vmlinuz第三部分的代码拷贝到内存0x100000之后。参见[4.3.3 第二阶段引导加载程序 (Stage 2 Bootloader)](#4-3-3-stage-2-bootloader-)节。
 
 ##### 4.3.4.1.3 arch/x86/boot/compressed/head_32.S
 
@@ -9326,7 +9337,7 @@ struct obs_kernel_param {
 
 因而，可通过```__setup_start```和```__setup_end```查询内核参数并调用其处理函数。
 
-注：```early_param()```与```__setup()```的不同之处在于，```early_param()```注册的内核参数必须在其他内核参数之前被处理。以参数foo及处理函数```foo_func()```为例，这两个宏的扩展结果如下：
+**NOTE**: ```early_param()```与```__setup()```的不同之处在于，```early_param()```注册的内核参数必须在其他内核参数之前被处理。以参数foo及处理函数```foo_func()```为例，这两个宏的扩展结果如下：
 
 * early_param("foo", foo_func)
 
@@ -9360,7 +9371,7 @@ __setup("rdinit=", rdinit_setup);
 
 ###### 4.3.4.1.4.3.3.2.2 \_\_module_param_call()
 
-宏__module_param_call()用于注册内核参数的处理函数，这些处理函数被放置到__param段，其定义于include/linux/moduleparam.h:
+宏```__module_param_call()```用于注册内核参数的处理函数，这些处理函数被放置到```__param```段，其定义于include/linux/moduleparam.h:
 
 ```
 struct kernel_param {
@@ -9376,14 +9387,14 @@ struct kernel_param {
 };
 
 /* This is the fundamental function for registering boot/module parameters. */
-#define __module_param_call(prefix, name, ops, arg, isbool, perm)				\
-	/* Default value instead of permissions? */							\
+#define __module_param_call(prefix, name, ops, arg, isbool, perm)			\
+	/* Default value instead of permissions? */					\
 	static int __param_perm_check_##name __attribute__((unused)) =			\
 	BUILD_BUG_ON_ZERO((perm) < 0 || (perm) > 0777 || ((perm) & 2))			\
 	+ BUILD_BUG_ON_ZERO(sizeof(""prefix) > MAX_PARAM_PREFIX_LEN);			\
-	static const char __param_str_##name[] = prefix #name;					\
+	static const char __param_str_##name[] = prefix #name;				\
 	static struct kernel_param __moduleparam_const __param_##name			\
-	__used													\
+	__used										\
 	__attribute__ ((unused,__section__ ("__param"),aligned(sizeof(void *))))	\
 	= { __param_str_##name, ops, perm, isbool ? KPARAM_ISBOOL : 0,	{ arg } }
 ```
@@ -9963,7 +9974,7 @@ static inline void pack_gate(gate_desc *gate, unsigned type, unsigned long func,
 
 /*
  * 给指定的描述符赋值，参见[6.1.1.1 段描述符/Segment Descriptor]节
- * 注意：没有定义宏CONFIG_X86_64的情况下，入参flags是无效的
+ * NOTE: 没有定义宏CONFIG_X86_64的情况下，入参flags是无效的
  */
 static inline void pack_gate(gate_desc *gate, unsigned char type, unsigned long base,
 			     unsigned dpl, unsigned flags, unsigned short seg)
@@ -12698,7 +12709,7 @@ include/linux/errno.h				// 错误码512-530
 # man errno
 ```
 
-注意：只有当系统调用执行失败时才会设置全局变量errno；如果系统调用执行成功，则errno的值无定义，并不会被置为0。
+**NOTE**: 只有当系统调用执行失败时才会设置全局变量errno；如果系统调用执行成功，则errno的值无定义，并不会被置为0。
 
 #### 5.5.4.3 用户空间和内核空间之间的参数传递
 
@@ -16106,7 +16117,7 @@ memblock.memory的结构:
 ```
 e820: last_pfn = 0x1fff0 max_arch_pfn = 0x1000000
 => last_pfn表示e820.map[]中类型为E820_RAM的最大页框号
-=> max_arch_pfn为最大页框号，与地址空间有关(注意：此时PAE开启)，其取值参见arch/x86/kernel/e820.c:
+=> max_arch_pfn为最大页框号，与地址空间有关(NOTE: 此时PAE开启)，其取值参见arch/x86/kernel/e820.c:
 #ifdef CONFIG_X86_32
 # ifdef CONFIG_X86_PAE
 #  define MAX_ARCH_PFN	(1ULL<<(36-PAGE_SHIFT))		// 0x0100,0000
@@ -16963,7 +16974,7 @@ static inline struct page *__rmqueue_smallest(struct zone *zone, unsigned int or
 		// 将该页面及其后连续的共2order个页面从列表中移出
 		list_del(&page->lru);
 		// 1) 清除Buddy Allocator标志，即page->_mapcount = -1;
-		// 2) 设置page->private = 0. 注：页描述符中的private保存其对应的order值.
+		// 2) 设置page->private = 0. NOTE: 页描述符中的private保存其对应的order值.
 		rmv_page_order(page);
 		area->nr_free--;
 		/*
@@ -17000,7 +17011,7 @@ static inline void expand(struct zone *zone, struct page *page, int low,
 		list_add(&page[size].lru, &area->free_list[migratetype]);
 		area->nr_free++;
 		/*
-		 * 设置&page[size]->private = high. 注：页描述符中的private保存其对应的order值；
+		 * 设置&page[size]->private = high. NOTE: 页描述符中的private保存其对应的order值；
 		 * 设置Buddy Allocator标志，即&page[size]->_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE
 		 */
 		set_page_order(&page[size], high);
@@ -17876,7 +17887,7 @@ static inline void __free_one_page(struct page *page,
 		list_del(&buddy->lru);
 		zone->free_area[order].nr_free--;
 		// 1) 清除Buddy Allocator标志，即page->_mapcount = -1;
-		// 2) 设置page->private = 0. 注：页描述符中的private保存其对应的order值.
+		// 2) 设置page->private = 0. NOTE: 页描述符中的private保存其对应的order值.
 		rmv_page_order(buddy);
 		combined_idx = buddy_idx & page_idx;
 		page = page + (combined_idx - page_idx);
@@ -17885,7 +17896,7 @@ static inline void __free_one_page(struct page *page,
 	}
 	/*
 	 * 找到最大的伙伴页面后，设置标志：
-	 * 设置page->private = order. 注：页描述符中的private保存其对应的order值；
+	 * 设置page->private = order. NOTE: 页描述符中的private保存其对应的order值；
 	 * 设置Buddy Allocator标志，即page->_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE
 	 */
 	set_page_order(page, order);
@@ -23370,7 +23381,7 @@ Specifies the number of nested interrupt handlers on the local CPU (the value is
 
 ![thread_info](/assets/thread_info.jpg)
 
-注：do_fork() -> copy_process() -> dup_task_struct()在end_of_stack()处填充了一个魔数STACK_END_MAGIC，其取值为0x57AC6E9D，参见[7.2.2.2.1 dup_task_struct()](#7-2-2-2-1-dup-task-struct-)节。
+**NOTE**: do_fork() -> copy_process() -> dup_task_struct()在end_of_stack()处填充了一个魔数STACK_END_MAGIC，其取值为0x57AC6E9D，参见[7.2.2.2.1 dup_task_struct()](#7-2-2-2-1-dup-task-struct-)节。
 
 ###### 7.1.1.3.1.3 alloc_thread_info_node() / free_thread_info()
 
@@ -24442,7 +24453,7 @@ Instead, a thread is merely a process that shares certain resources with other p
 
 #### 7.2.1.1 sys_fork()/fork()
 
-一个现有进程(父进程)调用sys_fork() / sys_vfork()函数是Linux内核创建一个新进程(子进程)的唯一方法。注意：这种方法并不适用于交换进程、init进程和页守护进程，因为这些进程是由内核作为自举过程的一部分而以特殊方式创建的。
+一个现有进程(父进程)调用sys_fork() / sys_vfork()函数是Linux内核创建一个新进程(子进程)的唯一方法。NOTE: 这种方法并不适用于交换进程、init进程和页守护进程，因为这些进程是由内核作为自举过程的一部分而以特殊方式创建的。
 
 使用sys_fork() / fork()时，子进程复制父进程的全部资源。由于要复制父进程的进程描述符task_struct给子进程，而进程描述符的结构体很大(参见[7.1 进程描述符/struct task_struct](#7-1-struct-task-struct)节)，因此这一过程的开销很大。Linux采用了“写时复制技术”(copy-on-write，COW)，使子进程先共享父进程的物理页，只有当子进程进行写操作时，再复制对应的物理页，避免了无用的复制开销，从而提高了系统性能。
 
@@ -24468,7 +24479,7 @@ fork()函数的返回值：在子进程中为0，在父进程中为子进程的P
 
 由fork()创建的新进程被称为子进程(child process)。该函数被调用一次，但返回两次。两次返回值的区别是子进程的返回值是0，而父进程的返回值则是新子进程的进程PID。将子进程PID返回给父进程的理由是：因为一个进程的子进程可以多于一个，但是没有一个函数使一个进程获得其所有子进程的PID。Fork()使子进程得到返回值0的理由是：一个进程只会有一个父进程，所以子进程总是可以调用getppid()以获得其父进程的PID(进程ID 0总是由交换进程使用，所以一个子进程的进程ID不可能为0)。
 
-子进程和父进程继续执行fork()之后的指令。子进程是父进程的复制品，即子进程获得父进程数据空间、堆和栈的复制品。注意：这是子进程所拥有的拷贝，父、子进程并不共享这些存储空间部分。如果正文段是只读的，则父、子进程共享正文段。
+子进程和父进程继续执行fork()之后的指令。子进程是父进程的复制品，即子进程获得父进程数据空间、堆和栈的复制品。NOTE: 这是子进程所拥有的拷贝，父、子进程并不共享这些存储空间部分。如果正文段是只读的，则父、子进程共享正文段。
 
 fork()的经典例子：
 
@@ -24645,7 +24656,7 @@ clone() creates a new thread that starts with the function pointed to by the fn 
 
 #### 7.2.1.4 kernel_thread()
 
-由于内核对进程和线程不做区分，所以内核线程(kernel thread)又称为内核进程(kernel process)。注意：不能把普通进程中的线程理解为进程。
+由于内核对进程和线程不做区分，所以内核线程(kernel thread)又称为内核进程(kernel process)。**NOTE**: 不能把普通进程中的线程理解为进程。
 
 内核线程和普通进程的区别：
 * 内核线程只运行在内核态，普通进程可以运行在内核态和用户态。
@@ -26266,7 +26277,7 @@ A: 通过宏kthread_run()向链表kthread_create_list中添加想要创建的进
  * wake_up_process().  Returns the kthread or ERR_PTR(-ENOMEM).
  */
 /*
- * 注意：其实并不是kthread_run()创建了内核线程，它只是将创建内核线程所需的信息
+ * NOTE: 其实并不是kthread_run()创建了内核线程，它只是将创建内核线程所需的信息
  * 添加到了链表kthread_create_list中，然后等待kthreadd进程创建所需要的线程
  */
 #define kthread_run(threadfn, data, namefmt, ...)				\
@@ -26395,7 +26406,7 @@ int kthread_stop(struct task_struct *k)
 
 ##### 7.2.4.4.3 kthread_should_stop()
 
-该函数返回当前线程should_stop标志的取值，用于创建的线程检查结束标志，并决定是否退出。注意：线程完全可以在完成自己的工作后主动结束，不需等待should_stop标志。其定义于kernel/kthread.c：
+该函数返回当前线程should_stop标志的取值，用于创建的线程检查结束标志，并决定是否退出。**NOTE**: 线程完全可以在完成自己的工作后主动结束，不需等待should_stop标志。其定义于kernel/kthread.c：
 
 ```
 /**
@@ -32764,7 +32775,7 @@ static inline void __run_timers(struct tvec_base *base)
 		/*
 		 * 根据base->timer_jiffies的低8位(或低6位)来确定定时器所在的链表，
 		 * 参见[7.7.1.3 struct tvec_base]节中的图
-		 * 注意：此处不是按照tv1.vec[0], tv1.vec[1], ... 的顺序来处理定时器
+		 * NOTE: 此处不是按照tv1.vec[0], tv1.vec[1], ... 的顺序来处理定时器
 		 */
 		int index = base->timer_jiffies & TVR_MASK;
 
@@ -34493,12 +34504,12 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 
 信号机制是进程间相互传递消息的一种方法，信号又被称为软中断信号，或软中断。从其命名可知，它的实质和使用很象中断。所以，信号可以说是进程控制的一部分。
 
-软中断信号(signal)用来通知进程发生了异步事件。进程间可以互相通过系统调用kill发送软中断信号。内核也可以因为内部事件而给进程发送信号，通知进程发生了某个事件。注意：信号只是用来通知某进程发生了什么事件，并不给该进程传递任何数据(信号是一个整数，不包含额外的参数)。
+软中断信号(signal)用来通知进程发生了异步事件。进程间可以互相通过系统调用kill发送软中断信号。内核也可以因为内部事件而给进程发送信号，通知进程发生了某个事件。**NOTE**: 信号只是用来通知某进程发生了什么事件，并不给该进程传递任何数据(信号是一个整数，不包含额外的参数)。
 
 收到信号的进程对各种信号有不同的处理方法，基本可以分为三类：
 * 第一种方法：类似中断的处理程序，对于需要处理的信号，进程可以指定处理函数，由该函数来处理。
 * 第二种方法：忽略某个信号，对该信号不做任何处理，就象未发生过一样。
-* 第三种方法：对该信号的处理保留系统的默认值，这是缺省操作。注意，SIGKILL和SIGSTOP信号不能被忽略，不能被阻塞，也不能使用用户自定义的函数处理，所以总是执行它们的默认行为。
+* 第三种方法：对该信号的处理保留系统的默认值，这是缺省操作。**NOTE**: SIGKILL和SIGSTOP信号不能被忽略，不能被阻塞，也不能使用用户自定义的函数处理，所以总是执行它们的默认行为。
 
 在进程表的表项中有一个软中断信号域(struct sigpending pending –> signal，参见[7.1.1.12 信号处理]节)，该域中每一位对应一个信号，当有信号发送给该进程时，对应位被置位。由此可知，进程对不同的信号可以同时保留，但对于同一个信号，进程并不知道在处理之前来过多少个。
 
@@ -34518,7 +34529,7 @@ struct task_struct包含与信号有关的域参见[7.1.1.12 信号处理]节:
 * 非实时信号：信号取值范围为[1, 31]
 * 实时信号：信号取值范围为[32, 64]
 
-注：0不是有效的信号值，只用于检查是当前进程否有发送信号的权限，并不真正发送，参见[8.3.3.7 group_send_sig_info()](#8-3-3-7-group-send-sig-info-)节。
+**NOTE**: 0不是有效的信号值，只用于检查是当前进程否有发送信号的权限，并不真正发送，参见[8.3.3.7 group_send_sig_info()](#8-3-3-7-group-send-sig-info-)节。
 
 POSIX定义的信号，参见<<IEEE Std 1003.1-2008 POSIX.Base Specifications, Issue 7>> 第Vol. 2: System Interfaces卷第Chapter 3: System Interfaces章第signal节。
 
@@ -36045,7 +36056,7 @@ int dequeue_signal(struct task_struct *tsk, sigset_t *mask, siginfo_t *info)
 
 下图描述了信号处理函数的执行流程。假设一个非阻塞的信号发给目标进程。当一个中断或异常发生后，目标进程从用户态(U1)进入核心态，在它切换回用户态(U1)之前，内核调用do_signal()逐一处理悬挂的非阻塞信号(参见[8.3.4.1 do_signal()](#8-3-4-1-do-signal-)节)。而如果目标进程设置了对信号的处理函数，那么它会调用handle_signal()来调用自定义的信号处理函数(使用setup_rt_frame()来为信号处理函数设置栈)，此时当切换到用户态时，目标进程执行的是信号处理函数而不是U1。当信号处理函数结束后，位于setup_rt_frame()栈上的返回代码(return code)被执行，该返回代码会执行rt_sigreturn，从而把U1的上下文从setup_rt_frame栈中拷贝到核心栈。此后，内核可以切换回U1。
 
-注意：在信号的三种处理方式中，只有使用自定义的信号处理函数才需要这样麻烦。
+**NOTE**: 在信号的三种处理方式中，只有使用自定义的信号处理函数才需要这样麻烦。
 
 ![Handle_Signal](/assets/Handle_Signal.png)
 
@@ -38430,7 +38441,7 @@ PV操作对于每一个进程来说，都只能进行一次，而且必须成对
  * 		  存在的信号量集时，该参数取值为0
  * semflg	– IPC_CREAT: 如果信号量集在系统内核中不存在，则创建信号量集；
  *           IPC_EXCL：与IPC_CREAT一同使用时，如果信号量集已经存在，
- * 		  则调用失败。注意：单独使用IPC_EXCL标志没有意义
+ * 		  则调用失败。NOTE: 单独使用IPC_EXCL标志没有意义
  */
 SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
 {
@@ -38865,7 +38876,7 @@ socket起源于Unix，而Unix/Linux基本哲学之一就是"一切皆文件"，�
 
 socket是应用层与TCP/IP协议族通信的中间软件抽象层，它是一组接口。在设计模式中，socket其实就是一个门面模式，它把复杂的TCP/IP协议族隐藏在socket接口后面，对用户来说，一组简单的接口就是全部，让socket去组织数据，以符合指定的协议。
 
-注意：其实socket也没有层的概念，它只是一个facade设计模式的应用，让编程变的更简单。
+**NOTE**: 其实socket也没有层的概念，它只是一个facade设计模式的应用，让编程变的更简单。
 
 ![Socket_Layer](/assets/Socket_Layer.png)
 
@@ -39455,7 +39466,7 @@ out_fd:
 }
 ```
 
-注意：accept()默认会阻塞进程，直到有一个客户端连接建立后返回，它返回的是一个新的可用的套接字，这个套接字是连接套接字。此时我们需要区分两种套接字：
+**NOTE**: accept()默认会阻塞进程，直到有一个客户端连接建立后返回，它返回的是一个新的可用的套接字，这个套接字是连接套接字。此时我们需要区分两种套接字：
 
 * 监听套接字：监听套接字正如accept()的参数sockfd，它是监听套接字。在调用listen()函数后，服务器调用socket()函数生成的套接字，被称为监听socket描述字(监听套接字)
 
@@ -42155,7 +42166,7 @@ Reading materials:
 | driver/android | |
 | driver/ata | 该目录包含PATA和SATA设备的驱动程序。串行ATA(SATA)是一种连接主机总线适配器到像硬盘那样的存储器的计算机总线接口。并行ATA(PATA)用于连接存储设备，如硬盘驱动器，软盘驱动器，光盘驱动器的标准，PATA就是我们所说的IDE。 |
 | driver/atm | 异步通信模式(ATM: Asynchronous Transfer Mode)是一种通信标准。这里有各种接到PCI桥的驱动(它们连接到PCI总线)和以太网控制器(控制以太网通信的集成电路芯片)。 |
-| driver/auxdisplay | 该目录提供了三个驱动: LCD帧缓存(frame buffer)驱动、LCD控制器驱动和一个LCD驱动。这些驱动用于管理液晶显示器 — 液晶显示器会在按压时显示波纹。注意: 按压会损害屏幕，所以请不要用力戳LCD显示屏。 |
+| driver/auxdisplay | 该目录提供了三个驱动: LCD帧缓存(frame buffer)驱动、LCD控制器驱动和一个LCD驱动。这些驱动用于管理液晶显示器 — 液晶显示器会在按压时显示波纹。NOTE: 按压会损害屏幕，所以请不要用力戳LCD显示屏。 |
 | driver/base | 这是个重要的目录包含了固件、系统总线、虚拟化能力等基本的驱动程序。 |
 | driver/bcma | 这些驱动程序用于使用基于AMBA协议的总线。AMBA协议是由博通公司开发的。 |
 | driver/block | 块设备驱动程序。提供对块设备的支持，像软驱、SCSI磁带、TCP网络块设备等。 |
@@ -43962,7 +43973,7 @@ int device_attach(struct device *dev)
 	   * 则对链表drv->bus->p->klist_devices->k_list中的每个元素，
 	   * 调用函数__driver_attach(device, driver);
 	   * 该函数尝试将匹配的driver和device绑定到一起.
-	   * 注：链表drv->bus->p->klist_devices->k_list中链接的是元素
+	   * NOTE: 链表drv->bus->p->klist_devices->k_list中链接的是元素
 	   * struct device->p->knode_bus->n_node
 	   */
 		pm_runtime_get_noresume(dev);
@@ -44458,7 +44469,7 @@ int driver_attach(struct device_driver *drv)
 	 * 对链表drv->bus->p->klist_devices->k_list中的每个元素，
 	 * 调用函数__driver_attach(device, driver); 该函数尝试将
 	 * 匹配的driver和device绑定到一起。
-	 * 注：链表drv->bus->p->klist_devices->k_list中链接的是
+	 * NOTE: 链表drv->bus->p->klist_devices->k_list中链接的是
 	 * struct device->p->knode_bus->n_node元素
 	 */
 	return bus_for_each_dev(drv->bus, NULL, drv, __driver_attach);
@@ -44753,7 +44764,7 @@ static void __device_release_driver(struct device *dev)
 
 #### 10.2.4.3 何时调用struct device_driver中的probe()函数
 
-Probe是指在Linux内核中，若存在相同名称的device和device_driver (注：还存在其它方式，暂时不关注)，内核就会执行struct device_driver中的回调函数probe()，而该函数就是所有driver的入口，可以执行诸如硬件设备初始化、字符设备注册、设备文件操作、ops注册等动作。
+Probe是指在Linux内核中，若存在相同名称的device和device_driver (NOTE: 还存在其它方式，暂时不关注)，内核就会执行struct device_driver中的回调函数probe()，而该函数就是所有driver的入口，可以执行诸如硬件设备初始化、字符设备注册、设备文件操作、ops注册等动作。
 
 struct device_driver中函数probe()的调用时机如下：
 
@@ -52693,7 +52704,7 @@ struct file_system_type {
 	/*
 	 * Head of a list of superblock objectshaving the same filesystem type.
 	 * 该链表是由sget()函数链接起来的，参见[11.2.2.1 注册/注销文件系统]节。
-	 * 注：在kernel v3.3中，变量fs_supers的类型改为struct hlist_head，
+	 * NOTE: 在kernel v3.3中，变量fs_supers的类型改为struct hlist_head，
 	 * 参见[15.2 哈希链表/struct hlist_head/struct hlist_node]节
 	 */
 	struct list_head fs_supers;
@@ -54248,7 +54259,7 @@ Inode size:	          256
 
 每个inode都有一个号码，操作系统用inode号码来识别不同的文件。
 
-注: Unix/Linux系统内部不使用文件名，而使用inode号码来识别文件。对于系统来说，文件名只是inode号码便于识别的别称或者绰号。
+**NOTE**: Unix/Linux系统内部不使用文件名，而使用inode号码来识别文件。对于系统来说，文件名只是inode号码便于识别的别称或者绰号。
 
 表面上，用户通过文件名打开文件。实际上，系统内部这个过程分成三步：
 * 1) 首先，系统找到该文件名对应的inode号码；
@@ -59820,7 +59831,7 @@ Rootfs的初始化及安装过程，参见下列章节：
 * [4.3.4.1.4.3.11.4.3 init_mount_tree()](#4-3-4-1-4-3-11-4-3-init-mount-tree-)节
 * [11.4 文件系统的自动安装](#11-4-)节
 
-注：由内核参数"root="指定根文件系统的位置，参见[4.3.4.1.4.3.13.1.3 prepare_namespace()](#4-3-4-1-4-3-13-1-3-prepare-namespace-)节。
+**NOTE**: 由内核参数"root="指定根文件系统的位置，参见[4.3.4.1.4.3.13.1.3 prepare_namespace()](#4-3-4-1-4-3-13-1-3-prepare-namespace-)节。
 
 ### 11.3.3 Initramfs
 
@@ -61467,7 +61478,7 @@ int __sysfs_add_one(struct sysfs_addrm_cxt *acxt, struct sysfs_dirent *sd)
 	/*
 	 * 从红黑树acxt->parent_sd->s_dir.name_tree.rb_node中查找
 	 * 名为sd->s_name的元素，若已存在同名元素，则返回错误码-EEXIST.
-	 * 注：红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
+	 * NOTE: 红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
 	 * 链接的是struct sysfs_dirent->name_node元素
 	 */
 	if (sysfs_find_dirent(acxt->parent_sd, sd->s_ns, sd->s_name))
@@ -61777,7 +61788,7 @@ int sysfs_hash_and_remove(struct sysfs_dirent *dir_sd, const void *ns, const cha
 	/*
 	 * 从红黑树dir_sd->parent_sd->s_dir.name_tree.rb_node中
 	 * 查找名为name的元素
-	 * 注：红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
+	 * NOTE: 红黑树struct sysfs_dirent->s_dir.name_tree.rb_node中
 	 * 链接的是struct sysfs_dirent->name_node元素
 	 */
 	sd = sysfs_find_dirent(dir_sd, ns, name);
@@ -67818,7 +67829,7 @@ SECTIONS
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
 ```
 
-注意：在Linux Kernel源代码中有些找不到来源的变量是在vmlinux.lds中定义的。
+**NOTE**: 在Linux Kernel源代码中有些找不到来源的变量是在vmlinux.lds中定义的。
 
 ###### 13.5.1.1.1.1.1 .initcall\*.init
 
@@ -70009,7 +70020,7 @@ pos = list_prepare_entry(pos, head, memberB);
  * @head:	the head for your list.
  * @member:	the name of the list_struct within the struct.
  *
- * Iterate over list of given type, continuing from current position. (注意：包含当前的pos)
+ * Iterate over list of given type, continuing from current position. (NOTE: 包含当前的pos)
  */
 #define list_for_each_entry_from(pos, head, member)				\
 	for (; &pos->member != (head);						\
@@ -71516,7 +71527,7 @@ __kfifo_uint_must_check_helper(								\
 
 在include/linux/kfifo.h中，包含如下操纵队列的宏：
 * kfifo_reset() / kfifo_reset_out(): 重置队列
-* kfifo_free(): 销毁队列(注：缓冲区不会销毁)
+* kfifo_free(): 销毁队列(NOTE: 缓冲区不会销毁)
 * kfifo_size(): 缓冲区元素的总数
 * kfifo_esize(): 缓冲区每个元素所占的字节数
 * kfifo_len(): 缓冲区中已使用的元素个数
@@ -72370,7 +72381,7 @@ for (node = rb_last(&mytree); node; node = rb_prev(node))
 
 ### 15.6.7 移除节点/rb_erase()
 
-函数```rb_erase()```用于从rbtree中移除指定的节点。注意，移除的节点并未被销毁，需要用户自己销毁该节点。
+函数```rb_erase()```用于从rbtree中移除指定的节点。**NOTE**: 移除的节点并未被销毁，需要用户自己销毁该节点。
 
 该定义于lib/rbtree.c:
 
@@ -78095,7 +78106,7 @@ out_restore_irqs:
 #endif
 ```
 
-注：在系统启动过程中，终端初始化之前的某些地方无法调用函数printk()。若需要调试系统启动过程最开始的地方，可用如下方法： 
+**NOTE**: 在系统启动过程中，终端初始化之前的某些地方无法调用函数printk()。若需要调试系统启动过程最开始的地方，可用如下方法： 
 * 1) 使用串口调试，将调试信息输出到其他终端设备。
 * 2) 使用early_printk()，该函数在系统启动初期就有打印能力，但仅支持部分硬件体系。
 
@@ -78747,7 +78758,7 @@ Rsyslog's configure files:
 * /etc/init/rsyslog.conf
 * /etc/rsyslog.conf
 
-rsyslogd守护程序通过它的配置文件```/etc/rsyslog.conf```来理解```/proc/kmsg```接口，并使用这些接口获取内核日志消息。注意：在内部，所有日志级别都是通过```/proc/kmsg```写入的，这样所传输的日志级别就不是由内核决定的，而是由rsyslog本身决定的。然后这些内核日志消息会存储在```/var/log/kern.log``` (及其他配置的文件)。在```/var/log```中有许多的日志文件，包括一般消息和系统相调用(```/var/log/messages```)、系统启动日志(```/var/log/boot.log```)、认证日志(```/var/log/auth.log```)等。
+rsyslogd守护程序通过它的配置文件```/etc/rsyslog.conf```来理解```/proc/kmsg```接口，并使用这些接口获取内核日志消息。NOTE: 在内部，所有日志级别都是通过```/proc/kmsg```写入的，这样所传输的日志级别就不是由内核决定的，而是由rsyslog本身决定的。然后这些内核日志消息会存储在```/var/log/kern.log``` (及其他配置的文件)。在```/var/log```中有许多的日志文件，包括一般消息和系统相调用(```/var/log/messages```)、系统启动日志(```/var/log/boot.log```)、认证日志(```/var/log/auth.log```)等。
 
 ```
 // 查看rsyslogd的启动脚本
@@ -80136,7 +80147,60 @@ LAVA: Linaro Automated Validation Architecture
 
 # Appendixes
 
-## Appendix A: make -f scripts/Makefile.build obj=列表
+## Appendix A: Makefile Tree
+
+The top Makefile includes the following Makefiles:
+
+```
+linux-3.2/Makefile
++- include scripts/Kbuild.include
+|  +- build := -f $(srctree)/scripts/Makefile.build obj		// 参见下文
++- include arch/$(SRCARCH)/Makefile				// 以x86为例，即include linux-3.2/arch/x86/Makefile
+|  +- include $(srctree)/arch/x86/Makefile_32.cpu
+```
+
+and where, the ```scripts/Makefile.build``` includes the following scripts:
+
+```
+linux-3.2/scripts/Makefile.build
++- -include include/config/auto.conf
++- include scripts/Kbuild.include
++- include $(kbuild-file)					// 包含指定目录下的Kbuild，或者Makefile(若不存在Kbuild的话)
++- include scripts/Makefile.lib
++- include scripts/Makefile.host
++- include $(cmd_files)
+```
+
+Run the following commands to check the relationships between Makefile and Kbuild:
+
+```
+chenwx@chenwx ~/linux $ make -d O=../linux-build/ -n bzImage > ../linux-build/build.log
+
+chenwx@chenwx ~/linux $ grep "Reading makefile" ../linux-build/build.log
+Reading makefiles...
+Reading makefile 'Makefile'...
+Reading makefiles...
+Reading makefile '/home/chenwx/linux/Makefile'...
+Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
+Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
+Reading makefile 'include/config/auto.conf.cmd' (search path) (don't care) (no ~ expansion)...
+Reading makefile 'arch/x86/Makefile' (search path) (no ~ expansion)...
+Reading makefile 'arch/x86/Makefile_32.cpu' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.gcc-plugins' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.kasan' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.extrawarn' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.ubsan' (search path) (no ~ expansion)...
+Reading makefile '.vmlinux.cmd' (search path) (no ~ expansion)...
+Reading makefiles...
+Reading makefile '/home/chenwx/linux/scripts/Makefile.build'...
+Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
+Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
+Reading makefile '/home/chenwx/linux/arch/x86/entry/syscalls/Makefile' (search path) (no ~ expansion)...
+Reading makefile 'scripts/Makefile.lib' (search path) (no ~ expansion)...
+...
+```
+
+## Appendix B: make -f scripts/Makefile.build obj=列表
 
 ```
 // Refer to target scripts_basic in top Makefile
@@ -80259,55 +80323,6 @@ make -f scripts/Makefile.build obj=net
 // Refer to $(libs-y) in top Makefile
 make -f scripts/Makefile.build obj=lib
 make -f scripts/Makefile.build obj=arch/x86/lib
-```
-
-## Appendix B: Makefile Tree
-
-```
-linux-3.2/Makefile
-+- include scripts/Kbuild.include
-|  +- build := -f $(srctree)/scripts/Makefile.build obj		// 参见下文
-+- include arch/$(SRCARCH)/Makefile				// 以x86为例，即include linux-3.2/arch/x86/Makefile
-|  +- include $(srctree)/arch/x86/Makefile_32.cpu
-```
-
-```
-linux-3.2/scripts/Makefile.build
-+- -include include/config/auto.conf
-+- include scripts/Kbuild.include
-+- include $(kbuild-file)					// 包含指定目录下的Kbuild，或者Makefile(若不存在Kbuild的话)
-+- include scripts/Makefile.lib
-+- include scripts/Makefile.host
-+- include $(cmd_files)
-```
-
-可运行下列命令查看完成的Makefile/Kbuild的包含关系:
-
-```
-chenwx@chenwx ~/linux $ make -d O=../linux-build/ -n bzImage > ../linux-build/build.log
-
-chenwx@chenwx ~/linux $ grep "Reading makefile" ../linux-build/build.log
-Reading makefiles...
-Reading makefile 'Makefile'...
-Reading makefiles...
-Reading makefile '/home/chenwx/linux/Makefile'...
-Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
-Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
-Reading makefile 'include/config/auto.conf.cmd' (search path) (don't care) (no ~ expansion)...
-Reading makefile 'arch/x86/Makefile' (search path) (no ~ expansion)...
-Reading makefile 'arch/x86/Makefile_32.cpu' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.gcc-plugins' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.kasan' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.extrawarn' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.ubsan' (search path) (no ~ expansion)...
-Reading makefile '.vmlinux.cmd' (search path) (no ~ expansion)...
-Reading makefiles...
-Reading makefile '/home/chenwx/linux/scripts/Makefile.build'...
-Reading makefile 'include/config/auto.conf' (search path) (don't care) (no ~ expansion)...
-Reading makefile 'scripts/Kbuild.include' (search path) (no ~ expansion)...
-Reading makefile '/home/chenwx/linux/arch/x86/entry/syscalls/Makefile' (search path) (no ~ expansion)...
-Reading makefile 'scripts/Makefile.lib' (search path) (no ~ expansion)...
-...
 ```
 
 ## Appendix C: Kconfig tree

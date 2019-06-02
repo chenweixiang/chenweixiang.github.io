@@ -7639,7 +7639,7 @@ where, the ```-M``` enables rename detection, and the ```--summary``` enables a 
 
 ## 4.1 内核映像的内存布局
 
-在linux-3.2/Documentation/x86/boot.txt中，包含有关内核映像(参见[3.4.2.8 bzImage](#3-4-2-8-bzimage)节和[3.5.5 安装内核](#3-5-5-)节)的内存布局的描述。根据内核版本的不同，内核映像的内存布局也存在差异，分别参见[4.1.1 Image/zImage (old kernels)](#4-1-1-image-zimage-old-kernels-)节和[4.1.2 bzImage (modern kernel)](#4-1-2-bzimage-modern-kernel-)节，以及下图：
+在linux-3.2/Documentation/x86/boot.txt中，包含有关内核映像(参见[3.4.2.8 bzImage](#3-4-2-8-bzimage)节和[3.5.5 安装内核](#3-5-5-)节)的内存布局的描述。根据内核版本的不同，内核映像的内存布局也存在差异，分别参见[4.1.1 Image/zImage for Old Kernel](#4-1-1-image-zimage-for-old-kernel)节和[4.1.2 bzImage for Modern Kernel](#4-1-2-bzimage-for-modern-kernel)节，以及下图：
 
 ![bzImage_2](/assets/bzImage_2.png)
 
@@ -7667,18 +7667,18 @@ where, the ```-M``` enables rename detection, and the ```--summary``` enables a 
 
 保护模式是指寻址采用32位段和偏移量，最大寻址空间4GB，最大分段4GB(Pentium Pre及以后为64GB)。在保护模式下，CPU可以进入虚拟8086方式，这是在保护模式下的实模式程序运行环境。
 
-由[4.1.1 Image/zImage (old kernels)](#4-1-1-image-zimage-old-kernels-)节和[4.1.2 bzImage (modern kernel)](#4-1-2-bzimage-modern-kernel-)节可知：
+由[4.1.1 Image/zImage for Old Kernel](#4-1-1-image-zimage-for-old-kernel)节和[4.1.2 bzImage for Modern Kernel](#4-1-2-bzimage-for-modern-kernel)节可知：
 
 * real-mode code: boot sector and setup code
 * real-mode code can total up to 32KB, although the boot loader may choose to load only the first two sectors (1K)
 
-### 4.1.1 Image/zImage (old kernels)
+### 4.1.1 Image/zImage for Old Kernel
 
 The traditional memory map for the kernel loader, used for Image or zImage kernels, typically looks like:
 
 ![Memery_Layout_03](/assets/Memery_Layout_03.jpg)
 
-### 4.1.2 bzImage (modern kernel)
+### 4.1.2 bzImage for Modern Kernel
 
 For a modern bzImage kernel with boot protocol version >= 2.02, a memory layout is suggested like:
 
@@ -7764,13 +7764,13 @@ where, the address X is as low as the design of the boot loader permits.
 
 这个dd命令要以root用户的身份运行，它从/dev/hda(第一个IDE盘)上读取前512个字节的内容，并将其写入mbr.bin文件中。od命令会以十六进制和ASCII码格式打印这个二进制文件的内容。
 
-### 4.3.2 第一阶段引导加载程序 (Stage 1 Bootloader)
+### 4.3.2 第一阶段引导加载程序/Stage 1 Bootloader
 
 MBR中的主引导加载程序(第一阶段引导加载程序)是一个512字节大小的映像，其中包含程序代码和硬盘分区表(参见[4.2.2 主引导扇区](#4-2-2-)节)。前446字节是主引导加载程序，其中包含可执行代码和错误消息文本。接下来的64字节是硬盘分区表，其中包含4个分区的记录(每个记录的大小是16字节)。MBR以两个特殊字节(0x55AA)结束，该数字会用来检查MBR的有效性。
 
 主引导加载程序用于查找并加载次引导加载程序(第二阶段引导加载程序)。它是通过在硬盘分区表中查找一个活动分区来实现这种功能的。当找到一个活动分区时，它会扫描分区表中的其他分区，以确保它们都不是活动的。当这个过程验证完成之后，就将该活动分区的引导记录从这个设备中读入RAM中并执行它。
 
-### 4.3.3 第二阶段引导加载程序 (Stage 2 Bootloader)
+### 4.3.3 第二阶段引导加载程序/Stage 2 Bootloader
 
 次引导加载程序(第二阶段引导加载程序)被形象地称为内核加载程序。这个阶段的任务是加载Linux内核和可选的初始RAM磁盘。
 
@@ -7835,7 +7835,7 @@ CAN_USE_HEAP	= 0x80		# If set, the loader also has set
 /*
  * STACK_SIZE定义于arch/x86/boot/boot.h中，取值为512，故堆的大小为512字节
  * _end来自arch/x86/boot/setup.ld，表示整个setup.bin的结尾，
- * 参见[4.1.1 Image/zImage (old kernels)]节(0x00098000处)和[4.1.2 bzImage (modern kernel)]节(X+08000)
+ * 参见[4.1.1 Image/zImage for Old Kernel]节(0x00098000处)和[4.1.2 bzImage for Modern Kernel]节(X+08000)
  */
 heap_end_ptr:	.word	_end+STACK_SIZE-512
 
@@ -7864,7 +7864,7 @@ start_of_setup:
 	movw	%sp, %dx
 	je	2f		# -> assume %sp is reasonably set
 
-	# Invalid %ss, make up a new stack	// 设置实模式下的堆栈，参见[4.1.2 bzImage (modern kernel)]节
+	# Invalid %ss, make up a new stack	// 设置实模式下的堆栈，参见[4.1.2 bzImage for Modern Kernel]节
 	movw	$_end, %dx			// _end来自arch/x86/boot/setup.ld，表示整个setup.bin的结尾
 	testb	$CAN_USE_HEAP, loadflags
 	jz	1f
@@ -8444,7 +8444,7 @@ void go_to_protected_mode(void)
 	/*
 	 * 函数protected_mode_jump()参见[4.3.4.1.2.11.2 protected_mode_jump()]节，该函数需要两个入参：
 	 * 1) 第一个入参：boot_params.hdr.code32_start，定义于arch/x86/boot/header.S，
-	 *    取值为0x100000，由[4.1.2 bzImage (modern kernel)]节的图可知，该参数表示进入保护模式后
+	 *    取值为0x100000，由[4.1.2 bzImage for Modern Kernel]节的图可知，该参数表示进入保护模式后
 	 *    执行的第一条内核代码(Protected-mode kernel)；
 	 * 2) 第二个入参：&boot_params+(ds()<<4)是传递给内核的参数，为0号页面的地址，
 	 *    即变量boot_params，参见[4.3.4.1.2.1 copy_boot_params()]节
@@ -8533,7 +8533,7 @@ GLOBAL(in_pm32)
 	/*
 	 * 开始执行由入参传来的boot_params.hdr.code32_start，
 	 * 即0x100000处的代码(Protected-mode Kernel)，
-	 * 参见[4.1.2 bzImage (modern kernel)]节；
+	 * 参见[4.1.2 bzImage for Modern Kernel]节；
 	 * 在解压vmlinuz之前，这段代码为arch/x86/boot/compressed/head_32.S
 	 * 中的函数startup_32，参见[4.3.4.1.3 arch/x86/boot/compressed/head_32.S]节
 	 */
@@ -8541,7 +8541,7 @@ GLOBAL(in_pm32)
 ENDPROC(in_pm32)
 ```
 
-**NOTE**: 从系统启动到函数protected_mode_jump()，并不是第一次进入保护模式，在bootloader阶段，GRUB已经执行过一次保护模式的命令了，即把vmlinuz第三部分的代码拷贝到内存0x100000之后。参见[4.3.3 第二阶段引导加载程序 (Stage 2 Bootloader)](#4-3-3-stage-2-bootloader-)节。
+**NOTE**: 从系统启动到函数protected_mode_jump()，并不是第一次进入保护模式，在bootloader阶段，GRUB已经执行过一次保护模式的命令了，即把vmlinuz第三部分的代码拷贝到内存0x100000之后。参见[4.3.3 第二阶段引导加载程序/Stage 2 Bootloader](#4-3-3-stage-2-bootloader)节。
 
 ##### 4.3.4.1.3 arch/x86/boot/compressed/head_32.S
 
@@ -8939,7 +8939,7 @@ asmlinkage void __init start_kernel(void)
 	/*
 	 * 在arch/x86/kernel/vmlinux.lds中包含该变量的定义；
 	 * 与__initcall_start[], __initcall_end[], __early_initcall_end[]类似，
-	 * 参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]]节
+	 * 参见[13.5.1.1.1.1 __initcall_start[]/__early_initcall_end[]/__initcall_end[]]节
 	 */
 	extern const struct kernel_param __start___param[], __stop___param[];
 
@@ -8987,7 +8987,7 @@ asmlinkage void __init start_kernel(void)
 	build_all_zonelists(NULL);
 	page_alloc_init();
 
-	// 解析boot_command_line中的内核选项，参见[4.3.4.1.4.3.3 parse_early_param() / parse_args()]节
+	// 解析boot_command_line中的内核选项，参见[4.3.4.1.4.3.3 parse_early_param()/parse_args()]节
 	printk(KERN_NOTICE "Kernel command line: %s\n", boot_command_line);
 	parse_early_param();
 	parse_args("Booting kernel", static_command_line, __start___param,
@@ -9206,7 +9206,7 @@ void __init debug_objects_early_init(void)
 static inline void debug_objects_early_init(void) { }
 ```
 
-###### 4.3.4.1.4.3.3 parse_early_param() / parse_args()
+###### 4.3.4.1.4.3.3 parse_early_param()/parse_args()
 
 ###### 4.3.4.1.4.3.3.1 内核启动命令行
 
@@ -10337,7 +10337,7 @@ void __init sched_init(void)
 
 ###### 4.3.4.1.4.3.8 early_irq_init()
 
-该函数用于初始化数组irq_desc[]，参见[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节，其定义于kernel/irq/irqdesc.c:
+该函数用于初始化数组irq_desc[]，参见[9.2.1 struct irq_desc / irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节，其定义于kernel/irq/irqdesc.c:
 
 ```
 #ifdef CONFIG_SPARSE_IRQ
@@ -10417,7 +10417,7 @@ void __init init_IRQ(void)
 	 * irq's migrate etc.
 	 */
 	/*
-	 * legacy_pic参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节，其中legacy_pic->nr_legacy_irqs
+	 * legacy_pic参见[4.3.4.1.4.3.9.1 legacy_pic/x86_init]节，其中legacy_pic->nr_legacy_irqs
 	 * 取值为NR_IRQS_LEGACY，即16。因而，此处设置IRQ 0x30..0x3F，参见[9.3.1.1 vector_irq[]]节
 	 * IRQ0_VECTOR定义于arch/x86/include/asm/irq_vectors.h，取值为48，参见[9.1 中断处理简介]节
 	 */
@@ -10425,7 +10425,7 @@ void __init init_IRQ(void)
 		per_cpu(vector_irq, 0)[IRQ0_VECTOR + i] = i;
 
 	/*
-	 * x86_init参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节，其中x86_init.irqs.intr_init
+	 * x86_init参见[4.3.4.1.4.3.9.1 legacy_pic/x86_init]节，其中x86_init.irqs.intr_init
 	 * 取值为native_init_IRQ。因而，如下语句调用函数native_init_IRQ()，
 	 * 参见[4.3.4.1.4.3.9.2 native_init_IRQ()]节
 	 */
@@ -10433,7 +10433,7 @@ void __init init_IRQ(void)
 }
 ```
 
-###### 4.3.4.1.4.3.9.1 legacy_pic / x86_init
+###### 4.3.4.1.4.3.9.1 legacy_pic/x86_init
 
 变量legacy_pic定义于arch/x86/kernel/i8259.c:
 
@@ -10536,7 +10536,7 @@ void __init native_init_IRQ(void)
 	int i;
 
 	/*
-	 * x86_init参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节，其中x86_init.irqs.pre_vector_init
+	 * x86_init参见[4.3.4.1.4.3.9.1 legacy_pic/x86_init]节，其中x86_init.irqs.pre_vector_init
 	 * 取值为init_ISA_irqs，因而如下语句调用函数init_ISA_irqs()，参见[4.3.4.1.4.3.9.2.1 init_ISA_irqs()]节
 	 */
 	/* Execute any quirks before the call gates are initialised: */
@@ -10586,7 +10586,7 @@ void __init native_init_IRQ(void)
 ```
 void __init init_ISA_irqs(void)
 {
-	// 外部可屏蔽中断采用8259A中断控制器，参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节和节
+	// 外部可屏蔽中断采用8259A中断控制器，参见[4.3.4.1.4.3.9.1 legacy_pic/x86_init]节和节
 	struct irq_chip *chip = legacy_pic->chip;
 	const char *name = chip->name;
 	int i;
@@ -10594,7 +10594,7 @@ void __init init_ISA_irqs(void)
 #if defined(CONFIG_X86_64) || defined(CONFIG_X86_LOCAL_APIC)
 	init_bsp_APIC();
 #endif
-	// 调用init_8259A()初始化8259A中断控制器，参见[4.3.4.1.4.3.9.1 legacy_pic / x86_init]节
+	// 调用init_8259A()初始化8259A中断控制器，参见[4.3.4.1.4.3.9.1 legacy_pic/x86_init]节
 	legacy_pic->init(0);
 
 	// 依次设置8259A控制的16个中断向量对应的中断处理函数，即handle_level_irq()
@@ -10802,9 +10802,9 @@ void __init softirq_init(void)
 	for_each_possible_cpu(cpu) {
 		int i;
 
-		// 参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节
+		// 参见[9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]]节
 		per_cpu(tasklet_vec, cpu).tail = &per_cpu(tasklet_vec, cpu).head;
-		// 参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节
+		// 参见[9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]]节
 		per_cpu(tasklet_hi_vec, cpu).tail = &per_cpu(tasklet_hi_vec, cpu).head;
 		for (i = 0; i < NR_SOFTIRQS; i++)
 			INIT_LIST_HEAD(&per_cpu(softirq_work_list[i], cpu));	// 参见softirq_work_list[]节
@@ -10814,12 +10814,12 @@ void __init softirq_init(void)
 
 	/*
 	 * 设置软中断TASKLET_SOFTIRQ的服务程序为tasklet_action()，
-	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节和[4.3.4.1.4.3.10.1 tasklet_action()]节
+	 * 参见[9.2.2 struct softirq_action / softirq_vec[]]节和[4.3.4.1.4.3.10.1 tasklet_action()]节
 	 */
 	open_softirq(TASKLET_SOFTIRQ, tasklet_action);
 	/*
 	 * 设置软中断HI_SOFTIRQ的服务程序为tasklet_hi_action()，
-	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节和[4.3.4.1.4.3.10.2 tasklet_hi_action()]节
+	 * 参见[9.2.2 struct softirq_action / softirq_vec[]]节和[4.3.4.1.4.3.10.2 tasklet_hi_action()]节
 	 */
 	open_softirq(HI_SOFTIRQ, tasklet_hi_action);
 }
@@ -10838,7 +10838,7 @@ static void tasklet_action(struct softirq_action *a)
 {
 	struct tasklet_struct *list;
 
-	// 从tasklet_vec中获取列表，参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节
+	// 从tasklet_vec中获取列表，参见[9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]]节
 	local_irq_disable();
 	list = __this_cpu_read(tasklet_vec.head);
 	__this_cpu_write(tasklet_vec.head, NULL);
@@ -12286,7 +12286,7 @@ systemd 229
 +PAM +AUDIT +SELINUX +IMA +APPARMOR +SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT +GNUTLS +ACL +XZ -LZ4 +SECCOMP +BLKID +ELFUTILS +KMOD -IDN
 ```
 
-# 5 系统调用接口 (System Call Interface)
+# 5 系统调用接口/System Call Interface
 
 系统调用帮助：
 
@@ -14265,7 +14265,7 @@ __FINIT
 
 采用vsyscall页的内核(V2.5.53以后)，把用户信号处理程序中用到的返回代码__kernel_sigreturn也放在了永久固定映射页，这样就不用再放到堆栈里了。
 
-# 6 内存管理 (Memory Management)
+# 6 内存管理/Memory Management
 
 内存管理的代码主要在mm/目录，特定结构的代码在arch/$(ARCH)/mm/目录。
 
@@ -15476,7 +15476,7 @@ static inline pmdval_t pmd_flags(pmd_t pmd)
 }
 ```
 
-###### 6.1.2.6.4.5 pmd_page_vaddr() / pmd_pfn()
+###### 6.1.2.6.4.5 pmd_page_vaddr()/pmd_pfn()
 
 该函数定义于arch/x86/include/asm/pgtable.h:
 
@@ -23552,7 +23552,7 @@ The ZONE_DMA and ZONE_NORMAL memory zones contribute to the reserved memory with
 
 The **pages_min** field of the zone descriptor stores the number of reserved page frames inside the zone. That field plays also a role for the page frame reclaiming algorithm, together with the **pages_low** and **pages_high** fields. The **pages_low** field is always set to 5/4 of the value of **pages_min**, and **pages_high** is always set to 3/2 of the value of **pages_min**.
 
-# 7 内核/kernel
+# 7 内核/Kernel
 
 ## 7.1 进程描述符/struct task_struct
 
@@ -24239,7 +24239,7 @@ Specifies the number of nested interrupt handlers on the local CPU (the value is
 
 **NOTE**: do_fork() -> copy_process() -> dup_task_struct()在end_of_stack()处填充了一个魔数STACK_END_MAGIC，其取值为0x57AC6E9D，参见[7.2.2.2.1 dup_task_struct()](#7-2-2-2-1-dup-task-struct-)节。
 
-###### 7.1.1.3.1.3 alloc_thread_info_node() / free_thread_info()
+###### 7.1.1.3.1.3 alloc_thread_info_node()/free_thread_info()
 
 The kernel uses the ```alloc_thread_info_node()``` and ```free_thread_info()``` macros to allocate and release the memory area storing a thread_info structure and a kernel stack.
 
@@ -24680,7 +24680,7 @@ sigset_t *notifier_mask;
 
 设备驱动程序常用notifier指向的函数来阻塞进程的某些信号(notifier_mask是这些信号的位掩码)，notifier_data指的是notifier所指向的函数可能使用的数据。
 
-参见[8.3 信号/signal](#8-3-signal)节。
+参见[8.3 信号/Signal](#8-3-signal)节。
 
 #### 7.1.1.13 保护资源分配或释放的自旋锁
 
@@ -32666,7 +32666,7 @@ void tick_handle_periodic(struct clock_event_device *dev)
 
 	/*
 	 * 调用与体系架构无关的处理函数，
-	 * 参见[7.6.4.2.1.2 Architecture-independent routine/tick_periodic()]节
+	 * 参见[7.6.4.2.1.2 Architecture-independent routine / tick_periodic()]节
 	 */
 	tick_periodic(cpu);
 
@@ -32691,7 +32691,7 @@ void tick_handle_periodic(struct clock_event_device *dev)
 		 */
 		/*
 		 * 调用与体系架构无关的处理函数，
-		 * 参见[7.6.4.2.1.2 Architecture-independent routine/tick_periodic()]节
+		 * 参见[7.6.4.2.1.2 Architecture-independent routine / tick_periodic()]节
 		 */
 		if (timekeeping_valid_for_hres())
 			tick_periodic(cpu);
@@ -32700,7 +32700,7 @@ void tick_handle_periodic(struct clock_event_device *dev)
 }
 ```
 
-###### 7.6.4.2.1.2 Architecture-independent routine/tick_periodic()
+###### 7.6.4.2.1.2 Architecture-independent routine / tick_periodic()
 
 由[7.6.4.2.1.1.4.1 tick_handle_periodic()](#7-6-4-2-1-1-4-1-tick-handle-periodic-)节可知，函数tick_handle_periodic()调用与体系架构无关的函数tick_periodic()。该函数定义于kernel/time/tick-common.c:
 
@@ -32800,7 +32800,7 @@ void run_local_timers(void)
 }
 ```
 
-### 7.6.5 mktime() / mktime_64()
+### 7.6.5 mktime()/mktime_64()
 
 There is a kernel function that turns a wallclock time into a jiffies value in include/linux/time.h:
 
@@ -33485,7 +33485,7 @@ void __init init_timers(void)
 	BUG_ON(err != NOTIFY_OK);
 	register_cpu_notifier(&timers_nb);
 	/*
-	 * 设置软中断TIMER_SOFTIRQ的处理程序为run_timer_softirq()，参见[9.2.2 struct softirq_action/softirq_vec[]]节；
+	 * 设置软中断TIMER_SOFTIRQ的处理程序为run_timer_softirq()，参见[9.2.2 struct softirq_action / softirq_vec[]]节；
 	 * 该处理程序在函数__do_softirq()中被调用，参见[9.3.1.3.1.1.1 __do_softirq()]节；由此可知，定时器超时
 	 * 处理函数是在软中断上下文中执行的；
 	 * 处理程序run_timer_softirq()参见[7.7.4 定时器的超时处理/run_timer_softirq()]节
@@ -34253,7 +34253,7 @@ void __init hrtimers_init(void)
 #ifdef CONFIG_HIGH_RES_TIMERS
 	/*
 	 * 设置软中断HRTIMER_SOFTIRQ的处理程序为run_hrtimer_softirq()，
-	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节；该处理程序在函数__do_softirq()中被调用，
+	 * 参见[9.2.2 struct softirq_action / softirq_vec[]]节；该处理程序在函数__do_softirq()中被调用，
 	 * 参见[9.3.1.3.1.1.1 __do_softirq()]节；由此可知，定时器超时处理函数是在软中断上下文
 	 * 中执行的；处理程序run_hrtimer_softirq()
 	 * 参见[7.8.5.3 HRTIMER_SOFTIRQ软中断/run_hrtimer_softirq()]节
@@ -35354,7 +35354,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
                                            +-- 其中的.initcall5.init
 ```
 
-## 8.3 信号/signal
+## 8.3 信号/Signal
 
 ### 8.3.1 信号简介
 
@@ -37667,7 +37667,7 @@ static void __sigqueue_free(struct sigqueue *q)
 }
 ```
 
-## 8.4 消息队列/message queue
+## 8.4 消息队列/Message Queue
 
 ### 8.4.1 消息队列简介
 
@@ -37687,13 +37687,13 @@ idr结构中的top域是指向一个32叉树的树根，其结构参见：
 
 ![IPC_05](/assets/IPC_05.jpg)
 
-另参见[idr机制(32叉树)](http://blog.csdn.net/orz415678659/article/details/8539794)。其中，pa[*]->ary[id & IDR_MASK]域指向了消息队列中的q_perm域，即msq.q_perm(参见[8.4.2.1 struct msg_queue/struct msg_msg](#8-4-2-1-struct-msg-queue-struct-msg-msg)节)，其调用函数关系如下(参见[8.4.3.1.1.2 newque()](8-4-3-1-1-2-newque-)节)：
+另参见[idr机制(32叉树)](http://blog.csdn.net/orz415678659/article/details/8539794)。其中，pa[*]->ary[id & IDR_MASK]域指向了消息队列中的q_perm域，即msq.q_perm(参见[8.4.2.1 struct msg_queue / struct msg_msg](#8-4-2-1-struct-msg-queue-struct-msg-msg)节)，其调用函数关系如下(参见[8.4.3.1.1.2 newque()](8-4-3-1-1-2-newque-)节)：
 
 ```
 newque() -> ipc_addid() -> idr_get_new() -> idr_get_new_above_int() -> rcu_assign_pointer()
 ```
 
-#### 8.4.2.1 struct msg_queue/struct msg_msg
+#### 8.4.2.1 struct msg_queue / struct msg_msg
 
 struct msg_queue和struct msg_msg定义于include/linux/msg.h，其结构参见：
 
@@ -37995,7 +37995,7 @@ long do_msgsnd(int msqid, long mtype, void __user *mtext, size_t msgsz, int msgf
 		return -EINVAL;
 
 	/*
-	 * 重新组装消息体，参见[8.4.2.1 struct msg_queue/struct msg_msg]节；
+	 * 重新组装消息体，参见[8.4.2.1 struct msg_queue / struct msg_msg]节；
 	 * 与store_msg()对应，参见[8.4.5.1 sys_msgrcv()]节
 	 */
 	msg = load_msg(mtext, msgsz);
@@ -38078,7 +38078,7 @@ long do_msgsnd(int msqid, long mtype, void __user *mtext, size_t msgsz, int msgf
 		/* no one is waiting for this message, enqueue it */
 		/*
 		 * 否则，将消息添加到消息队列末尾，
-		 * 参见[8.4.2.1 struct msg_queue/struct msg_msg]节
+		 * 参见[8.4.2.1 struct msg_queue / struct msg_msg]节
 		 */
 		list_add_tail(&msg->m_list, &msq->q_messages);
 		msq->q_cbytes += msgsz;
@@ -38278,7 +38278,7 @@ out_unlock:
 	msgsz = (msgsz > msg->m_ts) ? msg->m_ts : msgsz;
 	*pmtype = msg->m_type;
 	/*
-	 * 重新组装该消息体，参见[8.4.2.1 struct msg_queue/struct msg_msg]节；
+	 * 重新组装该消息体，参见[8.4.2.1 struct msg_queue / struct msg_msg]节；
 	 * 与load_msg()对应，参见[8.4.4.1 sys_msgsnd()]节
 	 */
 	if (store_msg(mtext, msg, msgsz))
@@ -38415,7 +38415,7 @@ out_unlock:
 }
 ```
 
-#### 8.4.7 消息队列的初始化
+### 8.4.7 消息队列的初始化
 
 当消息队列模块编译进内核时，在系统初始化时，会调用消息队列的初始化函数msg_init()，其调用关系如下：
 
@@ -38481,7 +38481,6 @@ typedef struct msg {
 
 void* msgRev(void * args)
 {
-
 	MyMsg rcmsg;
 
 	while(--rcvCnt)
@@ -38575,7 +38574,7 @@ key        msqid      owner      perms      used-bytes   messages
 0x00000000 360449     chenwx     600        0            0           
 ```
 
-## 8.5 共享内存/share memory
+## 8.5 共享内存/Share Memory
 
 ### 8.5.1 共享内存简介
 
@@ -39715,7 +39714,7 @@ out_free:
 
 ### 8.6.5 信号量的初始化
 
-信号量的初始化过程与消息队列的初始化过程类似，参见[8.4.7 消息队列的初始化]（#8-4-7-）节。函数调用关系如下：
+信号量的初始化过程与消息队列的初始化过程类似，参见[8.4.7 消息队列的初始化](#8-4-7-)节。函数调用关系如下：
 
 ```
 ipc_init()
@@ -39724,7 +39723,7 @@ ipc_init()
    -> ipc_init_proc_interface()
 ```
 
-## 8.7 套接字/socket
+## 8.7 套接字/Socket
 
 ### 8.7.1 套接字简介
 
@@ -40460,14 +40459,14 @@ Intel x86系列处理器共支持256种向量中断，为了使处理器较容�
 
 | 中断分类 | 原因 | 异/同步 | 返回行为 | 备注 |
 | :----- | :--- | :----- | :----- | :--- |
-| 可屏蔽中断(INTR) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断。参见[9.1.1 可屏蔽中断(INTR)](#9-1-1-intr-)节 |
+| 可屏蔽中断(INTR) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 所有I/O设备产生的中断请求(IRQ)均引起可屏蔽中断。参见[9.1.1 可屏蔽中断/INTR](#9-1-1-intr)节 |
 | 非屏蔽中断(NMI) | 来自I/O设备的信号 | 异步 | 总是返回到下一条指令 | 紧急的事件(如硬件故障)引起非屏蔽中断。参见[9.1.2 异常(Exception)/非屏蔽中断(NMI)](#9-1-2-exception-nmi-)节 |
 
 <p/>
 
 * [中断向量(vector)取值](/docs/Interrupt_Vector.pdf)
 
-### 9.1.1 可屏蔽中断(INTR)
+### 9.1.1 可屏蔽中断/INTR
 
 在x86体系架构下，存在两个中断控制器：8159A可编程中断控制器，高级可编程中断控制器(APIC)。在命令行执行下列命令，如果输出结果中列出了IO-APIC，则说明系统正在使用高级可编程中断控制器(APIC)；如果是XT-PIC，则意味着系统正在使用8259A可编程中断控制器。
 
@@ -40515,7 +40514,7 @@ MIS:          0
 ...
 ```
 
-9.1.1.1 8259A可编程中断控制器(PIC)
+9.1.1.1 8259A可编程中断控制器/PIC
 
 8259A可编程中断控制器:
 
@@ -40540,7 +40539,7 @@ Intel x86通过两片中断控制器8259A来响应15个外中断源，每个8259
 
 可屏蔽中断(INTR)的取值范围为[0x30, 0xFF]，参见[9.1 中断处理简介](#9-1-)节中的表"中断向量(vector)取值"。这些可屏蔽中断对应的处理程序是由init_IRQ()设置的，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
-#### 9.1.1.2 高级可编程中断控制器(APIC)
+#### 9.1.1.2 高级可编程中断控制器/APIC
 
 8259A可编程中断控制器只适合单CPU的情况，为了充分挖掘SMP体系结构的并行性，能够把中断传递给系统中的每个CPU是至关重要的。基于此，Intel引入了一种名为I/O高级可编程控制器(APIC)的新组件来替代老式的8259A可编程中断控制器。参见[9 中断处理](#9-)节。
 
@@ -40552,7 +40551,7 @@ Intel x86处理器发布了大约20种异常(具体数字与处理器模式有�
 
 ## 9.2 与中断处理有关的数据结构
 
-### 9.2.1 struct irq_desc/irq_desc[]
+### 9.2.1 struct irq_desc / irq_desc[]
 
 该结构体定义于include/linux/irqdesc.h:
 
@@ -40619,7 +40618,7 @@ endif
 * 由early_irq_init()初始化，参见[4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节；
 * 由init_IRQ()->native_init_IRQ()->init_ISA_irqs()将其中的中断处理函数设置为handle_level_irq()，参见[4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节。
 
-### 9.2.2 struct softirq_action/softirq_vec[]
+### 9.2.2 struct softirq_action / softirq_vec[]
 
 该结构定义于include/linux/interrupt.h:
 
@@ -40665,13 +40664,13 @@ void open_softirq(int nr, void (*action)(struct softirq_action *))
 软中断处理函数
 
 | i | softirq_vec[i].action | 赋值函数 | 调用关系 |
-| HI_SOFTIRQ | tasklet_hi_action()，参见[9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()](#9-2-5-5-tasklet-tasklet-action-tasklet-hi-action-)节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
+| HI_SOFTIRQ | tasklet_hi_action()，参见[9.2.5.5 Tasklet的处理函数/tasklet_action()/tasklet_hi_action()](#9-2-5-5-tasklet-tasklet-action-tasklet-hi-action-)节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
 | TIMER_SOFTIRQ | run_timer_softirq()，参见[7.7.4 定时器的超时处理/run_timer_softirq()](#7-7-4-run-timer-softirq-)节和[7.6.4.2.1.2.2.1 run_local_timers()](#7-6-4-2-1-2-2-1-run-local-timers-)节 | kernel/timer.c: init_timers() | start_kernel() -> init_timers() |
 | NET_TX_SOFTIRQ | net_tx_action() | net/core/dev.c: net_dev_init() | net模块加载到系统中时 |
 | NET_RX_SOFTIRQ | net_rx_action() | net/core/dev.c: net_dev_init() | net模块加载到系统中时 |
 | BLOCK_SOFTIRQ | blk_done_softirq() | block/blk-softirq.c: blk_softirq_init() | block模块加载到系统中时 |
 | BLOCK_IOPOLL_SOFTIRQ | blk_iopoll_softirq() | block/blk-iopoll.c: blk_iopoll_setup() | block模块加载到系统中时 |
-| TASKLET_SOFTIRQ | tasklet_action()，参见[9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()](#9-2-5-5-tasklet-tasklet-action-tasklet-hi-action-)节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
+| TASKLET_SOFTIRQ | tasklet_action()，参见[9.2.5.5 Tasklet的处理函数/tasklet_action()/tasklet_hi_action()](#9-2-5-5-tasklet-tasklet-action-tasklet-hi-action-)节 | kernel/softirq.c: softirq_init() | start_kernel() -> softirq_init() |
 | SCHED_SOFTIRQ | run_rebalance_domains() | kernel/sched.c: sched_init() | start_kernel() -> sched_init() |
 | HRTIMER_SOFTIRQ | run_hrtimer_softirq() | kernel/hrtimer.c: hrtimers_init() | start_kernel() -> hrtimers_init() |
 | RCU_SOFTIRQ | rcu_process_callbacks()，参见[16.12.3 RCU的初始化](16-12-3-rcu-)节 | kernel/rcutiny_plugin.h, kernel/rcutree.c: rcu_init() | start_kernel() -> rcu_init() |
@@ -40703,7 +40702,7 @@ irq_cpustat_t irq_stat[NR_CPUS] ____cacheline_aligned;
 
 Q: 数组irq_stat[]是如何初始化和赋值的？
 
-A: irq_stat[cpu]. __softirq_pending表示在cpu上存在待处理的软中断，即若irq_stat[cpu]. __softirq_pending的nr比特位置位，则表示存在类型为softirq_vec[nr]的软中断等待处理，参见[9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)节。
+A: irq_stat[cpu]. __softirq_pending表示在cpu上存在待处理的软中断，即若irq_stat[cpu]. __softirq_pending的nr比特位置位，则表示存在类型为softirq_vec[nr]的软中断等待处理，参见[9.2.2 struct softirq_action / softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)节。
 
 **NOTE**: In Symmetric Multiprocessing model (SMP), when a hardware device raises an IRQ signal, the multi-APIC system selects one of the CPUs and delivers the signal to the corresponding local APIC, which in turn interrupts its CPU. No other CPUs are notified of the event.
 
@@ -40745,7 +40744,7 @@ inline void raise_softirq_irqoff(unsigned int nr)
 其中函数__raise_softirq_irqoff()定义于include/linux/interrupt.h:
 
 ```
-// nr表示哪种类型的软中断，参见[9.2.2 struct softirq_action/softirq_vec[]]节中的宏xxx_SOFTIRQ
+// nr表示哪种类型的软中断，参见[9.2.2 struct softirq_action / softirq_vec[]]节中的宏xxx_SOFTIRQ
 static inline void __raise_softirq_irqoff(unsigned int nr)
 {
 	trace_softirq_raise(nr);
@@ -40759,7 +40758,7 @@ static inline void __raise_softirq_irqoff(unsigned int nr)
 #define or_softirq_pending(x)		percpu_or(irq_stat.__softirq_pending, (x))
 ```
 
-其中，irq_stat.__softirq_pending的每个比特位表示数组irq_desc[]相应元素的状态，参见[9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)节中的图"softirq_vec[]"。
+其中，irq_stat.__softirq_pending的每个比特位表示数组irq_desc[]相应元素的状态，参见[9.2.2 struct softirq_action / softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)节中的图"softirq_vec[]"。
 
 #### 9.2.3.2 取消软中断/set_softirq_pending()
 
@@ -40803,7 +40802,7 @@ EXPORT_PER_CPU_SYMBOL(softirq_work_list);
 
 该数组在softirq_init()中被初始化，参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节。
 
-### 9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]
+### 9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]
 
 Tasklets resemble kernel timers in some ways. They are always run at interrupt time, they always run on the same CPU that schedules them, and they receive an unsigned long argument. Unlike kernel timers, however, you can't ask to execute the function at a specific time. By scheduling a tasklet, you simply ask for it to be executed at a later time chosen by the kernel. This behavior is especially useful with interrupt handlers, where the hardware interrupt must be managed as quickly as possible, but most of the data management can be safely delayed to a later time. Actually, a tasklet, just like a kernel timer, is executed (in atomic mode) in the context of a "soft interrupt", a kernel mechanism that executes asynchronous tasks with hardware interrupts enabled.
 
@@ -40941,7 +40940,7 @@ static inline void tasklet_disable_nosync(struct tasklet_struct *t)
 }
 ```
 
-#### 9.2.5.3 Tasklet的调度 / tasklet_schedule(), tasklet_hi_schedule()
+#### 9.2.5.3 Tasklet的调度/tasklet_schedule()/tasklet_hi_schedule()
 
 函数```tasklet_schedule()```和```tasklet_hi_schedule()```用于将指定的Tasklet分别添加到链表tasklet_vec和tasklet_hi_vec的末尾，其定义于include/linux/interrupt.h:
 
@@ -40997,7 +40996,7 @@ void __tasklet_hi_schedule(struct tasklet_struct *t)
 }
 ```
 
-#### 9.2.5.4 Tasklet的移除 / tasklet_kill(), tasklet_kill_immediate()
+#### 9.2.5.4 Tasklet的移除/tasklet_kill()/tasklet_kill_immediate()
 
 该函数定义于kernel/softirq.c:
 
@@ -41009,7 +41008,7 @@ void tasklet_kill(struct tasklet_struct *t)
 
 	/*
 	 * 标志位TASKLET_STATE_SCHED是通过函数task_schedule()设置的，
-	 * 参见[9.2.5.3 Tasklet的调度 / tasklet_schedule(), tasklet_hi_schedule()]节
+	 * 参见[9.2.5.3 Tasklet的调度/tasklet_schedule()/tasklet_hi_schedule()]节
 	 */
 	while (test_and_set_bit(TASKLET_STATE_SCHED, &t->state)) {
 		do {
@@ -41053,7 +41052,7 @@ void tasklet_kill_immediate(struct tasklet_struct *t, unsigned int cpu)
 }
 ```
 
-#### 9.2.5.5 Tasklet的处理函数 / tasklet_action(), tasklet_hi_action()
+#### 9.2.5.5 Tasklet的处理函数/tasklet_action()/tasklet_hi_action()
 
 链表tasklet_vec和tasklet_hi_vec的处理函数分别为```tasklet_action()```和```tasklet_hi_action()```。这两个处理函数是由```softirq_init()```设置的(参见[4.3.4.1.4.3.10 softirq_init()](#4-3-4-1-4-3-10-softirq-init-)节)，由```__do_softirq()```调用的(参见[9.3.1.3.1.1.1 __do_softirq()](#9-3-1-3-1-1-1-do-softirq-)节)。
 
@@ -41091,7 +41090,7 @@ static void tasklet_action(struct softirq_action *a)
 			if (!atomic_read(&t->count)) {
 				if (!test_and_clear_bit(TASKLET_STATE_SCHED, &t->state))
 					BUG();
-				// 调用每个Tasklet的处理函数，参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节中的图
+				// 调用每个Tasklet的处理函数，参见[9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]]节中的图
 				t->func(t->data);
 				// Clear TASKLET_STATE_RUN flag in the tasklet’s state field
 				tasklet_unlock(t);
@@ -41151,7 +41150,7 @@ static void tasklet_hi_action(struct softirq_action *a)
 			if (!atomic_read(&t->count)) {
 				if (!test_and_clear_bit(TASKLET_STATE_SCHED, &t->state))
 					BUG();
-				// 调用每个Tasklet的处理函数，参见[9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]]节中的图
+				// 调用每个Tasklet的处理函数，参见[9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]]节中的图
 				t->func(t->data);
 				// Clear TASKLET_STATE_RUN flag in the tasklet’s state field
 				tasklet_unlock(t);
@@ -41276,7 +41275,7 @@ bool handle_irq(unsigned irq, struct pt_regs *regs)
 
 	overflow = check_stack_overflow();
 
-	// 从数组irq_desc[]中查找下标为irq的项，参见[9.2.1 struct irq_desc/irq_desc[]]节
+	// 从数组irq_desc[]中查找下标为irq的项，参见[9.2.1 struct irq_desc / irq_desc[]]节
 	desc = irq_to_desc(irq);
 	if (unlikely(!desc))
 		return false;
@@ -41337,7 +41336,7 @@ static inline int execute_on_irq_stack(int overflow, struct irq_desc *desc, int 
 
 ##### 9.3.1.2.1 desc->handle_irq()/handle_level_irq()
 
-在[9.3.1.2 handle_irq()](#9-3-1-2-handle-irq-)节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由[9.2.1 struct irq_desc/irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
+在[9.3.1.2 handle_irq()](#9-3-1-2-handle-irq-)节中，handle_irq()最终都会调用desc->handle_irq()来进行中断处理。由[9.2.1 struct irq_desc / irq_desc[]](#9-2-1-struct-irq-desc-irq-desc-)节可知，desc->handle_irq被设置为handle_level_irq，因而最终调用的中断处理函数为handle_level_irq()。该函数为8259A中断控制器控制的16个中断向量所对应的中断处理程序，其定义于kernel/irq/chip.c:
 
 ```
 /**
@@ -41419,7 +41418,7 @@ irqreturn_t handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *act
 		trace_irq_handler_entry(irq, action);
 		/*
 		 * 依次调用用户在desc->action链表中注册的处理函数，
-		 * 参见[9.2.1 struct irq_desc/irq_desc[]]节的该结构体定义于include/linux/irqdesc.h:;
+		 * 参见[9.2.1 struct irq_desc / irq_desc[]]节的该结构体定义于include/linux/irqdesc.h:;
 		 * 该handler是通过__setup_irq()设置的，直接或间接调用__setup_irq()的函数，
 		 * 	参见[9.4 中断处理函数的注册/注销]节：
 		 * 	* native_init_IRQ()		-> setup_irq()
@@ -41458,7 +41457,7 @@ irqreturn_t handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *act
 		}
 
 		retval |= res;
-		// 参见[9.2.1 struct irq_desc/irq_desc[]]节的该结构体定义于include/linux/irqdesc.h:
+		// 参见[9.2.1 struct irq_desc / irq_desc[]]节的该结构体定义于include/linux/irqdesc.h:
 		action = action->next;
 	} while (action);
 
@@ -41490,8 +41489,8 @@ A：中断服务程序一般都是在中断请求关闭的条件下执行的，�
 A: 参见《Linux Kernel Development.[3rd Edition].[Robert Love]》第8. Bottom Halves and Deferring Work章第Bottom Halves节：
 
 Currently, three methods exist for deferring work:
-* softirqs (Refer to section [9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-))
-* tasklets (Refer to section [9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-))
+* softirqs (Refer to section [9.2.2 struct softirq_action / softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-)
+* tasklets (Refer to section [9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-)
 * work queues (Refer to section [7.5 工作队列/workqueue](#7-5-workqueue))
 Tasklets are built on softirqs and, therefore, both are similar. The work queue mechanism is an entirely different creature and is built on kernel threads.
 
@@ -41509,8 +41508,8 @@ Bottom Half Comparison:
 
 | Bottom Half | Context | Inherent Serialization | Reference |
 | :---------- | :------ | :--------------------- | :-------- |
-| Softirq     | Interrupt context | None | Section [9.2.2 struct softirq_action/softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-) |
-| Tasklet     | Interrupt context | Against the same tasklet | Section [9.2.5 struct tasklet_struct / tasklet_vec[], tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-) |
+| Softirq     | Interrupt context | None | Section [9.2.2 struct softirq_action / softirq_vec[]](#9-2-2-struct-softirq-action-softirq-vec-) |
+| Tasklet     | Interrupt context | Against the same tasklet | Section [9.2.5 struct tasklet_struct / tasklet_vec[] / tasklet_hi_vec[]](#9-2-5-struct-tasklet-struct-tasklet-vec-tasklet-hi-vec-) |
 | Work queues | Process context | None (scheduled as process context) | Section [7.5 工作队列/workqueue](#7-5-workqueue) |
 
 <p/>
@@ -41667,7 +41666,7 @@ restart:
 	do {
 		/*
 		 * 依次查询softirq_vec[]中的每种软中断，若置位，
-		 * 则调用对应的处理函数，参见[9.2.2 struct softirq_action/softirq_vec[]]节；
+		 * 则调用对应的处理函数，参见[9.2.2 struct softirq_action / softirq_vec[]]节；
 		 */
 		if (pending & 1) {
 			unsigned int vec_nr = h - softirq_vec;
@@ -41690,7 +41689,7 @@ restart:
 		h++;
 		/*
 		 * 右移，故低位对应的软中断具有高优先级，
-		 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节
+		 * 参见[9.2.2 struct softirq_action / softirq_vec[]]节
 		 */
 		pending >>= 1;
 	} while (pending);
@@ -42254,7 +42253,7 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 
 	/*
 	 * 根据中断号，在数组irq_desc[]查找对应的中断描述符，
-	 * 参见[9.2.1 struct irq_desc/irq_desc[]]节
+	 * 参见[9.2.1 struct irq_desc / irq_desc[]]节
 	 */
 	desc = irq_to_desc(irq);
 	if (!desc)
@@ -42287,7 +42286,7 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 	chip_bus_lock(desc);
 	/*
 	 * 将action结构加入到desc->action链表中，
-	 * 参见[9.2.1 struct irq_desc/irq_desc[]]节和[9.4.1.2 setup_irq()/__setup_irq()]节
+	 * 参见[9.2.1 struct irq_desc / irq_desc[]]节和[9.4.1.2 setup_irq()/__setup_irq()]节
 	 */
 	retval = __setup_irq(irq, desc, action);
 	chip_bus_sync_unlock(desc);
@@ -42677,7 +42676,7 @@ void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume)
  */
 void free_irq(unsigned int irq, void *dev_id)
 {
-	// 根据中断号，在数组irq_desc[]查找对应的中断描述符，参见[9.2.1 struct irq_desc/irq_desc[]]节
+	// 根据中断号，在数组irq_desc[]查找对应的中断描述符，参见[9.2.1 struct irq_desc / irq_desc[]]节
 	struct irq_desc *desc = irq_to_desc(irq);
 
 	// 检查desc->status_use_accessors中的标志位IRQ_PER_CPU_DEVID
@@ -42738,7 +42737,7 @@ static struct irqaction *__free_irq(unsigned int irq, void *dev_id)
 		if (action->dev_id == dev_id)
 			break;
 
-		// 参见[9.2.1 struct irq_desc/irq_desc[]]节
+		// 参见[9.2.1 struct irq_desc / irq_desc[]]节
 		action_ptr = &action->next;
 	}
 
@@ -42807,7 +42806,7 @@ static struct irqaction *__free_irq(unsigned int irq, void *dev_id)
 
 Interrupt disabling is one of the key mechanisms used to ensure that a sequence of kernel statements is treated as a critical section. It allows a kernel control path to continue executing even when hardware devices issue IRQ signals, thus providing an effective way to protect data structures that are also accessed by interrupt handlers. By itself, however, local interrupt disabling does not protect against concurrent accesses to data structures by interrupt handlers running on other CPUs, so in multiprocessor systems, local interrupt disabling is often coupled with spin locks.
 
-### 9.5.1 Disable/Enable Interrupts
+### 9.5.1 Disable and Enable Interrupts
 
 To disable interrupts locally for the current processor (and only the current processor) and then later reenable them, do the following:
 
@@ -42831,7 +42830,7 @@ These functions are usually implemented as a single assembly operation. (Of cour
 
 Those macros are defined in include/linux/irqflags.h.
 
-### 9.5.2 Disable/Enable a Specific Interrupt Line
+### 9.5.2 Disable and Enable a Specific Interrupt Line
 
 In some cases, it is useful to disable only a specific interrupt line for the entire system. This is called masking out an interrupt line. Linux provides four interfaces for this task, which are defined in kernel/irq/manage.c:
 
@@ -43000,7 +42999,7 @@ static irqreturn_t rtc_interrupt(int irq, void *dev_id)
 * [4.3.4.1.4.3.8 early_irq_init()](#4-3-4-1-4-3-8-early-irq-init-)节
 * [4.3.4.1.4.3.9 init_IRQ()](#4-3-4-1-4-3-9-init-irq-)节
 
-# 10 设备驱动程序/device driver
+# 10 设备驱动程序/Device Driver
 
 Reading materials:
 * Understanding Modern Device Drivers
@@ -43320,7 +43319,7 @@ drwxr-xr-x  2 root root          60 Nov 15 02:42 cpu
 
 **NOTE**: 某些主设备号已被预先静态的指定给了许多常见设备，这些已被分配掉的主设备号都列在Documentation/devices.txt中。
 
-## 10.2 Linux的设备驱动模型/Device Driver model
+## 10.2 Linux的设备驱动模型/Device Driver Model
 
 ### 10.2.1 设备驱动程序的初始化/driver_init()
 
@@ -47141,7 +47140,7 @@ KERNEL=="mtd*ro", ENV{MTD_FTL}=="smartmedia", RUN{builtin}="kmod load sm_ftl"
 LABEL="drivers_end"
 ```
 
-## 10.3 Char Drivers (drivers/char/)
+## 10.3 Char Drivers
 
 <<Linux Kernel Development, 3rd Edition>> Chaper 14. The Block I/O Layer:
 
@@ -47349,7 +47348,7 @@ int __init tty_init(void)
 
 	/*
 	 * 1.1) 初始化变量tty_cdev，
-	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()]节
+	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()]节
 	 */
 	cdev_init(&tty_cdev, &tty_fops);
 
@@ -47373,7 +47372,7 @@ int __init tty_init(void)
 
 	/*
 	 * 2.1) 初始化变量tty_cdev，
-	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()]节
+	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()]节
 	 */
 	cdev_init(&console_cdev, &console_fops);
 
@@ -47429,7 +47428,7 @@ a) 静态分配和初始化cdev对象
    cdev_init(&mycdev, &fops);
    mycdev->owner = THIS_MODULE;
 
-其中，函数cdev_init()用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见[10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()](#10-3-3-3-2-2-cdev-cdev-init-)节。
+其中，函数cdev_init()用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()](#10-3-3-3-2-2-cdev-cdev-init-)节。
 
 b) 动态分配和初始化cdev对象
 
@@ -47437,7 +47436,7 @@ b) 动态分配和初始化cdev对象
    mycdev->ops = &fops;
    mycdev->owner = THIS_MODULE;
 
-其中，函数cdev_alloc()用于动态分配cdev对象，参见[10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()](#10-3-3-3-2-1-cdev-cdev-alloc-)节。
+其中，函数cdev_alloc()用于动态分配cdev对象，参见[10.3.3.3.2.1 动态分配和初始化cdev对象/cdev_alloc()](#10-3-3-3-2-1-cdev-cdev-alloc-)节。
 
 2.3) 添加cdev对象
 
@@ -47527,7 +47526,7 @@ int __register_chrdev(unsigned int major, unsigned int baseminor,
 	/*
 	 * 动态分配/初始化struct cdev类型的对象，
 	 * 并设置cdev->kobj->ktype = &ktype_cdev_dynamic;
-	 * 参见[10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()]节
+	 * 参见[10.3.3.3.2.1 动态分配和初始化cdev对象/cdev_alloc()]节
 	 */
 	cdev = cdev_alloc();
 	if (!cdev)
@@ -47861,7 +47860,7 @@ __unregister_chrdev_region(unsigned major, unsigned baseminor, int minorct)
 
 ##### 10.3.3.3.2 分配/初始化cdev对象
 
-###### 10.3.3.3.2.1 动态分配和初始化cdev对象 / cdev_alloc()
+###### 10.3.3.3.2.1 动态分配和初始化cdev对象/cdev_alloc()
 
 该函数定义于fs/char_dev.c:
 
@@ -47900,7 +47899,7 @@ static void cdev_dynamic_release(struct kobject *kobj)
 }
 ```
 
-###### 10.3.3.3.2.2 静态分配和初始化cdev对象 / cdev_init()
+###### 10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()
 
 该函数适用于静态创建struct cdev对象后，初始化该对象，示例如下：
 
@@ -49872,7 +49871,7 @@ void usb_deregister_dev(struct usb_interface *intf,
 }
 ```
 
-## 10.4 Block Drivers (block/)
+## 10.4 Block Drivers
 
 <<Linux Kernel Development, 3rd Edition>> Chaper 14. The Block I/O Layer:
 
@@ -49900,6 +49899,8 @@ brw-rw----  1 root disk      8,  16 Nov 27 20:51 sdb
 brw-rw----  1 root disk      8,  17 Nov 27 20:51 sdb1 
 ...
 ```
+
+The block drivers are located in directory block/.
 
 ### 10.4.0 与块设备有关的命令
 
@@ -52566,7 +52567,7 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask, int flags, int no
 	 * 分配skb，分配的空间是struct sk_buff_fclones;
 	 * 缓冲区skbuff_head_cache和skbuff_fclone_cache是由如下函数创建的:
 	 * core_initcall(sock_init) in net/socket.c->sock_init()->skb_init()
-	 * 参见[10.5.2.1 应用层(L4)的初始化: sock_init()]节
+	 * 参见[10.5.2.1 应用层(L4)的初始化/sock_init()]节
 	 */
 	cache = (flags & SKB_ALLOC_FCLONE) ? skbuff_fclone_cache : skbuff_head_cache;
 
@@ -52848,7 +52849,7 @@ Linux内核中网络协议栈的初始化包括：
 * 网络互连层(L2)的初始化: inet_init() for IPv4, inet6_init() for IPv6
 * 网络接口层(L1)的初始化: e100_init_module()，net_dev_init()
 
-#### 10.5.2.1 应用层(L4)的初始化: sock_init()
+#### 10.5.2.1 应用层(L4)的初始化/sock_init()
 
 该函数定义于net/socket.c:
 
@@ -52921,7 +52922,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
                                             +-- 其中的.initcall1.init
 ```
 
-#### 10.5.2.2 传输层(L3)的初始化: proto_init()
+#### 10.5.2.2 传输层(L3)的初始化/proto_init()
 
 该函数定义于net/socket.c:
 
@@ -53313,7 +53314,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
                                             +-- 其中的.initcall6.init
 ```
 
-#### 10.5.2.4 网络接口层(L1)的初始化: net_dev_init()
+#### 10.5.2.4 网络接口层(L1)的初始化/net_dev_init()
 
 该函数定义于net/core/dev.c:
 
@@ -53392,7 +53393,7 @@ static int __init net_dev_init(void)
 		goto out;
 
 	/*
-	 * 分别设置如下软中断的服务服务程序，参见[9.2.2 struct softirq_action/softirq_vec[]]节：
+	 * 分别设置如下软中断的服务服务程序，参见[9.2.2 struct softirq_action / softirq_vec[]]节：
 	 *   - NET_TX_SOFTIRQ的服务程序为net_tx_action()
 	 *   - NET_RX_SOFTIRQ的服务程序为net_rx_action()
 	 * 该服务程序被__do_softirq()调用，参见[9.3.1.3.1.1.1 __do_softirq()]节
@@ -53464,7 +53465,7 @@ PCI Standards
 * [The PCI ID Repository (new site)](http://pci-ids.ucw.cz/)
 * [The PCI ID Repository (GitHub)](https://github.com/pciutils/pciids)
 
-# 11 文件系统/fs
+# 11 文件系统/Filesystem
 
 ## 11.1 文件系统简介
 
@@ -53540,7 +53541,7 @@ struct file_system_type {
 
 	/*
 	 * Terminate access to the superblock. 该函数的调用关系如下:
-	 * sys_umount()				// 参见[11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()]节
+	 * sys_umount()				// 参见[11.2.2.5 卸载文件系统(2)/sys_oldumount()/sys_umount()]节
 	 * -> mntput_no_expire()
 	 *    -> mntfree()
 	 *       -> deactivate_super()
@@ -53620,7 +53621,7 @@ file_systems单链表，参见:
          -> <fs-object-ptr> is appended into list file_systems
 ```
 
-在单链表file_systems中注册的文件系统参见[11.2.1.1.2 查看系统中注册的文件系统](#11-2-1-1-2-)节，其先后顺序是如何确定的呢？由[13.5.1.1.1.1.1 .initcall*.init](#13-5-1-1-1-1-1-initcall-init)节可知，宏```fs_install()```, ```fs_install_sync()```, ```rootfs_initcall()```和```module_init()```分别被扩展为```__early_initcall_end```和```__initcall_end```之间的```*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)```，如下所示(另参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]](#13-5-1-1-1-1-initcall-start-early-initcall-end-initcall-end-)节):
+在单链表file_systems中注册的文件系统参见[11.2.1.1.2 查看系统中注册的文件系统](#11-2-1-1-2-)节，其先后顺序是如何确定的呢？由[13.5.1.1.1.1.1 .initcall*.init](#13-5-1-1-1-1-1-initcall-init)节可知，宏```fs_install()```, ```fs_install_sync()```, ```rootfs_initcall()```和```module_init()```分别被扩展为```__early_initcall_end```和```__initcall_end```之间的```*(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init)```，如下所示(另参见[13.5.1.1.1.1 __initcall_start[]/__early_initcall_end[]/__initcall_end[]](#13-5-1-1-1-1-initcall-start-early-initcall-end-initcall-end-)节):
 
 ```
 .init.data : AT(ADDR(.init.data) - 0xC0000000) { *(.init.data) *(.cpuinit.data) *(.meminit.data) . = ALIGN(8); __ctors_start = .; *(.ctors) __ctors_end = .; *(.init.rodata) . = ALIGN(8); __start_ftrace_events = .; *(_ftrace_events) __stop_ftrace_events = .; *(.cpuinit.rodata) *(.meminit.rodata) . = ALIGN(32); __dtb_start = .; *(.dtb.init.rodata) __dtb_end = .; . = ALIGN(16); __setup_start = .; *(.init.setup) __setup_end = .; __initcall_start = .; *(.initcallearly.init) __early_initcall_end = .; *(.initcall0.init) *(.initcall0s.init) *(.initcall1.init) *(.initcall1s.init) *(.initcall2.init) *(.initcall2s.init) *(.initcall3.init) *(.initcall3s.init) *(.initcall4.init) *(.initcall4s.init) *(.initcall5.init) *(.initcall5s.init) *(.initcallrootfs.init) *(.initcall6.init) *(.initcall6s.init) *(.initcall7.init) *(.initcall7s.init) __initcall_end = .; __con_initcall_start = .; *(.con_initcall.init) __con_initcall_end = .; __security_initcall_start = .; *(.security_initcall.init) __security_initcall_end = .; }
@@ -55663,7 +55664,7 @@ start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
 
 ##### 11.2.1.7.1 struct files_struct
 
-每个进程用一个struct files_struct类型的对象files(参见[11 文件系统/fs](#11-fs)节)来记录文件描述符的使用情况，files_struct结构称为用户打开文件表，它是进程的私有数据，参见[11.2.4.2.1 open()](#11-2-4-2-1-open-)节以及下图:
+每个进程用一个struct files_struct类型的对象files(参见[11 文件系统/Filesystem](#11-filesystem)节)来记录文件描述符的使用情况，files_struct结构称为用户打开文件表，它是进程的私有数据，参见[11.2.4.2.1 open()](#11-2-4-2-1-open-)节以及下图:
 
 ![Filesystem_2](/assets/Filesystem_2.jpg)
 
@@ -58670,7 +58671,7 @@ static inline unsigned long hash(struct vfsmount *mnt, struct dentry *dentry)
 }
 ```
 
-#### 11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()
+#### 11.2.2.5 卸载文件系统(2)/sys_oldumount()/sys_umount()
 
 该系统调用定义于fs/namespace.c:
 
@@ -60542,7 +60543,7 @@ static struct file_system_type ramfs_fs_type = {
 	 *       -> deactivate_super()
 	 *          -> deactivate_locked_super()
 	 *             -> fs->kill_sb()
-	 * 参见[11.2.2.5 卸载文件系统(2)/sys_oldumount(), sys_umount()]节
+	 * 参见[11.2.2.5 卸载文件系统(2)/sys_oldumount()/sys_umount()]节
 	 */
 	.kill_sb	= ramfs_kill_sb,
 };
@@ -64693,11 +64694,11 @@ kern_path()					// 参见[11.2.2.4.1.1 kern_path()/do_path_lookup()]节
                   -> __lookup_mnt()		// 参见[11.2.2.4.1.1.1.2.4 __lookup_mnt()]节
 ```
 
-# 12 网络/net
+# 12 网络/Net
 
 网络代码保存在net/目录中，大部分的include文件在include/net下，BSD套接字代码在net/socket.c中，IP第4版本的套节口代码在net/ipv4/af_inet.c。一般的协议支持代码(包括sk_buff处理例程)在net/core下，TCP/IP网络代码在net/ipv4下，网络设备驱动程序在drivers/net下。
 
-socket可以用于进程间通信，参见[8.7 套接字/socket](#8-7-socket)节。
+socket可以用于进程间通信，参见[8.7 套接字/Socket](#8-7-socket)节。
 
 # 13 可加载内核模块/Loadable Kernel Module
 
@@ -65344,7 +65345,7 @@ load_module()				// 参见[13.5.1.2.1 load_module()]节
 
 Exported symbols的作用范围，参见[13.4.2.0 Scope of Kernel symbols](#13-4-2-0-scope-of-kernel-symbols)节。
 
-#### 13.1.2.4 \__init/\__initdata, \__exit/\__exitdata
+#### 13.1.2.4 \__init/\__initdata/\__exit/\__exitdata
 
 The ```__init``` macro causes the init function to be discarded and its memory freed once the init function finishes for built−in drivers, but not loadable modules. If you think about when the init function is invoked, this makes perfect sense. There is also an ```__initdata``` which works similarly to ```__init``` but for init variables rather than functions.
 
@@ -66742,7 +66743,7 @@ The compiled modules may have following sections, you can run command "readelf -
 | ```__versions``` | Expected (compile-time) versions (CRC) of the symbols that this module depends on. |
 | ```__ksymtab*``` | Table of symbols which this module exports. See [13.1.2.3 EXPORT_SYMBOL()](#13-1-2-3-export-symbol-), 13.5.1.2.1.1 find_module_sections(), and [Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds) |
 | ```__kcrctab*``` | Table of versions of symbols which this module exports. See [13.1.2.3 EXPORT_SYMBOL()](#13-1-2-3-export-symbol-), 13.5.1.2.1.1 find_module_sections() and [Appendix H: scripts/module-common.lds](#appendix-h-scripts-module-common-lds) |
-| ```*.init``` | Sections used while initialization (```__init```). See 13.1.2.4 \__init/\__initdata, \__exit/\__exitdata and 13.5.1.1.1.1 \__initcall_start[], \__early_initcall_end[], \__initcall_end[] |
+| ```*.init``` | Sections used while initialization (```__init```). See [13.1.2.4 __init/__initdata/__exit/__exitdata](#13-1-2-4-init-initdata-exit-exitdata) and [13.5.1.1.1.1 __initcall_start[]/__early_initcall_end[]/__initcall_end[]](#13-5-1-1-1-1-initcall-start-early-initcall-end-initcall-end-) |
 | ```.text```, ```.data```, etc. | The code and data. |
 
 <p/>
@@ -68601,7 +68602,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
 ```
 /*
  * 所有初始化函数被存放到一个数组空间中，如下三个变量表示特定的数组下标，
- * 参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]]节
+ * 参见[13.5.1.1.1.1 __initcall_start[]/__early_initcall_end[]/__initcall_end[]]节
  */
 extern initcall_t __initcall_start[], __initcall_end[], __early_initcall_end[];
 
@@ -68611,7 +68612,7 @@ static void __init do_initcalls(void)
 
 	/*
 	 * 依次执行__early_initcall_end与__initcall_end之间的初始化函数，
-	 * 参见[13.5.1.1.1.1 __initcall_start[], __early_initcall_end[], __initcall_end[]]节;
+	 * 参见[13.5.1.1.1.1 __initcall_start[]/__early_initcall_end[]/__initcall_end[]]节;
 	 * 其中，函数do_one_initcall()用于执行函数fn()，参见[13.5.1.1.1.2 do_one_initcall()]节
 	 */
 	for (fn = __early_initcall_end; fn < __initcall_end; fn++)
@@ -68619,7 +68620,7 @@ static void __init do_initcalls(void)
 }
 ```
 
-###### 13.5.1.1.1.1 \__initcall_start[], \__early_initcall_end[], \__initcall_end[]
+###### 13.5.1.1.1.1 \__initcall_start[]/\__early_initcall_end[]/\__initcall_end[]
 
 在arch/x86/kernel/vmlinux.lds.S中，包含如下代码：
 
@@ -72393,11 +72394,11 @@ __kfifo_uint_must_check_helper(								\
 
 ## 15.5 Maps
 
-Linux Kernel中定义的Maps确定了整数UID至指针```void *ptr```的映射关系，参见[15.5.1.1 struct idr/struct idr_layer](#15-5-1-1-struct-idr-struct-idr-layer)节中的图。
+Linux Kernel中定义的Maps确定了整数UID至指针```void *ptr```的映射关系，参见[15.5.1.1 struct idr / struct idr_layer](#15-5-1-1-struct-idr-struct-idr-layer)节中的图。
 
 ### 15.5.1 与Maps有关的数据结构
 
-#### 15.5.1.1 struct idr/struct idr_layer
+#### 15.5.1.1 struct idr / struct idr_layer
 
 该结构用于UID到指针Ptr的映射，其定义于include/linux/idr.h:
 
@@ -72441,7 +72442,7 @@ struct idr_layer {
 #define IDA_BITMAP_BITS 	(IDA_BITMAP_LONGS * sizeof(long) * 8)	// 取值为992
 
 struct ida {
-	// 参见[15.5.1.1 struct idr/struct idr_layer]节
+	// 参见[15.5.1.1 struct idr / struct idr_layer]节
 	struct idr		idr;
 	struct ida_bitmap	*free_bitmap;
 };
@@ -72750,7 +72751,7 @@ rbtree示例:
 
 ![rbtree_3](/assets/rbtree_3.jpg)
 
-### 15.6.2 与rbtree有关的数据结构/struct rb_root/struct rb_node
+### 15.6.2 与rbtree有关的数据结构 / struct rb_root / struct rb_node
 
 该结构定义于include/linux/rbtree.h:
 
@@ -72870,7 +72871,7 @@ static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
 {
 	/*
 	 * rb_parent_color包含父节点的地址和本节点的颜色，
-	 * 参见[15.6.2 与rbtree有关的数据结构/struct rb_root/struct rb_node]节
+	 * 参见[15.6.2 与rbtree有关的数据结构 / struct rb_root / struct rb_node]节
 	 */
 	rb->rb_parent_color = (rb->rb_parent_color & 3) | (unsigned long)p;
 }
@@ -77189,7 +77190,7 @@ void rcu_init(void)
 {
 	/*
 	 * 设置软中断RCU_SOFTIRQ的服务程序为rcu_process_callbacks()，
-	 * 参见[9.2.2 struct softirq_action/softirq_vec[]]节；
+	 * 参见[9.2.2 struct softirq_action / softirq_vec[]]节；
 	 * 该服务程序被__do_softirq()调用，参见[9.3.1.3.1.1.1 __do_softirq()]节
 	 */
 	open_softirq(RCU_SOFTIRQ, rcu_process_callbacks);

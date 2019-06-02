@@ -7844,12 +7844,12 @@ heap_end_ptr:	.word	_end+STACK_SIZE-512
 start_of_setup:
 #ifdef SAFE_RESET_DISK_CONTROLLER
 # Reset the disk controller.
-	movw	$0x0000, %ax		# Reset disk controller
-	movb	$0x80, %dl			# All disks
-	int	$0x13				// 用13号中断重设系统盘的磁盘控制器ax=0x0，dl=0x80
+	movw	$0x0000, %ax	# Reset disk controller
+	movb	$0x80, %dl	# All disks
+	int	$0x13		// 用13号中断重设系统盘的磁盘控制器ax=0x0，dl=0x80
 #endif
 
-# Force %es = %ds			// 先强制让附加数据段es的内容等于数据段ds的内容
+# Force %es = %ds		// 先强制让附加数据段es的内容等于数据段ds的内容
 	movw	%ds, %ax
 	movw	%ax, %es
 	cld
@@ -7941,8 +7941,7 @@ void main(void)
 	detect_memory();
 
 	/* Set keyboard repeat rate (why?) */
-	keyboard_set_repeat();					// 参见[4.3.4.1.2.6 keyboard_set_repeat()
-]节
+	keyboard_set_repeat();					// 参见[4.3.4.1.2.6 keyboard_set_repeat()]节
 
 	/* Query MCA information */
 	query_mca();						// 参见[4.3.4.1.2.7 query_mca()]节
@@ -8753,7 +8752,7 @@ relocated:
 
 ```
 asmlinkage void decompress_kernel(void *rmode, memptr heap, unsigned char *input_data,
-						 unsigned long input_len, unsigned char *output)
+				  unsigned long input_len, unsigned char *output)
 {
 	real_mode = rmode;
 
@@ -9880,46 +9879,31 @@ idt_table[]示意图:
 
 函数trap_init()调用如下函数设置idt_table表项，其定义于arch/x86/include/asm/desc.h：
 
-* set_intr_gate()
-
 ```
 static inline void set_intr_gate(unsigned int n, void *addr)
 {
 	BUG_ON((unsigned)n > 0xFF);
 	_set_gate(n, GATE_INTERRUPT, addr, 0, 0, __KERNEL_CS);
 }
-```
 
-* set_intr_gate_ist()
-
-```
 static inline void set_intr_gate_ist(int n, void *addr, unsigned ist)
 {
 	BUG_ON((unsigned)n > 0xFF);
 	_set_gate(n, GATE_INTERRUPT, addr, 0, ist, __KERNEL_CS);
 }
 
-- set_system_intr_gate()
 static inline void set_system_intr_gate(unsigned int n, void *addr)
 {
 	BUG_ON((unsigned)n > 0xFF);
 	_set_gate(n, GATE_INTERRUPT, addr, 0x3, 0, __KERNEL_CS);
 }
-```
 
-* set_task_gate()
-
-```
 static inline void set_intr_gate(unsigned int n, void *addr)
 {
 	BUG_ON((unsigned)n > 0xFF);
 	_set_gate(n, GATE_INTERRUPT, addr, 0, 0, __KERNEL_CS);
 }
-```
 
-* set_system_trap_gate()
-
-```
 static inline void set_system_trap_gate(unsigned int n, void *addr)
 {
 	BUG_ON((unsigned)n > 0xFF);
@@ -9927,7 +9911,7 @@ static inline void set_system_trap_gate(unsigned int n, void *addr)
 }
 ```
 
-上述函数均通过调用_set_gate()来实现，其定义于arch/x86/include/asm/desc.h:
+上述函数均通过调用```_set_gate()```来实现，其定义于arch/x86/include/asm/desc.h:
 
 ```
 static inline void _set_gate(int gate, unsigned type, void *addr, unsigned dpl,
@@ -9955,16 +9939,16 @@ static inline void _set_gate(int gate, unsigned type, void *addr, unsigned dpl,
 #ifdef CONFIG_X86_64
 
 static inline void pack_gate(gate_desc *gate, unsigned type, unsigned long func,
-					  unsigned dpl, unsigned ist, unsigned seg)
+			     unsigned dpl, unsigned ist, unsigned seg)
 {
-	gate->offset_low		= PTR_LOW(func);
+	gate->offset_low	= PTR_LOW(func);
 	gate->segment		= __KERNEL_CS;
-	gate->ist			= ist;
+	gate->ist		= ist;
 	gate->p			= 1;
-	gate->dpl			= dpl;
+	gate->dpl		= dpl;
 	gate->zero0		= 0;
 	gate->zero1		= 0;
-	gate->type			= type;
+	gate->type		= type;
 	gate->offset_middle	= PTR_MIDDLE(func);
 	gate->offset_high	= PTR_HIGH(func);
 }
@@ -10499,14 +10483,14 @@ struct x86_init_ops x86_init __initdata = {
 		.mpc_apic_id		= default_mpc_apic_id,
 		.smp_read_mpc_oem	= default_smp_read_mpc_oem,
 		.mpc_oem_bus_info	= default_mpc_oem_bus_info,
-		.find_smp_config		= default_find_smp_config,
+		.find_smp_config	= default_find_smp_config,
 		.get_smp_config		= default_get_smp_config,
 	},
 
 	.irqs = {
-		.pre_vector_init		= init_ISA_irqs,
-		.intr_init			= native_init_IRQ,
-		.trap_init			= x86_init_noop,
+		.pre_vector_init	= init_ISA_irqs,
+		.intr_init		= native_init_IRQ,
+		.trap_init		= x86_init_noop,
 	},
 
 	.oem = {
@@ -10519,7 +10503,7 @@ struct x86_init_ops x86_init __initdata = {
 	},
 
 	.paging = {
-		.pagetable_setup_start= native_pagetable_setup_start,
+		.pagetable_setup_start	= native_pagetable_setup_start,
 		.pagetable_setup_done	= native_pagetable_setup_done,
 	},
 
@@ -10535,8 +10519,8 @@ struct x86_init_ops x86_init __initdata = {
 	},
 
 	.pci = {
-		.init				= x86_default_pci_init,
-		.init_irq			= x86_default_pci_init_irq,
+		.init			= x86_default_pci_init,
+		.init_irq		= x86_default_pci_init_irq,
 		.fixup_irqs		= x86_default_pci_fixup_irqs,
 	},
 };
@@ -10623,7 +10607,7 @@ void __init init_ISA_irqs(void)
 
 ```
 void irq_set_chip_and_handler_name(unsigned int irq, struct irq_chip *chip,
-			      irq_flow_handler_t handle, const char *name)
+				   irq_flow_handler_t handle, const char *name)
 {
 	irq_set_chip(irq, chip);
 	__irq_set_handler(irq, handle, 0, name);
@@ -12037,7 +12021,7 @@ The design of init has diverged in Unix systems, such as System III and System V
 
 Several replacement init implementations have been written with attempt to address design limitations in the standard versions. These include systemd and Upstart, the latter being used by Ubuntu and some other Linux distributions.
 
-Refer to article "init system other points, and conclusion" in:
+Refer to article **init system other points, and conclusion** in:
 
 * [https://lwn.net/Articles/578209/](https://lwn.net/Articles/578209/)
 * [https://lwn.net/Articles/578210/](https://lwn.net/Articles/578210/)
@@ -12275,11 +12259,14 @@ systemd的配置文件放置在下面的目录中：
 #### 4.3.5.2 查看当前系统使用的init
 
 执行下列命令查看当前子系统中的init进程：
+
+```
 chenwx@chenwx ~ $ init --version
 init (upstart 1.12.1)
 Copyright (C) 2006-2014 Canonical Ltd., 2011 Scott James Remnant
 
 This is free software; see the source for copying conditions.  There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+```
 
 或者，init进程更改为systemd:
 

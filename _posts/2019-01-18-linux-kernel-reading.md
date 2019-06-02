@@ -7661,7 +7661,7 @@ where, the ```-M``` enables rename detection, and the ```--summary``` enables a 
 
 实模式是指寻址采用和8086相同的16位段和偏移量，最大寻址空间1MB，最大分段64KB。
 
-![real-mode-protocol](/assets/real-mode-protocol.png)
+![Real_Mode_Protocol](/assets/Real_Mode_Protocol.png)
 
 **保护模式**
 

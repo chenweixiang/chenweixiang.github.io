@@ -14422,45 +14422,45 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 		 * Hopefully nobody expects them at a fixed place (Wine?)
 		 */
 		[GDT_ENTRY_KERNEL32_CS]		= GDT_ENTRY_INIT(0xc09b, 0, 0xfffff), 	// 1
-		[GDT_ENTRY_KERNEL_CS]			= GDT_ENTRY_INIT(0xa09b, 0, 0xfffff), 	// 2
-		[GDT_ENTRY_KERNEL_DS]			= GDT_ENTRY_INIT(0xc093, 0, 0xfffff), 	// 3
+		[GDT_ENTRY_KERNEL_CS]		= GDT_ENTRY_INIT(0xa09b, 0, 0xfffff), 	// 2
+		[GDT_ENTRY_KERNEL_DS]		= GDT_ENTRY_INIT(0xc093, 0, 0xfffff), 	// 3
 		[GDT_ENTRY_DEFAULT_USER32_CS]	= GDT_ENTRY_INIT(0xc0fb, 0, 0xfffff), 	// 4
-		[GDT_ENTRY_DEFAULT_USER_DS]		= GDT_ENTRY_INIT(0xc0f3, 0, 0xfffff), 	// 5
-		[GDT_ENTRY_DEFAULT_USER_CS]		= GDT_ENTRY_INIT(0xa0fb, 0, 0xfffff), 	// 6
+		[GDT_ENTRY_DEFAULT_USER_DS]	= GDT_ENTRY_INIT(0xc0f3, 0, 0xfffff), 	// 5
+		[GDT_ENTRY_DEFAULT_USER_CS]	= GDT_ENTRY_INIT(0xa0fb, 0, 0xfffff), 	// 6
 #else
-		[GDT_ENTRY_KERNEL_CS]			= GDT_ENTRY_INIT(0xc09a, 0, 0xfffff), 	// 12
-		[GDT_ENTRY_KERNEL_DS]			= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 13
-		[GDT_ENTRY_DEFAULT_USER_CS]		= GDT_ENTRY_INIT(0xc0fa, 0, 0xfffff), 	// 14
-		[GDT_ENTRY_DEFAULT_USER_DS]		= GDT_ENTRY_INIT(0xc0f2, 0, 0xfffff), 	// 15
+		[GDT_ENTRY_KERNEL_CS]		= GDT_ENTRY_INIT(0xc09a, 0, 0xfffff), 	// 12
+		[GDT_ENTRY_KERNEL_DS]		= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 13
+		[GDT_ENTRY_DEFAULT_USER_CS]	= GDT_ENTRY_INIT(0xc0fa, 0, 0xfffff), 	// 14
+		[GDT_ENTRY_DEFAULT_USER_DS]	= GDT_ENTRY_INIT(0xc0f2, 0, 0xfffff), 	// 15
 		/*
 		 * Segments used for calling PnP BIOS have byte granularity.
 		 * They code segments and data segments have fixed 64k limits,
 		 * the transfer segment sizes are set at run time.
 		 */
 		/* 32-bit code */
-		[GDT_ENTRY_PNPBIOS_CS32]		= GDT_ENTRY_INIT(0x409a, 0, 0xffff), 	// 18
+		[GDT_ENTRY_PNPBIOS_CS32]	= GDT_ENTRY_INIT(0x409a, 0, 0xffff), 	// 18
 		/* 16-bit code */
-		[GDT_ENTRY_PNPBIOS_CS16]		= GDT_ENTRY_INIT(0x009a, 0, 0xffff), 	// 19
+		[GDT_ENTRY_PNPBIOS_CS16]	= GDT_ENTRY_INIT(0x009a, 0, 0xffff), 	// 19
 		/* 16-bit data */
-		[GDT_ENTRY_PNPBIOS_DS]		= GDT_ENTRY_INIT(0x0092, 0, 0xffff), 		// 20
+		[GDT_ENTRY_PNPBIOS_DS]		= GDT_ENTRY_INIT(0x0092, 0, 0xffff), 	// 20
 		/* 16-bit data */
-		[GDT_ENTRY_PNPBIOS_TS1]		= GDT_ENTRY_INIT(0x0092, 0, 0), 		// 21
+		[GDT_ENTRY_PNPBIOS_TS1]		= GDT_ENTRY_INIT(0x0092, 0, 0), 	// 21
 		/* 16-bit data */
-		[GDT_ENTRY_PNPBIOS_TS2]		= GDT_ENTRY_INIT(0x0092, 0, 0), 		// 22
+		[GDT_ENTRY_PNPBIOS_TS2]		= GDT_ENTRY_INIT(0x0092, 0, 0), 	// 22
 		/*
 		 * The APM segments have byte granularity and their bases
 		 * are set at run time.  All have 64k limits.
 		 */
 		/* 32-bit code */
-		[GDT_ENTRY_APMBIOS_BASE]		= GDT_ENTRY_INIT(0x409a, 0, 0xffff), 	// 23
+		[GDT_ENTRY_APMBIOS_BASE]	= GDT_ENTRY_INIT(0x409a, 0, 0xffff), 	// 23
 		/* 16-bit code */
-		[GDT_ENTRY_APMBIOS_BASE+1]		= GDT_ENTRY_INIT(0x009a, 0, 0xffff),	// 24
+		[GDT_ENTRY_APMBIOS_BASE+1]	= GDT_ENTRY_INIT(0x009a, 0, 0xffff),	// 24
 		/* data */
-		[GDT_ENTRY_APMBIOS_BASE+2]		= GDT_ENTRY_INIT(0x4092, 0, 0xffff),	// 25
+		[GDT_ENTRY_APMBIOS_BASE+2]	= GDT_ENTRY_INIT(0x4092, 0, 0xffff),	// 25
 
-		[GDT_ENTRY_ESPFIX_SS]			= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 26
-		[GDT_ENTRY_PERCPU]			= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 27
-		GDT_STACK_CANARY_INIT 								// 28
+		[GDT_ENTRY_ESPFIX_SS]		= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 26
+		[GDT_ENTRY_PERCPU]		= GDT_ENTRY_INIT(0xc092, 0, 0xfffff), 	// 27
+		GDT_STACK_CANARY_INIT 							// 28
 #endif
 	}
 };
@@ -14501,10 +14501,10 @@ DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = {
 这四个段对应的Segment Selector定义于arch/x86/include/asm/segment.h:
 
 ```
-#define __KERNEL_CS			(GDT_ENTRY_KERNEL_CS*8)		// 96, or 16
-#define __KERNEL_DS			(GDT_ENTRY_KERNEL_DS*8)		// 104, or 24
-#define __USER_CS			(GDT_ENTRY_DEFAULT_USER_CS*8+3)	// 115, or 51
-#define __USER_DS			(GDT_ENTRY_DEFAULT_USER_DS*8+3)	// 123, or 43
+#define __KERNEL_CS	(GDT_ENTRY_KERNEL_CS*8)			// 96, or 16
+#define __KERNEL_DS	(GDT_ENTRY_KERNEL_DS*8)			// 104, or 24
+#define __USER_CS	(GDT_ENTRY_DEFAULT_USER_CS*8+3)		// 115, or 51
+#define __USER_DS	(GDT_ENTRY_DEFAULT_USER_DS*8+3)		// 123, or 43
 ```
 
 综上，各段的字段取值：
@@ -14593,7 +14593,7 @@ ENTRY(early_gdt_descr)
 setup_idt:
 	lea ignore_int,%edx
 	movl $(__KERNEL_CS << 16),%eax
-	movw %dx,%ax		/* selector = 0x0010 = cs */
+	movw %dx,%ax			/* selector = 0x0010 = cs */
 	movw $0x8E00,%dx		/* interrupt gate - dpl=0, present */
 
 	lea idt_table,%edi
@@ -14920,19 +14920,19 @@ arch/x86/include/asm/pgtable.h
 |  +- #ifdef CONFIG_X86_32
 |  |     #include "pgtable_32_types.h"
 |  |     +- #ifdef CONFIG_X86_PAE
-|  |     |     #include <asm/pgtable-3level_types.h>		// PAGETABLE_LEVELS = 3
-|  |     |     +- typedef u64	pteval_t;
-|  |     |     +- typedef u64	pmdval_t;
-|  |     |     +- typedef u64	pudval_t;
-|  |     |     +- typedef u64	pgdval_t;
+|  |     |     #include <asm/pgtable-3level_types.h>			// PAGETABLE_LEVELS = 3
+|  |     |     +- typedef u64				pteval_t;
+|  |     |     +- typedef u64				pmdval_t;
+|  |     |     +- typedef u64				pudval_t;
+|  |     |     +- typedef u64				pgdval_t;
 |  |     |     +- typedef union {
 |  |     |             struct { unsigned long pte_low, pte_high; };
-|  |     |             pteval_t pte;
+|  |     |             pteval_t				pte;
 |  |     |     	    } pte_t;
 |  |     |     +- #ifdef CONFIG_PARAVIRT
-|  |     |            #define SHARED_KERNEL_PMD	(pv_info.shared_kernel_pmd)
+|  |     |            #define SHARED_KERNEL_PMD		(pv_info.shared_kernel_pmd)
 |  |     |         #else
-|  |     |            #define SHARED_KERNEL_PMD	1
+|  |     |            #define SHARED_KERNEL_PMD		1
 |  |     |         #endif
 |  |     |     +- #define PAGETABLE_LEVELS		3
 |  |     |     +- #define PGDIR_SHIFT			30
@@ -14941,14 +14941,14 @@ arch/x86/include/asm/pgtable.h
 |  |     |     +- #define PTRS_PER_PMD			512
 |  |     |     +- #define PTRS_PER_PTE			512
 |  |     +- #else
-|  |     |     #include <asm/pgtable-2level_types.h>		// PAGETABLE_LEVELS = 2
-|  |     |     +- typedef unsigned long	pteval_t;
-|  |     |     +- typedef unsigned long	pmdval_t;
-|  |     |     +- typedef unsigned long	pudval_t;
-|  |     |     +- typedef unsigned long	pgdval_t;
+|  |     |     #include <asm/pgtable-2level_types.h>			// PAGETABLE_LEVELS = 2
+|  |     |     +- typedef unsigned long			pteval_t;
+|  |     |     +- typedef unsigned long			pmdval_t;
+|  |     |     +- typedef unsigned long			pudval_t;
+|  |     |     +- typedef unsigned long			pgdval_t;
 |  |     |     +- typedef union {
-|  |     |             pteval_t pte;
-|  |     |             pteval_t pte_low;
+|  |     |             pteval_t				pte;
+|  |     |             pteval_t				pte_low;
 |  |     |     	    } pte_t;
 |  |     |     +- #define SHARED_KERNEL_PMD		0
 |  |     |     +- #define PAGETABLE_LEVELS		2
@@ -14957,12 +14957,12 @@ arch/x86/include/asm/pgtable.h
 |  |     |     +- #define PTRS_PER_PTE			1024
 |  |     +- #endif
 |  +- #else
-|  |     #include "pgtable_64_types.h"				// PAGETABLE_LEVELS = 4
-|  |     +- typedef unsigned long	pteval_t;
-|  |     +- typedef unsigned long	pmdval_t;
-|  |     +- typedef unsigned long	pudval_t;
-|  |     +- typedef unsigned long	pgdval_t;
-|  |     +- typedef struct { pteval_t pte; } pte_t;
+|  |     #include "pgtable_64_types.h"					// PAGETABLE_LEVELS = 4
+|  |     +- typedef unsigned long			pteval_t;
+|  |     +- typedef unsigned long			pmdval_t;
+|  |     +- typedef unsigned long			pudval_t;
+|  |     +- typedef unsigned long			pgdval_t;
+|  |     +- typedef struct { pteval_t pte; }		pte_t;
 |  |     +- #define SHARED_KERNEL_PMD			0
 |  |     +- #define PAGETABLE_LEVELS			4
 |  |     +- #define PGDIR_SHIFT				39
@@ -14975,25 +14975,25 @@ arch/x86/include/asm/pgtable.h
 |  +- #endif
 |  |
 |  |
-|  +- typedef struct { pgdval_t pgd; } pgd_t;
+|  +- typedef struct { pgdval_t pgd; }			pgd_t;
 |  |
 |  |
 |  +- #if PAGETABLE_LEVELS > 3
-|  |     typedef struct { pudval_t pud; } pud_t;
+|  |     typedef struct { pudval_t pud; }		pud_t;
 |  +- #else
 |  |     #include <asm-generic/pgtable-nopud.h>
-|  |     +- typedef struct { pgd_t pgd; } pud_t;
-|  |     +- #define PUD_SHIFT		PGDIR_SHIFT
-|  |     +- #define PTRS_PER_PUD	1
+|  |     +- typedef struct { pgd_t pgd; }		pud_t;
+|  |     +- #define PUD_SHIFT				PGDIR_SHIFT
+|  |     +- #define PTRS_PER_PUD			1
 |  +- #endif
 |  |
 |  +- #if PAGETABLE_LEVELS > 2
-|  |     typedef struct { pmdval_t pmd; } pmd_t;
+|  |     typedef struct { pmdval_t pmd; }		pmd_t;
 |  +- #else
 |  |     #include <asm-generic/pgtable-nopmd.h>
-|  |     +- typedef struct { pud_t pud; } pmd_t;
-|  |     +- #define PMD_SHIFT		PUD_SHIFT
-|  |     +- #define PTRS_PER_PMD	1
+|  |     +- typedef struct { pud_t pud; }		pmd_t;
+|  |     +- #define PMD_SHIFT				PUD_SHIFT
+|  |     +- #define PTRS_PER_PMD			1
 |  +- #endif
 |
 |
@@ -15012,46 +15012,73 @@ arch/x86/include/asm/pgtable.h
 
 除了[6.1.2.6.2 页目录结构/pgd_t](#6-1-2-6-2-pgd-t)节至[6.1.2.6.5 页面结构/pte_t](#6-1-2-6-5-pte-t)节中的函数，如下函数用于操作页目录表项/页表项：
 
-* **pgd_none(), pud_none(), pmd_none(), pte_none()**
+```
+pgd_none()
+pud_none()
+pmd_none()
+pte_none()
+```
 
-  Yield the value 1 if the corresponding entry has the value 0; otherwise, they yield the value 0.
+Yield the value 1 if the corresponding entry has the value 0; otherwise, they yield the value 0.
 
-* **pgd_clear(), pud_clear(), pmd_clear(), pte_clear()**
+```
+pgd_clear()
+pud_clear()
+pmd_clear()
+pte_clear()
+```
 
-  Clear an entry of the corresponding page table, thus forbidding a process to use the linear addresses mapped by the page table entry. The ptep_get_and_clear() function clears a Page Table entry and returns the previous value.
+Clear an entry of the corresponding page table, thus forbidding a process to use the linear addresses mapped by the page table entry. The ptep_get_and_clear() function clears a Page Table entry and returns the previous value.
 
-* **set_pgd(), set_pud(), set_pmd(), set_pte()**
+```
+set_pgd()
+set_pud()
+set_pmd()
+set_pte()
+```
 
-  Write a given value into a page table entry; set_pte_atomicis() identical to set_pte(), but when PAE is enabled it also ensures that the 64-bit value is written atomically.
+Write a given value into a page table entry; set_pte_atomicis() identical to set_pte(), but when PAE is enabled it also ensures that the 64-bit value is written atomically.
 
-* **pte_same(a,b)**
+```
+pte_same(a,b)
+```
 
-  Returns 1 if two Page Table entries a and b refer to the same page and specify the same access privileges, 0 otherwise.
+Returns 1 if two Page Table entries a and b refer to the same page and specify the same access privileges, 0 otherwise.
 
-* **pmd_large(e)**
+```
+pmd_large(e)
+```
 
-  Returns 1 if the Page Middle Directory entryerefers to a large page (2 MB or 4 MB), 0 otherwise.
+Returns 1 if the Page Middle Directory entryerefers to a large page (2 MB or 4 MB), 0 otherwise.
 
-* **pgd_bad(), pud_bad(), pmd_bad()**
+```
+pgd_bad()
+pud_bad()
+pmd_bad()
+```
 
-  The pud_bad() and pgd_bad() macros always yield 0.
+The pud_bad() and pgd_bad() macros always yield 0.
 
-  The pmd_bad() macro is used by functions to check Page Middle Directory entries passed as input parameters. It yields the value 1 if the entry points to a bad Page Table — that is, if at least one of the following conditions applies:
+The pmd_bad() macro is used by functions to check Page Middle Directory entries passed as input parameters. It yields the value 1 if the entry points to a bad Page Table — that is, if at least one of the following conditions applies:
 
-  * The page is not in main memory (Present flag cleared).
-  * The page allows only Read access (Read/Writeflag cleared).
-  * Either Accessed or Dirtyis cleared (Linux always forces these flags to be set for every existing Page Table).
-  <p/>
+* The page is not in main memory (Present flag cleared).
+* The page allows only Read access (Read/Writeflag cleared).
+* Either Accessed or Dirtyis cleared (Linux always forces these flags to be set for every existing Page Table).
 
-  No pte_bad() macro is defined, because it is legal for a Page Table entry to refer to a page that is not present in main memory, not writable, or not accessible at all.
+No pte_bad() macro is defined, because it is legal for a Page Table entry to refer to a page that is not present in main memory, not writable, or not accessible at all.
 
-* **pgd_present(), pud_present(), pmd_present(), pte_present()**
+```
+pgd_present()
+pud_present()
+pmd_present()
+pte_present()
+```
 
-  The pud_present() and pgd_present() macros always yield the value 1.
+The pud_present() and pgd_present() macros always yield the value 1.
 
-  The pmd_present() macro yields the value 1 if the Present flag of the corresponding entry is equal to 1 — that is, if the corresponding page or Page Table is loaded in main memory.
+The pmd_present() macro yields the value 1 if the Present flag of the corresponding entry is equal to 1 — that is, if the corresponding page or Page Table is loaded in main memory.
 
-  The pte_present() macro yields the value 1 if either the Present flag or the Page Size flag of a Page Table entry is equal to 1, the value 0 otherwise. Recall that the Page Size flag in Page Table entries has no meaning for the paging unit of the microprocessor; the kernel, however, marks Present equal to 0 and Page Size equal to 1 for the pages present in main memory but without read, write, or execute privileges. In this way, any access to such pages triggers a Page Fault exception because Present is cleared, and the kernel can detect that the fault is not due to a missing page by checking the value of Page Size.
+The pte_present() macro yields the value 1 if either the Present flag or the Page Size flag of a Page Table entry is equal to 1, the value 0 otherwise. Recall that the Page Size flag in Page Table entries has no meaning for the paging unit of the microprocessor; the kernel, however, marks Present equal to 0 and Page Size equal to 1 for the pages present in main memory but without read, write, or execute privileges. In this way, any access to such pages triggers a Page Fault exception because Present is cleared, and the kernel can detect that the fault is not due to a missing page by checking the value of Page Size.
 
 ##### 6.1.2.6.2 页目录结构/pgd_t
 
@@ -15068,7 +15095,7 @@ typedef struct { pgdval_t pgd; } pgd_t;
 1) arch/x86/include/asm/pgtable-2level_types.h
 
 ```
-typedef unsigned long   pgdval_t;
+typedef unsigned long		pgdval_t;
 
 /*
  * traditional i386 two-level paging structure:
@@ -15095,17 +15122,17 @@ typedef u64   pgdval_t;
 3) arch/x86/include/asm/pgtable_64_types.h
 
 ```
-typedef unsigned long   pgdval_t;
+typedef unsigned long		pgdval_t;
 
 /*
  * PGDIR_SHIFT determines what a top-level page table entry can map
  */
 // 线性地址中的9位(A47-A39)用来产生页目录项，
 // 参见[6.1.2.4 Paging for 64-bit Architectures]节
-#define PGDIR_SHIFT	39
+#define PGDIR_SHIFT		39
 
 // 页目录中包含512个页目录项
-#define PTRS_PER_PGD	512
+#define PTRS_PER_PGD		512
 ```
 
 ###### 6.1.2.6.2.2 pgd_offset()/pgd_offset_k()
@@ -15141,7 +15168,7 @@ typedef unsigned long   pgdval_t;
 宏pgd_val()用于获取页目录表项的值，其定义于arch/x86/include/asm/pgtable.h:
 
 ```
-#define pgd_val(x)			native_pgd_val(x)
+#define pgd_val(x)	native_pgd_val(x)
 
 static inline pgdval_t	native_pgd_val(pgd_t pgd)
 {
@@ -15163,7 +15190,7 @@ static inline pgd_t native_make_pgd(pgdval_t val)
 #define PTE_PFN_MASK		((pteval_t)PHYSICAL_PAGE_MASK)		// A31-A12置1，其他位置0
 
 /* PTE_FLAGS_MASK extracts the flags from a (pte|pmd|pud|pgd)val_t */
-#define PTE_FLAGS_MASK	(~PTE_PFN_MASK)					// A11-A0置1，其他位置0
+#define PTE_FLAGS_MASK		(~PTE_PFN_MASK)				// A11-A0置1，其他位置0
 
 static inline pgdval_t pgd_flags(pgd_t pgd)
 {
@@ -15193,52 +15220,52 @@ static inline pgdval_t pgd_flags(pgd_t pgd)
 页目录项中各标志位定义于arch/x86/include/asm/pgtable_types.h:
 
 ```
-#define _PAGE_BIT_PRESENT		0	/* is present */
-#define _PAGE_BIT_RW			1	/* writeable */
-#define _PAGE_BIT_USER			2	/* userspace addressable */
-#define _PAGE_BIT_PWT			3	/* page write through */
-#define _PAGE_BIT_PCD			4	/* page cache disabled */
-#define _PAGE_BIT_ACCESSED		5	/* was accessed (raised by CPU) */
-#define _PAGE_BIT_DIRTY			6	/* was written to (raised by CPU) */
-#define _PAGE_BIT_PSE			7	/* 4 MB (or 2MB) page */
-#define _PAGE_BIT_PAT			7	/* on 4KB pages */
-#define _PAGE_BIT_GLOBAL		8	/* Global TLB entry PPro+ */
-#define _PAGE_BIT_UNUSED1		9	/* available for programmer */
-#define _PAGE_BIT_IOMAP			10	/* flag used to indicate IO mapping */
-#define _PAGE_BIT_HIDDEN		11	/* hidden by kmemcheck */
-#define _PAGE_BIT_PAT_LARGE		12	/* On 2MB or 1GB pages */
-#define _PAGE_BIT_SPECIAL		_PAGE_BIT_UNUSED1
-#define _PAGE_BIT_CPA_TEST		_PAGE_BIT_UNUSED1
-#define _PAGE_BIT_SPLITTING		_PAGE_BIT_UNUSED		1 /* only valid on a PSE pmd */
-#define _PAGE_BIT_NX			63	/* No execute: only valid after cpuid check */
+#define _PAGE_BIT_PRESENT	0			/* is present */
+#define _PAGE_BIT_RW		1			/* writeable */
+#define _PAGE_BIT_USER		2			/* userspace addressable */
+#define _PAGE_BIT_PWT		3			/* page write through */
+#define _PAGE_BIT_PCD		4			/* page cache disabled */
+#define _PAGE_BIT_ACCESSED	5			/* was accessed (raised by CPU) */
+#define _PAGE_BIT_DIRTY		6			/* was written to (raised by CPU) */
+#define _PAGE_BIT_PSE		7			/* 4 MB (or 2MB) page */
+#define _PAGE_BIT_PAT		7			/* on 4KB pages */
+#define _PAGE_BIT_GLOBAL	8			/* Global TLB entry PPro+ */
+#define _PAGE_BIT_UNUSED1	9			/* available for programmer */
+#define _PAGE_BIT_IOMAP		10			/* flag used to indicate IO mapping */
+#define _PAGE_BIT_HIDDEN	11			/* hidden by kmemcheck */
+#define _PAGE_BIT_PAT_LARGE	12			/* On 2MB or 1GB pages */
+#define _PAGE_BIT_SPECIAL	_PAGE_BIT_UNUSED1
+#define _PAGE_BIT_CPA_TEST	_PAGE_BIT_UNUSED1
+#define _PAGE_BIT_SPLITTING	_PAGE_BIT_UNUSED1	/* only valid on a PSE pmd */
+#define _PAGE_BIT_NX		63			/* No execute: only valid after cpuid check */
 
-#define _PAGE_PRESENT	 		(_AT(pteval_t, 1) << _PAGE_BIT_PRESENT)
-#define _PAGE_RW	        	(_AT(pteval_t, 1) << _PAGE_BIT_RW)
-#define _PAGE_USER	     		(_AT(pteval_t, 1) << _PAGE_BIT_USER)
-#define _PAGE_PWT	     		(_AT(pteval_t, 1) << _PAGE_BIT_PWT)
-#define _PAGE_PCD	     		(_AT(pteval_t, 1) << _PAGE_BIT_PCD)
-#define _PAGE_ACCESSED	 		(_AT(pteval_t, 1) << _PAGE_BIT_ACCESSED)
-#define _PAGE_DIRTY	     		(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY)
-#define _PAGE_PSE	     		(_AT(pteval_t, 1) << _PAGE_BIT_PSE)
-#define _PAGE_GLOBAL	 		(_AT(pteval_t, 1) << _PAGE_BIT_GLOBAL)
-#define _PAGE_UNUSED1	 		(_AT(pteval_t, 1) << _PAGE_BIT_UNUSED1)
-#define _PAGE_IOMAP	     		(_AT(pteval_t, 1) << _PAGE_BIT_IOMAP)
-#define _PAGE_PAT	     		(_AT(pteval_t, 1) << _PAGE_BIT_PAT)
-#define _PAGE_PAT_LARGE 		(_AT(pteval_t, 1) << _PAGE_BIT_PAT_LARGE)
-#define _PAGE_SPECIAL	 		(_AT(pteval_t, 1) << _PAGE_BIT_SPECIAL)
-#define _PAGE_CPA_TEST	 		(_AT(pteval_t, 1) << _PAGE_BIT_CPA_TEST)
-#define _PAGE_SPLITTING	 		(_AT(pteval_t, 1) << _PAGE_BIT_SPLITTING)
+#define _PAGE_PRESENT	 	(_AT(pteval_t, 1) << _PAGE_BIT_PRESENT)
+#define _PAGE_RW	        (_AT(pteval_t, 1) << _PAGE_BIT_RW)
+#define _PAGE_USER	     	(_AT(pteval_t, 1) << _PAGE_BIT_USER)
+#define _PAGE_PWT	     	(_AT(pteval_t, 1) << _PAGE_BIT_PWT)
+#define _PAGE_PCD	     	(_AT(pteval_t, 1) << _PAGE_BIT_PCD)
+#define _PAGE_ACCESSED	 	(_AT(pteval_t, 1) << _PAGE_BIT_ACCESSED)
+#define _PAGE_DIRTY	     	(_AT(pteval_t, 1) << _PAGE_BIT_DIRTY)
+#define _PAGE_PSE	     	(_AT(pteval_t, 1) << _PAGE_BIT_PSE)
+#define _PAGE_GLOBAL	 	(_AT(pteval_t, 1) << _PAGE_BIT_GLOBAL)
+#define _PAGE_UNUSED1	 	(_AT(pteval_t, 1) << _PAGE_BIT_UNUSED1)
+#define _PAGE_IOMAP	     	(_AT(pteval_t, 1) << _PAGE_BIT_IOMAP)
+#define _PAGE_PAT	     	(_AT(pteval_t, 1) << _PAGE_BIT_PAT)
+#define _PAGE_PAT_LARGE 	(_AT(pteval_t, 1) << _PAGE_BIT_PAT_LARGE)
+#define _PAGE_SPECIAL	 	(_AT(pteval_t, 1) << _PAGE_BIT_SPECIAL)
+#define _PAGE_CPA_TEST	 	(_AT(pteval_t, 1) << _PAGE_BIT_CPA_TEST)
+#define _PAGE_SPLITTING	 	(_AT(pteval_t, 1) << _PAGE_BIT_SPLITTING)
 
 #ifdef CONFIG_KMEMCHECK
-#define _PAGE_HIDDEN	 		(_AT(pteval_t, 1) << _PAGE_BIT_HIDDEN)
+#define _PAGE_HIDDEN	 	(_AT(pteval_t, 1) << _PAGE_BIT_HIDDEN)
 #else
-#define _PAGE_HIDDEN	 		(_AT(pteval_t, 0))
+#define _PAGE_HIDDEN	 	(_AT(pteval_t, 0))
 #endif
 
 #if defined(CONFIG_X86_64) || defined(CONFIG_X86_PAE)
-#define _PAGE_NX	         	(_AT(pteval_t, 1) << _PAGE_BIT_NX)
+#define _PAGE_NX	        (_AT(pteval_t, 1) << _PAGE_BIT_NX)
 #else
-#define _PAGE_NX	         	(_AT(pteval_t, 0))
+#define _PAGE_NX	        (_AT(pteval_t, 0))
 #endif
 ```
 
@@ -15264,9 +15291,17 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
 
 ###### 6.1.2.6.2.6 pgd_alloc()/pgd_free()
 
-**pgd_alloc(mm)**: Allocates a new Page Global Directory; if PAE is enabled, it also allocates the three children Page Middle Directories that map the User Mode linear addresses. The argument mm (the address of a memory descriptor) is ignored on the 80x86 architecture.
+```
+pgd_alloc(mm)
+```
 
-**pgd_free(pgd)**: Releases the Page Global Directory at address pgd; if PAE is enabled, it also releases the three Page Middle Directories that map the User Mode linear addresses.
+Allocates a new Page Global Directory; if PAE is enabled, it also allocates the three children Page Middle Directories that map the User Mode linear addresses. The argument mm (the address of a memory descriptor) is ignored on the 80x86 architecture.
+
+```
+pgd_free(pgd)
+```
+
+Releases the Page Global Directory at address pgd; if PAE is enabled, it also releases the three Page Middle Directories that map the User Mode linear addresses.
 
 该函数定义于arch/x86/mm/pgtable.c:
 
@@ -15404,9 +15439,17 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
 
 ###### 6.1.2.6.3.6 pud_alloc()/pud_free()
 
-**pud_alloc(mm, pgd, addr)**: In a two- or three-level paging system, this function does nothing: it simply returns the linear address of the Page Global Directory entry pgd.
+```
+pud_alloc(mm, pgd, addr)
+```
 
-**pud_free(x)**: In a two- or three-level paging system, this macro does nothing.
+In a two- or three-level paging system, this function does nothing: it simply returns the linear address of the Page Global Directory entry pgd.
+
+```
+pud_free(x)
+```
+
+In a two- or three-level paging system, this macro does nothing.
 
 ##### 6.1.2.6.4 页目录结构/pmd_t
 
@@ -15430,7 +15473,7 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long address)
 }
 ```
 
-######6.1.2.6.4.3 pmd_val()/native_pmd_val()
+###### 6.1.2.6.4.3 pmd_val()/native_pmd_val()
 
 该宏定义于arch/x86/include/asm/pgtable.h:
 
@@ -15494,9 +15537,17 @@ static inline unsigned long pmd_pfn(pmd_t pmd)
 
 ###### 6.1.2.6.4.6 pmd_alloc()/pmd_free()
 
-**pmd_alloc(mm, pud, addr)**: Defined so generic three-level paging systems can allocate a new Page Middle Directory for the linear address addr. If PAE is not enabled, the function simply returns the input parameter pud — that is, the address of the entry in the Page Global Directory. If PAE is enabled, the function returns the linear address of the Page Middle Directory entry that maps the linear address addr. The argument cw is ignored.
+```
+pmd_alloc(mm, pud, addr)
+```
 
-**pmd_free(x)**: Does nothing, because Page Middle Directories are allocated and deallocated together with their parent Page Global Directory.
+Defined so generic three-level paging systems can allocate a new Page Middle Directory for the linear address addr. If PAE is not enabled, the function simply returns the input parameter pud — that is, the address of the entry in the Page Global Directory. If PAE is enabled, the function returns the linear address of the Page Middle Directory entry that maps the linear address addr. The argument cw is ignored.
+
+```
+pmd_free(x)
+```
+
+Does nothing, because Page Middle Directories are allocated and deallocated together with their parent Page Global Directory.
 
 ##### 6.1.2.6.5 页面结构/pte_t
 
@@ -15520,7 +15571,7 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
 该宏用于获取页表项的值，其定义于arch/x86/include/asm/pgtable.h:
 
 ```
-#define pte_val(x)		native_pte_val(x)
+#define pte_val(x)	native_pte_val(x)
 ```
 
 其中，native_pte_val()定义于arch/x86/include/asm/pgtable_types.h:
@@ -15660,15 +15711,35 @@ The **pfn_to_page(pfn)** yields the address of the page descriptor associated wi
 
 ###### 6.1.2.6.5.6 pte_alloc_map()/pte_free()/pte_alloc_kernel()/pte_free_kernel()/clear_page_range()
 
-**pte_alloc_map(mm, pmd, addr)**: Receives as parameters the addressof a Page Middle Directory entry pmd and a linear address addr, and returns the address of the Page Table entry corresponding to addr. If the Page Middle Directory entry is null, the function allocatesa new Page Table by invoking pte_alloc_one(). If a new Page Table is allocated, the entry corresponding toaddris initialized and the User/Supervisor flag is set. If the Page Table is kept in high memory, the kernel establishes a temporary kernel mapping, to be released by pte_unmap.
+```
+pte_alloc_map(mm, pmd, addr)
+```
 
-**pte_free(pte)**: Releases the Page Table associated with theptepage descriptor pointer.
+Receives as parameters the addressof a Page Middle Directory entry pmd and a linear address addr, and returns the address of the Page Table entry corresponding to addr. If the Page Middle Directory entry is null, the function allocatesa new Page Table by invoking pte_alloc_one(). If a new Page Table is allocated, the entry corresponding toaddris initialized and the User/Supervisor flag is set. If the Page Table is kept in high memory, the kernel establishes a temporary kernel mapping, to be released by pte_unmap.
 
-**pte_alloc_kernel(mm, pmd, addr)**: If the Page Middle Directory entry pmd associated with the address addr is null, the function allocates a new Page Table. It then returns the linear address of the Page Table entry associated withaddr. Used only for master kernel page tables.
+```
+pte_free(pte)
+```
 
-**pte_free_kernel(pte)**: Equivalent to pte_free(), but used for master kernel page tables.
+Releases the Page Table associated with theptepage descriptor pointer.
 
-**clear_page_range(mmu, start, end)**: Clears the contents of the page tables of a process from linear address start to end by iteratively releasing its Page Tables and clearing the Page Middle Directory entries.
+```
+pte_alloc_kernel(mm, pmd, addr)
+```
+
+If the Page Middle Directory entry pmd associated with the address addr is null, the function allocates a new Page Table. It then returns the linear address of the Page Table entry associated withaddr. Used only for master kernel page tables.
+
+```
+pte_free_kernel(pte)
+```
+
+Equivalent to pte_free(), but used for master kernel page tables.
+
+```
+clear_page_range(mmu, start, end)
+```
+
+Clears the contents of the page tables of a process from linear address start to end by iteratively releasing its Page Tables and clearing the Page Middle Directory entries.
 
 ## 6.2 与内存管理有关的数据结构
 
@@ -16121,11 +16192,11 @@ The kernel represents a process’s address space with a data structure called *
 ```
 struct mm_struct {
 	// Pointer to the head of the list of memory region objects. 参见[6.2.7 struct vm_area_struct]节
-	struct vm_area_struct		*mmap;		/* list of VMAs */
+	struct vm_area_struct		*mmap;			/* list of VMAs */
 	// Pointer to the root of the red-black tree of memory region objects
 	struct rb_root 			mm_rb;
 	// Pointer to the last referenced memory region object
-	struct vm_area_struct 		*mmap_cache;	/* last find_vma result */
+	struct vm_area_struct 		*mmap_cache;		/* last find_vma result */
 #ifdef CONFIG_MMU
 	// Method that searches an available linear address interval in the process address space
 	unsigned long (*get_unmapped_area) (struct file *filp, unsigned long addr, unsigned long len,
@@ -16156,8 +16227,8 @@ struct mm_struct {
 	 * Every time the mm_count is decreased, the kernel checks whether it becomes zero;
 	 * if so, the memory descriptor is deallocated because it is no longer in use.
 	 */
-	atomic_t 			mm_users;	/* How many users with user space? */
-	atomic_t 			mm_count;	/* How many references to "struct mm_struct" (users count as 1) */
+	atomic_t 			mm_users;		/* How many users with user space? */
+	atomic_t 			mm_count;		/* How many references to "struct mm_struct" (users count as 1) */
 	/*
 	 * map_count field contains the number of memory regions owned by the process.
 	 * By default, a process may own up to 65,536 different memory regions;
@@ -16165,10 +16236,10 @@ struct mm_struct {
 	 * /proc/sys/vm/max_map_count，参见[6.8.2.1.1 do_mmap_pgoff()]节，do_mmap_pgoff():
 	 * if (mm->map_count > sysctl_max_map_count)
 	 */
-	int 				map_count;			/* number of VMAs */
+	int 				map_count;		/* number of VMAs */
 
-	spinlock_t 			page_table_lock;		/* Protects page tables and some counters */
-	struct rw_semaphore 		mmap_sem;			// Memory regions’read/write semaphore
+	spinlock_t 			page_table_lock;	/* Protects page tables and some counters */
+	struct rw_semaphore 		mmap_sem;		// Memory regions’read/write semaphore
 
 	/*
 	 * List of maybe swapped mm's.
@@ -16210,7 +16281,7 @@ struct mm_struct {
 	 */
 	unsigned long 			arg_start, arg_end, env_start, env_end;
 
-	unsigned long 			saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
+	unsigned long 			saved_auxv[AT_VECTOR_SIZE];	/* for /proc/PID/auxv */
 
 	/*
 	 * Special counters, in some configurations protected by the
@@ -16236,9 +16307,9 @@ struct mm_struct {
 	unsigned int 			token_priority;
 	unsigned int 			last_interval;
 
-	unsigned long 			flags; 		/* Must use atomic bitops to access the bits */
+	unsigned long 			flags; 			/* Must use atomic bitops to access the bits */
 
-	struct core_state 		*core_state;	/* coredumping support */
+	struct core_state 		*core_state;		/* coredumping support */
 #ifdef CONFIG_AIO
 	spinlock_t			ioctx_lock;
 	struct hlist_head		ioctx_list;
@@ -16264,7 +16335,7 @@ struct mm_struct {
 	struct mmu_notifier_mm	*mmu_notifier_mm;
 #endif
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-	pgtable_t 			pmd_huge_pte; /* protected by page_table_lock */
+	pgtable_t 			pmd_huge_pte;		/* protected by page_table_lock */
 #endif
 #ifdef CONFIG_CPUMASK_OFFSTACK
 	struct cpumask 			cpumask_allocation;
@@ -16297,15 +16368,15 @@ Memory regions owned by a process never overlap, and the kernel tries to merge r
 ```
 struct vm_area_struct {
 	// 参见[6.2.6 struct mm_struct]节
-	struct mm_struct		*vm_mm;		/* The address space we belong to. */
-	unsigned long			vm_start;	/* Our start address within vm_mm. */
-	unsigned long			vm_end;		/* The first byte after our end address within vm_mm. */
+	struct mm_struct		*vm_mm;				/* The address space we belong to. */
+	unsigned long			vm_start;			/* Our start address within vm_mm. */
+	unsigned long			vm_end;				/* The first byte after our end address within vm_mm. */
 
 	/* linked list of VM areas per task, sorted by address */
 	struct vm_area_struct		*vm_next, *vm_prev;
 
-	pgprot_t			vm_page_prot;	/* Access permissions of this VMA. */
-	unsigned long			vm_flags;	/* Flags, see mm.h. */
+	pgprot_t			vm_page_prot;			/* Access permissions of this VMA. */
+	unsigned long			vm_flags;			/* Flags, see mm.h. */
 
 	struct rb_node			vm_rb;
 
@@ -16318,7 +16389,7 @@ struct vm_area_struct {
 	union {
 		struct {
 			struct list_head	list;
-			void			*parent;	/* aligns with prio_tree_node parent */
+			void			*parent;		/* aligns with prio_tree_node parent */
 			struct vm_area_struct	*head;
 		} vm_set;
 
@@ -17160,13 +17231,13 @@ start_kernel()
 
 ```
 Zone ranges:
-  DMA		[mem 0x00010000-0x00ffffff]	  // 16320 KB, 4080 pages
-  Normal   [mem 0x01000000-0x1ffeffff]	  	// 507840 KB, 126960 pages
+  DMA	    [mem 0x00010000-0x00ffffff]		// 16320 KB, 4080 pages
+  Normal    [mem 0x01000000-0x1ffeffff]		// 507840 KB, 126960 pages
   HighMem  empty
-Movable zone start for each node		  // Print PFNs ZONE_MOVABLE begins at in each node
-Early memory node ranges			  // Print early_node_map[], include DMA and Normal.
-  node   0: [mem 0x00010000-0x0009efff] 	// early_node_map[0].start_pfn - early_node_map[0].end_pfn
-  node   0: [mem 0x00100000-0x1ffeffff] 	// early_node_map[1].start_pfn - early_node_map[1].end_pfn
+Movable zone start for each node		// Print PFNs ZONE_MOVABLE begins at in each node
+Early memory node ranges			// Print early_node_map[], include DMA and Normal.
+  node   0: [mem 0x00010000-0x0009efff]		// early_node_map[0].start_pfn - early_node_map[0].end_pfn
+  node   0: [mem 0x00100000-0x1ffeffff]		// early_node_map[1].start_pfn - early_node_map[1].end_pfn
 ```
 
 **NOTE 9**;
@@ -17214,7 +17285,7 @@ virtual kernel memory layout:
       .data : 0xc15d1358 - 0xc18ad6c0   (2928 kB)		// [_etext, _edata]
       .text : 0xc1000000 - 0xc15d1358   (5956 kB)		// [_text, _etext]
 => 各变量定义于vmlinux.lds
-=> Virtual Kernel Memory Layout参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]](#6-3-2-4-early-node-map-gt-node-data-gt-node-zones-)节中的"NOTE 14"的图和[6.3.3 Physical Memory Layout]节。
+=> Virtual Kernel Memory Layout参见[6.3.2.4 early_node_map[]=>node_data[]->node_zones[]]节中的"NOTE 14"的图和[6.3.3 Physical Memory Layout]节。
 ```
 
 **NOTE 14**:
@@ -17253,9 +17324,9 @@ This is an area reserved for the mapping of high memory pages into low memory wi
 
 ```
 #ifdef CONFIG_X86_PAE
-#define LAST_PKMAP	512			// PKMAP区占2MB空间
+#define LAST_PKMAP	512		// PKMAP区占2MB空间
 #else
-#define LAST_PKMAP	1024			// PKMAP区占4MB空间
+#define LAST_PKMAP	1024		// PKMAP区占4MB空间
 #endif
 ```
 
@@ -17893,10 +17964,10 @@ static inline void expand(struct zone *zone, struct page *page, int low,
  * the free lists for the desirable migrate type are depleted
  */
 static int fallbacks[MIGRATE_TYPES][MIGRATE_TYPES-1] = {
-	[MIGRATE_UNMOVABLE]	= { MIGRATE_RECLAIMABLE,	MIGRATE_MOVABLE,		MIGRATE_RESERVE },
-	[MIGRATE_RECLAIMABLE]	= { MIGRATE_UNMOVABLE,		MIGRATE_MOVABLE,		MIGRATE_RESERVE },
-	[MIGRATE_MOVABLE]	= { MIGRATE_RECLAIMABLE,	MIGRATE_UNMOVABLE,		MIGRATE_RESERVE },
-	[MIGRATE_RESERVE]	= { MIGRATE_RESERVE,		MIGRATE_RESERVE,		MIGRATE_RESERVE }, /* Never used */
+	[MIGRATE_UNMOVABLE]	= { MIGRATE_RECLAIMABLE,	MIGRATE_MOVABLE,	MIGRATE_RESERVE },
+	[MIGRATE_RECLAIMABLE]	= { MIGRATE_UNMOVABLE,		MIGRATE_MOVABLE,	MIGRATE_RESERVE },
+	[MIGRATE_MOVABLE]	= { MIGRATE_RECLAIMABLE,	MIGRATE_UNMOVABLE,	MIGRATE_RESERVE },
+	[MIGRATE_RESERVE]	= { MIGRATE_RESERVE,		MIGRATE_RESERVE,	MIGRATE_RESERVE }, /* Never used */
 };
 
 /* Remove an element from the buddy allocator from the fallback list */
@@ -18926,7 +18997,7 @@ The slab allocator groups objects into caches. Each cache is a "store" of object
 
 The area of main memory that contains a cache is divided into slabs; each slab consists of one or more contiguous page frames that contain both allocated and free objects.
 
-Run following command to get a full list of caches available on a running system (参见[6.5.1.1.2.1 查看slab的分配信息](#6-5-1-1-2-1-slab-节):
+Run following command to get a full list of caches available on a running system (参见[6.5.1.1.2.1 查看slab的分配信息](#6-5-1-1-2-1-slab-节)):
 
 ```
 # cat /proc/slabinfo
@@ -18948,7 +19019,7 @@ General setup  --->
 
 由此可知，这三个配置选项是互斥的，因而只能选择其中之一！
 
-**NOTE**: SLAB/SLUB/SLOB allocator的区别
+**NOTE**: SLAB/SLUB/SLOB allocator的区别：
 * SLAB是基础，是最早从Sun OS那引进的；
 * SLUB是在Slab上进行的改进，在大型机上表现出色，据说还被IA-64作为默认；
 * SLOB是针对小型系统设计的，主要是嵌入式。
@@ -19104,7 +19175,7 @@ static struct kmem_cache cache_cache = {
 	.limit		= BOOT_CPUCACHE_ENTRIES,	// 1
 	.shared		= 1,
 	.buffer_size	= sizeof(struct kmem_cache),
-	.name			= "kmem_cache",
+	.name		= "kmem_cache",
 };
 ```
 
@@ -19313,7 +19384,7 @@ void __init kmem_cache_init(void)
 	 * struct kmem_cache size depends on nr_node_ids & nr_cpu_ids
 	 */
 	cache_cache.buffer_size = offsetof(struct kmem_cache, array[nr_cpu_ids]) +
-								    nr_node_ids * sizeof(struct kmem_list3 *);
+					   nr_node_ids * sizeof(struct kmem_list3 *);
 #if DEBUG
 	cache_cache.obj_size = cache_cache.buffer_size;
 #endif
@@ -19322,7 +19393,7 @@ void __init kmem_cache_init(void)
 
 	for (order = 0; order < MAX_ORDER; order++) {
 		cache_estimate(order, cache_cache.buffer_size, cache_line_size(), 0,
-						  &left_over, &cache_cache.num);
+			       &left_over, &cache_cache.num);
 		if (cache_cache.num)
 			break;
 	}
@@ -19330,7 +19401,7 @@ void __init kmem_cache_init(void)
 	cache_cache.gfporder = order;
 	cache_cache.colour = left_over / cache_cache.colour_off;
 	cache_cache.slab_size = ALIGN(cache_cache.num * sizeof(kmem_bufctl_t) + sizeof(struct slab),
-										cache_line_size());
+				      cache_line_size());
 
 	/* 2+3) create the kmalloc caches */
 	sizes = malloc_sizes;		// 变量malloc_sizes参见[6.5.1.1 General Cache/Specific Cache]节
@@ -20635,10 +20706,10 @@ The slab allocator chooses the second solution when the size of the objects is s
 ```
 typedef unsigned int kmem_bufctl_t;
 
-#define BUFCTL_END	(((kmem_bufctl_t)(~0U))-0)		// 0xFFFF
-#define BUFCTL_FREE	(((kmem_bufctl_t)(~0U))-1)		// 0xFFFE
-#define BUFCTL_ACTIVE	(((kmem_bufctl_t)(~0U))-2)		// 0xFFFD
-#define SLAB_LIMIT	(((kmem_bufctl_t)(~0U))-3)		// 0xFFFC
+#define BUFCTL_END	(((kmem_bufctl_t)(~0U))-0)	// 0xFFFF
+#define BUFCTL_FREE	(((kmem_bufctl_t)(~0U))-1)	// 0xFFFE
+#define BUFCTL_ACTIVE	(((kmem_bufctl_t)(~0U))-2)	// 0xFFFD
+#define SLAB_LIMIT	(((kmem_bufctl_t)(~0U))-3)	// 0xFFFC
 ```
 
 Each object has a short descriptor of type kmem_bufctl_t. Object descriptors are stored in an array placed right after the corresponding slab descriptor. Thus, like the slab descriptors themselves, the object descriptors of a slab can be stored in two possible ways:
@@ -21888,10 +21959,10 @@ To destroy a temporary kernel mapping, the kernel uses the ```kunmap_atomic()```
 该宏定义于include/linux/highmem.h:
 
 ```
-#define kunmap_atomic(addr, args...)					\
-do {									\
-	BUILD_BUG_ON(__same_type((addr), struct page *));		\
-	__kunmap_atomic(addr);						\
+#define kunmap_atomic(addr, args...)				\
+do {								\
+	BUILD_BUG_ON(__same_type((addr), struct page *));	\
+	__kunmap_atomic(addr);					\
 } while (0)
 ```
 
@@ -21939,15 +22010,21 @@ void __kunmap_atomic(void *kvaddr)
 
 ### 6.8.1 Find a Memory Regin
 
-**find_vma_intersection()**
+```
+find_vma_intersection()
+```
 
 Find the first memory region that overlaps a given linear address interval.
 
-**find_vma_prepare()**
+```
+find_vma_prepare()
+```
 
 Locate the position of the new leaf in the red-black tree that corresponds to a given linear address and returns the addresses of the preceding memory region and of the parent node of the leaf to be inserted.
 
-**get_unmapped_area()**
+```
+get_unmapped_area()
+```
 
 Searche the process address space to find an available linear address interval.
 

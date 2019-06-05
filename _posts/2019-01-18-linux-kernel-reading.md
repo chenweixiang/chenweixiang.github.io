@@ -23783,7 +23783,7 @@ struct task_struct {
 	const struct cred __rcu *cred;		/* effective (overridable) subjective task credentials (COW) */
 	struct cred *replacement_session_keyring; /* for KEYCTL_SESSION_TO_PARENT */
 
-	// 参见程序名节
+	// 参见[7.1.1.25 程序名称]节
 	char comm[TASK_COMM_LEN]; /* executable name excluding path
 				  - access with [gs]et_task_comm (which lock it with task_lock())
 				  - initialized normally by setup_new_exec */
@@ -23839,7 +23839,7 @@ struct task_struct {
 	/* Protection of the PI data structures: */
 	raw_spinlock_t pi_lock; 		// 参见[7.1.1.34 task_rq_lock函数所使用的锁]节
 
-#ifdef CONFIG_RT_MUTEXES			// 参见基于PI协议的等待互斥锁节
+#ifdef CONFIG_RT_MUTEXES			// 参见[7.1.1.35 基于PI协议的等待互斥锁]节
 	/* PI waiters blocked on a rt_mutex held by this task */
 	struct plist_head pi_waiters;
 	/* Deadlock detection and priority inheritance handling */
@@ -24049,8 +24049,11 @@ nonvoluntary_ctxt_switches:	240193
 #### 7.1.1.1 进程状态
 
 struct task_struct中与进程状态有关的域包括：
-* volatile long state;
-* int exit_state;
+
+```
+volatile long state;
+int exit_state;
+```
 
 这些域的取值定义于include/linux/sched.h:
 
@@ -24112,8 +24115,11 @@ But changing current directly in that manner is discouraged; such code breaks ea
 #### 7.1.1.2 进程标识符
 
 task_struct结构中与进程标识符有关的域包括：
-* pid_t pid;
-* pid_t tgid;
+
+```
+pid_t pid;
+pid_t tgid;
+```
 
 pid_t定义于include/linux/types.h:
 
@@ -24124,7 +24130,7 @@ typedef __kernel_pid_t	pid_t;
 而，\__kernel_pid_t定义于linux/posix_types.h:
 
 ```
-typedef int		__kernel_pid_t;
+typedef int	__kernel_pid_t;
 ```
 
 因此，进程标识符的取值范围定义于include/linux/threads.h:
@@ -24268,28 +24274,28 @@ Specifies the number of nested interrupt handlers on the local CPU (the value is
 #error HARDIRQ_BITS 	too high!
 #endif
 
-#define PREEMPT_SHIFT		0							// 0
-#define SOFTIRQ_SHIFT		(PREEMPT_SHIFT + PREEMPT_BITS)		// 8
-#define HARDIRQ_SHIFT		(SOFTIRQ_SHIFT + SOFTIRQ_BITS)		// 16
-#define NMI_SHIFT		(HARDIRQ_SHIFT + HARDIRQ_BITS)		// 26
+#define PREEMPT_SHIFT		0								// 0
+#define SOFTIRQ_SHIFT		(PREEMPT_SHIFT + PREEMPT_BITS)					// 8
+#define HARDIRQ_SHIFT		(SOFTIRQ_SHIFT + SOFTIRQ_BITS)					// 16
+#define NMI_SHIFT		(HARDIRQ_SHIFT + HARDIRQ_BITS)					// 26
 
 #define __IRQ_MASK(x)		((1UL << (x))-1)
 
-#define PREEMPT_MASK		(__IRQ_MASK(PREEMPT_BITS) << PREEMPT_SHIFT)	// 0x000000FF
-#define SOFTIRQ_MASK		(__IRQ_MASK(SOFTIRQ_BITS) << SOFTIRQ_SHIFT)	// 0x0000FF00
-#define HARDIRQ_MASK		(__IRQ_MASK(HARDIRQ_BITS) << HARDIRQ_SHIFT)	// 0x03FF0000
-#define NMI_MASK		(__IRQ_MASK(NMI_BITS)      << NMI_SHIFT)	// 0x04000000
+#define PREEMPT_MASK		(__IRQ_MASK(PREEMPT_BITS) << PREEMPT_SHIFT)			// 0x000000FF
+#define SOFTIRQ_MASK		(__IRQ_MASK(SOFTIRQ_BITS) << SOFTIRQ_SHIFT)			// 0x0000FF00
+#define HARDIRQ_MASK		(__IRQ_MASK(HARDIRQ_BITS) << HARDIRQ_SHIFT)			// 0x03FF0000
+#define NMI_MASK		(__IRQ_MASK(NMI_BITS)      << NMI_SHIFT)			// 0x04000000
 
-#define PREEMPT_OFFSET		(1UL << PREEMPT_SHIFT)			// 0x00000001
-#define SOFTIRQ_OFFSET		(1UL << SOFTIRQ_SHIFT) 			// 0x00000100
-#define HARDIRQ_OFFSET		(1UL << HARDIRQ_SHIFT) 			// 0x00010000
-#define NMI_OFFSET		(1UL << NMI_SHIFT) 				// 0x04000000
+#define PREEMPT_OFFSET		(1UL << PREEMPT_SHIFT)						// 0x00000001
+#define SOFTIRQ_OFFSET		(1UL << SOFTIRQ_SHIFT) 						// 0x00000100
+#define HARDIRQ_OFFSET		(1UL << HARDIRQ_SHIFT) 						// 0x00010000
+#define NMI_OFFSET		(1UL << NMI_SHIFT) 						// 0x04000000
 
-#define SOFTIRQ_DISABLE_OFFSET	(2 * SOFTIRQ_OFFSET)			// 0x00000200
+#define SOFTIRQ_DISABLE_OFFSET	(2 * SOFTIRQ_OFFSET)						// 0x00000200
 
 #ifndef PREEMPT_ACTIVE
 #define PREEMPT_ACTIVE_BITS	1
-#define PREEMPT_ACTIVE_SHIFT	(NMI_SHIFT + NMI_BITS)		// 27
+#define PREEMPT_ACTIVE_SHIFT	(NMI_SHIFT + NMI_BITS)						// 27
 #define PREEMPT_ACTIVE		(__IRQ_MASK(PREEMPT_ACTIVE_BITS) << PREEMPT_ACTIVE_SHIFT)	// 0x08000000
 #endif
 
@@ -25567,7 +25573,7 @@ Today, with copy-on-write and child-runs first semantics, the only benefit to vf
 
 ```
 long sys_clone(unsigned long clone_flags, unsigned long newsp,
-		  void __user *parent_tid, void __user *child_tid, struct pt_regs *regs)
+	       void __user *parent_tid, void __user *child_tid, struct pt_regs *regs)
 {
 	if (!newsp)
 		newsp = regs->sp;
@@ -25988,12 +25994,12 @@ long do_fork(unsigned long clone_flags, unsigned long stack_start,
 #define CLONE_SYSVSEM		0x00040000	/* share system V SEM_UNDO semantics */
 #define CLONE_SETTLS		0x00080000	/* create a new TLS for the child */
 #define CLONE_PARENT_SETTID	0x00100000	/* set the TID in the parent */
-#define CLONE_CHILD_CLEARTID	0x00200000 /* clear the TID in the child */
+#define CLONE_CHILD_CLEARTID	0x00200000	/* clear the TID in the child */
 #define CLONE_DETACHED		0x00400000	/* Unused, ignored */
 #define CLONE_UNTRACED		0x00800000	/* set if the tracing process can't force CLONE_PTRACE on this clone */
 #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
-/* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state)
-   and is now available for re-use. */
+						/* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state)
+						   and is now available for re-use. */
 #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
 #define CLONE_NEWIPC		0x08000000	/* New ipcs */
 #define CLONE_NEWUSER		0x10000000	/* New user namespace */
@@ -26728,9 +26734,9 @@ static void enqueue_task(struct rq *rq, struct task_struct *p, int flags)
 
 ```
 int do_execve(const char *filename,
-		 const char __user *const __user *__argv,
-		 const char __user *const __user *__envp,
-		 struct pt_regs *regs)
+	      const char __user *const __user *__argv,
+	      const char __user *const __user *__envp,
+	      struct pt_regs *regs)
 {
 	struct user_arg_ptr argv = { .ptr.native = __argv };
 	struct user_arg_ptr envp = { .ptr.native = __envp };
@@ -26742,7 +26748,7 @@ int do_execve(const char *filename,
 
 ```
 static int do_execve_common(const char *filename, struct user_arg_ptr argv,
-			  struct user_arg_ptr envp, struct pt_regs *regs)
+			    struct user_arg_ptr envp, struct pt_regs *regs)
 {
 	struct linux_binprm *bprm; 	// 保存要执行的文件相关的数据
 	struct file *file;
@@ -28242,7 +28248,7 @@ struct __wait_queue {
 	.lock		= __SPIN_LOCK_UNLOCKED(name.lock),			\
 	.task_list	= { &(name).task_list, &(name).task_list } }
 
-#define init_waitqueue_head(q)								\
+#define init_waitqueue_head(q)							\
 	do {									\
 		static struct lock_class_key __key;				\
 		__init_waitqueue_head((q), &__key);				\
@@ -28420,16 +28426,16 @@ Other options:
  -p, --pid            operate on existing given pid
  -v, --verbose        display status information
 
- -h, --help		display this help and exit
- -V, --version		output version information and exit
+ -h, --help	      display this help and exit
+ -V, --version	      output version information and exit
 
 For more details see chrt(1).
 
 chenwx@chenwx ~/linux $ chrt -m
-SCHED_OTHER min/max priority	: 0/0
+SCHED_OTHER min/max priority		: 0/0
 SCHED_FIFO min/max priority		: 1/99
 SCHED_RR min/max priority		: 1/99
-SCHED_BATCH min/max priority	: 0/0
+SCHED_BATCH min/max priority		: 0/0
 SCHED_IDLE min/max priority		: 0/0
 
 chenwx@chenwx ~/linux $ gedit &
@@ -28686,11 +28692,11 @@ static void __sched __schedule(void)
 	int cpu;
 
 need_resched:
-	preempt_disable();		// 参见[16.10.2 preempt_disable()]节
-	cpu = smp_processor_id();	// 获得当前CPU的标示符
-	rq = cpu_rq(cpu); 		// 获得当前CPU的变量runqueues，参见[7.4.2.2 运行队列变量/runqueues]节
+	preempt_disable();			// 参见[16.10.2 preempt_disable()]节
+	cpu = smp_processor_id();		// 获得当前CPU的标示符
+	rq = cpu_rq(cpu); 			// 获得当前CPU的变量runqueues，参见[7.4.2.2 运行队列变量/runqueues]节
 	rcu_note_context_switch(cpu);
-	prev = rq->curr; 		// prev用于保存当前进程的进程描述符
+	prev = rq->curr; 			// prev用于保存当前进程的进程描述符
 
 	schedule_debug(prev);
 
@@ -28727,7 +28733,7 @@ need_resched:
 			 * 参见[7.4.5.2.1 deactivate_task()]节
 			 */
 			deactivate_task(rq, prev, DEQUEUE_SLEEP);
-			prev->on_rq = 0; // 标识当前进程不在runqueues中
+			prev->on_rq = 0; 	// 标识当前进程不在runqueues中
 
 			/*
 			 * If a worker went to sleep, notify and ask workqueue
@@ -30460,15 +30466,21 @@ enum {
 
 data域的结构如下图所示：
 
-\#ifdef CONFIG_DEBUG_OBJECTS_WORK
+```
+#ifdef CONFIG_DEBUG_OBJECTS_WORK
+```
 
 ![Workqueue_1](/assets/Workqueue_1.jpg)
 
-\#else
+```
+#else
+```
 
 ![Workqueue_2](/assets/Workqueue_2.jpg)
 
-\#endif
+```
+#endif
+```
 
 可以通过如下宏定义并初始化struct work_struct类型的对象，参见include/linux/workqueue.h:
 
@@ -30764,7 +30776,7 @@ static struct worker *alloc_worker(void)
 	alloc_workqueue((name), WQ_UNBOUND | WQ_MEM_RECLAIM, 1)
 ```
 
-The parameter name is used to name the kernel threads (参见[7.5.5 workqueue的初始化/init_workqueues()]节的```init_workqueues()```). For example, the default events queue is created via
+The parameter name is used to name the kernel threads (参见[7.5.5 workqueue的初始化/init_workqueues()](#7-5-5-workqueue-init-workqueues-)节的```init_workqueues()```). For example, the default events queue is created via
 
 ```
 struct workqueue_struct *keventd_wq;
@@ -31031,7 +31043,7 @@ static void process_scheduled_works(struct worker *worker)
 {
 	while (!list_empty(&worker->scheduled)) {
 		struct work_struct *work = list_first_entry(&worker->scheduled,
-						struct work_struct, entry);
+							    struct work_struct, entry);
 		process_one_work(worker, work);
 	}
 }
@@ -31055,8 +31067,8 @@ static void process_scheduled_works(struct worker *worker)
  * spin_lock_irq(gcwq->lock) which is released and regrabbed.
  */
 static void process_one_work(struct worker *worker, struct work_struct *work)
-		__releases(&gcwq->lock)
-		__acquires(&gcwq->lock)
+			     __releases(&gcwq->lock)
+			     __acquires(&gcwq->lock)
 {
 	struct cpu_workqueue_struct *cwq = get_work_cwq(work);
 	struct global_cwq *gcwq = cwq->gcwq;
@@ -31690,14 +31702,14 @@ early_initcall(init_workqueues);
 
 ```
 obj-y  = sched.o fork.o exec_domain.o panic.o printk.o \
-	    cpu.o exit.o itimer.o time.o softirq.o resource.o \
-	    sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o \
-	    signal.o sys.o kmod.o workqueue.o pid.o \
-	    rcupdate.o extable.o params.o posix-timers.o \
-	    kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o \
-	    hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
-	    notifier.o ksysfs.o sched_clock.o cred.o \
-	    async.o range.o
+	 cpu.o exit.o itimer.o time.o softirq.o resource.o \
+	 sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o \
+	 signal.o sys.o kmod.o workqueue.o pid.o \
+	 rcupdate.o extable.o params.o posix-timers.o \
+	 kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o \
+	 hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
+	 notifier.o ksysfs.o sched_clock.o cred.o \
+	 async.o range.o
 ```
 
 由此可知，workqueue是被编译进内核的。由如下代码:
@@ -31764,7 +31776,7 @@ static struct worker *create_worker(struct global_cwq *gcwq, bool bind)
 	 */
 	if (!on_unbound_cpu)
 		worker->task = kthread_create_on_node(worker_thread, worker, cpu_to_node(gcwq->cpu),
-									"kworker/%u:%d", gcwq->cpu, id);
+						      "kworker/%u:%d", gcwq->cpu, id);
 	else
 		worker->task = kthread_create(worker_thread, worker, "kworker/u:%d", id);
 	if (IS_ERR(worker->task))
@@ -32131,13 +32143,13 @@ The tick rate has a frequency of HZ hertz and a period of 1/HZ seconds.
 
 ```
 #ifdef __KERNEL__
-# define HZ				CONFIG_HZ		/* Internal kernel timer frequency */
-# define USER_HZ			100			/* some user interfaces are */
-# define CLOCKS_PER_SEC			(USER_HZ)		/* in "ticks" like times() */
+# define HZ			CONFIG_HZ	/* Internal kernel timer frequency */
+# define USER_HZ		100		/* some user interfaces are */
+# define CLOCKS_PER_SEC		(USER_HZ)	/* in "ticks" like times() */
 #endif
 
 #ifndef HZ
-#define HZ				100
+#define HZ			100
 #endif
 ```
 
@@ -32145,11 +32157,11 @@ CONFIG_HZ的配置文件为kernel/Kconfig.hz，其对应的配置选项为：
 
 ```
 Processor type and features  --->
-  Timer frequency (250 HZ)  --->		// CONFIG_HZ
-    ( ) 100 HZ 					// CONFIG_HZ_100
-    (X) 250 HZ 					// CONFIG_HZ_250
-    ( ) 300 HZ 					// CONFIG_HZ_300
-    ( ) 1000 HZ					// CONFIG_HZ_1000
+  Timer frequency (250 HZ)  --->	// CONFIG_HZ
+    ( ) 100 HZ 				// CONFIG_HZ_100
+    (X) 250 HZ 				// CONFIG_HZ_250
+    ( ) 300 HZ 				// CONFIG_HZ_300
+    ( ) 1000 HZ				// CONFIG_HZ_1000
 ```
 
 若CONFIG_HZ=250，则tick rate为250Hz，即每个tick时长为：1/250 = 4 ms
@@ -34128,7 +34140,7 @@ int hrtimer_start(struct hrtimer *timer, ktime_t tim, const enum hrtimer_mode mo
 
 ```
 int __hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
-		unsigned long delta_ns, const enum hrtimer_mode mode, int wakeup)
+			     unsigned long delta_ns, const enum hrtimer_mode mode, int wakeup)
 {
 	struct hrtimer_clock_base *base, *new_base;
 	unsigned long flags;
@@ -34303,14 +34315,14 @@ u64 hrtimer_forward(struct hrtimer *timer, ktime_t now, ktime_t interval)
 
 ```
 obj-y  = sched.o fork.o exec_domain.o panic.o printk.o \
-	    cpu.o exit.o itimer.o time.o softirq.o resource.o \
-	    sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o \
-	    signal.o sys.o kmod.o workqueue.o pid.o \
-	    rcupdate.o extable.o params.o posix-timers.o \
-	    kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o \
-	    hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
-	    notifier.o ksysfs.o sched_clock.o cred.o \
-	    async.o range.o
+	 cpu.o exit.o itimer.o time.o softirq.o resource.o \
+	 sysctl.o sysctl_binary.o capability.o ptrace.o timer.o user.o \
+	 signal.o sys.o kmod.o workqueue.o pid.o \
+	 rcupdate.o extable.o params.o posix-timers.o \
+	 kthread.o wait.o kfifo.o sys_ni.o posix-cpu-timers.o mutex.o \
+	 hrtimer.o rwsem.o nsproxy.o srcu.o semaphore.o \
+	 notifier.o ksysfs.o sched_clock.o cred.o \
+	 async.o range.o
 ```
 
 在kernel/hrtimer.c中，包含初始化函数hrtimers_init()：
@@ -34470,7 +34482,16 @@ void hrtimer_run_queues(void)
 ```
 
 此时，函数hrtimer_run_queues()的调用关系如下：
-？？？
+
+```
+consider_steal_time(unsigned long new_itm)
+->  run_local_timers()
+    ->  hrtimer_run_queues()
+
+update_process_times(int user_tick)
+->  run_local_timers()
+    ->  hrtimer_run_queues()
+```
 
 ##### 7.8.5.1.1 \__run_hrtimer()
 

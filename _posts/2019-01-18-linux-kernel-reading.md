@@ -43100,12 +43100,12 @@ static irqreturn_t rtc_interrupt(int irq, void *dev_id)
 # 10 设备驱动程序/Device Driver
 
 Reading materials:
-* Understanding Modern Device Drivers
-* Linux Device Drivers, 3rd Edition
+* [Understanding Modern Device Drivers](/docs/Understanding_Modern_Device_Drivers.pdf)
+* [Linux Device Drivers, 3rd Edition](https://lwn.net/Kernel/LDD3/)
 
 参见《Linux Device Drivers, 3rd Edition》第一章第The Role of the Device Driver节：
-* The role of a device driver is providing mechanism, not policy.
-* The distinction between mechanism and policy is one of the best ideas behind the Unix design. Most programming problems can indeed be split into two parts: "what capabilities are to be provided" (the mechanism) and "how those capabilities can be used" (the policy). If the two issues are addressed by different parts of the program, or even by different programs altogether, the software package is much easier to develop and to adapt to particular needs.
+* The role of a device driver is **providing mechanism, not policy**.
+* The distinction between mechanism and policy is one of the best ideas behind the Unix design. Most programming problems can indeed be split into two parts: **what capabilities are to be provided** (the ***mechanism***) and **how those capabilities can be used** (the ***policy***). If the two issues are addressed by different parts of the program, or even by different programs altogether, the software package is much easier to develop and to adapt to particular needs.
 
 ## 10.1 Linux Kernel中的设备驱动程序
 

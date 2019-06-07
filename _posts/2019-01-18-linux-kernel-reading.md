@@ -43109,156 +43109,517 @@ Reading materials:
 
 ## 10.1 Linux Kernel中的设备驱动程序
 
-内核中包含了大量的设备驱动程序，大部分位于driver/目录下，如下表所示：
+### 10.1.1 Location of Device Drivers
 
-| Drivers | Notes |
-| :------ | :---- |
-| driver/accessibility | braille/<br>This adds a minimalistic braille screen reader support. This is meant to be used by blind people e.g. on boot failures or when / cannot be mounted etc and thus the userland screen readers can not work. |
-| driver/acpi | 高级配置和电源接口(ACPI: Advanced Configuration and Power Interface)驱动程序，用于管理电源的使用 |
-| driver/amba | 高级微控制器总线架构(AMBA: Advanced Microcontroller Bus Architecture)是与片上系统(SoC)的管理和互连的协议。SoC是一块包含许多或所有必要的计算机组件的芯片。这里的AMBA驱动让内核能够运行在这上面。 |
-| driver/android | |
-| driver/ata | 该目录包含PATA和SATA设备的驱动程序。串行ATA(SATA)是一种连接主机总线适配器到像硬盘那样的存储器的计算机总线接口。并行ATA(PATA)用于连接存储设备，如硬盘驱动器，软盘驱动器，光盘驱动器的标准，PATA就是我们所说的IDE。 |
-| driver/atm | 异步通信模式(ATM: Asynchronous Transfer Mode)是一种通信标准。这里有各种接到PCI桥的驱动(它们连接到PCI总线)和以太网控制器(控制以太网通信的集成电路芯片)。 |
-| driver/auxdisplay | 该目录提供了三个驱动: LCD帧缓存(frame buffer)驱动、LCD控制器驱动和一个LCD驱动。这些驱动用于管理液晶显示器 — 液晶显示器会在按压时显示波纹。NOTE: 按压会损害屏幕，所以请不要用力戳LCD显示屏。 |
-| driver/base | 这是个重要的目录包含了固件、系统总线、虚拟化能力等基本的驱动程序。 |
-| driver/bcma | 这些驱动程序用于使用基于AMBA协议的总线。AMBA协议是由博通公司开发的。 |
-| driver/block | 块设备驱动程序。提供对块设备的支持，像软驱、SCSI磁带、TCP网络块设备等。 |
-| driver/bluetooth | 蓝牙是一种安全的无线个人区域网络标准(PANs)。蓝牙驱动程序就在该目录中，它允许系统使用各种蓝牙设备。例如，一个蓝牙鼠标不用电缆，并且计算机有一个电子狗(小型USB接收器)。Linux系统必须能够知道进入电子狗的信号，否则蓝牙设备无法工作。 |
-| driver/bus | 该目录包含了三个驱动: 第一个是转换ocp接口协议到scp协议，第二个是设备间的互联驱动，第三个是用于处理互联中的错误处理。 |
-| driver/cdrom | This directory hosts the generic CD-ROM interface. Both the IDE and SCSI cdrom drivers rely on drivers/cdrom/cdrom.c for some of their functionality. 该目录包含两个驱动：第一个是cd-rom，包括DVD和CD的读写；第二个是gd-rom(只读GB光盘)，GD光盘是1.2GB容量的光盘，这像一个更大的CD或者更小的DVD。GD通常用于世嘉游戏机中。 |
-| driver/char | 字符设备驱动程序。字符设备每次传输数据传输一个字符。该目录中的驱动程序包括打印机、PS3闪存驱动、东芝SMM驱动和随机数发生器驱动等。 |
-| driver/clk | 这些驱动程序用于系统时钟。 |
-| driver/clocksource | 这些驱动用于作为定时器的时钟。 |
-| driver/connector | 这些驱动使内核知道当进程fork并使用proc连接器更改UID(用户ID)、GID(组ID)和SID(会话ID)。内核需要知道什么时候进程fork(CPU中运行多个任务)并执行。否则，内核可能会低效管理资源。 |
-| driver/cpufreq | 这些驱动改变CPU的电源能耗。 |
-| driver/cpuidle | 这些驱动用来管理空闲的CPU。一些系统使用多个CPU，其中一个驱动可以让这些CPU负载相当。 |
-| driver/crypto | 这些驱动提供加密功能。 |
-| driver/dax | |
-| driver/dca | 直接缓存访问(DCA: Direct Cache Access)驱动允许内核访问CPU缓存。CPU缓存就像CPU内置的RAM。CPU缓存的速度比RAM更快。然而，CPU缓存的容量比RAM小得多。CPU在这个缓存系统上存储了最重要的和执行的代码。 |
-| driver/devfreq | 这个驱动程序提供了一个通用的动态电压和频率调整(DVFS: Generic Dynamic Voltage and Frequency Scaling)框架，可以根据需要改变CPU频率来节约能源。这就是所谓的CPU节能。 |
-| driver/dio | 数字输入/输出(DIO: Digital Input/Output)总线驱动允许内核可以使用DIO总线。 |
-| driver/dma | 直接内存访问(DMA: Direct Memory Access)驱动允许设备无需CPU直接访问内存。这减少了CPU的负载。 |
-| driver/dma-buf | |
-| driver/edac | 错误检测和校正(Error Detection And Correction)驱动帮助减少和纠正错误。 |
-| driver/eisa | 扩展工业标准结构总线(Extended Industry Standard Architecture)驱动提供内核对EISA总线的支持。 |
-| driver/extcon | 外部连接器(EXTernal CONnectors)驱动用于检测设备插入时的变化。例如：extcon会检测用户是否插入了USB驱动器。 |
-| driver/firewire | 这些驱动用于控制苹果制造的类似于USB的火线设备。 |
-| driver/firmware | 这些驱动用于和像BIOS(计算机的基本输入输出系统固件)之类的设备的固件通信。BIOS用于启动操作系统和控制硬件与设备的固件。一些BIOS允许用户超频CPU。超频是使CPU运行在一个更快的速度。CPU速度以MHz或GHz来衡量。一个3.7 GHz的CPU的速度明显快于一个700Mhz的CPU。 |
-| driver/fmc | |
-| driver/fpga | |
-| driver/gpio | 通用输入/输出(GPIO: General Purpose Input/Output)是可由用户控制行为的芯片的管脚。这里的驱动就是控制GPIO。 |
-| driver/gpu | 这些驱动控制VGA、GPU和直接渲染管理(DRM: Direct Rendering Manager)。VGA是640*480的模拟计算机显示器或是简化的分辨率标准。GPU是图形处理器。DRM是一个Unix渲染系统。 |
-| driver/hid | 这驱动用于对USB人机界面设备的支持。 |
-| driver/hsi | 这个驱动用于内核访问像Nokia N900这样的蜂窝式调制解调器。 |
-| driver/hv | 这个驱动用于提供Linux中的键值对(KVP: Key Value Pair)功能。 |
-| driver/hwmon | 硬件监控驱动用于内核读取硬件传感器上的信息。例如：CPU上有个温度传感器，那么内核就可以追踪温度的变化并相应地调节风扇的速度。 |
-| driver/hwspinlock | 硬件自旋锁驱动允许系统同时使用两个或者更多的处理器，或使用一个处理器上的两个或更多的核心。 |
-| driver/hwtracing | |
-| driver/i2c | I2C驱动可以使计算机使用I2C协议处理主板上的低速外设。系统管理总线(SMBus: System Management Bus)驱动管理SMBus，这是一种用于轻量级通信的two-wire总线。 |
-| driver/ide | 这些驱动用来处理像CDROM和硬盘这些PATA/IDE设备。The IDE family of device drivers used to live in drivers/block but has expanded to the point where they were moved into a separate directory. |
-| driver/idle | 这个驱动用来管理Intel处理器的空闲功能。 |
-| driver/iio | 工业I/O核心驱动程序用来处理数模转换器或模数转换器。 |
-| driver/infiniband | Infiniband是在企业数据中心和一些超级计算机中使用的一种高性能的端口。该目录中的驱动用来支持Infiniband硬件。 |
-| driver/input | 这些驱动用于输入处理，包括游戏杆、鼠标、键盘、游戏端口(旧式的游戏杆接口)、遥控器、触控、耳麦按钮和许多其他的驱动。如今的操纵杆使用USB端口，但是在上世纪80、90年代，操纵杆是插在游戏端口的。Input management is another facility meant to simplify and standardize activities that are common to several drivers, and to offer a unified interface to user space. |
-| driver/iommu | 输入/输出内存管理单元(IOMMU: Input/Output Memory Management Unit)驱动用来管理内存管理单元中的IOMMU。IOMMU连接DMA IO总线到内存上。IOMMU是设备在没有CPU帮助下直接访问内存的桥梁。这有助于减少处理器的负载。 |
-| driver/ipack | Ipack代表的是Industry Pack。这个驱动是一个虚拟总线，允许在载体和夹板之间操作。 |
-| driver/irqchip | 这些驱动程序允许硬件的中断请求(IRQ)发送到处理器，暂时挂起一个正在运行的程序而去运行一个特殊的程序(称为一个中断处理程序)。 |
-| driver/isdn | 这些驱动用于支持综合业务数字网(ISDN)，这是用于同步数字传输语音、视频、数据和其他网络服务使用传统电话网络的电路的通信标准。 |
-| driver/leds | 用于LED的驱动。 |
-| driver/lguest | lguest用于管理客户机系统的中断。中断是CPU被重要任务打断的硬件或软件信号。CPU接着给硬件或软件一些处理资源。 |
-| driver/lightnvm | |
-| driver/macintosh | 苹果设备的驱动程序。 |
-| driver/mailbox | 这个文件夹中的驱动(pl320-pci)用于管理邮箱系统的连接。 |
-| driver/mcb | |
-| driver/md | 多设备驱动用于支持磁盘阵列，一种多块硬盘间共享或复制数据的系统。 This directory is concerned with implementing RAID functionality and the Logical Volume Manager abstraction. |
-| driver/media | 媒体驱动提供了对收音机、调谐器、视频捕捉卡、DVB标准的数字电视等等的支持。驱动还提供了对不同通过USB或火线端口插入的多媒体设备的支持。This directory collects other communication media, currently radio and video input devices. |
-| driver/memory | 支持内存的重要驱动。 |
-| driver/memstick | 这个驱动用于支持Sony记忆棒。 |
-| driver/message | 这些驱动用于运行LSI Fusion MPT(一种消息传递技术)固件的LSI PCI芯片/适配器。LSI大规模集成，这代表每片芯片上集成了几万晶体管。 |
-| driver/mfd | 多用途设备(MFD)驱动提供了对可以提供诸如电子邮件、传真、复印机、扫描仪、打印机功能的多用途设备的支持。这里的驱动还给MFD设备提供了一个通用多媒体通信端口(MCP)层。 |
-| driver/misc | 该目录包含了不适合放在其他目录的各种驱动，就像光线传感器驱动。 |
-| driver/mmc | MMC卡驱动用于处理用于MMC标准的闪存卡。 |
-| driver/mtd | 内存技术设备(MTD: Memory technology devices)驱动程序用于Linux和闪存的交互，这就像一层闪存转换层。其他块设备和字符设备的驱动程序不会以闪存设备的操作方式来做映射。尽管USB记忆卡和SD卡是闪存设备，但它们不使用这个驱动，因为他们隐藏在系统的块设备接口后。这个驱动用于新型闪存设备的通用闪存驱动器驱动。 |
-| driver/net | 网络驱动提供像AppleTalk、TCP和其他的网络协议。这些驱动也提供对调制解调器、USB 2.0的网络设备、和射频设备的支持。This directory is the home for most interface adapters. Unlike drivers/scsi, this directory doesn’t include the actual communication protocols, which live in the top-level net/ directory tree. |
-| driver/nfc | 这个驱动是德州仪器的共享传输层之间的接口和NCI核心。 |
-| driver/ntb | 不透明的桥接驱动提供了在PCIe系统的不透明桥接。PCIe是一种高速扩展总线标准。 |
-| driver/nubus | NuBus是一种32位并行计算总线，用于支持苹果设备。 |
-| driver/nvdimm | |
-| driver/nvme | |
-| driver/nvmem | |
-| driver/of | 这个驱动程序提供设备树中创建、访问和解释程序的OF助手。设备树是一种数据结构，用于描述硬件。 |
-| driver/oprofile | 这个驱动用于从驱动到用户空间进程(运行在用户态下的应用)评测整个系统。这帮助开发人员找到性能问题。 |
-| driver/parisc | 这些驱动用于HP生产的PA-RISC架构设备。PA-RISC是一种特殊指令集的处理器。 |
-| driver/parport | 并口驱动提供了Linux下的并口支持。 |
-| driver/pci | 这些驱动提供了PCI总线服务。 |
-| driver/pcmcia | 这些是笔记本的pc卡驱动。 |
-| driver/perf | |
-| driver/phy | |
-| driver/pinctrl | 这些驱动用来处理引脚控制设备。引脚控制器可以禁用或启用I/O设备。 |
-| driver/platform | 该目录包含了不同的计算机平台的驱动，像Acer、Dell、Toshiba、IBM、Intel、Chrombooks等。 |
-| driver/pnp | 即插即用驱动允许用户在插入一个像USB的设备后可以立即使用而不必手动配置设备。 |
-| driver/power | 电源驱动使内核可以测量电池电量，检测充电器和进行电源管理。 |
-| driver/powercap | |
-| driver/pps | Pulse-Per-Second驱动用来控制电流脉冲速率，用于计时。 |
-| driver/ps3 | 这是Sony的游戏控制台驱动 - PlayStation3 |
-| driver/ptp | 图片传输协议(PTP)驱动支持一种从数码相机中传输图片的协议。 |
-| driver/pwm | 脉宽调制(PWM)驱动用于控制设备的电流脉冲，主要用于控制像CPU风扇。 |
-| driver/rapidio | RapidIO驱动用于管理RapidIO架构，它是一种高性能分组交换，用于电路板上交互芯片的交互技术，也用于互相使用底板的电路板。 |
-| driver/ras | |
-| driver/regulator | 校准驱动用于校准电流、温度、或其他可能系统存在的校准硬件。 |
-| driver/remoteproc | 这些驱动用来管理远程处理器。 |
-| driver/reset | |
-| driver/rpmsg | 这个驱动用来控制支持大量驱动的远程处理器通讯总线(rpmsg)。这些总线提供消息传递设施，促进客户端驱动程序编写自己的连接协议消息。 |
-| driver/rtc | 实时时钟(RTC)驱动使内核可以读取时钟。 |
-| driver/s390 | 用于31/32位的大型机架构的驱动。 |
-| driver/sbus | 用于管理基于SPARC Sbus总线驱动。 |
-| driver/scsi | 允许内核使用SCSI标准外围设备，例如: Linux将在与SCSI硬件传输数据时使用SCSI驱动。 Everything related to the SCSI bus has always been placed in this directory. This includes both controller-independent support for specific devices (such as hard drives and tapes) and drivers for specific SCSI controller boards. |
-| driver/sfi | 简单固件接口(SFI)驱动允许固件发送信息表给操作系统，这些表的数据称为SFI表。 |
-| driver/sh | 该驱动用于支持SuperHway总线。 |
-| driver/sn | 该驱动用于支持IOC3串口。 |
-| driver/soc | |
-| driver/spi | 这些驱动处理串行设备接口总线(SPI)，它是一个在在全双工下运行的同步串行数据链路标准。全双工是指两个设备可以同一时间同时发送和接收信息，双工指的是双向通信。设备在主/从模式下通信(取决于设备配置)。 |
-| driver/spmi | |
-| driver/ssb | ssb (Sonics Silicon Backplane)驱动提供对在不同博通芯片和嵌入式设备上使用的迷你总线的支持。 |
-| driver/staging | 该目录含有许多子目录。这里所有的驱动还需要在加入主内核前经过更多的开发工作。 |
-| driver/target | SCSI设备驱动程序。 |
-| driver/tc | 这些驱动用于Tubro Channel。Tubro Channel是数字设备公司开发的32位开放总线，这主要用于DEC工作站。 |
-| driver/thermal | thermal驱动使CPU保持较低温度。 |
-| driver/thunderbolt | |
-| driver/tty | tty驱动用于管理物理终端连接。 |
-| driver/uio | 该驱动允许用户编译运行在用户空间而不是内核空间的驱动，这使用户驱动不会导致内核崩溃。 |
-| driver/usb | 通用串行总线(USB)设备允许内核使用USB端口。闪存驱动和记忆卡已经包含了固件和控制器，所以这些驱动程序允许内核使用USB接口和与USB设备。 |
-| driver/uwb | Ultra-WideBand驱动用来管理短距离，高带宽通信的超低功耗的射频设备。 |
-| driver/vfio | 允许设备访问用户空间的VFIO驱动。 |
-| driver/vhost | 这是用于宿主内核中的virtio服务器驱动，用于虚拟化中。 |
-| driver/video | 这是用来管理显卡和监视器的视频驱动。 The directory is concerned with video output, not video input. |
-| driver/virt | 这些驱动用来虚拟化。 |
-| driver/virtio | 这个驱动用来在虚拟PCI设备上使用virtio设备，用于虚拟化中。 |
-| driver/vlynq | 这个驱动控制着由德州仪器开发的专有接口。这些都是宽带产品，像WLAN和调制解调器，VOIP处理器，音频和数字媒体信号处理芯片。 |
-| driver/vme | WMEbus最初是为摩托罗拉68000系列处理器开发的总线标准。 |
-| driver/w1 | 这些驱动用来控制one-wire总线。 |
-| driver/watchdog | 该驱动管理看门狗定时器，这是一个可以用来检测和恢复异常的定时器。 |
-| driver/xen | 该驱动是Xen管理程序系统。这是个允许用户在一台计算机的软件或硬件运行多个操作系统。这意味着xen的代码将允许用户在同一时间的一台计算机上运行两个或更多的Linux系统。用户也可以在Linux上运行Windows、Solaris、FreeBSD、或其他操作系统。 |
-| driver/zorro | 该驱动提供Zorro Amiga总线支持。 |
+内核中包含了大量的设备驱动程序:
 
-<p/>
- 
+* [10.1.1.1 Device Driver in driver/](#10-1-1-1-device-driver-in-driver-)，内核中的大部分驱动程序位于本目录
+* [10.1.1.2 Device Driver in block/](#10-1-1-2-device-driver-in-block-)
+* [10.1.1.3 Device Driver in firmware/](#10-1-1-3-device-driver-in-firmware-)
+* [10.1.1.4 Device Driver in net/](#10-1-1-4-device-driver-in-net-)
+* [10.1.1.5 Device Driver in sound/](#10-1-1-5-device-driver-in-sound-)
+
+参见[Linux内核专题：03 驱动程序](https://github.com/LCTT/TranslateProject/blob/master/published/The Linux Kernel/03 The Linux Kernel--Drivers.md)。
+
+#### 10.1.1.1 Device Driver in driver/
+
+**driver/accessibility/braille**
+
+This adds a minimalistic braille screen reader support. This is meant to be used by blind people e.g. on boot failures or when / cannot be mounted etc and thus the userland screen readers can not work.
+
+**driver/acpi/**
+
+高级配置和电源接口(ACPI: Advanced Configuration and Power Interface)驱动程序，用于管理电源的使用。
+
+**driver/amba/**
+
+高级微控制器总线架构(AMBA: Advanced Microcontroller Bus Architecture)是与片上系统(SoC)的管理和互连的协议。SoC是一块包含许多或所有必要的计算机组件的芯片。这里的AMBA驱动让内核能够运行在这上面。
+
+**driver/android/**
+
+**driver/ata/**
+
+该目录包含PATA和SATA设备的驱动程序。串行ATA(SATA)是一种连接主机总线适配器到像硬盘那样的存储器的计算机总线接口。并行ATA(PATA)用于连接存储设备，如硬盘驱动器，软盘驱动器，光盘驱动器的标准，PATA就是我们所说的IDE。
+
+**driver/atm/**
+
+异步通信模式(ATM: Asynchronous Transfer Mode)是一种通信标准。这里有各种接到PCI桥的驱动(它们连接到PCI总线)和以太网控制器(控制以太网通信的集成电路芯片)。
+
+**driver/auxdisplay/**
+
+该目录提供了三个驱动: LCD帧缓存(frame buffer)驱动、LCD控制器驱动和一个LCD驱动。这些驱动用于管理液晶显示器 — 液晶显示器会在按压时显示波纹。NOTE: 按压会损害屏幕，所以请不要用力戳LCD显示屏。
+
+**driver/base/**
+
+这是个重要的目录包含了固件、系统总线、虚拟化能力等基本的驱动程序。
+
+**driver/bcma/**
+
+这些驱动程序用于使用基于AMBA协议的总线。AMBA协议是由博通公司开发的。
+
+**driver/block/**
+
+块设备驱动程序。提供对块设备的支持，像软驱、SCSI磁带、TCP网络块设备等。
+
+**driver/bluetooth/**
+
+蓝牙是一种安全的无线个人区域网络标准(PANs)。蓝牙驱动程序就在该目录中，它允许系统使用各种蓝牙设备。例如，一个蓝牙鼠标不用电缆，并且计算机有一个电子狗(小型USB接收器)。Linux系统必须能够知道进入电子狗的信号，否则蓝牙设备无法工作。
+
+**driver/bus/**
+
+该目录包含了三个驱动: 第一个是转换ocp接口协议到scp协议，第二个是设备间的互联驱动，第三个是用于处理互联中的错误处理。
+
+**driver/cdrom/**
+
+This directory hosts the generic CD-ROM interface. Both the IDE and SCSI cdrom drivers rely on drivers/cdrom/cdrom.c for some of their functionality. 该目录包含两个驱动：第一个是cd-rom，包括DVD和CD的读写；第二个是gd-rom(只读GB光盘)，GD光盘是1.2GB容量的光盘，这像一个更大的CD或者更小的DVD。GD通常用于世嘉游戏机中。
+
+**driver/char/**
+
+字符设备驱动程序。字符设备每次传输数据传输一个字符。该目录中的驱动程序包括打印机、PS3闪存驱动、东芝SMM驱动和随机数发生器驱动等。
+
+**driver/clk/**
+
+这些驱动程序用于系统时钟。
+
+**driver/clocksource/**
+
+这些驱动用于作为定时器的时钟。
+
+**driver/connector/**
+
+这些驱动使内核知道当进程fork并使用proc连接器更改UID(用户ID)、GID(组ID)和SID(会话ID)。内核需要知道什么时候进程fork(CPU中运行多个任务)并执行。否则，内核可能会低效管理资源。
+
+**driver/cpufreq/**
+
+这些驱动改变CPU的电源能耗。
+
+**driver/cpuidle/**
+
+这些驱动用来管理空闲的CPU。一些系统使用多个CPU，其中一个驱动可以让这些CPU负载相当。
+
+**driver/crypto/**
+
+这些驱动提供加密功能。
+
+**driver/dax/**
+
+**driver/dca/**
+
+直接缓存访问(DCA: Direct Cache Access)驱动允许内核访问CPU缓存。CPU缓存就像CPU内置的RAM。CPU缓存的速度比RAM更快。然而，CPU缓存的容量比RAM小得多。CPU在这个缓存系统上存储了最重要的和执行的代码。
+
+**driver/devfreq/**
+
+这个驱动程序提供了一个通用的动态电压和频率调整(DVFS: Generic Dynamic Voltage and Frequency Scaling)框架，可以根据需要改变CPU频率来节约能源。这就是所谓的CPU节能。
+
+**driver/dio/**
+
+数字输入/输出(DIO: Digital Input/Output)总线驱动允许内核可以使用DIO总线。
+
+**driver/dma/**
+
+直接内存访问(DMA: Direct Memory Access)驱动允许设备无需CPU直接访问内存。这减少了CPU的负载。
+
+**driver/dma-buf/**
+
+**driver/edac/**
+
+错误检测和校正(Error Detection And Correction)驱动帮助减少和纠正错误。
+
+**driver/eisa/**
+
+扩展工业标准结构总线(Extended Industry Standard Architecture)驱动提供内核对EISA总线的支持。
+
+**driver/extcon/**
+
+外部连接器(EXTernal CONnectors)驱动用于检测设备插入时的变化。例如：extcon会检测用户是否插入了USB驱动器。
+
+**driver/firewire/**
+
+这些驱动用于控制苹果制造的类似于USB的火线设备。
+
+**driver/firmware/**
+
+这些驱动用于和像BIOS(计算机的基本输入输出系统固件)之类的设备的固件通信。BIOS用于启动操作系统和控制硬件与设备的固件。一些BIOS允许用户超频CPU。超频是使CPU运行在一个更快的速度。CPU速度以MHz或GHz来衡量。一个3.7 GHz的CPU的速度明显快于一个700Mhz的CPU。
+
+**driver/fmc/**
+
+**driver/fpga/**
+
+**driver/gpio/**
+
+通用输入/输出(GPIO: General Purpose Input/Output)是可由用户控制行为的芯片的管脚。这里的驱动就是控制GPIO。
+
+**driver/gpu/**
+
+这些驱动控制VGA、GPU和直接渲染管理(DRM: Direct Rendering Manager)。VGA是640*480的模拟计算机显示器或是简化的分辨率标准。GPU是图形处理器。DRM是一个Unix渲染系统。
+
+**driver/hid/**
+
+这驱动用于对USB人机界面设备的支持。
+
+**driver/hsi/**
+
+这个驱动用于内核访问像Nokia N900这样的蜂窝式调制解调器。
+
+**driver/hv/**
+
+这个驱动用于提供Linux中的键值对(KVP: Key Value Pair)功能。
+
+**driver/hwmon/**
+
+硬件监控驱动用于内核读取硬件传感器上的信息。例如：CPU上有个温度传感器，那么内核就可以追踪温度的变化并相应地调节风扇的速度。
+
+**driver/hwspinlock/**
+
+硬件自旋锁驱动允许系统同时使用两个或者更多的处理器，或使用一个处理器上的两个或更多的核心。
+
+**driver/hwtracing/**
+
+**driver/i2c/**
+
+I2C驱动可以使计算机使用I2C协议处理主板上的低速外设。系统管理总线(SMBus: System Management Bus)驱动管理SMBus，这是一种用于轻量级通信的two-wire总线。
+
+**driver/ide/
+
+这些驱动用来处理像CDROM和硬盘这些PATA/IDE设备。The IDE family of device drivers used to live in drivers/block but has expanded to the point where they were moved into a separate directory.
+
+**driver/idle/**
+
+这个驱动用来管理Intel处理器的空闲功能。
+
+**driver/iio/**
+
+工业I/O核心驱动程序用来处理数模转换器或模数转换器。
+
+**driver/infiniband/**
+
+Infiniband是在企业数据中心和一些超级计算机中使用的一种高性能的端口。该目录中的驱动用来支持Infiniband硬件。
+
+**driver/input/**
+
+这些驱动用于输入处理，包括游戏杆、鼠标、键盘、游戏端口(旧式的游戏杆接口)、遥控器、触控、耳麦按钮和许多其他的驱动。如今的操纵杆使用USB端口，但是在上世纪80、90年代，操纵杆是插在游戏端口的。Input management is another facility meant to simplify and standardize activities that are common to several drivers, and to offer a unified interface to user space.
+
+**driver/iommu/**
+
+输入/输出内存管理单元(IOMMU: Input/Output Memory Management Unit)驱动用来管理内存管理单元中的IOMMU。IOMMU连接DMA IO总线到内存上。IOMMU是设备在没有CPU帮助下直接访问内存的桥梁。这有助于减少处理器的负载。
+
+**driver/ipack/**
+
+Ipack代表的是Industry Pack。这个驱动是一个虚拟总线，允许在载体和夹板之间操作。
+
+**driver/irqchip/**
+
+这些驱动程序允许硬件的中断请求(IRQ)发送到处理器，暂时挂起一个正在运行的程序而去运行一个特殊的程序(称为一个中断处理程序)。
+
+**driver/isdn/**
+
+这些驱动用于支持综合业务数字网(ISDN)，这是用于同步数字传输语音、视频、数据和其他网络服务使用传统电话网络的电路的通信标准。
+
+**driver/leds/**
+
+用于LED的驱动。
+
+**driver/lguest/**
+
+lguest用于管理客户机系统的中断。中断是CPU被重要任务打断的硬件或软件信号。CPU接着给硬件或软件一些处理资源。
+
+**driver/lightnvm/**
+
+**driver/macintosh/**
+
+苹果设备的驱动程序。
+
+**driver/mailbox/**
+
+这个文件夹中的驱动(pl320-pci)用于管理邮箱系统的连接。
+
+**driver/mcb/**
+
+**driver/md/**
+
+多设备驱动用于支持磁盘阵列，一种多块硬盘间共享或复制数据的系统。 This directory is concerned with implementing RAID functionality and the Logical Volume Manager abstraction.
+
+**driver/media/**
+
+媒体驱动提供了对收音机、调谐器、视频捕捉卡、DVB标准的数字电视等等的支持。驱动还提供了对不同通过USB或火线端口插入的多媒体设备的支持。This directory collects other communication media, currently radio and video input devices.
+
+**driver/memory/**
+
+支持内存的重要驱动。
+
+**driver/memstick/**
+
+这个驱动用于支持Sony记忆棒。
+
+**driver/message/**
+
+这些驱动用于运行LSI Fusion MPT(一种消息传递技术)固件的LSI PCI芯片/适配器。LSI大规模集成，这代表每片芯片上集成了几万晶体管。
+
+**driver/mfd/**
+
+多用途设备(MFD)驱动提供了对可以提供诸如电子邮件、传真、复印机、扫描仪、打印机功能的多用途设备的支持。这里的驱动还给MFD设备提供了一个通用多媒体通信端口(MCP)层。
+
+**driver/misc/**
+
+该目录包含了不适合放在其他目录的各种驱动，就像光线传感器驱动。
+
+**driver/mmc/**
+
+MMC卡驱动用于处理用于MMC标准的闪存卡。
+
+**driver/mtd/**
+
+内存技术设备(MTD: Memory Technology Devices)驱动程序用于Linux和闪存的交互，这就像一层闪存转换层。其他块设备和字符设备的驱动程序不会以闪存设备的操作方式来做映射。尽管USB记忆卡和SD卡是闪存设备，但它们不使用这个驱动，因为他们隐藏在系统的块设备接口后。这个驱动用于新型闪存设备的通用闪存驱动器驱动。
+
+**driver/net/**
+
+网络驱动提供像AppleTalk、TCP和其他的网络协议。这些驱动也提供对调制解调器、USB 2.0的网络设备、和射频设备的支持。This directory is the home for most interface adapters. Unlike drivers/scsi, this directory doesn’t include the actual communication protocols, which live in the top-level net/ directory tree.
+
+**driver/nfc/**
+
+这个驱动是德州仪器的共享传输层之间的接口和NCI核心。
+
+**driver/ntb/**
+
+不透明的桥接驱动提供了在PCIe系统的不透明桥接。PCIe是一种高速扩展总线标准。
+
+**driver/nubus/**
+
+NuBus是一种32位并行计算总线，用于支持苹果设备。
+
+**driver/nvdimm/**
+
+**driver/nvme/**
+
+**driver/nvmem/**
+
+**driver/of/**
+
+这个驱动程序提供设备树中创建、访问和解释程序的OF助手。设备树是一种数据结构，用于描述硬件。
+
+**driver/oprofile/**
+
+这个驱动用于从驱动到用户空间进程(运行在用户态下的应用)评测整个系统。这帮助开发人员找到性能问题。
+
+**driver/parisc/**
+
+这些驱动用于HP生产的PA-RISC架构设备。PA-RISC是一种特殊指令集的处理器。
+
+**driver/parport/**
+
+并口驱动提供了Linux下的并口支持。
+
+**driver/pci/**
+
+这些驱动提供了PCI总线服务。
+
+**driver/pcmcia/**
+
+这些是笔记本的pc卡驱动。
+
+**driver/perf/**
+
+**driver/phy/**
+
+**driver/pinctrl/**
+
+这些驱动用来处理引脚控制设备。引脚控制器可以禁用或启用I/O设备。
+
+**driver/platform/**
+
+该目录包含了不同的计算机平台的驱动，像Acer、Dell、Toshiba、IBM、Intel、Chrombooks等。
+
+**driver/pnp/**
+
+即插即用驱动允许用户在插入一个像USB的设备后可以立即使用而不必手动配置设备。
+
+**driver/power/**
+
+电源驱动使内核可以测量电池电量，检测充电器和进行电源管理。
+
+**driver/powercap/**
+
+**driver/pps/**
+
+Pulse-Per-Second驱动用来控制电流脉冲速率，用于计时。
+
+**driver/ps3/**
+
+这是Sony的游戏控制台驱动 - PlayStation3.
+
+**driver/ptp/**
+
+图片传输协议(PTP)驱动支持一种从数码相机中传输图片的协议。
+
+**driver/pwm/**
+
+脉宽调制(PWM)驱动用于控制设备的电流脉冲，主要用于控制像CPU风扇。
+
+**driver/rapidio/**
+
+RapidIO驱动用于管理RapidIO架构，它是一种高性能分组交换，用于电路板上交互芯片的交互技术，也用于互相使用底板的电路板。
+
+**driver/ras/**
+
+**driver/regulator/**
+
+校准驱动用于校准电流、温度、或其他可能系统存在的校准硬件。
+
+**driver/remoteproc/**
+
+这些驱动用来管理远程处理器。
+
+**driver/reset/**
+
+**driver/rpmsg/**
+
+这个驱动用来控制支持大量驱动的远程处理器通讯总线(rpmsg)。这些总线提供消息传递设施，促进客户端驱动程序编写自己的连接协议消息。
+
+**driver/rtc/**
+
+实时时钟(RTC)驱动使内核可以读取时钟。
+
+**driver/s390/**
+
+用于31/32位的大型机架构的驱动。
+
+**driver/sbus/**
+
+用于管理基于SPARC Sbus总线驱动。
+
+**driver/scsi/**
+
+允许内核使用SCSI标准外围设备，例如: Linux将在与SCSI硬件传输数据时使用SCSI驱动。 Everything related to the SCSI bus has always been placed in this directory. This includes both controller-independent support for specific devices (such as hard drives and tapes) and drivers for specific SCSI controller boards.
+
+**driver/sfi/**
+
+简单固件接口(SFI)驱动允许固件发送信息表给操作系统，这些表的数据称为SFI表。
+
+**driver/sh/**
+
+该驱动用于支持SuperHway总线。
+
+**driver/sn/**
+
+该驱动用于支持IOC3串口。
+
+**driver/soc/**
+
+**driver/spi/**
+
+这些驱动处理串行设备接口总线(SPI)，它是一个在在全双工下运行的同步串行数据链路标准。全双工是指两个设备可以同一时间同时发送和接收信息，双工指的是双向通信。设备在主/从模式下通信(取决于设备配置)。
+
+**driver/spmi/**
+
+**driver/ssb/**
+
+SSB (Sonics Silicon Backplane)驱动提供对在不同博通芯片和嵌入式设备上使用的迷你总线的支持。
+
+**driver/staging/**
+
+该目录含有许多子目录。这里所有的驱动还需要在加入主内核前经过更多的开发工作。
+
+**driver/target/**
+
+SCSI设备驱动程序。
+
+**driver/tc/**
+
+这些驱动用于Tubro Channel。Tubro Channel是数字设备公司开发的32位开放总线，这主要用于DEC工作站。
+
+**driver/thermal/**
+
+Thermal驱动使CPU保持较低温度。
+
+**driver/thunderbolt/**
+
+**driver/tty/**
+
+tty驱动用于管理物理终端连接。
+
+**driver/uio/**
+
+该驱动允许用户编译运行在用户空间而不是内核空间的驱动，这使用户驱动不会导致内核崩溃。
+
+**driver/usb/**
+
+通用串行总线(USB)设备允许内核使用USB端口。闪存驱动和记忆卡已经包含了固件和控制器，所以这些驱动程序允许内核使用USB接口和与USB设备。
+
+**driver/uwb/**
+
+Ultra-WideBand驱动用来管理短距离，高带宽通信的超低功耗的射频设备。
+
+**driver/vfio/**
+
+允许设备访问用户空间的VFIO驱动。
+
+**driver/vhost/**
+
+这是用于宿主内核中的virtio服务器驱动，用于虚拟化中。
+
+**driver/video/**
+
+这是用来管理显卡和监视器的视频驱动。 The directory is concerned with video output, not video input.
+
+**driver/virt/**
+
+这些驱动用来虚拟化。
+
+**driver/virtio/**
+
+这个驱动用来在虚拟PCI设备上使用virtio设备，用于虚拟化中。
+
+**driver/vlynq/**
+
+这个驱动控制着由德州仪器开发的专有接口。这些都是宽带产品，像WLAN和调制解调器，VOIP处理器，音频和数字媒体信号处理芯片。
+
+**driver/vme/**
+
+WMEbus最初是为摩托罗拉68000系列处理器开发的总线标准。
+
+**driver/w1/**
+
+这些驱动用来控制one-wire总线。
+
+**driver/watchdog/**
+
+该驱动管理看门狗定时器，这是一个可以用来检测和恢复异常的定时器。
+
+**driver/xen/**
+
+该驱动是Xen管理程序系统。这是个允许用户在一台计算机的软件或硬件运行多个操作系统。这意味着xen的代码将允许用户在同一时间的一台计算机上运行两个或更多的Linux系统。用户也可以在Linux上运行Windows、Solaris、FreeBSD、或其他操作系统。
+
+**driver/zorro/**
+
+该驱动提供Zorro Amiga总线支持。
+
+#### 10.1.1.2 Device Driver in block/
+
+**block/**
+
+Block层的实现。最初，block层的代码一部分位于drivers目录，一部分位于fs目录，从2.6.15开始，block层的核心代码被提取出来放在了顶层的block目录。
+
+#### 10.1.1.3 Device Driver in firmware/
+
+**firmware/**
+
+二进制固件程序。
+
 **NOTE**: firmware/目录下的文件为二进制固件，用于支持某些硬件设备。该目录下的文件不是开放源代码的，因此存在固件之争(2002年，Richard Stallman曾质疑这些二进制固件使得Linux成为非自由软件，甚至违反了GPL License)。而driver/firmware/目录下的文件则是开放源代码的。
 
-此外，下列目录也包含设备驱动程序:
+#### 10.1.1.4 Device Driver in net/
 
-| block/ | block层的实现。最初，block层的代码一部分位于drivers目录，一部分位于fs目录，从2.6.15开始，block层的核心代码被提取出来放在了顶层的block目录。 |
-| firmware/ | 二进制固件程序 |
-| net/ | 网络驱动程序 |
-| sound/ | 声卡驱动程序 |
+**net/**
 
-<p/>
+网络驱动程序。
 
-References:
-* [Linux内核专题：03 驱动程序](https://github.com/LCTT/TranslateProject/blob/master/published/The Linux Kernel/03 The Linux Kernel--Drivers.md)
-* http://www.linux.org/threads/the-linux-kernel-drivers.4205/
+#### 10.1.1.5 Device Driver in sound/
 
-### 10.1.1 设备驱动程序在Linux Kernel中的比重
+**sound/**
+
+声卡驱动程序。
+
+### 10.1.2 设备驱动程序在Linux Kernel中的比重
 
 在Linux Kernel v3.2.0中，设备驱动程序大小所占比重约52.68%：
 
@@ -43322,24 +43683,24 @@ chenwx@chenwx ~/linux $ git diff --shortstat v3.13 v3.14
 				67.63%			61.25%
 ```
 
-### 10.1.2 设备驱动程序的分类
+### 10.1.3 设备驱动程序的分类
 
 根据<<Understanding Modern Device Drivers>>第2.1节可知，设备驱动程序分为如下三大类：
-* Char Drivers
-* Block Drivers
-* Network Drivers
+* **Char Drivers**, see [10.3 Char Drivers](#10-3-char-drivers)
+* **Block Drivers**, see [10.4 Block Drivers](#10-4-block-drivers)
+* **Network Drivers**, see [10.5 Network Drivers](#10-5-network-drivers)
 
 Most device drivers represent physical hardware. However, some device drivers are virtual, providing access to kernel functionality. 参见[10.3.4.1 内存设备](#10-3-4-1-)节. Some of the most common Pseudo devices are:
-* the kernel random number generator (accessible at /dev/random and /dev/urandom),
-* the null device (accessible at /dev/null)
-* the zero device (accessible at /dev/zero)
-* the full device (accessible at /dev/full)
-* the memory device (accessible at /dev/mem)
+* the kernel random number generator (accessible at ```/dev/random``` and ```/dev/urandom```),
+* the null device (accessible at ```/dev/null```)
+* the zero device (accessible at ```/dev/zero```)
+* the full device (accessible at ```/dev/full```)
+* the memory device (accessible at ```/dev/mem```)
 
 可运行下列命令查看系统中的设备信息：
 
 ```
-chenwx ～ $ cat /proc/devices
+chenwx ~ $ cat /proc/devices
 Character devices:
   1 mem
   4 /dev/vc/0
@@ -43421,7 +43782,7 @@ drwxr-xr-x  2 root root          60 Nov 15 02:42 cpu
 
 ### 10.2.1 设备驱动程序的初始化/driver_init()
 
-设备驱动程序的初始化函数为driver_init()，其调用关系如下：
+设备驱动程序的初始化函数为```driver_init()```，其调用关系如下：
 
 ```
 start_kernel()				// 参见[4.3.4.1.4.3 start_kernel()]节
@@ -43431,7 +43792,7 @@ start_kernel()				// 参见[4.3.4.1.4.3 start_kernel()]节
          -> driver_init()
 ```
 
-函数driver_init()定义于drivers/base/init.c:
+函数```driver_init()```定义于drivers/base/init.c:
 
 ```
 /**
@@ -48387,7 +48748,7 @@ retry:
 
 #### 10.3.4.0 字符设备列表
 
-运行命令"ls -l /dev"来查看系统中的字符设备，另参见[10.1.2 设备驱动程序的分类](#10-1-2-)节：
+运行命令"ls -l /dev"来查看系统中的字符设备，另参见[10.1.3 设备驱动程序的分类](#10-1-3-)节：
 
 ```
 chenwx@chenwx ~/linux $ ls -l /dev

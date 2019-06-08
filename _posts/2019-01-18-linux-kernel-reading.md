@@ -44036,7 +44036,7 @@ int sysdev_class_register(struct sysdev_class *cls)
 	retval = kset_register(&cls->kset);
 
 	/*
-	 * 在/sys/devices/system/cpu目录下创建 cls->attrs包含的文件，
+	 * 在/sys/devices/system/cpu目录下创建cls->attrs包含的文件，
 	 * 参见[11.3.5.6.1 sysfs_create_files()]节
 	 */
 	if (!retval && cls->attrs)
@@ -44357,7 +44357,7 @@ drivers/acpi/bus.c:1156:        result = bus_register(&acpi_bus_type);
 
 chenwx@chenwx ~/linux $ cat drivers/acpi/bus.c
 struct bus_type acpi_bus_type = {
-	.name		= "acpi",
+	.name	= "acpi",
 	.match	= acpi_bus_match,
 	.probe	= acpi_device_probe,
 	.remove	= acpi_device_remove,
@@ -44569,7 +44569,7 @@ struct device *device_create(struct class *class, struct device *parent,
 }
 ```
 
-其中，函数device_create_vargs()定义于drivers/base/core.c:
+其中，函数```device_create_vargs()```定义于drivers/base/core.c:
 
 ```
 struct device *device_create_vargs(struct class *class, struct device *parent,
@@ -45114,7 +45114,7 @@ struct dev_ext_attribute {
 		{ __ATTR(_name, _mode, device_show_bool, device_store_bool), &(_var) }
 ```
 
-其中，__ATTR之类的宏定义于include/linux/sysfs.h:
+其中，```__ATTR```之类的宏定义于include/linux/sysfs.h:
 
 ```
 #define __ATTR(_name,_mode,_show,_store) {				\
@@ -46573,9 +46573,9 @@ int __class_register(struct class *cls, struct lock_class_key *key)
 
 ### 10.2A.1 ioctl()
 
-Most drivers need - in addition to the ability to read and write the device - the ability to perform various types of hardware control via the device driver. Most devices can perform operations beyond simple data transfers; user space must often be able to request, for example, that the device lock its door, eject its media, report error information, change a baud rate, or self destruct. These operations are usually supported via the ioctl method, which implements the system call by the same name.
+Most drivers need - in addition to the ability to read and write the device - the ability to perform various types of hardware control via the device driver. Most devices can perform operations beyond simple data transfers; user space must often be able to request, for example, that the device lock its door, eject its media, report error information, change a baud rate, or self destruct. These operations are usually supported via the **ioctl** method, which implements the system call by the same name.
 
-系统调用sys_ioctl()定义于fs/ioctl.c:
+系统调用```sys_ioctl()```定义于fs/ioctl.c:
 
 ```
 SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
@@ -46748,10 +46748,10 @@ To choose ioctl numbers for your driver according to the Linux kernel convention
 
 | Field | Description |
 | :---- | :---------- |
-| direction | The direction of data transfer, if the particular command involves a data transfer. The possible values are ```_IOC_NONE``` (no data transfer), ```_IOC_READ```, ```_IOC_WRITE```, and ```_IOC_READ|_IOC_WRITE``` (data is transferred both ways). Data transfer is seen from the application's point of view; ```_IOC_READ``` means reading from the device, so the driver must write to user space. Note that the field is a bit mask, so ```_IOC_ READ``` and ```_IOC_WRITE``` can be extracted using a logical AND operation. |
-| size | The size of user data involved. The width of this field is architecture dependent, but is usually 13 or 14 bits. You can find its value for your specific architecture in the macro ```_IOC_SIZEBITS```. It's not mandatory that you use the size field - the kernel does not check it - but it is a good idea. Proper use of this field can help detect user-space programming errors and enable you to implement backward compatibility if you ever need to change the size of the relevant data item. If you need larger data structures, however, you can just ignore the size field. |
-| type | The magic number. Just choose one number (after consulting ioctl-number.txt) and use it throughout the driver. This field is eight bits wide (```_IOC_TYPEBITS```). |
-| number | The ordinal (sequential) number. It's eight bits (```_IOC_NRBITS```) wide. |
+| Direction | The direction of data transfer, if the particular command involves a data transfer. The possible values are ```_IOC_NONE``` (no data transfer), ```_IOC_READ```, ```_IOC_WRITE```, and ```_IOC_READ|_IOC_WRITE``` (data is transferred both ways). Data transfer is seen from the application's point of view; ```_IOC_READ``` means reading from the device, so the driver must write to user space. Note that the field is a bit mask, so ```_IOC_ READ``` and ```_IOC_WRITE``` can be extracted using a logical AND operation. |
+| Size | The size of user data involved. The width of this field is architecture dependent, but is usually 13 or 14 bits. You can find its value for your specific architecture in the macro ```_IOC_SIZEBITS```. It's not mandatory that you use the size field - the kernel does not check it - but it is a good idea. Proper use of this field can help detect user-space programming errors and enable you to implement backward compatibility if you ever need to change the size of the relevant data item. If you need larger data structures, however, you can just ignore the size field. |
+| Type | The magic number. Just choose one number (after consulting ioctl-number.txt) and use it throughout the driver. This field is eight bits wide (```_IOC_TYPEBITS```). |
+| Number | The ordinal (sequential) number. It's eight bits (```_IOC_NRBITS```) wide. |
 
 <p/>
 
@@ -46785,14 +46785,16 @@ To choose ioctl numbers for your driver according to the Linux kernel convention
 
 #### 10.2A.1.3 Predefined ioctl commands
 
-Although the ioctl system call is most often used to act on devices, a few commands are recognized by the kernel. Note that these commands, when applied to your device, are decoded before your own file operations are called. Thus, if you choose the same number for one of your ioctl commands, you won‘t ever see any request for that command, and the application gets something unexpected because of the conflict between the ioctl numbers. 
+Although the **ioctl** system call is most often used to act on devices, a few commands are recognized by the kernel. Note that these commands, when applied to your device, are decoded before your own file operations are called. Thus, if you choose the same number for one of your ioctl commands, you won‘t ever see any request for that command, and the application gets something unexpected because of the conflict between the ioctl numbers. 
 
 The predefined commands are divided into three groups:
-* Those that can be issued on any file (regular, device, FIFO, or socket) 
-* Those that are issued only on regular files 
-* Those specific to the filesystem type 
+* Those that can be issued on any file (regular, device, FIFO, or socket).
+* Those that are issued only on regular files.
+* Those specific to the filesystem type.
 
-Commands in the last group are executed by the implementation of the hosting filesystem (this is how the chattr command works). Device driver writers are interested only in the first group of commands, whose magic number is "T".
+Commands in the last group are executed by the implementation of the hosting filesystem (this is how the ```chattr``` command works). Device driver writers are interested only in the first group of commands, whose magic number is **T**.
+
+See [Using ioctl()](/docs/Using_ioctl.pdf).
 
 ### 10.2A.2 compat_sys_ioctl()
 
@@ -46898,7 +46900,7 @@ Linux通过如下步骤自动加载硬件设备所对应的驱动程序:
 
 ### 10.2B.1 驱动程序声明其支持的硬件设备版本
 
-驱动程序开发人员在驱动程序中通过宏MODULE_DEVICE_TABLE(参见[13.1.2.2 MODULE_DEVICE_TABLE()]节)声明该驱动程序所支持的硬件设备版本，以driver/net/ethernet/intel/e1000e/netdev.c为例：
+驱动程序开发人员在驱动程序中通过宏```MODULE_DEVICE_TABLE```来声明该驱动程序所支持的硬件设备版本，参见[13.1.2.2 MODULE_DEVICE_TABLE()](#13-1-2-2-module-device-table-)节。以drivers/net/ethernet/intel/e1000e/netdev.c为例：
 
 ```
 static const struct pci_device_id e1000_pci_tbl[] = {
@@ -46919,20 +46921,30 @@ static const struct pci_device_id e1000_pci_tbl[] = {
 MODULE_DEVICE_TABLE(pci, e1000_pci_tbl);
 ```
 
-当编译驱动程序时，根据编译方式的不同，对宏MODULE_DEVICE_TABLE的处理方式也不同:
-* 当驱动程序编译进内核时，因为内核可以直接访问该数组，故MODULE_GENERIC_TABLE(gtype,name)被定义为空；
-* 当驱动程序编译成模块时，宏MODULE_GENERIC_TABLE(gtype,name)通过*.mod.c->*.mod.o被编译到*.ko文件中的.modinfo段，参见[3.4.3.4.2.1 __modpost](#3-4-3-4-2-1-modpost)节。
+由[13.1.2.2 MODULE_DEVICE_TABLE()](#13-1-2-2-module-device-table-)可知，当编译驱动程序时，根据编译方式的不同，对宏```MODULE_GENERIC_TABLE(gtype,name)```的处理方式也不同，参见include/linux/module.h:
+* 当驱动程序编译进内核时，因为内核可以直接访问该数组，故```MODULE_GENERIC_TABLE(gtype,name)```被定义为空；
+* 当驱动程序编译成模块时，宏```MODULE_GENERIC_TABLE(gtype,name)```通过```*.mod.c->*.mod.o```被编译到```*.ko```文件中的.modinfo段，参见[3.4.3.4.2.1 __modpost](#3-4-3-4-2-1-modpost)节。
 
-当安装模块时，各模块中.modinfo段的 MODULE_GENERIC_TABLE()被提取到下列文件中， 参见[3.5.5.1.1 cmd_depmod](#3-5-5-1-1-cmd-depmod)节:
-* /lib/modules/<kernelrelease>/modules.alias
+当安装模块时，各模块中.modinfo段的```MODULE_GENERIC_TABLE()```被提取到下列文件中， 参见[3.5.5.1.1 cmd_depmod](#3-5-5-1-1-cmd-depmod)节:
+
+```
+/lib/modules/<kernelrelease>/modules.alias
+```
+
+例如：
+
+```
+chenwx@chenwx:~ $ cat /lib/modules/`uname -r`/modules.alias | grep 1049
+alias pci:v00008086d00001049sv*sd*bc*sc*i* e1000e
+```
 
 ### 10.2B.2 内核发现硬件设备并发送uevent到用户空间
 
 当内核发现硬件设备时，根据驱动程序编译方式的不同，加载该驱动程序的方式也有所不同:
 
-#### 10.2B.2.1 当驱动程序编译进内核时的情形
+#### 10.2B.2.1 当驱动程序被编译进内核时的情形
 
-当驱动程序编译进内核时，通过如下方式绑定该硬件所对应的驱动程序(以PCI网卡设备为例，kernel v4.2.2):
+当驱动程序被编译进内核时，通过如下方式绑定该硬件所对应的驱动程序(以PCI网卡设备为例，kernel v4.2.2):
 
 ```
 struct x86_init_ops x86_init __initdata = { 
@@ -47052,9 +47064,9 @@ kernel_init()
                                     -> dev->driver = drv;
 ```
 
-#### 10.2B.2.2 当驱动程序编译成模块时的情形
+#### 10.2B.2.2 当驱动程序被编译成模块时的情形
 
-当驱动程序编译成模块时，通过如下方式加载该硬件所对应的驱动程序(以PCI网卡设备为例):
+当驱动程序被编译成模块时，通过如下方式加载该硬件所对应的驱动程序(以PCI网卡设备为例):
 
 ```
 struct x86_init_ops x86_init __initdata = { 
@@ -47386,7 +47398,7 @@ chenwx@chenwx ~ $ dmesg | grep udevd
 
 如何编写udev规则:
 * [Writing udev rules](http://www.reactivated.net/writing_udev_rules.html)
-* [使用 udev 进行动态内核设备管理](https://www.suse.com/zh-cn/documentation/sles11/singlehtml/book_sle_admin/cha.udev.html)
+* [使用 udev 进行动态内核设备管理](https://www.suse.com/zh-cn/documentation/sles11/singlehtml/book_sle_admin/cha.udev.html) [[local pdf](/docs/Use_udev_to_manage_kernel_device.pdf)]
 
 程序udevadm monitor可将驱动程序核心事件和udev事件处理的计时可视化。在输出结果中，UEVENT行显示内核已经通过netlink发送的事件，而UDEV行显示已经完成的udev事件处理程序，计时以微秒为单位显示。UEVENT和UDEV之间的时间是udev用于处理此事件或者udev守护程序延迟执行从而同步此事件与相关以及已运行的事件的时间。例如，硬盘分区的事件总是等待主磁盘设备事件完成，因为分区事件可能依赖于主磁盘事件从硬件查询的数据。
 
@@ -47426,7 +47438,7 @@ UDEV  [19752.405595] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/
 UDEV  [19752.407068] add      /devices/pci0000:00/0000:00:1a.1/usb4/4-1/4-1:1.0/0003:046D:C050.0002/input/input13/mouse0 (input)
 ```
 
-命令udevadm monitor --env显示完整的事件环境：
+通过下列命令来显示完整的事件环境：
 
 ```
 chenwx@chenwx ~ $ udevadm monitor --env

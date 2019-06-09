@@ -11370,8 +11370,8 @@ void __init bdev_cache_init(void)
 
 ###### 4.3.4.1.4.3.11.6 chrdev_init()
 
-* 字符设备初始化函数之一：chrdev_init()，参见本节
-* 字符设备初始化函数之二：chr_dev_init()，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节
+* 字符设备初始化函数之一：```chrdev_init()```，参见[4.3.4.1.4.3.11.6 chrdev_init()](#4-3-4-1-4-3-11-6-chrdev-init-)节
+* 字符设备初始化函数之二：```chr_dev_init()```，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节
 
 该函数定义于fs/char_dev.c:
 
@@ -47709,7 +47709,7 @@ start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
       -> do_basic_setup()				// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
          -> do_initcalls()				// 参见[13.5.1.1.1 do_initcalls()]节
             -> do_one_initcall()			// 参见[13.5.1.1.1.2 do_one_initcall()]节
-               -> fs_initcall(chr_dev_init)		// initcall5.init
+               -> fs_initcall(chr_dev_init)		// 参见[13.5.1.1.1.1.1 .initcall*.init]节中的initcall5.init
                   -> chr_dev_init()			// 参见本节
 ```
 
@@ -47717,19 +47717,19 @@ start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
 
 ```
 /*
- * 数组devlist[]用于创建如下内存设备：
- *   Name				Major			Minor (=数组devlist[]的下标)
- *   ------------------------------------------------------------------
- *   /dev/mem				1			1
- *   /dev/kmem				1			2
- *   /dev/null				1			3
- *   /dev/port				1			4
- *   /dev/zero				1			5
- *   /dev/full				1			7
- *   /dev/random			1			8
- *   /dev/urandom			1			9
- *   /dev/kmsg				1			11
- *   /dev/oldmem			1			12	// which is already removed!
+ * 数组devlist[]用于创建下列内存设备，以Minor为数组下表：
+ *   Name				Major		Minor (=数组devlist[]的下标)
+ *   -----------------------------------------------------------------------------
+ *   /dev/mem				1		1
+ *   /dev/kmem				1		2
+ *   /dev/null				1		3
+ *   /dev/port				1		4
+ *   /dev/zero				1		5
+ *   /dev/full				1		7
+ *   /dev/random			1		8
+ *   /dev/urandom			1		9
+ *   /dev/kmsg				1		11
+ *   /dev/oldmem			1		12	// which is already removed!
  */
 static const struct memdev {
 	const char			*name;
@@ -47794,23 +47794,16 @@ static int __init chr_dev_init(void)
 			continue;
 
 		/*
-		 * Create /dev/port?
-		 */
-		if ((minor == DEVPORT_MINOR) && !arch_has_dev_port())
-			continue;
-
-		/*
 		 * 创建字符设备devlist[minor]，主设备号为1，次设备号为minor，
 		 * 并生成目录/sys/class/mem/<devlist[minor].name>，
 		 * 参见[10.2.3.1 创建设备/device_create()]节
 		 */
 		device_create(mem_class, NULL, MKDEV(MEM_MAJOR, minor),
-				NULL, devlist[minor].name);
+			      NULL, devlist[minor].name);
 	}
 
 	/*
-	 * 5) 注册字符设备/dev/tty和/dev/console，
-	 * 参见[10.3.2.1 tty_init()]节
+	 * 5) 注册字符设备/dev/tty和/dev/console，参见[10.3.2.1 tty_init()]节
 	 */
 	return tty_init();
 }
@@ -47842,22 +47835,20 @@ int __init tty_init(void)
 	 */
 
 	/*
-	 * 1.1) 初始化变量tty_cdev，
-	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()]节
+	 * 1.1) 初始化变量tty_cdev，参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()]节
 	 */
 	cdev_init(&tty_cdev, &tty_fops);
 
 	/*
-	 * 1.2) 添加字符设备/dev/tty
-	 * 参见[10.3.3.3.3.1 cdev_add()]节和[10.3.3.3.1.2 register_chrdev_region()]节
+	 * 1.2) 添加字符设备/dev/tty，参见[10.3.3.3.3.1 cdev_add()]节
+	 *      和[10.3.3.3.1.2 register_chrdev_region()]节
 	 */
 	if (cdev_add(&tty_cdev, MKDEV(TTYAUX_MAJOR, 0), 1) ||
 	    register_chrdev_region(MKDEV(TTYAUX_MAJOR, 0), 1, "/dev/tty") < 0)
 		panic("Couldn't register /dev/tty driver\n");
 
 	/*
-	 * 1.3) 创建字符设备/dev/tty，
-	 * 参见[10.2.3.1 创建设备/device_create()]节
+	 * 1.3) 创建字符设备/dev/tty，参见[10.2.3.1 创建设备/device_create()]节
 	 */
 	device_create(tty_class, NULL, MKDEV(TTYAUX_MAJOR, 0), NULL, "tty");
 
@@ -47866,22 +47857,20 @@ int __init tty_init(void)
 	 */
 
 	/*
-	 * 2.1) 初始化变量tty_cdev，
-	 * 参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()]节
+	 * 2.1) 初始化变量console_cdev，参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()]节
 	 */
 	cdev_init(&console_cdev, &console_fops);
 
 	/*
-	 * 2.2) 添加字符设备/dev/console
-	 * 参见[10.3.3.3.3.1 cdev_add()]节和[10.3.3.3.1.2 register_chrdev_region()]节
+	 * 2.2) 添加字符设备/dev/console，参见[10.3.3.3.3.1 cdev_add()]节
+	 *      和[10.3.3.3.1.2 register_chrdev_region()]节
 	 */
 	if (cdev_add(&console_cdev, MKDEV(TTYAUX_MAJOR, 1), 1) ||
 	    register_chrdev_region(MKDEV(TTYAUX_MAJOR, 1), 1, "/dev/console") < 0)
 		panic("Couldn't register /dev/console driver\n");
 
 	/*
-	 * 2.3) 创建字符设备/dev/console，
-	 * 参见[10.2.3.1 创建设备/device_create()]节
+	 * 2.3) 创建字符设备/dev/console，参见[10.2.3.1 创建设备/device_create()]节
 	 */
 	consdev = device_create(tty_class, NULL, MKDEV(TTYAUX_MAJOR, 1), NULL, "console");
 
@@ -47898,48 +47887,62 @@ int __init tty_init(void)
 }
 ```
 
+其中，```TTYAUX_MAJOR```定义于include/linux/major.h:
+
+```
+#define TTYAUX_MAJOR		5
+```
+
+查看主次设备号：
+
+```
+chenwx@chenwx:~ $ ll /dev/tty /dev/console 
+crw------- 1 root root 5, 1 Jun  9 14:25 /dev/console
+crw-rw-rw- 1 root tty  5, 0 Jun  9 20:48 /dev/tty
+```
+
 ### 10.3.3 注册/注销字符设备
 
 字符设备的注册与注销有如下两种方式：
 
-1) 通过函数register_chrdev()注册字符设备，通过函数unregister_chrdev()注销字符设备，参见[10.3.3.1 register_chrdev()](#10-3-3-1-register-chrdev-)节和[10.3.3.2 unregister_chrdev()](#10-3-3-2-unregister-chrdev-)节；
+1) 通过函数```register_chrdev()```注册字符设备，通过函数```unregister_chrdev()```注销字符设备，参见[10.3.3.1 register_chrdev()](#10-3-3-1-register-chrdev-)节和[10.3.3.2 unregister_chrdev()](#10-3-3-2-unregister-chrdev-)节；
 
-2) 分如下步骤完成字符设备的注册与注销，这种方式是register_chrdev()/unregister_chrdev()的组成步骤，参见[10.3.3.3 注册/注销字符设备的分步骤](#10-3-3-3-)节。
+2) 通过下列步骤完成字符设备的注册与注销，这种方式是```register_chrdev()```和```unregister_chrdev()```的组成步骤，参见[10.3.3.3 注册/注销字符设备的分步骤](#10-3-3-3-)节。
 
-**NOTE**: If you dig through much driver code in the 2.6 kernel, you may notice that quite a few char drivers do not use the cdev interface described in section 10.3.3.3 注册/注销字符设备的分步骤. But new code should not use it; this mechanism will likely go away in a future kernel.
+**NOTE**: If you dig through much driver code in the 2.6 kernel, you may notice that quite a few char drivers do not use the cdev interface described in section [10.3.3.3 注册/注销字符设备的分步骤](#10-3-3-3-)节. But new code should not use it; this mechanism will likely go away in a future kernel.
 
 2.1) 申请设备号
 
-register_chrdev_region(): 静态申请设备号
-alloc_chrdev_region()： 动态申请设备号
-
-参见[10.3.3.3.1.1 alloc_chrdev_region()](#10-3-3-3-1-1-alloc-chrdev-region-)节和[10.3.3.3.1.2 register_chrdev_region()](#10-3-3-3-1-2-register-chrdev-region-)节。
+* ```register_chrdev_region()```：静态申请设备号，参见[10.3.3.3.1.2 register_chrdev_region()](#10-3-3-3-1-2-register-chrdev-region-)节
+* ```alloc_chrdev_region()```：动态申请设备号，参见[10.3.3.3.1.1 alloc_chrdev_region()](#10-3-3-3-1-1-alloc-chrdev-region-)节
 
 2.2) 分配和初始化cdev对象
 
-a) 静态分配和初始化cdev对象
+2.2.1) 静态分配和初始化cdev对象
 
-   struct cdev mycdev;
-   cdev_init(&mycdev, &fops);
-   mycdev->owner = THIS_MODULE;
+```
+struct cdev mycdev;
+cdev_init(&mycdev, &fops);
+mycdev->owner = THIS_MODULE;
+```
 
-其中，函数cdev_init()用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()](#10-3-3-3-2-2-cdev-cdev-init-)节。
+其中，函数```cdev_init()```用于初始化cdev的成员，并建立cdev与file_operations之间的连接(即设置文件操作函数cdev->ops，读取/写入该字符设备时将调用cdev->ops中的对应函数)，参见[10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()](#10-3-3-3-2-2-cdev-cdev-init-)节。
 
-b) 动态分配和初始化cdev对象
+2.2.2) 动态分配和初始化cdev对象
 
-   struct cdev *mycdev = cdev_alloc();
-   mycdev->ops = &fops;
-   mycdev->owner = THIS_MODULE;
+```
+struct cdev *mycdev = cdev_alloc();
+mycdev->ops = &fops;
+mycdev->owner = THIS_MODULE;
+```
 
-其中，函数cdev_alloc()用于动态分配cdev对象，参见[10.3.3.3.2.1 动态分配和初始化cdev对象/cdev_alloc()](#10-3-3-3-2-1-cdev-cdev-alloc-)节。
+其中，函数```cdev_alloc()```用于动态分配cdev对象，参见[10.3.3.3.2.1 动态分配和初始化cdev对象/cdev_alloc()](#10-3-3-3-2-1-cdev-cdev-alloc-)节。
 
 2.3) 添加cdev对象
 
-cdev_add(): Once the cdev structure is set up, the final step is to tell the kernel about it.
+```cdev_add()```: Once the cdev structure is set up, the final step is to tell the kernel about it. See section [10.3.3.3.3.1 cdev_add()](#10-3-3-3-3-1-cdev-add-).
 
-There are a couple of important things to keep in mind when using cdev_add(). The first is that this call can fail. If it returns a negative error code, your device has not been added to the system. It almost always succeeds, however, and that brings up the other point: as soon as cdev_add() returns, your device is "live" and its operations can be called by the kernel. You should not call cdev_add() until your driver is completely ready to handle operations on the device.
-
-参见[10.3.3.3.3.1 cdev_add()](#10-3-3-3-3-1-cdev-add-)节。
+**NOTE**: There are a couple of important things to keep in mind when using ```cdev_add()```. The first is that this call can fail. If it returns a negative error code, your device has not been added to the system. It almost always succeeds, however, and that brings up the other point: as soon as ```cdev_add()``` returns, your device is *live* and its operations can be called by the kernel. You should not call ```cdev_add()``` until your driver is completely ready to handle operations on the device.
 
 2.4) 访问字符设备
 
@@ -47947,15 +47950,11 @@ There are a couple of important things to keep in mind when using cdev_add(). Th
 
 2.5) 删除cdev对象
 
-cdev_del(): To remove a char device from the system. Clearly, you should not access the cdev structure after passing it to cdev_del.
-
-参见[10.3.3.3.3.2 cdev_del()](#10-3-3-3-3-2-cdev-del-)节。
+```cdev_del()```: To remove a char device from the system. Clearly, you should not access the cdev structure after passing it to ```cdev_del()```. See section [10.3.3.3.3.2 cdev_del()](#10-3-3-3-3-2-cdev-del-).
 
 2.6) 释放设备号
 
-unregister_chrdev_region()
-
-参见[10.3.3.3.1.4 unregister_chrdev_region()](#10-3-3-3-1-4-unregister-chrdev-region-)节。
+```unregister_chrdev_region()```: See section [10.3.3.3.1.4 unregister_chrdev_region()](#10-3-3-3-1-4-unregister-chrdev-region-).
 
 #### 10.3.3.1 register_chrdev()
 
@@ -48034,7 +48033,8 @@ int __register_chrdev(unsigned int major, unsigned int baseminor,
 	kobject_set_name(&cdev->kobj, "%s", name);
 
 	/*
-	 * 将cdev链接到cdev_map.probe[major].data中，参见[10.3.3.3.3.1 cdev_add()]节
+	 * 将cdev链接到cdev_map.probe[major].data中，
+	 * 参见[10.3.3.3.3.1 cdev_add()]节
 	 */
 	err = cdev_add(cdev, MKDEV(cd->major, baseminor), count);
 	if (err)
@@ -48056,7 +48056,7 @@ out2:
 
 #### 10.3.3.2 unregister_chrdev()
 
-If you use register_chrdev, the proper function to remove your device(s) from the system is ```unregister_chrdev()```.
+If you use ```register_chrdev()```, the proper function to remove your device(s) from the system is ```unregister_chrdev()```.
 
 该函数定义于include/linux/fs.h:
 
@@ -48276,8 +48276,7 @@ __register_chrdev_region(unsigned int major, unsigned int baseminor,
 	}
 
 	/*
-	 * 将对象cd插入到链表chrdevs[major%255]中,
-	 * 参见Subjects/Chapter10_Device_Driver/01_Char_Device/Figures/chrdevs[]_1.jpg
+	 * 将对象cd插入到链表chrdevs[major%255]中，参见本节中的图chrdevs[]_1.jpg
 	 */
 	cd->next = *cp;
 	*cp = cd;
@@ -48396,7 +48395,7 @@ static void cdev_dynamic_release(struct kobject *kobj)
 
 ###### 10.3.3.3.2.2 静态分配和初始化cdev对象/cdev_init()
 
-该函数适用于静态创建struct cdev对象后，初始化该对象，示例如下：
+该函数适用于静态创建类型为```struct cdev```的对象后，初始化该对象，例如：
 
 ```
 struct cdev mycdev;
@@ -48470,7 +48469,7 @@ int cdev_add(struct cdev *p, dev_t dev, unsigned count)
 }
 ```
 
-其中，函数kobj_map()定义于drivers/base/map.c:
+其中，函数```kobj_map()```定义于drivers/base/map.c:
 
 ```
 int kobj_map(struct kobj_map *domain, dev_t dev, unsigned long range,
@@ -48585,11 +48584,9 @@ void kobj_unmap(struct kobj_map *domain, dev_t dev, unsigned long range)
 
 ##### 10.3.3.3.4 访问字符设备
 
-如何将read(), write()等文件操作与cdev->ops中的函数关联起来的呢？
+如何将```read()```和```write()```等文件操作与```cdev->ops```中的函数关联起来的呢？
 
-1) 字符设备的驱动程序调用函数init_special_node()设置inode->i_fop指针
-
-函数init_special_node()定义于fs/inode.c:
+1) 字符设备的驱动程序调用函数```init_special_node()```来设置```inode->i_fop```指针，该函数定义于fs/inode.c:
 
 ```
 void init_special_inode(struct inode *inode, umode_t mode, dev_t rdev)
@@ -48612,9 +48609,7 @@ void init_special_inode(struct inode *inode, umode_t mode, dev_t rdev)
 }
 ```
 
-2) 变量def_chr_fops指定字符设备的open()函数
-
-变量def_chr_fops定义于fs/char_dev.c:
+2) 变量```def_chr_fops```指定字符设备的```open()```函数，该变量定义于fs/char_dev.c:
 
 ```
 /*
@@ -48628,9 +48623,7 @@ const struct file_operations def_chr_fops = {
 };
 ```
 
-3) 通过函数chrdev_open()来获取字符设备的函数指针cdev->ops
-
-函数chrdev_open()定义于fs/char_dev.c:
+3) 通过函数```chrdev_open()```来获取字符设备的函数指针```cdev->ops```，该函数定义于fs/char_dev.c:
 
 ```
 /*
@@ -48648,8 +48641,7 @@ static int chrdev_open(struct inode *inode, struct file *filp)
 	if (!p) {
 		/*
 		 * 1) 若该指针为空，则从cdev_map->probes[]中查找该字符设备
-		 */devlist[MINOR(dev→
-
+		 */
 		struct kobject *kobj;
 		int idx;
 		spin_unlock(&cdev_lock);
@@ -48706,12 +48698,11 @@ out_cdev_put:
 }
 ```
 
-此后，read(), write()等文件操作函数将会调用cdev->ops->read(), write()等函数，参见如下章节：
+此后，```read()```和```write()```等文件操作函数将会调用```cdev->ops->read()```和```cdev->ops->write()```等函数，参见如下章节：
 * [11.2.4.2.0 如何查找某文件所对应的文件操作函数](#11-2-4-2-0-)
 * [11.2.4.2.2 read()](#11-2-4-2-2-read-)
 * [11.2.4.2.3 write()](#11-2-4-2-3-write-)
 * [11.2.4.2.4 close()](#11-2-4-2-4-close-)
-* ...
 
 ###### 10.3.3.3.4.1 kobj_lookup()
 

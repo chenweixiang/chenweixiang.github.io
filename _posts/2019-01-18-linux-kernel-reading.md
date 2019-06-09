@@ -11153,7 +11153,7 @@ void __init mnt_init(void)
 	if (err)
 		printk(KERN_WARNING "%s: sysfs_init error: %d\n", __func__, err);
 
-	// 创建sysfs文件系统的fs子目录，参见[15.7.1.2 kobject_create_and_add()]节
+	// 创建目录/sys/fs，参见[15.7.1.2 kobject_create_and_add()]节
 	fs_kobj = kobject_create_and_add("fs", NULL);
 	if (!fs_kobj)
 		printk(KERN_WARNING "%s: kobj create error\n", __func__);
@@ -43697,7 +43697,7 @@ Most device drivers represent physical hardware. However, some device drivers ar
 * the full device (accessible at ```/dev/full```)
 * the memory device (accessible at ```/dev/mem```)
 
-可运行下列命令查看系统中的设备信息：
+执行下列命令查看系统中的设备信息：
 
 ```
 chenwx ~ $ cat /proc/devices
@@ -43759,7 +43759,7 @@ Block devices:
 254 mdp
 ```
 
-可运行下列命令查看主/次设备号：
+执行下列命令查看主/次设备号：
 
 ```
 chenwx ～ $ ls -l /dev
@@ -43831,6 +43831,7 @@ int __init devices_init(void)
 	/*
 	 * 创建目录/sys/devices，参见[15.7.4.1 kset_create_and_add()]节
 	 * 变量device_uevent_ops，参见[15.7.5.1 device_uevent_ops]节
+	 * The variable devices_kset is a kset to create /sys/devices/.
 	 */
 	devices_kset = kset_create_and_add("devices", &device_uevent_ops, NULL);
 	if (!devices_kset)
@@ -44140,7 +44141,7 @@ struct bus_type {
 };
 ```
 
-其中， struct subsys_private定义于drivers/base/base.h:
+其中， ```struct subsys_private```定义于drivers/base/base.h:
 
 ```
 struct subsys_private {
@@ -44300,7 +44301,7 @@ out:
 }
 ```
 
-示例：
+例如：
 
 ```
 // 查看系统中注册的bus
@@ -44482,7 +44483,7 @@ struct device {
 };
 ```
 
-其中， struct device_private定义于drivers/base/base.h:
+其中，```struct device_private```定义于drivers/base/base.h:
 
 ```
 struct device_private {
@@ -45261,15 +45262,15 @@ int device_attach(struct device *dev)
 
 	device_lock(dev);
 
-	/*
-	 * 1) 若该设备已配置了驱动程序：
-	 * 1.1) 若dev->p->knode_driver已指向其对应的驱动程序，说明dev->p->knode_driver已被
-	 *      链接到以struct device_driver->p->klist_devices为链表头的链表中，则直接返回；
-	 * 1.2) 若dev->p->knode_driver未指向其对应的驱动程序，说明dev->p->knode_driver未被
-	 *      链接到以struct device_driver->p->klist_devices为链表头的链表中，则调用
-	 *      device_bind_driver->driver_bound()；
-	 */	
 	if (dev->driver) {
+		/*
+		 * 1) 若该设备已配置了驱动程序：
+		 * 1.1) 若dev->p->knode_driver已指向其对应的驱动程序，说明dev->p->knode_driver已被
+		 *      链接到以struct device_driver->p->klist_devices为链表头的链表中，则直接返回；
+		 * 1.2) 若dev->p->knode_driver未指向其对应的驱动程序，说明dev->p->knode_driver未被
+		 *      链接到以struct device_driver->p->klist_devices为链表头的链表中，则调用
+		 *      device_bind_driver->driver_bound()；
+		 */
 		if (klist_node_attached(&dev->p->knode_driver)) {
 			ret = 1;
 			goto out_unlock;
@@ -45282,14 +45283,14 @@ int device_attach(struct device *dev)
 			ret = 0;
 		}
 	} else {
-	  /*
-	   * 2) 若该设备还未配置了驱动程序：
-	   * 则对链表drv->bus->p->klist_devices->k_list中的每个元素，
-	   * 调用函数__driver_attach(device, driver);
-	   * 该函数尝试将匹配的driver和device绑定到一起.
-	   * NOTE: 链表drv->bus->p->klist_devices->k_list中链接的是元素
-	   * struct device->p->knode_bus->n_node
-	   */
+		/*
+		 * 2) 若该设备还未配置了驱动程序：
+		 *    则对链表drv->bus->p->klist_devices->k_list中的每个元素，
+		 *    调用函数__driver_attach(device, driver);
+		 *    该函数尝试将匹配的driver和device绑定到一起.
+		 *    NOTE: 链表drv->bus->p->klist_devices->k_list中链接的是元素
+		 *    struct device->p->knode_bus->n_node
+		 */
 		pm_runtime_get_noresume(dev);
 		ret = bus_for_each_drv(dev->bus, NULL, dev, __device_attach);
 		pm_runtime_put_sync(dev);
@@ -45301,7 +45302,7 @@ out_unlock:
 }
 ```
 
-其中，函数定义于drivers/base/dd.c:
+其中，函数```__device_attach()```定义于drivers/base/dd.c:
 
 ```
 static int __device_attach(struct device_driver *drv, void *data)
@@ -45572,7 +45573,7 @@ struct device_driver {
 };
 ```
 
-其中， struct driver_private定义于drivers/base/base.h:
+其中，```struct driver_private```定义于drivers/base/base.h:
 
 ```
 struct driver_private {
@@ -45631,7 +45632,7 @@ int driver_register(struct device_driver *drv)
 	/*
 	 * 查找链表drv->bus->p->drivers_kset->list上是否已存在该驱动程序(drv->name)
 	 * 其中，链表drv->bus->p->drivers_kset->list上链接的是struct device_driver->p->kobj->entry元素
-	 * 参见Subjects/Chapter10_Device_Driver/00_Device_Driver_Model/Figures/Device_Driver_Model.jpg
+	 * 参见本节中的图Device_Driver_Model.jpg
 	 */
 	other = driver_find(drv->name, drv->bus);
 	if (other) {
@@ -45838,7 +45839,7 @@ static int __driver_attach(struct device *dev, void *data)
 
 ###### 10.2.4.1.1.2.1 定义设备驱动属性
 
-struct driver_attribute表示设备属性，其定义于include/linux/device.h:
+结构体```struct driver_attribute```表示设备属性，其定义于include/linux/device.h:
 
 ```
 struct driver_attribute {
@@ -46078,11 +46079,11 @@ static void __device_release_driver(struct device *dev)
 
 #### 10.2.4.3 何时调用struct device_driver中的probe()函数
 
-Probe是指在Linux内核中，若存在相同名称的device和device_driver (NOTE: 还存在其它方式，暂时不关注)，内核就会执行struct device_driver中的回调函数probe()，而该函数就是所有driver的入口，可以执行诸如硬件设备初始化、字符设备注册、设备文件操作、ops注册等动作。
+Probe是指在Linux内核中，若存在相同名称的device和device_driver (NOTE: 还存在其它方式，暂时不关注)，内核就会执行```struct device_driver```中的回调函数```probe()```，而该函数就是所有driver的入口，可以执行诸如硬件设备初始化、字符设备注册、设备文件操作、ops注册等动作。
 
-struct device_driver中函数probe()的调用时机如下：
+结构体```struct device_driver```中函数```probe()```的调用时机如下：
 
-(1) 将struct device类型的变量注册到内核中时自动触发，如device_register(), device_add(), device_create_vargs(), device_create()等
+(1) 将```struct device```类型的变量注册到内核中时自动触发，如```device_register()```, ```device_add()```, ```device_create_vargs()```, ```device_create()```等
 
 ```
 device_register()			// 参见[10.2.3.3 注册设备/device_register()]节
@@ -46099,7 +46100,7 @@ device_register()			// 参见[10.2.3.3 注册设备/device_register()]节
                            -> driver_bound()
 ```
 
-(2) 将struct device_driver类型的变量注册到内核中时自动触发，如driver_register()
+(2) 将```struct device_driver```类型的变量注册到内核中时自动触发，如```driver_register()```
 
 ```
 driver_register()			// 参见[10.2.4.1 注册驱动程序/driver_register()]节
@@ -46113,11 +46114,11 @@ driver_register()			// 参见[10.2.4.1 注册驱动程序/driver_register()]节
                   -> driver_bound()
 ```
 
-(3) 手动查找同一bus下的所有device_driver，若存在与指定device同名的driver，则执行probe()；例如device_attach()，参见(1)
+(3) 手动查找同一bus下的所有device_driver，若存在与指定device同名的driver，则执行```probe()```。例如```device_attach()```，参见(1)。
 
-(4) 手动查找同一bus下的所有device，若存在与指定driver同名的device，则执行probe()；例如driver_attach()，参见(2)
+(4) 手动查找同一bus下的所有device，若存在与指定driver同名的device，则执行```probe()```。例如```driver_attach()```，参见(2)。
 
-(5) 自行调用driver的接口probe()，并在该接口中将该driver绑定到某个device结构中，即设置dev->driver；例如device_bind_driver()，参见(1)
+(5) 自行调用driver的接口```probe()```，并在该接口中将该driver绑定到某个device结构中，即设置```dev->driver```。例如```device_bind_driver()```，参见(1)。
 
 ### 10.2.5 struct platform_device
 
@@ -46361,9 +46362,9 @@ void platform_driver_unregister(struct platform_driver *drv)
 
 ### 10.2.7 struct class
 
-内核中定义了struct class结构体，顾名思义，一个struct class结构体类型变量对应一个类，内核同时提供了函数 class_create()来创建一个类，这个类存放于sysfs(即/sys/class/)下面，一旦创建好了这个类，再调用函数device_create()在/dev目录下创建相应的设备节点。这样，加载模块时，用户空间中的udev会自动响应device_create()函数，去/sysfs下寻找对应的类从而创建设备节点。
+内核中定义了结构体```struct class```，顾名思义，一个```struct class```结构体类型变量对应一个类，内核同时提供了函数 ```class_create()```来创建一个类，这个类存放于sysfs(即```/sys/class/```)下面，一旦创建好了这个类，再调用函数```device_create()```在/dev目录下创建相应的设备节点。这样，加载模块时，用户空间中的udev会自动响应```device_create()```函数，去/sysfs下寻找对应的类从而创建设备节点。
 
-对struct class的初始化，参见[10.2.1.3 classes_init()](#10-2-1-3-classes-init-)节。
+对```struct class```的初始化，参见[10.2.1.3 classes_init()](#10-2-1-3-classes-init-)节。
 
 该结构定义于include/linux/device.h：
 
@@ -46410,7 +46411,7 @@ struct class {
 };
 ```
 
-其中，struct subsys_private定义于drivers/base/base.h:
+其中，```struct subsys_private```定义于drivers/base/base.h:
 
 ```
 struct subsys_private {
@@ -46447,7 +46448,7 @@ struct subsys_private {
 })
 ```
 
-其中，函数__class_create()定义于drivers/base/class.c:
+其中，函数```__class_create()```定义于drivers/base/class.c:
 
 ```
 /**
@@ -46507,7 +46508,7 @@ error:
 })
 ```
 
-其中，函数__class_register()定义于drivers/base/class.c:
+其中，函数```__class_register()```定义于drivers/base/class.c:
 
 ```
 int __class_register(struct class *cls, struct lock_class_key *key)
@@ -50695,8 +50696,8 @@ struct request_queue {
 
 ### 10.4.2 块设备的初始化/genhd_device_init()
 
-* 字符设备初始化函数之一：bdev_cache_init()			// 参见[4.3.4.1.4.3.11.5 bdev_cache_init()]节
-* 字符设备初始化函数之二：genhd_device_init()		// 参见本节
+* 字符设备初始化函数之一：bdev_cache_init()，参见[4.3.4.1.4.3.11.5 bdev_cache_init()](#4-3-4-1-4-3-11-5-bdev-cache-init-)节
+* 字符设备初始化函数之二：genhd_device_init()，参见[10.4.2 块设备的初始化/genhd_device_init()](#10-4-2-genhd-device-init-)节
 
 ```
 start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
@@ -50727,8 +50728,7 @@ static int __init genhd_device_init(void)
 		return error;
 
 	/*
-	 * 初始化变量bdev_map,
-	 * 参见Subjects/Chapter10_Device_Driver/02_Block_Device/Figures/major_names[255]_2.jpg
+	 * 初始化变量bdev_map,参见本节中的图major_names[255]_2.jpg
 	 */
 	bdev_map = kobj_map_init(base_probe, &block_class_lock);
 
@@ -53925,7 +53925,7 @@ dev_queue_xmit(skb)
 
 ## 10.6 Peripheral Component Interconnect (PCI)
 
-PCI(Peripheral Component Interconnect)驱动程序实现于drivers/pci/pci.c，声明于include/linux/pci.h。
+PCI (Peripheral Component Interconnect)驱动程序实现于drivers/pci/pci.c，声明于include/linux/pci.h。
 
 PCI (Peripheral Component Interconnect)是一种连接电脑主板和外部设备的总线标准。一般PCI设备可分为两种形式：
 * 1) 直接布放在主板上的集成电路上，在PCI规范中称作"平面设备"(planar device)；
@@ -62224,7 +62224,7 @@ The magic behind sysfs is simply tying kobjects to directory entries via the den
 
 The sysfs filesystem is a special filesystem similar to /proc that is usually mounted on the /sys directory. The /proc filesystem was the first special filesystem designed to allow User Mode applications to access kernel internal data structures. The /sysfs filesystem has essentially the same objective, but it provides additional information on kernel data structures; furthermore, /sysfs is organized in a more structured way than /proc. Likely, both /proc and /sysfs will continue to coexist in the near future.
 
-##### 11.3.5.1.0 Sysfs文件系统的内部结构及外部表现
+##### 11.3.5.1.1 Sysfs文件系统的内部结构及外部表现
 
 Sysfs文件系统的内部结构与外部表现:
 
@@ -62236,24 +62236,95 @@ Sysfs文件系统的内部结构与外部表现:
 
 <p/>
 
-##### 11.3.5.1.1 /sys目录结构
+##### 11.3.5.1.2 /sys目录结构
 
-/sys的目录结构参见下表:
+**/sys/block/**
 
-| /sys目录 | Notes |
-| /sys/devices | 这是内核对系统中所有设备的分层次表达模型，也是/sys文件系统管理设备的最重要的目录结构 |
-| /sys/dev | 该目录下维护一个按字符设备和块设备的主次号码(major:minor)链接到真实的设备(/sys/devices下)的符号链接文件，它是在内核 2.6.26首次引入的 |
-| /sys/bus | 这是内核设备按总线类型分层放置的目录结构，/sys/devices中的所有设备都是连接于某种总线之下，在这里的每一种具体总线之下可以找到每一个具体设备的符号链接，它也是构成Linux统一设备模型的一部分 |
-| /sys/class | 这是按照设备功能分类的设备模型，如系统所有输入设备都会出现在/sys/class/input之下，而不论它们是以何种总线连接到系统，它也是构成Linux统一设备模型的一部分 |
-| /sys/block | 该目录包含系统中当前所有的块设备，按照功能来说放置在/sys/class之下会更合适，但只是由于历史遗留因素而一直存在于/sys/block, 但从2.6.22开始就已标记为过时，只有在打开了CONFIG_SYSFS_DEPRECATED配置下编译才会有这个目录的存在，并且在2.6.26内核中已正式移到/sys/class/block，旧的接口/sys/block为了向后兼容保留存在，但其中的内容已经变为指向它们在/sys/devices/中真实设备的符号链接文件 |
-| /sys/firmware | 这里是系统加载固件机制的对用户空间的接口，关于固件有专用于固件加载的一套API，在LDD3一书中有关于内核支持固件加载机制的更详细的介绍 |
-| /sys/fs | 这里按照设计是用于描述系统中所有文件系统，包括文件系统本身和按文件系统分类存放的已挂载点，但目前只有fuse，gfs2等少数文件系统支持sysfs接口，一些传统的虚拟文件系统(VFS)层次控制参数仍然在sysctl (/proc/sys/fs)接口中 |
-| /sys/kernel | 这里是内核所有可调整参数的位置，目前只有uevent_helper，kexec_loaded，mm，和新式的 slab分配器等几项较新的设计在使用它，其它内核可调整参数仍然位于 sysctl (/proc/sys/kernel)接口中 |
-| /sys/module | 这里有系统中所有模块的信息，不论这些模块是以内联(inlined)方式编译到内核映像文件(vmlinuz)中还是编译为外部模块(ko文件)，都可能会出现在/sys/module中：<br>- 编译为外部模块(ko文件)在加载后会出现对应的/sys/module/<module_name>/，并且在这个目录下会出现一些属性文件和属性目录来表示此外部模块的一些信息，如版本号、加载状态、所提供的驱动程序等；<br>- 编译为内联方式的模块则只在当它有非0属性的模块参数时会出现对应的/sys/module/<module_name>，这些模块的可用参数会出现在/sys/modules/<modname>/parameters/<param_name>中，如/sys/module/printk/parameters/time这个可读写参数控制着内联模块printk在打印内核消息时是否加上时间前缀。所有内联模块的参数也可以由"<module_name>.<param_name>=<value>"的形式写在内核启动参数上，如启动内核时加上参数"printk.time=1"与向"/sys/module/printk/parameters/time"写入1的效果相同。没有非0属性参数的内联模块不会出现于此目录下 |
-| /sys/power | 这里是系统中电源选项，这个目录下有几个属性文件可以用于控制整个机器的电源状态，如可以向其中写入控制命令让机器关机、重启等 |
-| /sys/slab | (对应2.6.23内核，在2.6.24以后移至/sys/kernel/slab)<br>从2.6.23开始可以选择SLAB内存分配器的实现，并且新的SLUB (Unqueued Slab Allocator)被设置为缺省值；如果编译了此选项，在/sys下就会出现/sys/slab，里面有每一个kmem_cache结构体的可调整参数。对应于旧的SLAB内存分配器下的/proc/slabinfo动态调整接口，新式的/sys/kernel/slab/<slab_name>接口中的各项信息和可调整项显得更为清晰 |
+该目录创建于[10.4.2 块设备的初始化/genhd_device_init()](#10-4-2-genhd-device-init-)。
 
-<p/>
+该目录包含系统中当前所有的块设备，按照功能来说放置在/sys/class之下会更合适，但只是由于历史遗留因素而一直存在于/sys/block, 但从2.6.22开始就已标记为过时，只有配置了```CONFIG_SYSFS_DEPRECATED```后编译的内核才会存在这个目录，并且在2.6.26内核中已正式移到```/sys/class/block```，旧的接口/sys/block为了向后兼容保留存在，但其中的内容已经变为指向它们在```/sys/devices/```中真实设备的符号链接文件：
+
+```
+chenwx@chenwx:~ $ uname -a
+Linux chenwx 5.0.0-16-generic #17~18.04.1-Ubuntu SMP Mon May 20 14:00:27 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
+
+chenwx@chenwx:~ $ ll /sys/block/
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop0 -> ../devices/virtual/block/loop0
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop1 -> ../devices/virtual/block/loop1
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop2 -> ../devices/virtual/block/loop2
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop3 -> ../devices/virtual/block/loop3
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop4 -> ../devices/virtual/block/loop4
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop5 -> ../devices/virtual/block/loop5
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop6 -> ../devices/virtual/block/loop6
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 loop7 -> ../devices/virtual/block/loop7
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 sda -> ../devices/pci0000:00/0000:00:0d.0/ata3/host2/target2:0:0/2:0:0:0/block/sda
+lrwxrwxrwx 1 root root 0 Jun  9 16:34 sr0 -> ../devices/pci0000:00/0000:00:01.1/ata2/host1/target1:0:0/1:0:0:0/block/sr0
+```
+
+**/sys/bus/**
+
+该目录创建于[10.2.1.2 buses_init()](#10-2-1-2-buses-init-)。
+
+这是内核设备按总线类型分层放置的目录结构，/sys/devices中的所有设备都是连接于某种总线之下，在这里的每一种具体总线之下可以找到每一个具体设备的符号链接，它也是构成Linux统一设备模型的一部分。
+
+**/sys/class/**
+
+该目录创建于[10.2.1.3 classes_init()](#10-2-1-3-classes-init-)。
+
+这是按照设备功能分类的设备模型，如系统所有输入设备都会出现在/sys/class/input之下，而不论它们是以何种总线连接到系统，它也是构成Linux统一设备模型的一部分。
+
+**/sys/dev/**
+
+该目录创建于[10.2.1.1 devices_init()](#10-2-1-1-devices-init-)。
+
+该目录下维护一个按字符设备和块设备的主次号码(major:minor)链接到真实的设备(/sys/devices下)的符号链接文件，它是在内核 2.6.26首次引入的。
+
+**/sys/devices/**
+
+该目录创建于[10.2.1.1 devices_init()](#10-2-1-1-devices-init-)。
+
+这是内核对系统中所有设备的分层次表达模型，也是/sys文件系统管理设备的最重要的目录结构。
+
+**/sys/firmware/**
+
+该目录创建于[10.2.1.4 firmware_init()](#10-2-1-4-firmware-init-)。
+
+这里是系统加载固件机制的对用户空间的接口，关于固件有专用于固件加载的一套API，在LDD3一书中有关于内核支持固件加载机制的更详细的介绍。
+
+**/sys/fs/**
+
+该目录创建于[4.3.4.1.4.3.11.4 mnt_init()](#4-3-4-1-4-3-11-4-mnt-init-)。
+
+这里按照设计是用于描述系统中所有文件系统，包括文件系统本身和按文件系统分类存放的已挂载点，但目前只有fuse，gfs2等少数文件系统支持sysfs接口，一些传统的虚拟文件系统(VFS)层次控制参数仍然在sysctl (/proc/sys/fs)接口中。
+
+**/sys/hypervisor/**
+
+该目录创建于[10.2.1.5 hypervisor_init()](#10-2-1-5-hypervisor-init-)。
+
+**/sys/kernel/**
+
+该目录创建于函数```ksysfs_init()```，参见kernel/ksysfs.c和[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)。
+
+这里是内核所有可调整参数的位置，目前只有uevent_helper，kexec_loaded，mm，和新式的 slab分配器等几项较新的设计在使用它，其它内核可调整参数仍然位于 sysctl (/proc/sys/kernel)接口中。
+
+**/sys/module/**
+
+该目录创建于```param_sysfs_init()```，参见[13.1.3.2 系统启动过程时对.init.setup段模块参数的处理](#13-1-3-2-init-setup-)。
+
+这里有系统中所有模块的信息，不论这些模块是以内联(inlined)方式编译到内核映像文件(vmlinuz)中还是编译为外部模块(ko文件)，都可能会出现在/sys/module中：
+
+* 编译为外部模块(ko文件)在加载后会出现对应的```/sys/module/<module_name>/```，并且在这个目录下会出现一些属性文件和属性目录来表示此外部模块的一些信息，如版本号、加载状态、所提供的驱动程序等；
+* 编译为内联方式的模块则只在当它有非0属性的模块参数时会出现对应的```/sys/module/<module_name>```，这些模块的可用参数会出现在```/sys/modules/<modname>/parameters/<param_name>```中，如```/sys/module/printk/parameters/time```这个可读写参数控制着内联模块printk在打印内核消息时是否加上时间前缀。所有内联模块的参数也可以由```<module_name>.<param_name>=<value>```的形式写在内核启动参数上，如启动内核时加上参数```printk.time=1```与向```/sys/module/printk/parameters/time```写入1的效果相同。没有非0属性参数的内联模块不会出现于此目录下。
+
+**/sys/power/**
+
+该目录创建于函数```pm_init()```，参见kernel/power/main.c和[13.5.1.1 module被编译进内核时的初始化过程](#13-5-1-1-module-)。
+
+这里是系统中电源选项，这个目录下有几个属性文件可以用于控制整个机器的电源状态，如可以向其中写入控制命令让机器关机、重启等。
+
+**/sys/slab/**
+
+该目录存在于2.6.23及其以前的内核中，在2.6.24以后移至```/sys/kernel/slab```。从2.6.23开始可以选择SLAB内存分配器的实现，并且新的SLUB (Unqueued Slab Allocator)被设置为缺省值；如果编译了此选项，在/sys下就会出现/sys/slab，里面有每一个kmem_cache结构体的可调整参数。对应于旧的SLAB内存分配器下的```/proc/slabinfo```动态调整接口，新式的```/sys/kernel/slab/<slab_name>```接口中的各项信息和可调整项显得更为清晰。
 
 #### 11.3.5.2 Sysfs的编译及初始化
 
@@ -73920,7 +73991,10 @@ void rb_augment_erase_end(struct rb_node *node, rb_augment_f func, void *data)
 
 ## 15.7 kobject
 
-The core concept of kobject is relatively simple: kobjects can be used to (1) maintain a reference count for an object and clean up when the object is no longer used, and (2) create a hierarchical data structure through kset membership.
+The core concept of kobject is relatively simple: kobjects can be used to
+
+* (1) maintain a reference count for an object and clean up when the object is no longer used, and
+* (2) create a hierarchical data structure through kset membership.
 
 kobject是组成设备模型的基本结构，一个kset是嵌入相同类型结构的kobject集合，一系列的kset就组成了subsystem。
 
@@ -74698,9 +74772,7 @@ In many ways, a kset looks like an extension of the kobj_type structure; a kset 
 A kset serves these functions:
 
 * It serves as a bag containing a group of identical objects. A kset can be used by the kernel to track "all block devices" or "all PCI device drivers."
-
 * A kset is the directory-level glue that holds the device model (and sysfs) together. Every kset contains a kobject which can be set up to be the parent of other kobjects; in this way the device model hierarchy is constructed.
-
 * Ksets can support the "hotplugging" of kobjects and influence how hotplug events are reported to user space. 
 
 In object-oriented terms, "kset" is the top-level container class; ksets inherit their own kobject, and can be treated as a kobject as well. 
@@ -74767,9 +74839,25 @@ kobject_set_name(my_set->kobj, "The name");
 #### 15.7.4.1 kset_create_and_add()
 
 ```
-kset_create_and_add()
--> kset_create()
--> kset_register()
+/**
+ * kset_create_and_add - create a struct kset dynamically and add it to sysfs
+ *
+ * @name: the name for the kset
+ * @uevent_ops: a struct kset_uevent_ops for the kset
+ * @parent_kobj: the parent kobject of this kset, if any.
+ *
+ * This function creates a kset structure dynamically and registers it
+ * with sysfs.  When you are finished with this structure, call
+ * kset_unregister() and the structure will be dynamically freed when it
+ * is no longer being used.
+ *
+ * If the kset was not able to be created, NULL will be returned.
+ */
+kset_create_and_add(const char *name,
+		    const struct kset_uevent_ops *uevent_ops,
+		    struct kobject *parent_kobj)
+-> kset = kset_create(name, uevent_ops, parent_kobj)
+-> kset_register(kset)
 	-> kset_init()
 	-> kobject_add_internal()
 	-> kobject_uevent()		// 参见[15.7.5 kobject_uevent()]节

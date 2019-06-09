@@ -48775,7 +48775,7 @@ retry:
 
 #### 10.3.4.0 字符设备列表
 
-运行命令"ls -l /dev"来查看系统中的字符设备，另参见[10.1.3 设备驱动程序的分类](#10-1-3-)节：
+执行下列命令查看系统中的字符设备，另参见[10.1.3 设备驱动程序的分类](#10-1-3-)节：
 
 ```
 chenwx@chenwx ~/linux $ ls -l /dev
@@ -48859,6 +48859,7 @@ crw--w----  1 root tty       4,  60 Dec 30 08:20 tty60
 crw--w----  1 root tty       4,  61 Dec 30 08:20 tty61
 crw--w----  1 root tty       4,  62 Dec 30 08:20 tty62
 crw--w----  1 root tty       4,  63 Dec 30 08:20 tty63
+
 // 参见vty_init()->tty_register_driver(console_driver)->tty_register_device()
 crw-rw----  1 root dialout   4,  64 Dec 30 08:20 ttyS0
 crw-rw----  1 root dialout   4,  65 Dec 30 08:20 ttyS1
@@ -48984,51 +48985,102 @@ crw-------  1 root root    254,   0 Dec 30 08:20 rtc0
 
 #### 10.3.4.1 内存设备
 
-系统中存在下列特殊内存设备，其主设备号均为1，次设备号为数组devlist[]的下标。这些内存设备是由函数chr_dev_init()根据数组devlist[]创建的，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节：
+系统中存在下列特殊内存设备，其主设备号均为1，次设备号为数组devlist[]的下标。这些内存设备是由函数```chr_dev_init()```根据数组devlist[]创建的，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节：
 
 ```
-Name				Major			Minor (=数组devlist[]的下标)
------------------------------------------------------------------
-/dev/mem			1			1
-/dev/kmem			1			2
-/dev/null			1			3
-/dev/port			1			4
-/dev/zero			1			5
-/dev/full			1			7
-/dev/random			1			8
-/dev/urandom			1			9
-/dev/kmsg			1			11
+Name				Major		Minor (=数组devlist[]的下标)
+--------------------------------------------------------------------------
+/dev/mem			1		1
+/dev/kmem			1		2
+/dev/null			1		3
+/dev/port			1		4
+/dev/zero			1		5
+/dev/full			1		7
+/dev/random			1		8
+/dev/urandom			1		9
+/dev/kmsg			1		11
 ```
 
 ##### 10.3.4.1.1 /dev/mem, /dev/kmem, /dev/port
 
 **/dev/mem**
 
-/dev/mem is a character device file that is an image of the main memory of the computer. It may be used, for example, to examine (and even patch) the system.
+It is a character device file that is an image of the main memory of the computer. It may be used, for example, to examine (and even patch) the system. Byte addresses in /dev/mem are interpreted as physical memory addresses. References to nonexistent locations cause errors to  be returned. Refer to ```man mem```:
 
-Byte addresses in /dev/mem are interpreted as physical memory addresses.  References to nonexistent locations cause errors to  be returned.
+```
+MEM(4)                                        Linux Programmer's Manual                                        MEM(4)
 
-Refer to ```man mem```.
+NAME
+       mem, kmem, port - system memory, kernel memory and system ports
+
+DESCRIPTION
+       /dev/mem  is a character device file that is an image of the main memory of the computer.  It may be used, for
+       example, to examine (and even patch) the system.
+
+       Byte addresses in /dev/mem are interpreted as physical memory addresses.  References to nonexistent  locations
+       cause errors to be returned.
+
+       Examining and patching is likely to lead to unexpected results when read-only or write-only bits are present.
+
+       Since  Linux  2.6.26,  and depending on the architecture, the CONFIG_STRICT_DEVMEM kernel configuration option
+       limits the areas which can be accessed through this file.  For example: on x86, RAM access is not allowed  but
+       accessing memory-mapped PCI regions is.
+
+       It is typically created by:
+
+           mknod -m 660 /dev/mem c 1 1
+           chown root:kmem /dev/mem
+
+       The  file /dev/kmem is the same as /dev/mem, except that the kernel virtual memory rather than physical memory
+       is accessed.  Since Linux 2.6.26, this file is available  only  if  the  CONFIG_DEVKMEM  kernel  configuration
+       option is enabled.
+
+       It is typically created by:
+
+           mknod -m 640 /dev/kmem c 1 2
+           chown root:kmem /dev/kmem
+
+       /dev/port is similar to /dev/mem, but the I/O ports are accessed.
+
+       It is typically created by:
+
+           mknod -m 660 /dev/port c 1 4
+           chown root:kmem /dev/port
+
+FILES
+       /dev/mem
+       /dev/kmem
+       /dev/port
+
+SEE ALSO
+       chown(1), mknod(1), ioperm(2)
+
+COLOPHON
+       This  page  is part of release 4.15 of the Linux man-pages project.  A description of the project, information
+       about reporting bugs, and the latest version of this page, can be found at
+       https://www.kernel.org/doc/man-pages/.
+
+Linux                                                 2015-01-02                                               MEM(4)
+```
 
 可以用来访问物理内存，比如X用来访问显卡的物理内存，或嵌入式中访问GPIO。用法一般就是open，然后mmap，接着可以使用map之后的地址来访问物理内存。这其实就是实现用户空间驱动的一种方法。
 
-
 mmap内存镜像/dev/mem到用户空间：
-1. 在内核(驱动)中，使用函数_get_fre_pages()申请物理页面，返回物理首地址X;
-2. 在用户空间，mmap文件/dem/mem的偏移X处到自己进程空间，对其操作;
-3. /dev/mem是系统物理内存的全镜像文件，在该文件中偏移X即在内存偏移X;
-4. 内核(驱动)向设备文件，比如/dev/video1，写一定格式的数据;
-5. 在用户空间，mmap文件/dev/video1到进程空间，然后进行读写即可.
+1. 在内核(驱动)中，使用函数```_get_fre_pages(x, y)```申请物理页面，返回物理首地址X；
+2. 在用户空间，mmap文件/dem/mem的偏移X处到自己进程空间，对其操作；
+3. /dev/mem是系统物理内存的全镜像文件，在该文件中偏移X即在内存偏移X；
+4. 内核(驱动)向设备文件，比如/dev/video1，写一定格式的数据；
+5. 在用户空间，mmap文件/dev/video1到进程空间，然后进行读写即可。
 
 **/dev/kmem**
 
-The file /dev/kmem is the same as /dev/mem, except that the kernel virtual memory rather than physical memory is accessed. Refer to man mem.
+The file /dev/kmem is the same as /dev/mem, except that the kernel virtual memory rather than physical memory is accessed. Refer to ```man mem```.
 
-可以用来访问kernel的变量，参见[What's the difference between /dev/kmem and /dev/mem](http://lwn.net/Articles/147902/).
+可以用来访问kernel的变量，参见[What's the difference between /dev/kmem and /dev/mem](http://lwn.net/Articles/147902/) ([local pdf](/docs/Difference_between_dev_kmem_and_dev_mem.pdf)).
 
 **/dev/port**
 
-/dev/port is similar to /dev/mem, but the I/O ports are accessed. Refer to man mem.
+/dev/port is similar to /dev/mem, but the I/O ports are accessed. Refer to ```man mem```.
 
 ##### 10.3.4.1.2 /dev/null, /dev/zero, /dev/full
 
@@ -49079,7 +49131,7 @@ bash: echo: write error: No space left on device
 
 ##### 10.3.4.1.3 /dev/random, /dev/urandom
 
-* [wikipedia: /dev/random](https://zh.wikipedia.org/wiki//dev/random]
+[Wikipedia: /dev/random](https://zh.wikipedia.org/wiki//dev/random)
 
 **/dev/random**
 
@@ -49206,7 +49258,7 @@ chenwx@chenwx ~ $ dmesg | tail -5
 
 #### 10.3.4.2 USB drivers
 
-由drivers/Makefile中的如下配置可知，USB drivers实现于drivers/usb/目录，且其核心代码位于drivers/usb/core目录中:
+由drivers/Makefile中的下列配置可知，USB drivers实现于drivers/usb/目录，且其核心代码位于drivers/usb/core目录中:
 
 ```
 obj-$(CONFIG_USB_OTG_UTILS)		+= usb/
@@ -49719,7 +49771,7 @@ usb_init()			// 参见[10.3.4.2.2 USB的初始化/usb_init()]节
  * Returns a negative error code on failure and 0 on success.
  */
 int usb_register_device_driver(struct usb_device_driver *new_udriver,
-				struct module *owner)
+			       struct module *owner)
 {
 	int retval = 0;
 
@@ -49755,7 +49807,7 @@ int usb_register_device_driver(struct usb_device_driver *new_udriver,
 		usbfs_update_special();
 	} else {
 		printk(KERN_ERR "%s: error %d registering device "
-			"	driver %s\n", usbcore_name, retval, new_udriver->name);
+		       "	driver %s\n", usbcore_name, retval, new_udriver->name);
 	}
 
 	return retval;
@@ -49847,7 +49899,7 @@ static int generic_probe(struct usb_device *udev)
 void usb_deregister_device_driver(struct usb_device_driver *udriver)
 {
 	pr_info("%s: deregistering device driver %s\n",
-			  usbcore_name, udriver->name);
+		usbcore_name, udriver->name);
 
 	// 参见[10.2.4.2 注销驱动程序/driver_unregister()]节
 	driver_unregister(&udriver->drvwrap.driver);
@@ -49989,7 +50041,7 @@ out_newid:
 	driver_unregister(&new_driver->drvwrap.driver);
 
 	printk(KERN_ERR "%s: error %d registering interface "
-		 "	driver %s\n", usbcore_name, retval, new_driver->name);
+	       "	driver %s\n", usbcore_name, retval, new_driver->name);
 	goto out;
 }
 ```
@@ -50093,7 +50145,7 @@ err:
 void usb_deregister(struct usb_driver *driver)
 {
 	pr_info("%s: deregistering interface driver %s\n",
-			  usbcore_name, driver->name);
+		usbcore_name, driver->name);
 
 	usb_remove_removeid_file(driver);
 	usb_remove_newid_file(driver);
@@ -50392,7 +50444,7 @@ The block drivers are located in directory block/.
 
 #### 10.4.0.1 lsblk
 
-The lsblk stands for (List Block Devices), print block devices by their assigned name (but not RAM) on the standard output in a tree-like fashion.
+The **lsblk** stands for List Block Devices, print block devices by their assigned name (but not RAM) on the standard output in a tree-like fashion.
 
 ```
 chenwx@chenwx ~/linux $ lsblk 
@@ -50418,17 +50470,13 @@ sdb4   8:20   0     1K  0 part
 sdb5   8:21   0  52.8G  0 part / 
 ```
 
-**NOTE**: lsblk is very useful and easiest way to know the name of New Usb Device you just plugged in, especially when you have to deal with disk/blocks in terminal.
+**NOTE**: **lsblk** is very useful and easiest way to know the name of New Usb Device you just plugged in, especially when you have to deal with disk/blocks in terminal.
 
 ### 10.4.1 描述块设备的数据结构
 
 #### 10.4.1.1 struct block_device
 
-每个块设备都是由一个block_device结构的描述符来表示: struct block_device
-
-所有的块设备描述符被插入一个全局链表中，链表首部是由变量all_bdevs表示的，参见fs/block_dev.c;
-
-链表链接所用的指针位于块设备描述符的bd_list字段中.
+每个块设备都是由一个block_device结构的描述符来表示```struct block_device```。所有的块设备描述符被插入一个全局链表中，链表首部是由变量```all_bdevs```表示的，参见fs/block_dev.c。链表链接所用的指针位于块设备描述符的```bd_list```字段中。
 
 该结构定义于include/linux/fs.h:
 
@@ -50710,8 +50758,8 @@ struct request_queue {
 
 ### 10.4.2 块设备的初始化/genhd_device_init()
 
-* 字符设备初始化函数之一：bdev_cache_init()，参见[4.3.4.1.4.3.11.5 bdev_cache_init()](#4-3-4-1-4-3-11-5-bdev-cache-init-)节
-* 字符设备初始化函数之二：genhd_device_init()，参见[10.4.2 块设备的初始化/genhd_device_init()](#10-4-2-genhd-device-init-)节
+* 字符设备初始化函数之一：```bdev_cache_init()```，参见[4.3.4.1.4.3.11.5 bdev_cache_init()](#4-3-4-1-4-3-11-5-bdev-cache-init-)节
+* 字符设备初始化函数之二：```genhd_device_init()```，参见[10.4.2 块设备的初始化/genhd_device_init()](#10-4-2-genhd-device-init-)节
 
 ```
 start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
@@ -50722,7 +50770,7 @@ start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
       -> do_basic_setup()				// 参见[4.3.4.1.4.3.13.1.2 do_basic_setup()]节
          -> do_initcalls()				// 参见[13.5.1.1.1 do_initcalls()]节
             -> do_one_initcall()			// 参见[13.5.1.1.1.2 do_one_initcall()]节
-               -> subsys_initcall(genhd_device_init)	// initcall4.init
+               -> subsys_initcall(genhd_device_init)	// 参见[13.5.1.1.1.1.1 .initcall*.init]节中的initcall4.init
                   -> genhd_device_init()		// 参见本节
 ```
 
@@ -50741,25 +50789,17 @@ static int __init genhd_device_init(void)
 	if (unlikely(error))
 		return error;
 
-	/*
-	 * 初始化变量bdev_map,参见本节中的图major_names[255]_2.jpg
-	 */
+	// 初始化变量bdev_map,参见本节中的图major_names[255]_2.jpg
 	bdev_map = kobj_map_init(base_probe, &block_class_lock);
 
 	// 参见[10.4.2.1 blk_dev_init()]节
 	blk_dev_init();
 
-	/*
-	 * 注册块设备blkext，其主设备号为259，
-	 * 参见[10.4.3.1 register_blkdev()]节
-	 */
+	// 注册块设备blkext，其主设备号为259，参见[10.4.3.1 register_blkdev()]节
 	register_blkdev(BLOCK_EXT_MAJOR, "blkext");
 
 	/* create top-level block dir */
-	/*
-	 * 创建目录/sys/block，
-	 * 参见[15.7.1.2 kobject_create_and_add()]节
-	 */
+	// 创建目录/sys/block，参见[15.7.1.2 kobject_create_and_add()]节
 	if (!sysfs_deprecated)
 		block_depr = kobject_create_and_add("block", NULL);
 
@@ -50788,11 +50828,12 @@ int __init blk_dev_init(void)
 
 	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	request_cachep = kmem_cache_create("blkdev_requests",
-			sizeof(struct request), 0, SLAB_PANIC, NULL);
+					   sizeof(struct request), 0, SLAB_PANIC, NULL);
 
 	// 参见[6.5.1.1.2 Create a Specific Cache/kmem_cache_create()]节
 	blk_requestq_cachep = kmem_cache_create("blkdev_queue",
-			sizeof(struct request_queue), 0, SLAB_PANIC, NULL);
+						sizeof(struct request_queue),
+						0, SLAB_PANIC, NULL);
 
 	return 0;
 }
@@ -50918,22 +50959,22 @@ void unregister_blkdev(unsigned int major, const char *name)
 }
 ```
 
-### 10.4.x I/O Scheduler
+### 10.4.4 I/O Scheduler
 
-| I/O Scheduler | Source Code | CONFIG_xxx | elevator= |
+| I/O Scheduler | Source Code | CONFIG_XXX | elevator= |
 | :------------ | :---------- | :--------- | :-------- |
-| Linus elevator | block/elevator.c |      | "as"      |
-| Deadline I/O scheduler | block/deadline-iosched.c | CONFIG_IOSCHED_DEADLINE<br>CONFIG_DEFAULT_DEADLINE | "deadline" |
-| Complete Fair Queuing (CFQ) | block/cfq-iosched.c | CONFIG_IOSCHED_CFQ<br>CONFIG_DEFAULT_CFQ | "cfq" |
-| Noop I/O scheduler | block/noop-iosched.c | CONFIG_IOSCHED_NOOP<br>CONFIG_DEFAULT_NOOP | "noop" |
+| Linus elevator | block/elevator.c |      | ```as```      |
+| Deadline I/O scheduler | block/deadline-iosched.c | CONFIG_IOSCHED_DEADLINE<br>CONFIG_DEFAULT_DEADLINE | ```deadline``` |
+| Complete Fair Queuing (CFQ) | block/cfq-iosched.c | CONFIG_IOSCHED_CFQ<br>CONFIG_DEFAULT_CFQ | ```cfq``` |
+| Noop I/O scheduler | block/noop-iosched.c | CONFIG_IOSCHED_NOOP<br>CONFIG_DEFAULT_NOOP | ```noop``` |
 
 <p/>
 
-默认的I/O Schedule是Complete Fair Queuing (CFQ)。可以使用内核参数elevator=xxx来配置I/O Scheduler。
+默认的I/O Schedule是Complete Fair Queuing (CFQ)。可以使用内核参数```elevator=```来配置I/O Scheduler。
 
 ## 10.5 Network Drivers
 
-下列命令输出结果中的第一列为s，则该设备为网络设备：
+下列命令输出结果中的第一列为```s```，则该设备为网络设备：
 
 ```
 chenwx@chenwx ~ $ ll /dev
@@ -51049,11 +51090,11 @@ DESCRIPTION
        are down. Otherwise, it configures an interface. 
 ```
 
-命令ifconfig举例如下:
+例如:
 
 ```
 chenwx@chenwx ~ $ ifconfig 
-eth0      Link encap:Ethernet  HWaddr 00:1c:25:76:75:eb  
+eth0      Link encap:Ethernet  HWaddr 00:1c:25:76:75:eb
           inet addr:192.168.1.109  Bcast:192.168.1.255  Mask:255.255.255.0 
           inet6 addr: fe80::21c:25ff:fe76:75eb/64 Scope:Link 
           UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1 
@@ -51063,7 +51104,7 @@ eth0      Link encap:Ethernet  HWaddr 00:1c:25:76:75:eb
           RX bytes:35297669 (35.2 MB)  TX bytes:20815563 (20.8 MB) 
           Interrupt:20 Memory:fe000000-fe020000 
 
-lo        Link encap:Local Loopback  
+lo        Link encap:Local Loopback
           inet addr:127.0.0.1  Mask:255.0.0.0 
           inet6 addr: ::1/128 Scope:Host 
           UP LOOPBACK RUNNING  MTU:65536  Metric:1 
@@ -51369,14 +51410,14 @@ struct net_device {
 
 ##### 10.5.1.1.1 分配网络设备/alloc_netdev()
 
-宏alloc_netdev()定义于include/linux/netdevice.h:
+宏```alloc_netdev()```定义于include/linux/netdevice.h:
 
 ```
 #define alloc_netdev(sizeof_priv, name, name_assign_type, setup) \
 	 alloc_netdev_mqs(sizeof_priv, name, name_assign_type, setup, 1, 1)
 ```
 
-其中，函数alloc_netdev_mqs()定义于net/core/dev.c:
+其中，函数```alloc_netdev_mqs()```定义于net/core/dev.c:
 
 ```
 /**
@@ -51584,7 +51625,7 @@ int register_netdev(struct net_device *dev)
 }
 ```
 
-其中，函数register_netdevice()定义于net/core/dev.c:
+其中，函数```register_netdevice()```定义于net/core/dev.c:
 
 ```
 /**
@@ -51829,7 +51870,7 @@ void unregister_netdev(struct net_device *dev)
 }
 ```
 
-其中，函数unregister_netdevice()定义于include/linux/netdevice.h:
+其中，函数```unregister_netdevice()```定义于include/linux/netdevice.h:
 
 ```
 static inline void unregister_netdevice(struct net_device *dev)
@@ -51880,7 +51921,7 @@ void rtnl_unlock(void)
 }
 ```
 
-其中，函数netdev_run_todo()定义于net/core/dev.c:
+其中，函数```netdev_run_todo()```定义于net/core/dev.c:
 
 ```
 /* The sequence is:
@@ -52165,7 +52206,7 @@ struct net_device_ops {
 	int		(*ndo_stop)(struct net_device *dev);
 	netdev_tx_t	(*ndo_start_xmit) (struct sk_buff *skb, struct net_device *dev);
 	u16		(*ndo_select_queue)(struct net_device *dev, struct sk_buff *skb,
-				void *accel_priv, select_queue_fallback_t fallback);
+					    void *accel_priv, select_queue_fallback_t fallback);
 	void		(*ndo_change_rx_flags)(struct net_device *dev, int flags);
 	void		(*ndo_set_rx_mode)(struct net_device *dev);
 	int		(*ndo_set_mac_address)(struct net_device *dev, void *addr);
@@ -52205,10 +52246,10 @@ struct net_device_ops {
 	int		(*ndo_fcoe_enable)(struct net_device *dev);
 	int		(*ndo_fcoe_disable)(struct net_device *dev);
 	int		(*ndo_fcoe_ddp_setup)(struct net_device *dev, u16 xid,
-						      struct scatterlist *sgl, unsigned int sgc);
+					      struct scatterlist *sgl, unsigned int sgc);
 	int		(*ndo_fcoe_ddp_done)(struct net_device *dev, u16 xid);
 	int		(*ndo_fcoe_ddp_target)(struct net_device *dev, u16 xid,
-						      struct scatterlist *sgl, unsigned int sgc);
+					       struct scatterlist *sgl, unsigned int sgc);
 	int		(*ndo_fcoe_get_hbainfo)(struct net_device *dev, struct netdev_fcoe_hbainfo *hbainfo);
 #endif
 
@@ -52220,7 +52261,7 @@ struct net_device_ops {
 
 #ifdef CONFIG_RFS_ACCEL
 	int		(*ndo_rx_flow_steer)(struct net_device *dev, const struct sk_buff *skb,
-						     u16 rxq_index, u32 flow_id);
+					     u16 rxq_index, u32 flow_id);
 #endif
 	int		(*ndo_add_slave)(struct net_device *dev, struct net_device *slave_dev);
 	int		(*ndo_del_slave)(struct net_device *dev, struct net_device *slave_dev);
@@ -52230,21 +52271,21 @@ struct net_device_ops {
 	void		(*ndo_neigh_destroy)(struct neighbour *n);
 
 	int		(*ndo_fdb_add)(struct ndmsg *ndm, struct nlattr *tb[], struct net_device *dev,
-					       const unsigned char *addr, u16 vid, u16 flags);
+				       const unsigned char *addr, u16 vid, u16 flags);
 	int		(*ndo_fdb_del)(struct ndmsg *ndm, struct nlattr *tb[], struct net_device *dev,
-					       const unsigned char *addr, u16 vid);
+				       const unsigned char *addr, u16 vid);
 	int		(*ndo_fdb_dump)(struct sk_buff *skb, struct netlink_callback *cb,
-						struct net_device *dev, struct net_device *filter_dev, int idx);
+					struct net_device *dev, struct net_device *filter_dev, int idx);
 
 	int		(*ndo_bridge_setlink)(struct net_device *dev, struct nlmsghdr *nlh, u16 flags);
 	int		(*ndo_bridge_getlink)(struct sk_buff *skb, u32 pid, u32 seq,
-						      struct net_device *dev, u32 filter_mask, int nlflags);
+					      struct net_device *dev, u32 filter_mask, int nlflags);
 	int		(*ndo_bridge_dellink)(struct net_device *dev, struct nlmsghdr *nlh, u16 flags);
 	int		(*ndo_change_carrier)(struct net_device *dev, bool new_carrier);
 	int		(*ndo_get_phys_port_id)(struct net_device *dev, struct netdev_phys_item_id *ppid);
 	int		(*ndo_get_phys_port_name)(struct net_device *dev, char *name, size_t len);
-	void		(*ndo_add_vxlan_port)(struct  net_device *dev, sa_family_t sa_family, __be16 port);
-	void		(*ndo_del_vxlan_port)(struct  net_device *dev, sa_family_t sa_family, __be16 port);
+	void		(*ndo_add_vxlan_port)(struct net_device *dev, sa_family_t sa_family, __be16 port);
+	void		(*ndo_del_vxlan_port)(struct net_device *dev, sa_family_t sa_family, __be16 port);
 
 	void*		(*ndo_dfwd_add_station)(struct net_device *pdev, struct net_device *dev);
 	void		(*ndo_dfwd_del_station)(struct net_device *pdev, void *priv);
@@ -52252,7 +52293,7 @@ struct net_device_ops {
 	netdev_tx_t (*ndo_dfwd_start_xmit) (struct sk_buff *skb, struct net_device *dev, void *priv);
 	int		(*ndo_get_lock_subclass)(struct net_device *dev);
 	netdev_features_t (*ndo_features_check) (struct sk_buff *skb, struct net_device *dev,
-						       netdev_features_t features);
+						 netdev_features_t features);
 	int		(*ndo_set_tx_maxrate)(struct net_device *dev, int queue_index, u32 maxrate);
 	int		(*ndo_get_iflink)(const struct net_device *dev);
 };
@@ -52260,7 +52301,7 @@ struct net_device_ops {
 
 #### 10.5.1.3 网络设备通知链/netdev_chain
 
-变量netdev_chain定义于net/core/dev.c:
+变量```netdev_chain```定义于net/core/dev.c:
 
 ```
 #define RAW_NOTIFIER_INIT(name)	{ .head = NULL }
@@ -52275,13 +52316,13 @@ static RAW_NOTIFIER_HEAD(netdev_chain);
 
 ```
 struct raw_notifier_head {
-	struct notifier_block __rcu *head;
+	struct notifier_block __rcu	*head;
 };
 
 struct notifier_block {
 	notifier_fn_t			notifier_call;
 	struct notifier_block __rcu	*next;
-	int					priority;
+	int				priority;
 };
 
 /*
@@ -52579,7 +52620,7 @@ static int notifier_call_chain(struct notifier_block **nl,
 
 #### 10.5.1.4 struct sk_buff / struct skb_shared_info
 
-struct sk_buff是Linux网络系统中的核心结构体，Linux网络中的所有数据包的封装以及解封装都是在这个结构体的基础上进行。该结构定义于include/linux/skbuff.h:
+```struct sk_buff```是Linux网络系统中的核心结构体，Linux网络中的所有数据包的封装以及解封装都是在这个结构体的基础上进行。该结构定义于include/linux/skbuff.h:
 
 ```
 /** 
@@ -52669,10 +52710,10 @@ struct sk_buff {
 	/*
 	 * len:		The total number of bytes in the packet.
 	 * data_len:	SKBs are composed of a linear data buffer,
-	 *			and optionally a set of one or more page
-	 *			buffers. If there are page buffers, the
-	 *			total number of bytes in the page buffer
-	 *			area is 'data_len'.
+	 *		and optionally a set of one or more page
+	 *		buffers. If there are page buffers, the
+	 *		total number of bytes in the page buffer
+	 *		area is 'data_len'.
 	 *
 	 * The number of bytes in the linear buffer is 'skb->len – skb->data_len'.
 	 * There is a shorthand function for this in 'skb_headlen()'. 
@@ -52831,7 +52872,7 @@ struct sk_buff {
 };
 ```
 
-struct skb_shared_info定义于include/linux/skbuff.h:
+```struct skb_shared_info```定义于include/linux/skbuff.h:
 
 ```
 /*
@@ -52909,7 +52950,7 @@ struct skb_frag_struct {
 };
 ```
 
-##### 10.5.1.4.0 发送网络数据包的流程
+##### 10.5.1.4.1 发送网络数据包的流程
 
 发送网络数据包的流程举例如下：
 
@@ -52951,70 +52992,65 @@ skb_reset_mac_header(skb);
 dev_queue_xmit(skb);
 ```
 
-##### 10.5.1.4.1 操作skb链表
+##### 10.5.1.4.2 操作skb链表
 
-struct sk_buff通过元素prev/next链接成以struct sk_buff_head为链表头的双向链表中，其结构参见:
+```struct sk_buff```通过元素prev/next链接成以```struct sk_buff_head```为链表头的双向链表中，其结构参见:
 
 ![sk_buff](/assets/sk_buff.svg)
 
-下列函数用于操作skb链表(struct sk_buff_head)：
+下列函数用于操作skb链表```struct sk_buff_head```：
 
 ```
+// Create a split out lock class for each invocation.
 static inline void skb_queue_head_init(struct sk_buff_head *list); 
-static inline void skb_queue_head_init_class(struct sk_buff_head *list,
-                                             struct lock_class_key *class); 
-- create a split out lock class for each invocation.
+static inline void skb_queue_head_init_class(struct sk_buff_head *list, struct lock_class_key *class); 
 
-static inline int skb_queue_empty(const struct sk_buff_head *list); 
-- check if a queue is empty.
+// Check if a queue is empty.
+static inline int skb_queue_empty(const struct sk_buff_head *list);
 
-static inline __u32 skb_queue_len(const struct sk_buff_head *list_); 
-- get queue length.
+// Get queue length.
+static inline __u32 skb_queue_len(const struct sk_buff_head *list_);
 
-static inline bool skb_queue_is_first(const struct sk_buff_head *list,
-                                      const struct sk_buff *skb); 
-- check if skb is the first entry in the queue.
+// Check if skb is the first entry in the queue.
+static inline bool skb_queue_is_first(const struct sk_buff_head *list, const struct sk_buff *skb); 
 
-static bool skb_queue_is_last(const struct sk_buff_head *list,
-                              const struct sk_buff *skb); 
-- check if skb is the last entry in the queue.
+// Check if skb is the last entry in the queue.
+static bool skb_queue_is_last(const struct sk_buff_head *list, const struct sk_buff *skb); 
 
-static inline struct sk_buff *skb_queue_prev(const struct sk_buff_head *list,
-                                             const struct sk_buff *skb); 
-- return the prev packet in the queue.
-- It is only valid to call this if skb_queue_is_first() evaluates to false. 
+// Return the prev packet in the queue.
+// It is only valid to call this if skb_queue_is_first() evaluates to false.
+static inline struct sk_buff *skb_queue_prev(const struct sk_buff_head *list, const struct sk_buff *skb); 
 
-static inline struct sk_buff *skb_queue_next(const struct sk_buff_head *list,
-                                             const struct sk_buff *skb); 
-- return the next packet in the queue.
-- It is only valid to call this if skb_queue_is_last() evaluates to false. 
+// Return the next packet in the queue.
+// It is only valid to call this if skb_queue_is_last() evaluates to false.
+static inline struct sk_buff *skb_queue_next(const struct sk_buff_head *list, const struct sk_buff *skb); 
 
+// Queue a buffer at the list head.
 void skb_queue_head(struct sk_buff_head *list, struct sk_buff *newsk); 
-- queue a buffer at the list head.
 
+// Queue a buffer at the list tail.
 void skb_queue_tail(struct sk_buff_head *list, struct sk_buff *newsk); 
-- queue a buffer at the list tail.
 
+// Insert a packet before a given packet in a list.
 void skb_insert(struct sk_buff *old, struct sk_buff *newsk, struct sk_buff_head *list); 
-- insert a packet before a given packet in a list.
 
+// Append a packet after a given packet in a list.
 void skb_append(struct sk_buff *old, struct sk_buff *newsk, struct sk_buff_head *list); 
-- append a packet after a given packet in a list.
 
+// Remove a buffer from a list.
 void skb_unlink(struct sk_buff *skb, struct sk_buff_head *list); 
-- remove a buffer from a list.
 
+// Remove from the head of the queue.
 struct sk_buff *skb_dequeue(struct sk_buff_head *list); 
-- remove from the head of the queue.
 
+// Remove from the tail of the queue.
 struct sk_buff *skb_dequeue_tail(struct sk_buff_head *list);
-- remove from the tail of the queue.
 
+// Empty a list.
 void skb_queue_purge(struct sk_buff_head *list); 
-- empty a list.
 ```
 
-#### 10.5.1.4.2 分配skb/__alloc_skb()
+##### 10.5.1.4.3 分配skb/\__alloc_skb()
 
 该函数定义于net/core/dev.c:
 
@@ -53024,9 +53060,9 @@ void skb_queue_purge(struct sk_buff_head *list);
  * @size: size to allocate
  * @gfp_mask: allocation mask
  * @flags: If SKB_ALLOC_FCLONE is set, allocate from fclone cache
- * 	instead of head cache and allocate a cloned (child) skb.
- * 	If SKB_ALLOC_RX is set, __GFP_MEMALLOC will be used for
- * 	allocations in case the data is required for writeback
+ * 	   instead of head cache and allocate a cloned (child) skb.
+ * 	   If SKB_ALLOC_RX is set, __GFP_MEMALLOC will be used for
+ * 	   allocations in case the data is required for writeback
  * @node: numa node to allocate memory on
  *
  * Allocate a new &sk_buff. The returned buffer has no headroom and a
@@ -53178,7 +53214,7 @@ skb_segment()
 ->  __alloc_skb(hsize + doffset + headroom, GFP_ATOMIC, skb_alloc_rx_flag(head_skb), NUMA_NO_NODE) 
 ```
 
-##### 10.5.1.4.3 注销skb/kfree_skb() 
+##### 10.5.1.4.4 注销skb/kfree_skb() 
 
 该函数定义于net/core/dev.c:
 
@@ -53262,77 +53298,77 @@ fastpath:
 }
 ```
 
-##### 10.5.1.4.4 操作skb
+##### 10.5.1.4.5 操作skb
 
 下列函数用于获取skb的某些信息：
 
 ```
+// Check if the skb is nonlinear, that's the value of skb->data_len;
 static inline bool skb_is_nonlinear(const struct sk_buff *skb);
-- Check if the skb is nonlinear, that's the value of skb->data_len;
 
+// Return the number of bytes of free space at the head of an &sk_buff.
 static inline unsigned int skb_headroom(const struct sk_buff *skb);
-- Return the number of bytes of free space at the head of an &sk_buff.
 
+// Return the number of bytes of free space at the tail of an sk_buff.
 static inline int skb_tailroom(const struct sk_buff *skb);
-- Return the number of bytes of free space at the tail of an sk_buff.
 
+// Is the buffer a clone.
+// Returns true if the buffer was generated with skb_clone() and
+// is one of multiple shared copies of the buffer.
 static inline int skb_cloned(const struct sk_buff *skb);
-- is the buffer a clone.
-- Returns true if the buffer was generated with skb_clone() and
-  is one of multiple shared copies of the buffer.
 
+// The number of bytes in the linear buffer of the skb.
 static inline unsigned int skb_headlen(const struct sk_buff *skb);
-- the number of bytes in the linear buffer of the skb.
 ```
 
 下列函数用于操作skb:
 
 ```
+// Increase the headroom of an empty &sk_buff by reducing the tail room.
+// This is only allowed for an empty buffer.
 static inline void skb_reserve(struct sk_buff *skb, int len);
-- Increase the headroom of an empty &sk_buff by reducing the tail room.
-- This is only allowed for an empty buffer.
 
+// Add data to the start of a buffer;
+// If this would exceed the total buffer headroom the kernel will panic.
 unsigned char *skb_push(struct sk_buff *skb, unsigned int len);
-- add data to the start of a buffer;
-- If this would exceed the total buffer headroom the kernel will panic.
 
+// Remove data from the start of a buffer.
 unsigned char *skb_pull(struct sk_buff *skb, unsigned int len);
-- remove data from the start of a buffer.
 
+// Add data to a buffer.
+// If this would exceed the total buffer size the kernel will panic.
 unsigned char *skb_put(struct sk_buff *skb, unsigned int len);
-- add data to a buffer.
-- If this would exceed the total buffer size the kernel will panic.
 
+// Remove end from a buffer.
+// Cut the length of a buffer down by removing data from the tail. The skb must be linear.
 void skb_trim(struct sk_buff *skb, unsigned int len);
-- remove end from a buffer.
-- cut the length of a buffer down by removing data from the tail. The skb must be linear.
 
+// Create private copy of an sk_buff.
 struct sk_buff *skb_copy(const struct sk_buff *skb, gfp_t gfp_mask);
-- create private copy of an sk_buff.
 
+// Duplicate an sk_buff.
+// The new one is not owned by a socket. Both copies share the same packet data but not structure.
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
-- duplicate an sk_buff.
-- The new one is not owned by a socket. Both copies share the same packet data but not structure.
 
+// Convert paged skb to linear one.
 static inline int skb_linearize(struct sk_buff *skb);
-- convert paged skb to linear one.
 
+// Copy data out from a packet (non-paged buffer only) into another buffer.
 static inline void * __must_check
 skb_header_pointer(const struct sk_buff *skb, int offset, int len, void *buffer);
-- copy data out from a packet (non-paged buffer only) into another buffer.
 
+// copy the specified number of bytes from the source skb (non-paged buffer and/or paged buffer)
+// to the destination buffer.
 int skb_copy_bits(const struct sk_buff *skb, int offset, void *to, int len);
-- copy the specified number of bytes from the source skb (non-paged buffer and/or paged buffer)
-  to the destination buffer.
 ```
 
 ### 10.5.2 网络设备的初始化
 
 Linux内核中网络协议栈的初始化包括：
-* 应用层(L4)的初始化: sock_init()
-* 传输层(L3)的初始化: proto_init()
-* 网络互连层(L2)的初始化: inet_init() for IPv4, inet6_init() for IPv6
-* 网络接口层(L1)的初始化: e100_init_module()，net_dev_init()
+* 应用层(L4)的初始化: ```sock_init()```
+* 传输层(L3)的初始化: ```proto_init()```
+* 网络互连层(L2)的初始化: ```inet_init()``` for IPv4, ```inet6_init()``` for IPv6
+* 网络接口层(L1)的初始化: ```e100_init_module()```, ```net_dev_init()```
 
 #### 10.5.2.1 应用层(L4)的初始化/sock_init()
 
@@ -53808,9 +53844,7 @@ kernel_init() -> do_basic_setup() -> do_initcalls() -> do_one_initcall()
  *	Initialize the DEV module. At boot time this walks the device list and
  *	unhooks any devices that fail to initialise (normally hardware not
  *	present) and leaves us with a valid list of present and active devices.
- *
  */
-
 /*
  * This is called single threaded during boot, so no need to take the rtnl semaphore.
  */
@@ -53945,7 +53979,7 @@ PCI (Peripheral Component Interconnect)是一种连接电脑主板和外部设�
 * 1) 直接布放在主板上的集成电路上，在PCI规范中称作"平面设备"(planar device)；
 * 2) 安装在插槽上的扩展卡。
 
-PCI Standards
+PCI Standards:
 * [The PCI ID Repository (old site)](http://pciids.sourceforge.net/)
 * [The PCI ID Repository (new site)](http://pci-ids.ucw.cz/)
 * [The PCI ID Repository (GitHub)](https://github.com/pciutils/pciids)

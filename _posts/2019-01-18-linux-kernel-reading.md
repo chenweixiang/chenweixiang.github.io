@@ -47618,7 +47618,7 @@ LABEL="drivers_end"
 
 Character devices, or char devices, are accessed as a stream of sequential data, one byte after another. Example character devices are serial ports, keyboards, mice, printers and most pseudo-devices. If the hardware device is accessed as a stream of data, it is implemented as a character device. On the other hand, if the device is accessed randomly (nonsequentially), it is a block device.
 
-下列命令输出结果中的第一列为c，则该设备为字符设备，另参见[10.3.4.0 字符设备列表](#10-3-4-0-)节：
+下列命令输出结果中的第一列为```c```，则该设备为字符设备，另参见[10.3.4.0 字符设备列表](#10-3-4-0-)节：
 
 ```
 chenwx@chenwx ~ $ ll /dev
@@ -47631,7 +47631,7 @@ crw-rw-rw-  1 root root      1,   5 Nov 27 20:51 zero
 ...
 ```
 
-由drivers/Makefile中的如下配置可知，字符设备位于drivers/char/目录，并且被编译进内核的：
+由drivers/Makefile中的下列配置可知，字符设备位于drivers/char/目录，并且被编译进内核的：
 
 ```
 # tty/ comes before char/ so that the VT console is the boot-time
@@ -47640,9 +47640,17 @@ obj-y		+= tty/
 obj-y		+= char/
 ```
 
+而由drivers/char/Makefile中的下列配置可知，mem.o, random.o和msic.o被直接编译进内核，其他模块根据配置被编译进内核或者编译成模块：
+
+```
+chenwx@chenwx:~/linux $ grep obj-y drivers/char/Makefile 
+obj-y		+= mem.o random.o
+obj-y		+= misc.o
+```
+
 ### 10.3.1 描述字符设备的数据结构
 
-数组chrdevs[]定义于fs/char_dev.c:
+数组```chrdevs[]```定义于fs/char_dev.c:
 
 ```
 static struct char_device_struct {
@@ -47651,17 +47659,32 @@ static struct char_device_struct {
 	unsigned int			baseminor;	// 起始次设备号
 	int				minorct;	// 次设备号的范围
 	char				name[64];	// 处理该设备编号范围内的设备驱动的名称
-	struct cdev			*cdev; /* will die */	// 指向字符设备驱动程序描述符的指针
-} *chrdevs[CHRDEV_MAJOR_HASH_SIZE];				// index可通过调用函数major_to_index(major)获得
+	struct cdev			*cdev;		// will die. 该字段指向字符设备驱动程序描述符的指针
+} *chrdevs[CHRDEV_MAJOR_HASH_SIZE];			// index可通过调用函数major_to_index(major)获得
 ```
 
-其中，struct cdev用于描述字符设备，其定义于include/linux/cdev.h:
+该数组的大小为：
+
+```
+#define CHRDEV_MAJOR_HASH_SIZE	255
+```
+
+并通过下列函数将major转换为数组下标：
+
+```
+ static inline int major_to_index(unsigned major)
+{
+	return major % CHRDEV_MAJOR_HASH_SIZE;
+}
+```
+
+而结构体```struct cdev```用于描述字符设备，其定义于include/linux/cdev.h:
 
 ```
 struct cdev {
 	struct kobject			kobj;		// 参见[15.7 kobject]节
 	struct module			*owner;		// 指向提供驱动程序的模块，参见[13.4.1.1 struct module]节
-	const struct file_operations 	*ops;		// 一组文件操作，其实现与硬件通信的具体操作
+	const struct file_operations 	*ops;		// 一组文件操作，用于实现与硬件通信的具体操作
 	struct list_head		list;		// 包含cdev的双向循环链表
 	dev_t				dev;		// 主次设备号
 	unsigned int			count;		// 表示与该设备关联的次设备的数目
@@ -47674,8 +47697,8 @@ struct cdev {
 
 ### 10.3.2 字符设备的初始化/chr_dev_init()
 
-* 字符设备初始化函数之一：chrdev_init()			// 参见[4.3.4.1.4.3.11.6 chrdev_init()]节
-* 字符设备初始化函数之二：chr_dev_init()			// 参见本节
+* 字符设备初始化函数之一：```chrdev_init()```，参见[4.3.4.1.4.3.11.6 chrdev_init()](#4-3-4-1-4-3-11-6-chrdev-init-)节
+* 字符设备初始化函数之二：```chr_dev_init()```，参见[10.3.2 字符设备的初始化/chr_dev_init()](#10-3-2-chr-dev-init-)节
 
 ```
 start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
@@ -47690,7 +47713,7 @@ start_kernel()						// 参见[4.3.4.1.4.3 start_kernel()]节
                   -> chr_dev_init()			// 参见本节
 ```
 
-函数chr_dev_init()用于初始化字符设备，其定义于drivers/char/mem.c:
+函数```chr_dev_init()```用于初始化字符设备，其定义于drivers/char/mem.c:
 
 ```
 /*

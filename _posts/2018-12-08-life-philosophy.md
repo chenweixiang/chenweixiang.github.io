@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Life Philosophy"
-tag: Reading
+tag: Miscellaneous
 toc: true
 ---
 

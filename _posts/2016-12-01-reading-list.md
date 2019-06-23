@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Reading List"
-tag: Reading
+tag: Miscellaneous
 toc: true
 ---
 

@@ -527,6 +527,7 @@ The Linux kernel release notes are collected on website [Linux Kernel Newbies](h
 * [Linux v4.20](https://kernelnewbies.org/Linux_4.20)
 * [Linux v5.0](https://kernelnewbies.org/Linux_5.0)
 * [Linux v5.1](https://kernelnewbies.org/Linux_5.1)
+* [Linux v5.2](https://kernelnewbies.org/Linux_5.2)
 
 ## 1.5 Linux Kernel Bug Reporting
 
@@ -54078,7 +54079,7 @@ struct file_system_type {
 	// 将系统支持的所有文件系统形成一个单链表file_systems
 	struct file_system_type *next;
 	/*
-	 * Head of a list of superblock objectshaving the same filesystem type.
+	 * Head of a list of superblock objects having the same filesystem type.
 	 * 该链表是由sget()函数链接起来的，参见[11.2.2.1 注册/注销文件系统]节。
 	 * NOTE: 在kernel v3.3中，变量fs_supers的类型改为struct hlist_head，
 	 * 参见[15.2 哈希链表/struct hlist_head/struct hlist_node]节
@@ -60955,7 +60956,7 @@ int filp_close(struct file *filp, fl_owner_t id)
 
 ## 11.3 具体的文件系统
 
-可通过下列命令查看注册到当前系统中的文件系统，参见[11.2.1.1.2 查看系统中注册的文件系统]节：
+可通过下列命令查看注册到当前系统中的文件系统，参见[11.2.1.1.2 查看系统中注册的文件系统](#11-2-1-1-2-)节：
 
 ```
 # cat /proc/filesystems

@@ -68,6 +68,8 @@ EVM, as defined for multi carrier modulations, is arguably the more satisfactory
 
 # CFR and DPD
 
+* [What is CFT and DPD?](https://www.jianshu.com/p/42a61762b1a9) [[local pdf](/docs/What_is_CFR_and_DPD.pdf)]
+* [Wideband Digital Pre-Distortion Modeling for LTE-Advanced](/docs/Wideband_Digital_Pre-Distortion_Modeling_for_LTE-Advanced.pdf)
 
 # References
 

@@ -1065,9 +1065,656 @@ According to R1-110564 in 3GPP, CoMP techniques can be applied in three differen
 
 ![LTE-Advanced_CoMP_scenarios](/assets/LTE-Advanced_CoMP_scenarios.jpg)
 
+# LTE/LTE-Advanced Key Technology
+
+## PSS, SSS and PBCH
+
+### Physical-layer Cell Identity (PCI)
+
+There are **504** unique physical-layer cell identities. A *physical-layer cell identity* is defined by:
+
+$$N^{cell}_{ID} = 3N^{(1)}_{ID} + N^{(2)}_{ID}$$
+
+where,
+
+* $$N^{(1)}_{ID} \in [0, 167]$$ is *physical-layer cell-identity group* and transmitted in Secondary Synchronization Signal (SSS);
+* $$N^{(2)}_{ID} \in [0, 2]$$ is *physical-layer identity* within the *physical-layer cell-identity group* and transmitted in Primary Synchronization Signal (PSS).
+
+The *physical-layer cell identity* is only used in physical layer, which is different with the *cell identity* transmitted in SIB1, which is used to unambiguously identify a cell within a PLMN.
+
+```
+SystemInformationBlockType1
+-> cellAccessRelatedInfo
+   -> cellIdentity
+```
+
+### Primary Synchronization Signal (PSS)
+
+#### Generation of PSS Sequence
+
+According to **TS 36.211 S6.11.1.1**, the sequence used for PSS is generated from a frequency-domain *Zadoff-Chu sequence* according to
+
+$$d_u(n) = \begin{cases} e^{ -j \frac { {\pi} un(n+1)} {63} } & \text {n=0,1,..30} \\ e^{ -j \frac { {\pi} u(n+1)(n+2)} {63} } & \text {n=31,32,..61} \end{cases}$$
+
+where,
+
+* the Zadoff-Chu root sequence index ***u*** is given by **TS 36.211 Table 6.11.1.1-1** according to *physical-layer identity* $$N^{(2)}_{ID}$$.
+
+#### Mapping to REs
+
+The sequence $$d(n)$$ shall be mapped to the resource elements according to
+
+$$a_{k,l} = d(n), n = 0,1,..61$$
+
+where,
+
+* frequency-domain index is $$k = n - 31 + \frac { N^{DL}_{RB} N^{RB}_{sc} } {2}$$
+* time-domain index *l* is
+    * for frame structure type 1, the **last OFDM symbol** in **slots 0 and 10**;
+    * for frame structure type 2, the **third OFDM symbol** in **subframes 1 and 6**.
+<p/>
+
+The following figure shows the PSS mapped resource elements in time-domain and frequency-domain respectively:
+
+![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1.png)
+
+![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p2](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p2.png)
+
+Note that the PSS sequences in every radio frame are the same, so the UE just can determine the slot timing when synchronization to eNB.
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
+### Secondary Synchronization Signal (SSS)
+
+Refer to [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)
+
+#### Generation of SSS Sequence
+
+According to **TS 36.211 S6.11.2.1**, the sequence used for SSS is generated as shown in the following figure:
+
+![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p4](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p4.png)
+
+#### Mapping to REs
+
+The sequence $$d(n)$$ shall be mapped to the resource elements according to
+
+$$a_{k,l} = d(n), n = 0,1,..61$$
+
+where,
+
+* frequency-domain index is $$k = n - 31 + \frac { N^{DL}_{RB} N^{RB}_{sc} } {2}$$
+* time-domain index is $$l = \begin{cases} N^{DL}_{symb}-2, & \text {in slots 0 and 10 for frame structure type1} \\ N^{DL}_{symb}-1, & \text {in slots 1 and 11 for frame structure type 2} \end{cases}$$
+
+The following figure shows the SSS mapped resource elements in time-domain and frequency-domain respectively:
+
+![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1.png)
+![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p3](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p3.png)
+
+Note that the SSS sequences in subframe #0 and #5 are different, so the UE can determine the frame timing when synchronization to eNB.
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
+### Physical Broadcast Channel (PBCH)
+
+The downlink Physical Broadcast Channel (PBCH) is used to transmit the Master Information Block (MIB) from logical channel BCH.
+
+![R8_TS36.211_S6.6_PBCH](/assets/R8_TS36.211_S6.6_PBCH.png)
+
+#### MIB from RRC
+
+According to **TS 36.331 S6.2.2**, the MIB contains the following **24 bits** system information:
+
+```
+MasterInformationBlock ::=  SEQUENCE {
+    dl-Bandwidth        ENUMERATED {n6, n15, n25, n50, n75, n100},  // 3 bits
+    phich-Config        PHICH-Config,                               // 3 bits
+    systemFrameNumber   BIT STRING (SIZE (8)),                      // 8 bits
+    spare               BIT STRING (SIZE (10))                      // 10 bits
+}
+
+PHICH-Config ::= SEQUENCE {
+    phich-Duration      ENUMERATED {normal, extended},
+    phich-Resource      ENUMERATED {oneSixth, half, one, two}
+}
+```
+
+**Q: Why is it necessary to have $$N_g$$ in the MIB? Why does not include it in the MIB?**
+
+A: The reason that the UE needs to know the PHICH configuration at the very beginning of the system acquisition process is because of the "chicken-and-egg" problem. On one hand, the UE needs to decode PDCCH to know where to find SIB on PDSCH. On the other hand, PDCCH and PHICH and PCFICH share the resources in the control region of a subframe and the set of the available resources for PDCCH depends on the PHICH configuration (PCFICH resources are fixed and known).
+
+**Q: The System Frame Number (SFN) in LTE has 10 bit length, but why is it only 8 bits in *MIB->systemFrameNumber*?**
+
+A: In LTE, the SFN has 10 bit length, and the MSB 8 bits are transmitted in *MIB->systemFrameNumber*. The LSB 2 bits are blind-detected by UE according to the position of radio frame in 40 ms PBCH window, that's, the LSB 2 bits are 00, 01, 02, 03 for the radio frame corresponding to the first, second, third and fourth radio frame in 40 ms PBCH window, respectively. The blind-detected is based on the scrambling sequence $$c(i)$$ in **TS 36.211 S6.6.1**.
+
+#### BCCH Process in RLC
+
+A TM RLC entity can be configured to deliver/receive RLC PDUs through the BCCH logical channel. Refer to **TS 36.322 S4.2.1.1.1**.
+
+#### BCH Process in MAC
+
+Refer to **TS 36.321 S4.2.1**.
+
+#### PBCH Process in PHY
+
+According to **TS 36.212 S5.3.1**, the following steps are processed in PHY about the PBCH:
+
+* **Add CRC to the transport block**
+
+    **16 bits** CRC is appended to transport block, so the output of this step is **40 bits** sequence.
+
+    Note that the number of antenna ports is transmitted in CRC part of BCH transport block, refer to **TS 36.212 Table 5.3.1.1-1**. That's, UE can blind-detect the number of antenna ports by decoding BCH transport block.
+
+* **Channel coding**
+
+    The channel coding scheme is **tail biting convolutional coding** with **1/3 coding rate**, so the output of this step is **120 bits** sequence.
+
+* **Rate matching**
+
+    According to **TS 36.211 S6.6.1**, the number of bits transmitted on the physical broadcast channel is **1920** for normal cyclic prefix (NCP) and **1728** for extended cyclic prefix (ECP), so the output of this step is **1920 and 1728 bits** sequence for NCP and ECP respectively.
+
+* **Scrambling**
+
+    According to **TS 36.211 S6.6.1**, the scrambling sequence shall be initialised with $$c_{init} = N^{cell}_ID$$ in each radio frame fulfilling $$n_f % 4 == 0$$. That's why UE can blind-detect the LSB 2 bits of system frame number. Then, UE gets the system frame number by combining it with the MSB 8 bits from *MIB->systemFrameNumber*.
+
+* **Modulation**
+
+    **QPSK**. The output of this step is **960 bits** sequence for NCP, and **864 bits** sequence for ECP.
+
+* **Layer Mapping and Precoding**
+
+    Refer to **TS 36.211 S6.6.3**.
+
+* **Mapping to REs**
+
+    The block of complex-valued symbols for each antenna port is transmitted during **4 consecutive radio frames** starting in each radio frame fulfilling $$n_f mod 4 == 0$$. That's why it takes 4 radio frames to read MIB.
+
+    The following figure shows the PBCH mapped resource elements in time-domain and frequency-domain respectively:
+
+    ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p1.png)
+    ![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p5](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p5.png)
+
+    Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
+### Synchronisation Procedure
+
+The following figure shows the synchronisation procedure when UE try to access to LTE:
+
+![R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p6](/assets/R8_TS36.211_S6.11_PSS_SSS_S6.6_PBCH_v2_p6.png)
+
+* **PSS detection**
+
+    UE gets the following information when detection PSS:
+
+    * Synchronisation to slot timing
+    * Physical-layer identity $$N^{(2)}_{ID}$$
+    <p/>
+
+* **SSS detection**
+
+    UE gets the following information when detection SSS:
+
+    * Synchronisation to radio frame timing.
+    * Physical-layer cell-identity group $$N^{(1)}_{ID}$$. Then, UE gets the physical-layer cell identity by the formula in section [Physical-layer Cell Identity (PCI)](#physical-layer-cell-identity-pci-).
+    * Cyclic prefix length and system type FDD/TDD according to the position between PSS and SSS.
+    <p/>
+
+* **PBCH decoding**
+
+    UE gets the following information when detection SSS:
+
+    * Number of antenna ports according to CRC of MIB transport block
+    * System information contained in MIB, refer to [MIB from RRC](#mib-from-rrc).
+
+## Downlink Reference Signals
+
+There are three kind of reference signals on downlink:
+
+* [Cell-specific Reference Signal](#cell-specific-reference-signal)
+* [MBSFN Reference Signal](#mbsfn-reference-signal)
+* [UE-specific Reference Signal](#ue-specific-reference-signal)
+
+### Cell-specific Reference Signal
+
+Cell-specific reference signals shall be transmitted in all downlink subframes in a cell supporting non-MBSFN transmission. In case the subframe is used for transmission with MBSFN, only the first two OFDM symbols in a subframe can be used for transmission of cell-specific reference symbols.
+
+Cell-specific reference signals are transmitted on one or several of **antenna ports 0 to 3**.
+
+Cell-specific reference signals are defined for $$\delta f = 15 kHz$$ only.
+
+#### Sequence Generation
+
+Refer to **TS 36.211 S6.10.1.1**.
+
+#### Mapping to REs
+
+In time domain, the location of cell-specific reference signals is fixed, that's on symbol 0 and $$N^{DL}_{symb}-3$$ for antenna ports 0 and 1, symbol 1 for **antenna ports 2 and 3**.
+
+In frequency domain, the location of cell-specific reference signals is distributed accross the system bandwidth and related to physical-layer cell identity $$N^{cell}_{ID}$$.
+
+The following figure shows the cell-specific reference signals of LTE-FDD with 3MHz system bandwidth, normal CP and antenna port 0:
+
+![R8_LTE-FDD_DL_Cell_Specific_RS_3MHz_NCP_1AP](/assets/R8_LTE-FDD_DL_Cell_Specific_RS_3MHz_NCP_1AP.png)
+
+Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
+
+* 36.211 S6.7.4 PCFICH REs
+* LTE-FDD, DL, NCP, 1 AP, All BW
+* LTE-FDD, DL, NCP, 2 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, 1.4MHz
+* LTE-FDD, DL, NCP, 4 AP, 3MHz
+* LTE-FDD, DL, NCP, 4 AP, 5MHz
+* LTE-FDD, DL, NCP, 4 AP, 15MHz
+* LTE-FDD, DL, NCP, 4 AP, 20MHz
+* LTE-FDD, DL, ECP, 1 AP, All BW
+* LTE-FDD, DL, ECP, 2 AP, All BW
+* LTE-FDD, DL, ECP, 4 AP, All BW
+* LTE-TDD, DL, NCP, 1 AP, All BW
+* LTE-TDD, DL, NCP, 2 AP, All BW
+* LTE-TDD, DL, NCP, 4 AP, All BW
+* LTE-TDD, DL, ECP, 1 AP, All BW
+* LTE-TDD, DL, ECP, 2 AP, All BW
+* LTE-TDD, DL, ECP, 4 AP, All BW
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
+### MBSFN Reference Signal
+
+MBSFN reference signals shall only be transmitted in subframes allocated for MBSFN transmissions. MBSFN reference signals are transmitted on **antenna port 4**.
+
+MBSFN reference signals are defined for extended cyclic prefix only.
+
+#### Sequence Generation
+
+Refer to **TS 36.211 E-UTRA - Physical Channels and Modulation, S6.10.2.1**.
+
+#### Mapping to REs
+
+Refer to **TS 36.211 E-UTRA - Physical Channels and Modulation, S6.10.2.2**.
+
+### UE-specific Reference Signal
+
+#### RRC Configurations
+
+The following configuration from TS 36.331 points to one of Transmission modes defined in TS 36.213 S7.1.
+
+```
+AntennaInfoDedicated
+-> transmissionMode
+```
+
+The following configuration from TS 36.331 defines whether the UE supports PDSCH transmission mode 7 for FDD, refer to TS 36.306 S4.3.4.2.
+
+```
+UE-EUTRA-Capability
+-> phyLayerParameters
+   -> ue-SpecificRefSigsSupported
+```
+
+#### Sequence Generation
+
+Refer to **TS 36.211 E-UTRA - Physical Channels and Modulation, S6.10.3.1**.
+
+#### Mapping to REs
+
+Refer to **TS 36.211 E-UTRA - Physical Channels and Modulation, S6.10.3.2**.
+
+## Physical Control Format Indicator CHannel (PCFICH)
+
+The physical control format indicator channel (PCFICH) carries information about the number of OFDM symbols used for transmission of PDCCHs in a subframe. The set of OFDM symbols possible to use for PDCCH in a subframe is given by **TS 36.211 Table 6.7-1**.
+
+The following figure shows the process of CFI:
+
+![R8_TS36.211_S6.7_PCFICH](/assets/R8_TS36.211_S6.7_PCFICH.png)
+
+### How to determine CFI value
+
+Refer to **TS 36.212 S5.3.4** and **TS 36.211 Table 6.7-1**.
+
+### Channel Coding
+
+Refer to **TS 36.212 S5.3.4**.
+
+### Scrambling
+
+Refer to **TS 36.211 S6.7.1**
+
+### Modulation
+
+Refer to **TS 36.211 S6.7.2**
+
+### Layer Mapping and Precoding
+
+Refer to **TS 36.211 S6.7.3**
+
+### Mapping to REs
+
+According to **TS 36.211 S6.7.4**, the CFI is mapped to the four resource-element groups in the **first OFDM symbol** in a downlink subframe with the representative resource-element.
+
+Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
+
+* 36.211 S6.7.4 PCFICH REs
+* LTE-FDD, DL, NCP, 1 AP, All BW
+* LTE-FDD, DL, NCP, 2 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, 1.4MHz
+* LTE-FDD, DL, NCP, 4 AP, 3MHz
+* LTE-FDD, DL, NCP, 4 AP, 5MHz
+* LTE-FDD, DL, NCP, 4 AP, 15MHz
+* LTE-FDD, DL, NCP, 4 AP, 20MHz
+* LTE-FDD, DL, ECP, 1 AP, All BW
+* LTE-FDD, DL, ECP, 2 AP, All BW
+* LTE-FDD, DL, ECP, 4 AP, All BW
+* LTE-TDD, DL, NCP, 1 AP, All BW
+* LTE-TDD, DL, NCP, 2 AP, All BW
+* LTE-TDD, DL, NCP, 4 AP, All BW
+* LTE-TDD, DL, ECP, 1 AP, All BW
+* LTE-TDD, DL, ECP, 2 AP, All BW
+* LTE-TDD, DL, ECP, 4 AP, All BW
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
+## Physical Hybrid ARQ Indicator CHannel (PHICH)
+
+### PHICH Groups and Orthogonal Sequences
+
+The PHICH carries the hybrid-ARQ ACK/NAK. Multiple PHICHs mapped to the same set of resource elements constitute a **PHICH group**, where PHICHs within the same PHICH group are separated through different **orthogonal sequences**.
+
+![R8_TS36.211_S6.9_PHICH](/assets/R8_TS36.211_S6.9_PHICH.png)
+
+A PHICH resource is identified by the index pair:
+
+$$(n^{group}_{PHICH}, n^{seq}_{PHICH})$$
+
+where,
+
+* $$n^{group}_{PHICH}$$ and $$n^{seq}_{PHICH}$$ are given by **TS 36.213 S9.1.2**;
+* $$n^{group}_{PHICH}$$ is the PHICH group number, $$n^{group}_{PHICH} \in [0, N^{group}_{PHICH}-1]$$, where $$N^{group}_{PHICH}$$ is calculated in **TS 36.211 S6.9**;
+* $$n^{seq}_{PHICH}$$ is the orthogonal sequence index within the group, refer to **TS 36.211 Table 6.9.1-2**.
+
+### Channel Coding
+
+Refer to **TS 36.212 S5.3.5**.
+
+### Modulation
+
+Modulation scheme for PHICH is **BPSK**, refer to **TS 36.211 S6.9.1**.
+
+### Resource Group Alignment, Layer Mapping and Precoding
+
+Refer to **TS 36.211 S6.9.2**.
+
+### Mapping to REs
+
+Refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
+
+* LTE-FDD, DL, NCP, 1 AP, All BW
+* LTE-FDD, DL, NCP, 2 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, 1.4MHz
+* LTE-FDD, DL, NCP, 4 AP, 3MHz
+* LTE-FDD, DL, NCP, 4 AP, 5MHz
+* LTE-FDD, DL, NCP, 4 AP, 15MHz
+* LTE-FDD, DL, NCP, 4 AP, 20MHz
+* LTE-FDD, DL, ECP, 1 AP, All BW
+* LTE-FDD, DL, ECP, 2 AP, All BW
+* LTE-FDD, DL, ECP, 4 AP, All BW
+* LTE-TDD, DL, NCP, 1 AP, All BW
+* LTE-TDD, DL, NCP, 2 AP, All BW
+* LTE-TDD, DL, NCP, 4 AP, All BW
+* LTE-TDD, DL, ECP, 1 AP, All BW
+* LTE-TDD, DL, ECP, 2 AP, All BW
+* LTE-TDD, DL, ECP, 4 AP, All BW
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
+## Physical Downlink Control CHannel (PDCCH)
+
+### Flow Diagram of PDCCH
+
+![R8_TS36.211_S6.8_PDCCH](/assets/R8_TS36.211_S6.8_PDCCH.png)
+
+### Downlink Control Information (DCI)
+
+Refer to **TS 36.212 S5.3.3.1**.
+
+A DCI transports downlink or uplink scheduling information, or uplink power control commands for one RNTI. The RNTI is implicitly encoded in the CRC, refer to [CRC Attachment](#crc-attachment).
+
+#### DCI Formats
+
+* **DCI Format 0**
+
+    * Uplink
+    * 上行共享信道
+    * Function: 用于上行 PUSCH 的调度
+    * Specs: TS 36.213 Table 8-3, 8-5, 8-6
+    <p/>
+
+* **DCI Format 1**
+
+    * Downlink
+    * 单码字
+    * Function: 用于下行单码字 PDSCH 的调度
+    * Transmission Mode: 1, 2, 7
+    * Specs: TS 36.213 Table 7.1-5, 7.1-6
+    <p/>
+
+* **DCI Format 1A**
+
+    * Downlink
+    * 单码字
+    * Function: 用于下行单码字 PDSCH 和随机接入流程的紧凑型调度
+    * Transmission Mode: All TM, SI-RNTI, P-RNTI, RA-RNTI
+    * Specs: TS 36.213 Table 7.1-1, 7.1-2, 7.1-3, 7.1-5, 7.1-6, 7.1-7, 8-4
+    <p/>
+
+* **DCI Format 1B**
+
+    * Downlink
+    * 单码字
+    * Function: 用于预编码的下行单码字 PDSCH 的紧凑型调度
+    * Transmission Mode: 6
+    * Specs: TS 36.213 Table 7.1-5
+    <p/>
+
+* **DCI Format 1C**
+
+    * Downlink
+    * 单码字
+    * Function: 用于下行单码字 PDSCH 的更紧凑模型调度
+    * Transmission Mode: SI-RNTI, P-RNTI, RARNTI
+    * Specs: TS 36.213 Table 7.1-1, 7.1-2, 7.1-3
+    <p/>
+
+* **DCI Format 1D**
+
+    * Downlink
+    * 单码字
+    * Function: 用于具有预编码与功率偏移信息的下行单码字 PDSCH 的紧凑型调度
+    * Transmission Mode: 5
+    * Specs: TS 36.213 Table 7.1-5
+    <p/>
+
+* **DCI Format 2**
+
+    * Downlink
+    * 双码字
+    * Function: 用于闭环空间复用情况下的双码字 PDSCH 的调度
+    * Transmission Mode: 4
+    * Specs: TS 36.213 Table 7.1-5, 7.1-6
+    <p/>
+
+* **DCI Format 2A**
+
+    * Downlink
+    * 双码字
+    * Function: 用于开环空间复用情况下的双码字 PDSCH 的调度
+    * Transmission Mode: 3
+    * Specs: TS 36.213 Table 7.1-5, 7.1-6
+    <p/>
+
+* **DCI Format 2B**
+
+    * Downlink
+    * 双码字
+    * Function: 用于双层的双码字 PDSCH 的调度
+    * Transmission Mode: 8
+    * Specs: Rel 9 TS 36.213 Table 7.1-5, 7.1-6
+    <p/>
+
+* **DCI Format 3**
+
+    * Uplink
+    * 功率控制信息
+    * Function: 用于传输一组用户的 PUCCH 和 PUSCH 的功率控制信息，其中功率控制信息采用 2 比特指示
+    * Specs: TS 36.213 Table 8-7, 8-8
+    <p/>
+
+* **DCI Format 3A**
+
+    * Uplink
+    * 功率控制信息
+    * Function: 用于传输一组用户的 PUCCH 和 PUSCH 的功率控制信息，其中功率控制信息采用 1 比特指示
+    * Specs: TS 36.213 Table 8-7, 8-8
+    <p/>
+
+#### DCI Length before CRC Attachment
+
+According to **TS 36.212 SS5.3.3.1**, the length of DCI formats before CRC attachment are shown in the following table:
+
+![DCI_length_before_CRC_attachment](/assets/DCI_length_before_CRC_attachment.png)
+
+NOTE1：上表中 DCI format 1C 行中存在两个长度值（在某些系统带宽下） ，这是根据 $$N_{gap}$$ 区分的，前者为 $$N_{gap} = N_{gap,1}$$，后者为 $$N_{gap} = N_{gap,2}$$；
+
+NOTE2：上表中 DCI format 1B/1D 行中存在两个长度值，这是根据基站天线数的不同进行区分的，参见 TS 36.212 Table 5.3.3.1.3A-2, Table 5.3.3.1.4A-1，前者为 AP=2，后者为 AP=4；
+
+NOTE3：上表中 DCI format 2/2A 行中存在两个长度值，这是根据基站天线数的不同（基站天线数不同，则对应的 Precoding information 域的宽度不同） 进行区分的，参见 TS 36.212 Table 5.3.3.1.5-3, Table 5.3.3.1.5A-1，前者为 AP=2，后者为 AP=4。
+
+NOTE4：由上表可知， DCI format 1B/1D 的长度相等。
+
+NOTE5：上表中 DCI format 2B 行中存在两个长度值，这是根据传输的 TB 块的数目不同进行区分的，前者为 1 TB，后者为 2 TBs。
+
+### CRC Attachment
+
+The CRC parity bits are 16 bits. The CRC parity bits may be scrambled with *Antenna selection mask* (refer to **TS 36.212 Table 5.3.3.2-1**) and *corresponding RNTI* (refer to **TS 36.212 S5.3.3.1**) if UE transmit antenna selection is configured and applicable, refer to **TS 36.212 S5.3.3.2**, **TS 36.213 S8.7** and the following configuration from higher layer:
+
+```
+PhysicalConfigDedicated
+-> antennaInfo
+   -> explicitValue     AntennaInfoDedicated
+      -> ue-TransmitAntennaSelection
+         -> setup ENUMERATED {closedLoop, openLoop}
+```
+
+### Channel Coding
+
+The coding scheme for DCI is *Tail biting convolutional coding* with *1/3 coding rate*, refer to **TS 36.212 S5.3.3.3**.
+
+### Rate Matching
+
+Refer to **TS 36.212 S5.3.3.4**.
+
+### Multiplexing and Scrambling
+
+Refer to **TS 36.211 S6.8.2**.
+
+### Modulation
+
+Modulation scheme for PDCCH is **QPSK**, refer to **TS 36.211 S6.8.3**.
+
+### Layer Mapping and Precoding
+
+Refer to **TS 36.211 S6.8.4**.
+
+### Mapping to REs
+
+Refer to **TS 36.211 S6.8.5**.
+
+Also refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**:
+
+* LTE-FDD, DL, NCP, 1 AP, All BW
+* LTE-FDD, DL, NCP, 2 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, All BW
+* LTE-FDD, DL, NCP, 4 AP, 1.4MHz
+* LTE-FDD, DL, NCP, 4 AP, 3MHz
+* LTE-FDD, DL, NCP, 4 AP, 5MHz
+* LTE-FDD, DL, NCP, 4 AP, 15MHz
+* LTE-FDD, DL, NCP, 4 AP, 20MHz
+* LTE-FDD, DL, ECP, 1 AP, All BW
+* LTE-FDD, DL, ECP, 2 AP, All BW
+* LTE-FDD, DL, ECP, 4 AP, All BW
+* LTE-TDD, DL, NCP, 1 AP, All BW
+* LTE-TDD, DL, NCP, 2 AP, All BW
+* LTE-TDD, DL, NCP, 4 AP, All BW
+* LTE-TDD, DL, ECP, 1 AP, All BW
+* LTE-TDD, DL, ECP, 2 AP, All BW
+* LTE-TDD, DL, ECP, 4 AP, All BW
+
+Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
+
 # RF Performance
 
-Refer to <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#rf-performance">RF Performance</a>.
+### Signal-to-Noise Ratio (SNR)
+
+According to [Signal-to-Noise Ratio (SNR)](https://en.wikipedia.org/wiki/Signal-to-noise_ratio), SNR is a measure used in science and engineering that compares the level of a desired signal to the level of background noise. SNR is defined as the ratio of signal power to the noise power, often expressed in decibels. A ratio higher than 1:1 (greater than 0 dB) indicates more signal than noise.
+
+Signal-to-noise ratio is defined as the ratio of the power of a signal (meaningful information) to the power of background noise (unwanted signal):
+
+$$SNR = \frac {P_{signal}} {P_{noise}}$$
+
+where, **P** is average power. Both signal and noise power must be measured at the same or equivalent points in a system, and within the same system bandwidth.
+
+Because many signals have a very wide dynamic range, signals are often expressed using the <a href="{{ site.base-url }}/2018/12/14/decibel.html">logarithmic decibel scale</a>:
+
+$$SNR_{dB} = 10 ∙ log_{10} (\frac {P_{signal}} {P_{noise}}) = 10 ∙ log_{10} (P_{signal}) - 10 ∙ log_{10} (P_{noise})$$
+
+**Improving SNR in practice**
+
+All real measurements are disturbed by noise. This includes electronic noise, but can also include external events that affect the measured phenomenon — wind, vibrations, gravitational attraction of the moon, variations of temperature, variations of humidity, etc., depending on what is measured and of the sensitivity of the device. It is often possible to reduce the noise by controlling the environment. Otherwise, when the characteristics of the noise are known and are different from the signals, it is possible to filter it or to process the signal.
+
+For example, it is sometimes possible to use a lock-in amplifier to modulate and confine the signal within a very narrow bandwidth and then filter the detected signal to the narrow band where it resides, thereby eliminating most of the broadband noise. When the signal is constant or periodic and the noise is random, it is possible to enhance the SNR by averaging the measurement. In this case the noise goes down as the square root of the number of averaged samples.
+
+Additionally, internal noise of electronic systems can be reduced by low-noise amplifiers.
+
+### Error Vector Magnitude (EVM)
+
+Error Vector Magnitude (EVM) is a measure used to quantify the performance of a digital radio transmitter or receiver. A signal sent by an ideal transmitter or received by a receiver would have all constellation points precisely at the ideal locations, however various imperfections in the implementation (such as carrier leakage, low image rejection ratio, phase noise etc.) cause the actual constellation points to deviate from the ideal locations. Informally, EVM is a measure of how far the points are from the ideal locations.
+
+Noise, distortion, spurious signals, and phase noise all degrade EVM, and therefore EVM provides a comprehensive measure of the quality of the radio receiver or transmitter for use in digital communications. Transmitter EVM can be measured by specialized equipment, which demodulates the received signal in a similar way to how a real radio demodulator does it. One of the stages in a typical phase-shift keying demodulation process produces a stream of I-Q points which can be used as a reasonably reliable estimate for the ideal transmitted signal in EVM calculation.
+
+#### Definition of EVM
+
+![Constellation Diagram and EVM](/assets/QAM_mit_EVM.png)
+
+An error vector is a vector in the I-Q plane between the ideal constellation point and the point received by the receiver. In other words, it is the difference between actual received symbols and ideal symbols. The average amplitude of the error vector, normalized to peak signal amplitude, is the EVM. For the percentage format, [Root Mean Square (RMS)](https://en.wikipedia.org/wiki/Root_mean_square) average is used.
+
+The Error Vector Magnitude (EVM) is equal to the ratio of the amplitude of the error vector to the [Root Mean Square (RMS)](https://en.wikipedia.org/wiki/Root_mean_square) amplitude of the reference. It is defined in dB as:
+
+$$EVM(dB) = 20 ∙ log_{10} (\frac {P_{error}} {P_{reference}})$$
+
+where $$P_{error}$$ is the RMS amplitude of the error vector. For single carrier modulations, $$P_{reference}$$ is, by convention, the amplitude of the outermost (highest power) point in the reference signal constellation. More recently, for multi-carrier modulations, $$P_{reference}$$ is defined as the reference constellation average power.
+
+EVM is defined as a percentage in a compatible way:
+
+$$EVM(\%) = \sqrt{\frac {P_{error}} {P_{reference}}} × 100\%$$
+
+with the same definitions.
+
+EVM, as conventionally defined for single carrier modulations, is a ratio of a mean amplitude to a peak amplitude. Because the relationship between the peak and mean signal power is dependent on constellation geometry, different constellation types (e.g. 16-QAM and 64-QAM), subject to the same mean level of interference, will report different EVM values.
+
+EVM, as defined for multi carrier modulations, is arguably the more satisfactory measurement because it is a ratio of two mean powers and is insensitive to the constellation geometry. In this form, EVM is closely related to Modulation error ratio, the ratio of mean signal power to mean error power.
+
+#### Measurement of EVM
+
+* [8 Hints for Making and Interpreting EVM Measurements](/docs/8_Hints_for_Making_and_Interpreting_EVM_Measurements.pdf)
+* [EVM Degradation in LTE Systems by RF Filtering](/docs/EVM_Degradation_in_LTE_Systems_by_RF_Filtering.pdf)
+
+### ACLR
+
+## CFR and DPD
+
+* [What is CFT and DPD?](https://www.jianshu.com/p/42a61762b1a9) [[local pdf](/docs/What_is_CFR_and_DPD.pdf)]
+* [Wideband Digital Pre-Distortion Modeling for LTE-Advanced](/docs/Wideband_Digital_Pre-Distortion_Modeling_for_LTE-Advanced.pdf)
 
 # References
 
@@ -1090,3 +1737,29 @@ Refer to <a href="{{ site.base-url }}/2016/03/20/telecom-3gpp-intro.html#rf-perf
 * [GSM, LTE, UMTS and IMS Call Flows](http://www.eventhelix.com/realtimemantra/Telecom/#.WQG3JH21cTw)
 * [Digital Standard EUTRA/LTE from Rohde Schwarz](https://www.rohde-schwarz.com/webhelp/rs_smu_help_2/RS_SMU_Help.htm)
 * [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE)
+* TS 36.211 E-UTRA - Physical Channels and Modulation
+* [PBCH (Physical Broadcast Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PBCH.html)
+* [PSS (Primary Synchronization Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PSS.html)
+* [SSS (Secondary Synchronization Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_SSS.html)
+* [SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver](/docs/SSS_Detection_Method_for_Initial_Cell_Search_in_3GPP_LTE_FDD-TDD_Dual_Mode_Receiver.pdf)
+* TS 36.211 E-UTRA - Physical Channels and Modulation, S6.10
+* [Downlink Reference Signal on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_Reference_Signal_Downlink.html)
+* [Cell Specific Reference Signal on ShareTechnote](http://www.sharetechnote.com/html/FrameStructure_DL.html#RS)
+* [MatLab Toolbox for Cell Specific Reference Signal on ShareTechnote](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_CellRS.html)
+* TS 36.212 E-UTRA - Multiplexing and channel coding, section 5.3.4
+* TS 36.211 E-UTRA - Physical Channels and Modulation, section 6.7
+* [CFI (Control Format Indicator) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_CFI.html)
+* [PCFICH (Physical Control Format Indicator Channel) on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PCFICH.html)
+* [MatLab Toolbox for PCFICH on ShareTechnote](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PCFICH.html)
+* TS 36.213 E-UTRA - Physical layer procedures, section 9.1.2
+* TS 36.212 E-UTRA - Multiplexing and channel coding, section 5.3.5
+* TS 36.211 E-UTRA - Physical Channels and Modulation, section 6.9
+* [PHICH/PHICH Group on ShareTechnote](http://www.sharetechnote.com/html/Handbook_LTE_PHICH_PHICHGroup.html)
+* [MatLab Toolbox for PHICH on ShareTechnote](http://www.sharetechnote.com/html/lte_toolbox/Matlab_LteToolbox_PHICH.html)
+* TS 36.213 E-UTRA - Physical layer procedures, section 8.7 UE Transmit Antenna Selection
+* TS 36.212 E-UTRA - Multiplexing and channel coding, section 5.3.3 Downlink control information
+* TS 36.211 E-UTRA - Physical Channels and Modulation, section 6.8 Physical downlink control channel
+* [Signal-to-Noise Ratio (SNR)](https://en.wikipedia.org/wiki/Signal-to-noise_ratio)
+* [EVM on Wikipedia](https://en.wikipedia.org/wiki/Error_vector_magnitude)
+* [EVM Calculation for Broadband Modulated Signals](/docs/EVM_Calculation_for_Broadband_Modulated_Signals.pdf)
+

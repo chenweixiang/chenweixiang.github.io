@@ -558,6 +558,7 @@ Linux kernel code flow:
 * **Linux Device Drivers, 3rd Edition**. *Jonathan Corbet, Alessandro Rubini, Greg Kroah-Hartman*
 * **Understanding Linux Network Internals**. *Christian Benvenuti*
 * [Linux Memory Management](http://linux-mm.org)
+* [LINUX 就该这么学](/docs/Linux_Probe.pdf)
 
 ## 1.8 Linux Distributions
 
@@ -54029,6 +54030,10 @@ Run following commands to check man page of file system hierarchy (FHS):
 ```
 $ man hier
 ```
+
+### 11.1.2 Materials related to File System
+
+* [A Study of Linux File System Evolution](/docs/A_Study_of_Linux_File_System_Evolution.pdf)
 
 ## 11.2 虚拟文件系统(VFS)
 

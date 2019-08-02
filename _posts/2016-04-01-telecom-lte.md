@@ -1652,6 +1652,14 @@ Also refer to the following sheets in **R8_TS36.XXX_LTE_PHY_Parameters_v2.xlsx**
 
 Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
 
+# NB-IoT
+
+* [A Primer on 3GPP NB-IoT](/docs/A_Primer_on_3GPP_NB-IoT.pdf)
+
+NB-IoT is a new 3GPP radio-access technology in the sense that it is not fully backward compatible with existing 3GPP devices.
+
+The normative phase of NB-IoT work item in 3GPP started in September 2015 and the core specifications complete in June 2016. Commercial launch of NB-IoT products and services is expected to be around the end of 2016 and the beginning of 2017.
+
 # RF Performance
 
 ### Signal-to-Noise Ratio (SNR)

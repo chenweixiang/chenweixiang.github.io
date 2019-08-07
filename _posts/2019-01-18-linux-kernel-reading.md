@@ -14273,7 +14273,8 @@ __FINIT
 
 ## 6.1 段机制和分页机制
 
-参见《Linux 操作系统内核分析_陈莉君.pdf》第四章。
+* 参见《Linux 操作系统内核分析_陈莉君.pdf》第四章
+* [学习Linux必备的硬件基础一网打尽](/docs/Basic_Hardware_Knowledge.pdf)
 
 虚拟地址与物理地址的转换：
 

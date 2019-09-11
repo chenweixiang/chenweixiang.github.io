@@ -87,6 +87,12 @@ Start Source Navigator NG 4.5 by command:
 chenwx@chenwx:~ $ snavigator &
 ```
 
+# Source Navigator NG 4.5 Configuration
+
+On Windows 10, set the compatibility mode of Source Navigator NG 4.5 to Windows 7:
+
+![Source_Navigator_Compatibility_Mode](/assets/Source_Navigator_Compatibility_Mode.png)
+
 # References
 
 * [Source Navigator NG](https://sourceforge.net/projects/sourcenav/)

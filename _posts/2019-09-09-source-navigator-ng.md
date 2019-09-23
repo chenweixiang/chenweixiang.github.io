@@ -93,6 +93,8 @@ On Windows 10, set the compatibility mode of Source Navigator NG 4.5 to Windows 
 
 ![Source_Navigator_Compatibility_Mode](/assets/Source_Navigator_Compatibility_Mode.png)
 
+On Windows 10, use **Run as administrator** when you're trying to create a new project, otherwise, it will pend in somewhere.
+
 # References
 
 * [Source Navigator NG](https://sourceforge.net/projects/sourcenav/)

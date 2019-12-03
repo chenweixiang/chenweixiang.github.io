@@ -13,55 +13,15 @@ This article introduces the applications I used on Windows and LinuxMint system.
 
 See [Upgrade Thinkpad R61i](/docs/Upgrade_Thinkpad_R61i.pdf).
 
-# Applications on Windows
+# Applications on Windows and LinuxMint
 
 ## Desktop Environment
+
+**Windows**
 
 * [Windows 10 专业版](/docs/Win10_Compare_Table.pdf)
 
-## Chinese Input Methods
-
-* [搜狗输入法](https://pinyin.sogou.com/)
-* Google PinYin
-
-## Web Browsers
-
-* Chrome / FreeGate
-
-## Editor
-
-* [Notepad++](https://notepad-plus-plus.org/)
-* [Atom](https://atom.io/)
-
-* [LibreOffice](http://www.libreoffice.org/)
-* [WPS Office](https://www.wps.com/linux)
-
-* Microsoft Office Online, access via outlook.com
-* Google Docs
-
-## Email Clients
-
-* Windows Outlook
-
-## Comparison
-
-* [Beyond Compare](http://www.scootersoftware.com/)
-
-## IDE (Integrated Development Environment)
-
-* [Source Insight](http://www.sourceinsight.com/)
-
-## Dictionary
-
-* [Lingoes 灵格斯词霸](http://www.lingoes.cn/zh/dictionary/index.html)
-
-## Skype
-
-* Download Skype from [here](https://www.skype.com/en/get-skype/) and see [Usage of Skype](/docs/Usage_of_Skype.pdf)
-
-# Applications on LinuxMint
-
-## Desktop Environment
+**LinuxMint**
 
 * LinuxMint Cinnamon Edition (Recommended)
 * LinuxMint MATE Edition (Second Choice)
@@ -75,6 +35,13 @@ See the following documentations:
 
 ## Chinese Input Methods
 
+**Windows**
+
+* [搜狗输入法](https://pinyin.sogou.com/)
+* Google PinYin
+
+**LinuxMint**
+
 * [搜狗拼音输入法](https://shurufa.sogou.com/)
 * Google PinYin
 
@@ -86,6 +53,19 @@ See [Install SogouPinYin and GooglePinYin on Linux](/docs/Install_SogouPinYin_an
 * Chrome / FreeGate
 
 ## Editor
+
+**Windows**
+
+* [Notepad++](https://notepad-plus-plus.org/)
+* [Atom](https://atom.io/)
+
+* [LibreOffice](http://www.libreoffice.org/)
+* [WPS Office](https://www.wps.com/linux)
+
+* Microsoft Office Online, access via outlook.com
+* Google Docs
+
+**LinuxMint**
 
 * [Gedit](https://wiki.gnome.org/Apps/Gedit)
 * [Atom](https://atom.io/)
@@ -109,16 +89,36 @@ $ sudo apt install wps-office
 
 ## Email Clients
 
+**Windows**
+
+* Windows Outlook
+
+**LinuxMint**
+
 * Mutt, fetchmail, procmail, msmtp
 
 ## Comparison
 
-* [Beyond Compare](http://www.scootersoftware.com/)
+* [WinMerge](https://winmerge.org/)
 * [Meld](http://meldmerge.org/)
+* [Beyond Compare](http://www.scootersoftware.com/)
+* [Diffuse](https://sourceforge.net/projects/diffuse/)
+* [Altova DiffDog](https://www.altova.com/diffdog)
+* [AptDiff](https://download.cnet.com/AptDiff/3000-2248_4-10699723.html)
+* [Code Compare](https://www.devart.com/codecompare/)
 
 ## IDE (Integrated Development Environment)
 
 * [Source Insight](http://www.sourceinsight.com/)
+* <a href="{{ site.base-url }}/2019/09/09/source-navigator-ng.html">Source Navigator NG</a>
+
+## Dictionary
+
+* [Lingoes 灵格斯词霸](http://www.lingoes.cn/zh/dictionary/index.html)
+
+## Skype
+
+* Download Skype from [here](https://www.skype.com/en/get-skype/) and see [Usage of Skype](/docs/Usage_of_Skype.pdf)
 
 # Tips
 

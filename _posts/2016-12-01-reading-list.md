@@ -49,6 +49,11 @@ This article records the books I'm reading.
 
 # Book List
 
+* 深度沟通
+* 反直觉
+* 自我边界
+* 内向思考
+* 影响力 - 第一册
 * 关键责任
 * 影响者
 * 改变一切

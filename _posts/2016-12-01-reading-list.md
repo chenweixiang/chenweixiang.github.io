@@ -42,8 +42,9 @@ This article records the books I'm reading.
 | 2019-01-15 | 2019-04-10  | 《黑客与画家》 [美] Paul Graham 著，阮一峰 译 |
 | 2019-04-11 | 2019-05-13  | 《埃隆·马克斯传：用特斯拉撬动世界》 邱恒明 著 |
 | 2019-05-13 | 2019-06-26  | 《成为：米歇尔·奥巴马自传》 [美] 米歇尔·奥巴马 著，胡晓凯 闫洁 译 |
-| 2019-06-27 |             | 《正面管教》[美] Jane Nelsen 著，玉冰 译<br>*Positive Discipline* |
+| 2019-06-27 | 2019-12-05  | 《正面管教》[美] Jane Nelsen 著，玉冰 译<br>*Positive Discipline* |
 | 2019-08-09 | 2019-08-09  | *Picking a Python Version: A Manifesto*. David Mertz |
+| 2019-12-06 |             | 《晚年周恩来》 高文谦著 |
 
 <p/>
 

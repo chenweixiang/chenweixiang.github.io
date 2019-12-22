@@ -13,7 +13,7 @@ This article introduces the applications I used on Windows and LinuxMint system.
 
 See [Upgrade Thinkpad R61i](/docs/Upgrade_Thinkpad_R61i.pdf).
 
-# Applications on Windows and LinuxMint
+# Applications
 
 ## Desktop Environment
 
@@ -21,10 +21,9 @@ See [Upgrade Thinkpad R61i](/docs/Upgrade_Thinkpad_R61i.pdf).
 
 * [Windows 10 专业版](/docs/Win10_Compare_Table.pdf)
 
-**LinuxMint**
+**Linux**
 
-* LinuxMint Cinnamon Edition (Recommended)
-* LinuxMint MATE Edition (Second Choice)
+* [LinuxMint Cinnamon Edition](https://linuxmint.com/)
 
 See the following documentations:
 
@@ -37,20 +36,21 @@ See the following documentations:
 
 **Windows**
 
-* [搜狗输入法](https://pinyin.sogou.com/)
-* Google PinYin
+* [搜狗拼音输入法](https://pinyin.sogou.com/)
+* [Google PinYin](http://dl.google.com/pinyin/v2/GooglePinyinInstaller.exe)
 
 **LinuxMint**
 
 * [搜狗拼音输入法](https://shurufa.sogou.com/)
-* Google PinYin
+* [Google PinYin](http://dl.google.com/pinyin/v2/GooglePinyinInstaller.exe)
 
 See [Install SogouPinYin and GooglePinYin on Linux](/docs/Install_SogouPinYin_and_GooglePinYin_on_Linux.pdf).
 
 ## Web Browsers
 
-* Firefox / FreeGate
-* Chrome / FreeGate
+* [Firefox](https://www.mozilla.org/en-US/firefox/new/)
+* [Chrome](https://www.google.com/chrome/)
+* FreeGate
 
 ## Editor
 
@@ -85,7 +85,7 @@ $ sudo apt install wps-office
 ```
 
 * Microsoft Office Online, access via outlook.com
-* Google Docs
+* [Google Docs](https://docs.google.com)
 
 ## Email Clients
 
@@ -107,7 +107,9 @@ $ sudo apt install wps-office
 * [AptDiff](https://download.cnet.com/AptDiff/3000-2248_4-10699723.html)
 * [Code Compare](https://www.devart.com/codecompare/)
 
-## IDE (Integrated Development Environment)
+## IDE
+
+IDE: Integrated Development Environment
 
 * [Source Insight](http://www.sourceinsight.com/)
 * <a href="{{ site.base-url }}/2019/09/09/source-navigator-ng.html">Source Navigator NG</a>

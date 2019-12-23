@@ -116,7 +116,7 @@ IDE: Integrated Development Environment
 
 ## Dictionary
 
-* [Lingoes 灵格斯词霸](http://www.lingoes.cn/zh/dictionary/index.html)
+* [Lingoes 灵格斯词霸](http://www.lingoes.cn/zh/index.html)
 
 ## Skype
 

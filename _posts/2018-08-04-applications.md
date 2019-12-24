@@ -118,6 +118,10 @@ IDE: Integrated Development Environment
 
 * [Lingoes 灵格斯词霸](http://www.lingoes.cn/zh/index.html)
 
+### Compression
+
+* [7-zip](https://www.7-zip.org/)
+
 ## Skype
 
 * Download Skype from [here](https://www.skype.com/en/get-skype/) and see [Usage of Skype](/docs/Usage_of_Skype.pdf)

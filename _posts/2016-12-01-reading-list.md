@@ -72,6 +72,10 @@ This article records the books I'm reading.
 * 注意力：专注的科学与训练
 * 用户思维+
 * 金融炼金术
+* 现代化的陷阱
+* 我们仍然仰望星空
+* 中国政府如何控制媒体
+* 金盾工程: 庞大的中国电讯监控工程
 
 # References
 

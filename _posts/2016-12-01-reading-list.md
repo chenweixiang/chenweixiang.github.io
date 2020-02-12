@@ -46,6 +46,7 @@ This article records the books I'm reading.
 | 2019-08-09 | 2019-08-09  | *Picking a Python Version: A Manifesto*. David Mertz |
 | 2019-12-06 | 2019-12-13  | 《晚年周恩来》 高文谦著 |
 | 2019-12-14 | 2019-12-23  | 《雾锁中国》 何清涟著 |
+| 2020-02-11 |             | 《你的2岁孩子》 |
 
 <p/>
 

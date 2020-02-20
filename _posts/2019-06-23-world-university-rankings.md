@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "World University Rankings"
-tag: Miscellaneous
+tag: Tools
 toc: true
 ---
 

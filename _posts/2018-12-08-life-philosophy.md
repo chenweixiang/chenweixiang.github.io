@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Life Philosophy"
-tag: Miscellaneous
+tag: Methodology
 toc: true
 ---
 

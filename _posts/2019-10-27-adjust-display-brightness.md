@@ -40,6 +40,10 @@ root@chenwx:~# cat /sys/class/backlight/intel_backlight/brightness
 12056655
 ```
 
+# Solution
+
+首选项 > 电源管理 > 亮度 > 屏幕亮度 > 100%
+
 # References
 
 None.

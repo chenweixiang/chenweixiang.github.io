@@ -18,7 +18,7 @@ This article introduces the **Agile software development** and one of its method
 In **February 2001**, 17 software developers met at the *Snowbird resort in Utah* to discuss **lightweight development methods**. They published the ***Manifesto for Agile Software Development***, in which they said that by *uncovering better ways of developing software by doing it and helping others do it*, they have come to value:
 
 * ***Individuals and interactions*** over *Processes and tools* (个体和互动 高于 流程和工具)
-* ***Working software*** over *Comprehensive documentation* (工作的软件 高于 详尽的文档)
+* ***Working software*** over *Comprehensive documentation* (可工作的软件 高于 详尽的文档)
 * ***Customer collaboration*** over *Contract negotiation* (客户的合作 高于 合同谈判)
 * ***Responding to change*** over *Following a plan* (相应变化 高于 遵循计划)
 
@@ -56,12 +56,12 @@ Popular Agile software development methods and/or process frameworks include (bu
 
 * Adaptive software development (ASD) / 自适应软件开发
 * Agile modeling (AM) / 敏捷建模
-* Agile Unified Process (AUP)
+* Agile Unified Process (AUP) / 敏捷统一过程
 * Business analyst designer method (BADM) / 业务分析师设计方法
 * Crystal Clear Methods / 水晶方法
 * Disciplined agile delivery
 * Dynamic systems development method (DSDM) / 动态系统开发方法
-* **Extreme programming (XP)** / 极限编程
+* Extreme programming (XP) / 极限编程
 * Feature-driven development (FDD) / 特性驱动开发
 * Lean software development / 精益软件开发
 * **Kanban**
@@ -76,7 +76,7 @@ Agile development is supported by a bundle of concrete practices, covering areas
 * Agile modeling
 * Backlogs (Product and Sprint)
 * Behavior-driven development (BDD)
-* Cross-functional team
+* **Cross-functional team (XFT)**
 * Continuous integration (CI)
 * Domain-driven design (DDD)
 * Information radiators (scrum board, task board, visual management board, burndown chart)
@@ -97,6 +97,11 @@ Agile development is supported by a bundle of concrete practices, covering areas
 The [Agile Alliance](https://www.agilealliance.org/) has provided a comprehensive online collection with a map guide to the applying agile practices.
 
 # Scrum
+
+According to the **Scrum Guide** from [Scrum.org](https://www.scrum.org/resources/scrum-guide):
+
+* [Scrum Guide (English)](/docs/Scrum_Guide_US_2017.pdf)
+* [Scrum Guide (Chinese)](/docs/Scrum_Guide_Chinese_Simplified_2017.pdf)
 
 Scrum is an iterative and incremental *Agile software development* framework for managing product development. It defines **a flexible, holistic product development strategy where a development team works as a unit to reach a common goal**, challenges assumptions of the *traditional, sequential approach* to product development, and enables teams to self-organize by encouraging physical co-location or close online collaboration of all team members, as well as daily face-to-face communication among all team members and disciplines in the project.
 
@@ -121,7 +126,7 @@ There are three core roles in the scrum framework. These core roles are those co
     The core responsibilities of a scrum master include (but are not limited to):
 
     * Helping the *product owner* maintain the *product backlog* in a way that ensures the needed work is well understood so the team can continually make forward progress
-    * Helping the team to determine the definition of done for the product, with input from key stakeholders
+    * Helping the team to determine the *definition of done* for the product, with input from key stakeholders
     * Coaching the team, within the scrum principles, in order to deliver high-quality features for its product
     * Promoting self-organization within the team
     * Helping the scrum team to avoid or remove impediments to its progress, whether internal or external to the team
@@ -130,6 +135,8 @@ There are three core roles in the scrum framework. These core roles are those co
     <p/>
 
     One of the ways the *scrum master* role differs from a *project manager* is that the latter may have people management responsibilities and the *scrum master* does not. Scrum does not formally recognise the role of *project manager*, as traditional command and control tendencies would cause difficulties.
+
+	[What is a scrum master?](/docs/What_is_a_scrum_master.pdf)
 
 ## Workflow
 

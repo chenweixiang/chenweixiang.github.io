@@ -181,13 +181,11 @@ Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.htm
 
 Refer to <a href="{{ site.base-url }}/2016/03/13/telecom-itu-recommendations.html#imt-2020-5g">IMT-2020 (5G)</a> for ITU-R Recommendations.
 
-### Projects
-
-#### Horizon 2020
+### Horizon 2020
 
 Refer to [Horizon 2020](https://ec.europa.eu/programmes/horizon2020/en).
 
-#### IMT-2020 (5G) Promotion Group
+### IMT-2020 (5G) Promotion Group
 
 In February 2013, three ministries of China - that's, the Ministry of Industry and Information Technology (MIIT, 中国工业和信息化部), the National Development and Reform Commission (NDRC, 国家发展和改革委员会) and the Ministry of Science and Technology (MOST, 科学技术部) - jointly established [**IMT-2020 (5G) Promotion group**](http://www.imt-2020.cn/) based on the original IMT-Advanced promotion group. It is the major platform to promote the research of 5G in China. Its members include the leading operators, vendors, universities, and research institutes in the field of mobile communications.
 
@@ -199,7 +197,7 @@ In February 2013, three ministries of China - that's, the Ministry of Industry a
 * 5G网络技术架构白皮书
 * 5G网络架构设计白皮书
 
-#### FuTURE Forum
+### FuTURE Forum
 
 Refer to [FuTURE Forum](www.future-forum.org/)
 

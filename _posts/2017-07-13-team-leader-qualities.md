@@ -101,3 +101,5 @@ Team leaders utilize negotiation skills to achieve results and reach an understa
 * [What Is a Team Leader: Description, Role & Responsibilities](http://study.com/academy/lesson/what-is-a-team-leader-description-role-responsibilities.html)
 * [Team Leader on wikipedia](https://en.wikipedia.org/wiki/Team_leader)
 * [The 10 Effective Qualities of a Team Leader](http://smallbusiness.chron.com/10-effective-qualities-team-leader-23281.html)
+* [优秀领导者的基本特征](/docs/Basic_Quality_of_Great_Leader.jpg)
+

@@ -21,6 +21,8 @@ toc: true
 4. 短暂休息5分钟。
 5. 每四个x，休息15-30分钟。
 
+[Pomodoro Way of Working](/docs/Pomodoro_WoW.vsdx):
+
 ![番茄工作法流程](/assets/pomodoro-technique-procedure.png)
 
 # 原理

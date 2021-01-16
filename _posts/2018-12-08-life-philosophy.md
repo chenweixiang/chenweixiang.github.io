@@ -23,4 +23,6 @@ This article records the perfect articles I'm reading.
 
 * [不懂跟进，工作等于白做](/docs/follow_up_your_work.pdf)
 
+* [充电](/docs/Personal_Growth.pdf)
+
 # References

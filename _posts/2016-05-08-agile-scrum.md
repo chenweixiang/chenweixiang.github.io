@@ -225,7 +225,12 @@ SAFe synchronizes alignment, collaboration, and delivery for large numbers of Ag
 
 * [Agile Alliance](https://www.agilealliance.org/)
 * [Agile Software Development wikipedia](https://en.wikipedia.org/wiki/Agile_software_development)
+* [Thinking in Agile](/docs/Thinking_in_Agile.pdf)
+
 * [Scrum wikipedia](http://en.wikipedia.org/wiki/Scrum_(software_development))
 * [Scrum](https://www.scrum.org/)
+* [Scrum Cheat Sheet](/docs/Scrum_Cheat_Sheet.pdf)
 
 * [SAFe Scaled Agile](http://www.scaledagileframework.com/)
+* [SAFe Implementation Roadmap](/docs/SAFe_Implementation_Roadmap.pdf)
+

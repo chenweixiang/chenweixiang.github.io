@@ -22,7 +22,13 @@ This article records the perfect articles I'm reading.
 * [最全的儿童编程软件介绍及汇总](/docs/computer_software_for_child.pdf)
 
 * [不懂跟进，工作等于白做](/docs/follow_up_your_work.pdf)
+* [什么叫工作到位.pdf](/docs/Life_Philosophy_001.pdf)
 
 * [充电](/docs/Personal_Growth.pdf)
+* [改变成长困境必备的7种能力](/docs/Life_Philosophy_002.pdf)
 
-# References
+* [你是谁不重要，you are what you behave](/docs/Life_Philosophy_003.pdf)
+* [顶级猎头公司CEO为你揭秘：4个层次的表现决定你在面试中是否脱颖而出](/docs/Life_Philosophy_004.pdf)
+* [高手遇事的处理方法](/docs/Life_Philosophy_005.pdf)
+* [会提问让你的人生到底有多赚](/docs/Life_Philosophy_006.pdf)
+

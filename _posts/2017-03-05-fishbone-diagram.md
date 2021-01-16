@@ -71,5 +71,6 @@ toc: true
 # References
 
 * [鱼骨图分析法](http://wiki.mbalib.com/wiki/%E9%B1%BC%E9%AA%A8%E5%9B%BE)
+* [鱼骨图分析法](/docs/Fishbone_Diagram.ppt)
 * [石川图](https://zh.wikipedia.org/wiki/%E7%9F%B3%E5%B7%9D%E5%9B%BE)
 * [如何绘制XMind的拿手好戏—鱼骨图](http://www.xmindchina.net/jiqiao/xmind-huizhi-yugutu.html)

@@ -27,6 +27,55 @@ Please refer to following articles for detail information about layers of Linux 
 * <a href="{{ site.base-url }}/2015/12/20/linux-series-06-shell.html">Linux Series #6: Shell</a>
 * <a href="{{ site.base-url }}/2015/12/20/linux-series-07-linux-distributions.html">Linux Series #7: Linux Distributions</a>
 
+# Linux Modules Framework
+
+## Serial
+
+![Serial](/assets/01_01_Serial.png)
+
+![Serial](/assets/01_02_Serial.jpeg)
+
+## Input
+
+![Input](/assets/02_01_Input.jpeg)
+
+## I2C
+
+![I2C](/assets/03_01_I2C.png)
+
+![I2C](/assets/03_02_I2C.jpeg)
+
+## USB
+
+![USB](/assets/04_01_USB.jpeg)
+
+![USB](/assets/04_02_USB.jpeg)
+
+## Video
+
+![Video](/assets/05_01_Video.png)
+
+![Video](/assets/05_02_Video.jpeg)
+
+## Audio
+
+![Audio](/assets/06_01_Audio.png)
+
+![Audio](/assets/06_02_Audio.jpeg)
+
+## Block
+
+
+![Block](/assets/07_01_Block.png)
+
+## MTD
+
+![MTD](/assets/08_01_MTD.png)
+
+![MTD](/assets/08_02_MTD.png)
+
+![MTD](/assets/08_03_MTD.jpeg)
+
 # Articles
 
 * [From Unix to GitHub](/docs/From_Unix_to_GitHub.pdf)

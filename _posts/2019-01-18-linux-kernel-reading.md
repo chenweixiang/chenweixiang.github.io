@@ -74115,6 +74115,8 @@ struct kobj_type {
 };
 ```
 
+![kobjects](/assets/kobjects.jpg)
+
 ### 15.7.1 创建并初始化kobject对象
 
 #### 15.7.1.1 kobject_init_and_add()
@@ -82941,3 +82943,10 @@ SECTIONS {
 * [Linux Kernel Next Branch Repository](https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/)
 * [LWN.net](https://lwn.net/)
 * [Linux Kernel Newbies](https://kernelnewbies.org/)
+* [Hugepage in Linux](/docs/Hugepage_in_Linux.pdf)
+* [An Implementation Of Multiprocessor Linux](/docs/An_Implementation_Of_Multiprocessor_Linux.pdf)
+* [Linux Device Drivers](/docs/Linux_Device_Drivers.pdf)
+* [Linux Security Modules](/docs/Linux_Security_Modules.pdf)
+* [Operating System Specification](/docs/Operating_System_Specification.pdf)
+* [Uniting Mobile Linux Application Platforms](/docs/Uniting_Mobile_Linux_Application_Platforms.pdf)
+

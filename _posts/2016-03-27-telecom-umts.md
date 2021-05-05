@@ -701,6 +701,10 @@ NOTE: The physical channels in **R7** are the same with that in **R6**.
 
 The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
 
+![3GPP_R7_FDD_Channel_Mapping](/assets/3GPP_R7_FDD_Channel_Mapping.png)
+
+![3GPP_R7_Coding_and_Multiplexing](/assets/3GPP_R7_Coding_and_Multiplexing.png)
+
 ## R8 Channels
 
 ### UMTS Channels
@@ -786,6 +790,8 @@ NOTE: The physical channels in **R8** are the same with that in **R7**.
 #### Channel Mapping
 
 The following figure shows the channel mapping of **logical channels**, **transport channels** and **physical channels**:
+
+![3GPP_R8_FDD_Channel_Mapping](/assets/3GPP_R8_FDD_Channel_Mapping.png)
 
 # User Equipment (UE)
 

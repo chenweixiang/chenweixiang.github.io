@@ -1,3 +1,4 @@
 _site
 _drafts
 .sass-cache
+.jekyll-cache

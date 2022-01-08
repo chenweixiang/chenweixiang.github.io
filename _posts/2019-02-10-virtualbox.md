@@ -113,6 +113,7 @@ C:\Program Files\Oracle VM VirtualBox> VboxManage modifyhd "C:\Users\chenwx\Virt
 
 * [Resizing VirtualBox and Linux Partitions with GParted](/docs/Resizing_VirtualBox_and_Linux_Partitions_with_GParted.pdf)
 * [Expanding a Linux disk with GParted (and getting swap out of the way)](/docs/Expanding_a_Linux_disk_with_GParted.pdf)
+* [Increase VirtualBox Disk Size](/docs/Increase_VirtualBox_Disk_Size.pdf)
 
 ## Fixing the "No Space left on disk" Error
 

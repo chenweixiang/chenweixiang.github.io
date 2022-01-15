@@ -1655,6 +1655,7 @@ Also refer to [LTE Resources by Sandesh Dhagle](http://dhagle.in/LTE).
 # NB-IoT
 
 * [A Primer on 3GPP NB-IoT](/docs/A_Primer_on_3GPP_NB-IoT.pdf)
+* [NB-IoT Introduction](/docs/NB-IoT_Introduction.pdf)
 
 NB-IoT is a new 3GPP radio-access technology in the sense that it is not fully backward compatible with existing 3GPP devices.
 

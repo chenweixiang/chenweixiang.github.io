@@ -1663,6 +1663,9 @@ The normative phase of NB-IoT work item in 3GPP started in September 2015 and th
 
 # RF Performance
 
+* TS36.101: Evolved Universal Terrestrial Radio Access (E-UTRA); User Equipment (UE) radio transmission and reception
+* TS36.141: Evolved Universal Terrestrial Radio Access (E-UTRA); Base Station (BS) conformance testing
+
 ### Signal-to-Noise Ratio (SNR)
 
 According to [Signal-to-Noise Ratio (SNR)](https://en.wikipedia.org/wiki/Signal-to-noise_ratio), SNR is a measure used in science and engineering that compares the level of a desired signal to the level of background noise. SNR is defined as the ratio of signal power to the noise power, often expressed in decibels. A ratio higher than 1:1 (greater than 0 dB) indicates more signal than noise.

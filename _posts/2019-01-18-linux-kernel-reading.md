@@ -5,7 +5,7 @@ tag: Linux
 toc: true
 ---
 
-This article records my reading of Linux kernel based on Linux v3.2.
+This article records my reading of Linux kernel based on Linux **v3.2**.
 
 <!--more-->
 
@@ -782,7 +782,7 @@ $ scripts/checkpatch.pl --terse --file <file>
 # unix2dos <file>
 ```
 
-在内核源码根目录下执行下列命令会在DocBook/目录下生成不同格式的文档：
+在内核源码根目录下执行下列命令会在DocBook/目录下生成不同格式的文档，也可以查看在线文档[The Linux Kernel documentation](https://docs.kernel.org/)。
 
 ```
 /*

@@ -61238,7 +61238,7 @@ endif
 mounts-$(CONFIG_BLK_DEV_INITRD)	+= do_mounts_initrd.o
 ```
 
-可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见[11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n]节和[11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y](#11-3-3-2-2-config-blk-dev-initrd-y)节。
+可知，Initramfs的编译与配置选项CONFIG_BLK_DEV_INITRD的取值有关，参见[11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n](#11-3-3-2-1-config-blk-dev-initrd-n)节和[11.3.3.2.2 CONFIG_BLK_DEV_INITRD=y](#11-3-3-2-2-config-blk-dev-initrd-y)节。
 
 ##### 11.3.3.2.1 CONFIG_BLK_DEV_INITRD=n
 

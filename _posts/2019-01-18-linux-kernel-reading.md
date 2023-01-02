@@ -54112,7 +54112,7 @@ struct file_system_type {
 #define FS_REQUIRES_DEV        1      /* 任何文件系统必须位于物理磁盘设备上 */
 #define FS_BINARY_MOUNTDATA    2      /* 文件系统使用二进制安装数据 */
 #define FS_HAS_SUBTYPE         4      /* 参见[11.2.2.4.1.2.1.1 get_fs_type()]节 */
-#define FS_REVAL_DOT	       16384  /* Check the paths ".", ".." for staleness */
+#define FS_REVAL_DOT           16384  /* Check the paths ".", ".." for staleness */
 #define FS_RENAME_DOES_D_MOVE  32768  /* FS will handle d_move() during rename() internally. */
 ```
 
@@ -54167,7 +54167,7 @@ file_systems单链表，参见:
 
 ###### 11.2.1.1.2.1 通过/proc/filesystems查看
 
-通过下列命令显示在链表file_systems中注册的文件系统：
+通过下列命令显示在链表file_systems中注册的文件系统，参见[11.3.4.4.3 /proc/filesystems](#11-3-4-4-3-proc-filesystems)节：
 
 ```
 /*
@@ -61841,6 +61841,41 @@ script
 end script
 ```
 
+##### 11.3.4.4.3 /proc/filesystems
+
+/proc/filesystems是通过proc_filesystems_init()创建的，其定义于fs/filesystems.c:
+
+```
+#ifdef CONFIG_PROC_FS
+
+static int filesystems_proc_show(struct seq_file *m, void *v)
+{
+  struct file_system_type * tmp;
+
+  read_lock(&file_systems_lock);
+  tmp = file_systems;
+  while (tmp) {
+    seq_printf(m, "%s\t%s\n",
+      (tmp->fs_flags & FS_REQUIRES_DEV) ? "" : "nodev",
+      tmp->name);
+    tmp = tmp->next;
+  }
+  read_unlock(&file_systems_lock);
+  return 0;
+}
+
+static int __init proc_filesystems_init(void)
+{
+  proc_create_single("filesystems", 0, NULL, filesystems_proc_show);
+  return 0;
+}
+
+// 参见[13.5.1 module_init()/module_exit()]节
+module_init(proc_filesystems_init);
+
+#endif
+```
+
 #### 11.3.4.5 与proc文件系统有关的数据结构
 
 ##### 11.3.4.5.1 struct proc_dir_entry
@@ -68972,7 +69007,7 @@ __attribute__((section(".gnu.linkonce.this_module"))) = {
 	/*
 	 * 函数init_module和cleanup_module参见下列章节：
 	 * [13.5.0 init_module()/cleanup_module()]节和
-	 * ]13.5.1 module_init()/module_exit()]节
+	 * [13.5.1 module_init()/module_exit()]节
 	 */
 	.init = init_module,
 #ifdef CONFIG_MODULE_UNLOAD

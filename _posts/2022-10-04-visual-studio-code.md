@@ -103,6 +103,14 @@ Host <Linux-Server-Name>
 
 7th, it is no need to input password anymore when VSCode on Windows connecting to the Linux server.
 
+# Fix Ctrl+Shift+F doesn't work issue
+
+与微软拼音输入法的简繁切换快捷键冲突，取消微软拼音输入法的简繁切换快捷键即可:
+
+Win键 > 设置 > 时间和语言 > 语言 > 首选语言: 中文 > 选项 > 键盘: 微软拼音 > 选项 > 按键 > 快捷键: 简体/繁体中文输入切换
+
+![vscode-12](/assets/vscode_12.png)
+
 # Extensions
 
 * Drawio

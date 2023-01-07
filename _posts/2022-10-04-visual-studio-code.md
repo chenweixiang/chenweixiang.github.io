@@ -67,6 +67,42 @@ Search in workspace:
 * Select keywords in current file, then ```Ctrl + Shift + F```
 * Select keywords in current file, then select ```Find All References``` in right-click menu
 
+# Sort Order in Open Editors
+
+![vscode-09](/assets/vscode_09.png)
+
+# VSCode Remote-SSH from Windows to Linux Server
+
+1st, generate ```id_isa_<XXX>``` and ```id_isa_<XXX>.pub``` on Windows by executing the following commands in MobaXterm:
+
+```
+ssh-keygen -t rsa
+```
+
+2nd, copy the files ```id_isa_<XXX>``` and ```id_isa_<XXX>.pub``` to the folder ```C:\User\<Your-Account-on-Windows>\.ssh\``` on Windows.
+
+3rd, change properties of the file ```id_isa_<XXX>``` on Windows. That's, keep your accout only in ```Group or user names``` field:
+
+![vscode-10](/assets/vscode_10.png)
+
+4th, copy content of the file ```id_isa_<XXX>.pub``` from Windows to the file ```/home/<Your-Account-on-Linux-Server>/.ssh/authorized_keys``` on Linux server.
+
+5th, install VSCode extension ```Remote-SSH``` on Windows.
+
+6th, add VSCode SSH configuration file ```C:\User\<Your-Account-on-Windows>\.ssh\config``` on Windows:
+
+```
+Host <Linux-Server-Name>
+  HostName <Linux-Server-IP>
+  User <Your-Account-on-Linux-Server>
+  PreferredAuthentications publickey
+  IdentityFile "C:\User\<Your-Account-on-Windows>\.ssh\id_rsa_XXX"
+```
+
+![vscode-11](/assets/vscode_11.png)
+
+7th, it is no need to input password anymore when VSCode on Windows connecting to the Linux server.
+
 # Extensions
 
 * Drawio

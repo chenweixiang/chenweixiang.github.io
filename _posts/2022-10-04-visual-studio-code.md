@@ -101,7 +101,11 @@ Host <Linux-Server-Name>
 
 ![vscode-11](/assets/vscode_11.png)
 
-7th, it is no need to input password anymore when VSCode on Windows connecting to the Linux server.
+7th, to move the folder ```remote.SSH.serverInstallPath``` on a larger disk on Linux server, set it in VSCode settings ```remote.SSH.serverInstallPath``` on Windows:
+
+![vscode-13](/assets/vscode_13.png)
+
+8th, it is no need to input password anymore when VSCode on Windows connecting to the Linux server.
 
 # Fix Ctrl+Shift+F doesn't work issue
 

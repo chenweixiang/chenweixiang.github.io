@@ -67,11 +67,9 @@ Search in workspace:
 * Select keywords in current file, then ```Ctrl + Shift + F```
 * Select keywords in current file, then select ```Find All References``` in right-click menu
 
-# Sort Order in Open Editors
+# VSCode Remote-SSH
 
-![vscode-09](/assets/vscode_09.png)
-
-# VSCode Remote-SSH from Windows to Linux Server
+VSCode Remote-SSH from Windows to Linux Server:
 
 1st, generate ```id_isa_<XXX>``` and ```id_isa_<XXX>.pub``` on Windows by executing the following commands in MobaXterm:
 
@@ -106,6 +104,14 @@ Host <Linux-Server-Name>
 ![vscode-13](/assets/vscode_13.png)
 
 8th, it is no need to input password anymore when VSCode on Windows connecting to the Linux server.
+
+# Open Editors: Sort Order
+
+![vscode-09](/assets/vscode_09.png)
+
+# Remote-explorer: Folder Sort Order
+
+![vscode-14](/assets/vscode_14.png)
 
 # Fix Ctrl+Shift+F doesn't work issue
 

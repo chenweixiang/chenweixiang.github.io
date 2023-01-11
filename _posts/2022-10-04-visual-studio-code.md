@@ -121,6 +121,16 @@ Win键 > 设置 > 时间和语言 > 语言 > 首选语言: 中文 > 选项 > 键
 
 ![vscode-12](/assets/vscode_12.png)
 
+# Turn on Rulers
+
+![vscode-15](/assets/vscode_15.png)
+
+# Upload and download files
+
+![vscode-16](/assets/vscode_16.png)
+
+![vscode-17](/assets/vscode_17.png)
+
 # Extensions
 
 * Drawio

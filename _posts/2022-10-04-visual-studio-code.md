@@ -67,6 +67,10 @@ Search in workspace:
 * Select keywords in current file, then ```Ctrl + Shift + F```
 * Select keywords in current file, then select ```Find All References``` in right-click menu
 
+# Seach: Exclude
+
+![vscode-20](/assets/vscode_20.png)
+
 # VSCode Remote-SSH
 
 VSCode Remote-SSH from Windows to Linux Server:
@@ -130,6 +134,12 @@ Win键 > 设置 > 时间和语言 > 语言 > 首选语言: 中文 > 选项 > 键
 ![vscode-16](/assets/vscode_16.png)
 
 ![vscode-17](/assets/vscode_17.png)
+
+# Window: Title
+
+![vscode-18](/assets/vscode_18.png)
+
+![vscode-19](/assets/vscode_19.png)
 
 # Extensions
 

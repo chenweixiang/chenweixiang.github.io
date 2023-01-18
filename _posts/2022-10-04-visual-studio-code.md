@@ -117,13 +117,23 @@ Host <Linux-Server-Name>
 
 ![vscode-14](/assets/vscode_14.png)
 
-# Fix Ctrl+Shift+F doesn't work issue
+# Fix Ctrl+Shift+F not work issue
 
 与微软拼音输入法的简繁切换快捷键冲突，取消微软拼音输入法的简繁切换快捷键即可:
 
 Win键 > 设置 > 时间和语言 > 语言 > 首选语言: 中文 > 选项 > 键盘: 微软拼音 > 选项 > 按键 > 快捷键: 简体/繁体中文输入切换
 
 ![vscode-12](/assets/vscode_12.png)
+
+# Fix Go to Definition not work issue
+
+Install extension **C/C++** to SSH remote:
+
+![vscode-21](/assets/vscode_21.png)
+
+Then, the **Go to Definition** can be used:
+
+![vscode-22](/assets/vscode_22.png)
 
 # Turn on Rulers
 
@@ -143,8 +153,14 @@ Win键 > 设置 > 时间和语言 > 语言 > 首选语言: 中文 > 选项 > 键
 
 # Extensions
 
+* C/C++
+* Remote Development
+* GitLens
+
 * Drawio
 * Markdown All in One
+
+![vscode-23](/assets/vscode_23.png)
 
 # References
 

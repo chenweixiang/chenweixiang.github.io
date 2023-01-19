@@ -151,6 +151,24 @@ Then, the **Go to Definition** can be used:
 
 ![vscode-19](/assets/vscode_19.png)
 
+# Terminal: Hide Tabs
+
+![vscode-24](/assets/vscode_24.png)
+
+![vscode-25](/assets/vscode_25.png)
+
+# Terminal: Right Click Behavior
+
+1st. Press ```ctrl+,```
+
+2nd. Search ```right click```
+
+3rd. Set ```Right Click Behavior``` to ```default```
+
+![vscode-26](/assets/vscode_26.png)
+
+![vscode-27](/assets/vscode_27.png)
+
 # Extensions
 
 * C/C++

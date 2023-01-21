@@ -15,6 +15,14 @@ Right click on ```Menu Bar``` and select ```Command Center``` to enable it:
 
 ![vscode-01](/assets/vscode_01.png)
 
+# Open User Settings (JSON)
+
+Press ```Ctrl + Shift + P```, then input ```Open User Settings (JSON)```, and open the JSON settings:
+
+![vscode-28](/assets/vscode_28.png)
+
+![vscode-29](/assets/vscode_29.png)
+
 # Export / Import Settings Profiles
 
 In ```Command Center```, input ```> export``` and select ```Settings Profiles: Export...``` to export current settings to specified file:
@@ -116,6 +124,12 @@ Host <Linux-Server-Name>
 # Remote-explorer: Folder Sort Order
 
 ![vscode-14](/assets/vscode_14.png)
+
+# Symbol order in Breadcrumbs
+
+![vscode-30](/assets/vscode_30.png)
+
+![vscode-31](/assets/vscode_31.png)
 
 # Fix Ctrl+Shift+F not work issue
 

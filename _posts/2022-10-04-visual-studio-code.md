@@ -194,6 +194,30 @@ Then, the **Go to Definition** can be used:
 
 ![vscode-23](/assets/vscode_23.png)
 
+## GitLens
+
+### SOURCE CONTROL
+
+![vscode-32](/assets/vscode_32.png)
+
+### COMMIT
+
+Open View Settings:
+
+![vscode-33](/assets/vscode_33.png)
+
+User author avatars:
+
+![vscode-34](/assets/vscode_34.png)
+
+Abbreviated Sha Length:
+
+![vscode-35](/assets/vscode_35.png)
+
+### SEARCH & COMPARE
+
+![vscode-36](/assets/vscode_36.png)
+
 # References
 
 * [Visual Studio Code](https://code.visualstudio.com/)

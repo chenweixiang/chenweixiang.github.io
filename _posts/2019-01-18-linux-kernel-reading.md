@@ -368,6 +368,51 @@ Fetching linux-stable
 Fetching linux-next
 ```
 
+### 1.2.6 Create new volume with case-sensitive APFS on MacOS
+
+After clone linux repo on MacOS, the workspace is not clean:
+
+```
+chenwx@MacbookAir linux % gst
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+	modified:   include/uapi/linux/netfilter/xt_RATEEST.h
+	modified:   include/uapi/linux/netfilter/xt_connmark.h
+	modified:   include/uapi/linux/netfilter/xt_dscp.h
+	modified:   include/uapi/linux/netfilter/xt_mark.h
+	modified:   include/uapi/linux/netfilter/xt_tcpmss.h
+	modified:   include/uapi/linux/netfilter_ipv4/ipt_ecn.h
+	modified:   include/uapi/linux/netfilter_ipv4/ipt_ttl.h
+	modified:   include/uapi/linux/netfilter_ipv6/ip6t_HL.h
+	modified:   net/netfilter/xt_DSCP.c
+	modified:   net/netfilter/xt_HL.c
+	modified:   net/netfilter/xt_RATEEST.c
+	modified:   net/netfilter/xt_tcpmss.c
+	modified:   tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus
+```
+
+That's because the volume on MacOS is case-insensitive APFS by default.
+
+In order to fix the issue, need to create a new volume on MacOS with case-sensitive APFS to contain the repos:
+
+[Create_volume_with_case_sensitive_APFS](/assets/Create_volume_with_case_sensitive_APFS.png)
+
+Then, clone repos in the new volume ```/Volumes/repo/```:
+
+```
+chenwx@MacbookAir blog % ll /Volumes/repo 
+total 0
+drwxr-xr-x  19 chenwx  staff   608B 2023-02-28 23:30:30 blog
+drwxr-xr-x  42 chenwx  staff   1.3K 2023-03-14 22:39:38 linux
+drwxr-xr-x@ 33 chenwx  staff   1.0K 2022-10-24 22:51:52 scripts
+drwxr-xr-x   5 chenwx  staff   160B 2023-03-13 21:49:21 tMap
+```
+
 ## 1.3 Linux Kernel Mailing lists
 
 订阅和取消订阅邮件列表

@@ -396,11 +396,11 @@ Changes not staged for commit:
 	modified:   tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus
 ```
 
-That's because the volume on MacOS is case-insensitive APFS by default.
+That's because the volume on MacOS is **case-insensitive APFS** by default.
 
-In order to fix the issue, need to create a new volume on MacOS with case-sensitive APFS to contain the repos:
+In order to fix the issue, need to create a new volume on MacOS with **case-sensitive APFS** to contain the repos:
 
-[Create_volume_with_case_sensitive_APFS](/assets/Create_volume_with_case_sensitive_APFS.png)
+![Create_volume_with_case_sensitive_APFS](/assets/Create_volume_with_case_sensitive_APFS.png)
 
 Then, clone repos in the new volume ```/Volumes/repo/```:
 

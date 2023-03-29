@@ -183,6 +183,16 @@ Then, the **Go to Definition** can be used:
 
 ![vscode-27](/assets/vscode_27.png)
 
+# Explorer: Disable Auto Reveal
+
+Disable Auto Reveal on Explorer:
+
+![vscode-37](/assets/vscode_37.png)
+
+You can reveal the opened file in Explorer View by:
+
+![vscode-38](/assets/vscode_38.png)
+
 # Extensions
 
 * C/C++

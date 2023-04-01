@@ -198,9 +198,7 @@ You can reveal the opened file in Explorer View by:
 * C/C++
 * Remote Development
 * GitLens
-
-* Drawio
-* Markdown All in One
+* PlantUML
 
 ![vscode-23](/assets/vscode_23.png)
 
@@ -227,6 +225,11 @@ Abbreviated Sha Length:
 ### SEARCH & COMPARE
 
 ![vscode-36](/assets/vscode_36.png)
+
+## PlantUML
+
+* [PlantUML](https://plantuml.com/en)
+* [PlantUML Language Reference Guide](https://plantuml.com/en/guide)
 
 # References
 

@@ -193,6 +193,22 @@ You can reveal the opened file in Explorer View by:
 
 ![vscode-38](/assets/vscode_38.png)
 
+# Trim Tailing Whitespace
+
+![vscode-39](/assets/vscode_39.png)
+
+# Bracket Pairs
+
+![vscode-40](/assets/vscode_40.png)
+
+# Workspace
+
+![vscode-41](/assets/vscode_41.png)
+
+Add Folder to Workspace...
+
+Save Workspace As...
+
 # Extensions
 
 * C/C++

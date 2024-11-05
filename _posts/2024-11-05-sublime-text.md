@@ -15,9 +15,7 @@ Preferences.sublime-settings
 
 ```
 {
-	"color_scheme": "Sixteen.sublime-color-scheme",
-	"light_color_scheme": "Celeste.sublime-color-scheme",
-	"dark_color_scheme": "Celeste.sublime-color-scheme",
+	"color_scheme": "GitHub Light.sublime-color-scheme",
 	"font_size": 10,
 	"line_numbers": true,
 	"tab_size": 4,
@@ -27,14 +25,16 @@ Preferences.sublime-settings
 	"highlight_line": true,
 	"highlight_line_number": true,
 	// "find_selected_text": true,
-	"theme": "Default.sublime-theme",
+	"theme": "GitHub Light.sublime-theme",
 	"file_tab_style": "rounded",
 	"highlight_modified_tabs": true,
+	"enable_tab_scrolling": false,
 	"show_encoding": true,
 	"hot_exit": "disabled",
 	"open_files_in_new_window": "always",
 	"show_full_path": true,
 	"index_files": false,
+	"ignored_packages": ["Vintage",],
 }
 ```
 

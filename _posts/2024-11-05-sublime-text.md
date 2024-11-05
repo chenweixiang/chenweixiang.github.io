@@ -52,6 +52,33 @@ Preferences > Select Theme... > GitHub Light
 
 Preferences > Select Color Scheme... > GitHub Light
 
+# Install Chain of Command
+
+Preferences > Package Control > Install Package > Chain of Command
+
+Preferences > Key Bindings
+
+```
+[
+    {
+        "keys": ["alt+f"],
+        "command": "chain",
+        "args": {
+            "commands": [
+                ["show_panel", {
+                    "panel": "find_in_files",
+                    "where": "<current file>",
+                }],
+            ]
+        }
+    }
+]
+```
+
+Select "Use Buffer" to show results in a new tab "Find Results".
+
+Unselect "Use Buffer" to show results in the tab below current file.
+
 # References
 
 * [Sublime Text](https://www.sublimetext.com/)

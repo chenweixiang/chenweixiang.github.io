@@ -16,6 +16,7 @@ Preferences.sublime-settings
 ```
 {
 	"color_scheme": "GitHub Light.sublime-color-scheme",
+	"font_face": "Consolas",
 	"font_size": 10,
 	"line_numbers": true,
 	"tab_size": 4,
@@ -34,7 +35,7 @@ Preferences.sublime-settings
 	"open_files_in_new_window": "always",
 	"show_full_path": true,
 	"index_files": false,
-	"ignored_packages": ["Vintage",],
+	"ignored_packages": ["Vintage"],
 }
 ```
 

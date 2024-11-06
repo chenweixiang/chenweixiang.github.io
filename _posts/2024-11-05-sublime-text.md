@@ -56,6 +56,7 @@ Select ```Use Buffer``` to show results in a new tab ```Find Results```.
 
 ```
 {
+	"color_scheme": "Mariana.sublime-color-scheme",
 	"font_size": 10,
 	"line_numbers": true,
 	"tab_size": 4,
@@ -65,6 +66,7 @@ Select ```Use Buffer``` to show results in a new tab ```Find Results```.
 	"highlight_line": true,
 	"highlight_line_number": true,
 	// "find_selected_text": true,
+	"theme": "Default.sublime-theme",
 	"file_tab_style": "rounded",
 	"highlight_modified_tabs": true,
 	"enable_tab_scrolling": false,

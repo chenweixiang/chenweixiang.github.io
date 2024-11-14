@@ -27,12 +27,12 @@ Restart Sublime Text.
 
 ```Preferences``` > ```Package Control``` > Input ```Install Package``` > Input ```Chain of Command```
 
-```Preferences``` > ```Key Bindings``` > Input the following settings:
+```Preferences``` > ```Key Bindings``` > Input the following settings to bing key ```ctrl+f```:
 
 ```
 [
     {
-        "keys": ["alt+f"],
+        "keys": ["ctrl+f"],
         "command": "chain",
         "args": {
             "commands": [

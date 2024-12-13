@@ -65,9 +65,10 @@ Select ```Use Buffer``` to show results in a new tab ```Find Results```.
 	"auto_match_enabled": true,
 	"highlight_line": true,
 	"highlight_line_number": true,
-	// "find_selected_text": true,
+	"find_in_files_max_file_size": 0,  // Use 0 to remove this limit
 	"theme": "Default.sublime-theme",
-	"file_tab_style": "rounded",
+	"file_tab_style": "angled",
+	"scroll_speed": 0,  // Set to 0 to disable smooth scrolling
 	"highlight_modified_tabs": true,
 	"enable_tab_scrolling": false,
 	"show_encoding": true,

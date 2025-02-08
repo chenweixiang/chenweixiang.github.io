@@ -17,6 +17,7 @@ This article introduce the Amplifiers.
 * [**Amplifiers Introduction**](https://www.electronics-tutorials.ws/amplifier/amp_1.html)
 * **Amplifier Classes and the Classification of Amplifiers**: [online](https://www.electronics-tutorials.ws/amplifier/amplifier-classes.html), [pdf](/docs/Amplifier_Classes_and_Classification_of_Amplifiers.pdf)
 * PA非线性失真: [online](https://zhuanlan.zhihu.com/p/461837181), [pdf](/docs/What_is_non_linearization_in_PA.pdf)
+* 功率放大器PA：[pdf](/docs/Power_Amplifiers_PA.pdf)
 
 # References
 

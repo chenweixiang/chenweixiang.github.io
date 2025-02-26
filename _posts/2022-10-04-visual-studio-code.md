@@ -197,6 +197,16 @@ You can reveal the opened file in Explorer View by:
 
 ![vscode-39](/assets/vscode_39.png)
 
+# Cannot set native locale, reverting to English
+
+The following trace shown when executing "git commit --amend"
+
+```
+Cannot set native locale, reverting to English
+```
+
+Set "terminal.integrated.detectLocale" to "off" to fix the issue.
+
 # Bracket Pairs
 
 ![vscode-40](/assets/vscode_40.png)

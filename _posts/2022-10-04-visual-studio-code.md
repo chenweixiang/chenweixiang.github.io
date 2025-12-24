@@ -219,6 +219,13 @@ Add Folder to Workspace...
 
 Save Workspace As...
 
+# Don't detect submodules
+
+1. Settings (Ctrl + ,)
+2. Search "Detect Submodules"
+3. Unselect "Git > Detect Submodules"
+4. Then, submodules will not be shown in "SOURCE CONTRL > BRANCHES"
+
 # Extensions
 
 * C/C++
